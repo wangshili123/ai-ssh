@@ -24,6 +24,7 @@
     "xterm-addon-web-links": "^0.9.0"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.14",
     "@types/node": "^20.4.2",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
