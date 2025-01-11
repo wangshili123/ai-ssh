@@ -1,4 +1,4 @@
-1.按照PROGRESS.md 完成功能开发
+1.读取AI-SSH-TOOL-SPEC.md 了解项目情况，按照PROGRESS.md 完成功能开发
 2.每完成一个功能，执行npm start，我确认没问题后，请在PROGRESS.md 中标记为完成，但不要改变PROGRESS.md 中的内容
 3.再继续下一个功能开发
 
