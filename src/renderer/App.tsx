@@ -1,123 +1,87 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Layout } from 'antd';
-import Toolbar from './components/Toolbar';
+import { Resizable } from 're-resizable';
 import SessionList from './components/SessionList';
 import TerminalTabs from './components/TerminalTabs';
 import AIAssistant from './components/AIAssistant';
-import type { ResizableProps } from 're-resizable';
-import { Resizable } from 're-resizable';
+import type { SessionInfo } from '../main/services/storage';
 import './App.css';
 
 const { Sider, Content } = Layout;
 
-type ResizeCallback = (
-  e: MouseEvent | TouchEvent,
-  direction: string,
-  ref: HTMLElement,
-  d: {
-    width: number;
-    height: number;
-  }
-) => void;
-
 const App: React.FC = () => {
-  const [activeSession, setActiveSession] = useState<string>();
-  const [siderWidth, setSiderWidth] = useState(300);
-  const [aiHeight, setAiHeight] = useState(300);
+  const [activeSession, setActiveSession] = useState<SessionInfo>();
+  const [sidebarWidth, setSidebarWidth] = useState(300);
+  const [aiAssistantHeight, setAIAssistantHeight] = useState(200);
 
-  const handleSessionSelect = (sessionId: string) => {
-    setActiveSession(sessionId);
-  };
+  // 处理会话选择
+  const handleSessionSelect = useCallback((session: SessionInfo) => {
+    setActiveSession(session);
+  }, []);
 
-  const handleNewSession = () => {
-    // TODO: 实现新建会话
-  };
+  // 处理会话保存
+  const handleSessionSave = useCallback(() => {
+    // 实现会话保存逻辑
+  }, []);
 
-  const handleSave = () => {
-    // TODO: 实现保存配置
-  };
+  // 处理会话重新加载
+  const handleSessionReload = useCallback(() => {
+    // 实现会话重新加载逻辑
+  }, []);
 
-  const handleReload = () => {
-    // TODO: 实现刷新
-  };
+  // 处理会话导入
+  const handleSessionImport = useCallback(() => {
+    // 实现会话导入逻辑
+  }, []);
 
-  const handleImport = () => {
-    // TODO: 实现导入配置
-  };
+  // 处理会话导出
+  const handleSessionExport = useCallback(() => {
+    // 实现会话导出逻辑
+  }, []);
 
-  const handleExport = () => {
-    // TODO: 实现导出配置
-  };
-
-  const handleSettings = () => {
-    // TODO: 实现设置
-  };
-
-  const handleSiderResize: ResizeCallback = (e, direction, ref, d) => {
-    setSiderWidth(siderWidth + d.width);
-  };
-
-  const handleAIResize: ResizeCallback = (e, direction, ref, d) => {
-    setAiHeight(aiHeight + d.height);
-  };
+  // 处理设置
+  const handleSettings = useCallback(() => {
+    // 实现设置逻辑
+  }, []);
 
   return (
-    <Layout style={{ height: '100vh' }}>
-      <Toolbar
-        onNewSession={handleNewSession}
-        onSave={handleSave}
-        onReload={handleReload}
-        onImport={handleImport}
-        onExport={handleExport}
-        onSettings={handleSettings}
-      />
+    <Layout className="app-container">
+      <Resizable
+        size={{ width: sidebarWidth, height: '100%' }}
+        onResizeStop={(e, direction, ref, d) => {
+          setSidebarWidth(sidebarWidth + d.width);
+        }}
+        minWidth={200}
+        maxWidth={600}
+        enable={{ right: true }}
+      >
+        <Sider width={sidebarWidth} className="app-sider">
+          <SessionList
+            onSelect={handleSessionSelect}
+            onSave={handleSessionSave}
+            onReload={handleSessionReload}
+            onImport={handleSessionImport}
+            onExport={handleSessionExport}
+            onSettings={handleSettings}
+          />
+        </Sider>
+      </Resizable>
       <Layout>
-        <Resizable
-          enable={{ right: true }}
-          size={{ width: siderWidth, height: '100%' }}
-          minWidth={200}
-          maxWidth={600}
-          onResizeStop={handleSiderResize}
-        >
-          <Sider width={siderWidth} theme="light" style={{ 
-            borderRight: '1px solid #f0f0f0',
-            height: '100%',
-            overflow: 'auto'
-          }}>
-            <SessionList
-              activeSession={activeSession}
-              onSessionSelect={handleSessionSelect}
-            />
-          </Sider>
-        </Resizable>
-        <Content style={{ 
-          display: 'flex', 
-          flexDirection: 'column',
-          position: 'relative',
-          padding: '0 1px'
-        }}>
-          <div style={{ 
-            flex: 1,
-            position: 'relative',
-            minHeight: 0,
-            backgroundColor: '#000000'
-          }}>
-            <TerminalTabs />
+        <Content className="app-content">
+          <div className="terminal-container">
+            <TerminalTabs sessionInfo={activeSession} />
           </div>
           <Resizable
-            enable={{ top: true }}
-            size={{ height: aiHeight, width: '100%' }}
+            size={{ height: aiAssistantHeight, width: '100%' }}
+            onResizeStop={(e, direction, ref, d) => {
+              setAIAssistantHeight(aiAssistantHeight + d.height);
+            }}
             minHeight={100}
             maxHeight={500}
-            onResizeStop={handleAIResize}
+            enable={{ top: true }}
           >
-            <div style={{ 
-              height: '100%',
-              backgroundColor: '#ffffff',
-              borderTop: '1px solid #f0f0f0',
-              overflow: 'auto'
-            }}>
-              <AIAssistant sessionId={activeSession} />
+            <div className="ai-assistant-container" style={{ height: aiAssistantHeight }}>
+              <AIAssistant />
             </div>
           </Resizable>
         </Content>

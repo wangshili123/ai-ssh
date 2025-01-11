@@ -13,12 +13,14 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "@types/ssh2": "^1.15.3",
     "@types/xterm": "^2.0.3",
     "antd": "^4.24.12",
     "electron": "^25.3.1",
     "re-resizable": "^6.10.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "ssh2": "^1.16.0",
     "xterm": "^5.3.0",
     "xterm-addon-fit": "^0.8.0",
     "xterm-addon-search": "^0.13.0",

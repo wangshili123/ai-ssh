@@ -1,0 +1,62 @@
+.split-pane-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e1e1e;
+}
+
+.split-pane-toolbar {
+  padding: 4px;
+  display: flex;
+  gap: 4px;
+  background-color: #2d2d2d;
+  border-bottom: 1px solid #333;
+}
+
+.split-pane-toolbar .ant-btn {
+  color: #ccc;
+  border-color: #444;
+  background-color: transparent;
+}
+
+.split-pane-toolbar .ant-btn:hover {
+  color: #fff;
+  border-color: #555;
+  background-color: #3d3d3d;
+}
+
+.split-pane-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.split-pane-content.horizontal {
+  flex-direction: row;
+}
+
+.split-pane-content.vertical {
+  flex-direction: column;
+}
+
+.split-pane {
+  flex: 1;
+  position: relative;
+  border: 1px solid #333;
+}
+
+.split-pane .close-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  color: #ccc;
+  background-color: rgba(45, 45, 45, 0.8);
+  border: none;
+  padding: 2px 8px;
+  z-index: 1;
+}
+
+.split-pane .close-button:hover {
+  color: #fff;
+  background-color: rgba(61, 61, 61, 0.8);
+} 

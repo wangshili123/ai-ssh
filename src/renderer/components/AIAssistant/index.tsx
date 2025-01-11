@@ -15,9 +15,10 @@ interface Message {
 
 interface AIAssistantProps {
   sessionId?: string;
+  height?: number;
 }
 
-const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId }) => {
+const AIAssistant: React.FC<AIAssistantProps> = ({ sessionId, height }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);

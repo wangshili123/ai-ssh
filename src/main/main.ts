@@ -1,6 +1,16 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
 import { registerStorageHandlers } from './ipc/storage';
+import { initSSHHandlers } from './ipc/ssh';
+import { sshService } from './services/ssh';
+
+// 注册所有IPC处理器
+function registerIPCHandlers() {
+  console.log('Registering IPC handlers...');
+  registerStorageHandlers();
+  initSSHHandlers();
+  console.log('IPC handlers registered.');
+}
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -20,11 +30,16 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
-  // 注册所有IPC处理器
-  registerStorageHandlers();
-  
+// 初始化应用
+function initialize() {
+  console.log('Initializing application...');
+  registerIPCHandlers();
   createWindow();
+  console.log('Application initialized.');
+}
+
+app.whenReady().then(() => {
+  initialize();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

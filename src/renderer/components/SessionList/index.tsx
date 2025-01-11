@@ -11,11 +11,22 @@ const { Title } = Typography;
 const { Search } = Input;
 
 interface SessionListProps {
-  activeSession?: string;
-  onSessionSelect?: (sessionId: string) => void;
+  onSelect?: (session: SessionInfo) => void;
+  onSave?: () => void;
+  onReload?: () => void;
+  onImport?: () => void;
+  onExport?: () => void;
+  onSettings?: () => void;
 }
 
-const SessionList: React.FC<SessionListProps> = ({ activeSession, onSessionSelect }) => {
+const SessionList: React.FC<SessionListProps> = ({
+  onSelect,
+  onSave,
+  onReload,
+  onImport,
+  onExport,
+  onSettings
+}) => {
   // 状态管理
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [groups, setGroups] = useState<GroupInfo[]>([]);
@@ -302,11 +313,14 @@ const SessionList: React.FC<SessionListProps> = ({ activeSession, onSessionSelec
     return result;
   }, [sessions, groups, searchText]);
 
-  // 处理树节点选择
-  const handleTreeSelect = (selectedKeys: React.Key[]) => {
+  // 处理会话选择
+  const handleSelect = (selectedKeys: React.Key[]) => {
     const sessionId = selectedKeys[0]?.toString();
     if (sessionId && sessionId !== 'ungrouped' && !groups.find(g => g.id === sessionId)) {
-      onSessionSelect?.(sessionId);
+      const session = sessions.find(s => s.id === sessionId);
+      if (session) {
+        onSelect?.(session);
+      }
     }
   };
 
@@ -527,7 +541,7 @@ const SessionList: React.FC<SessionListProps> = ({ activeSession, onSessionSelec
           showIcon
           icon={({ expanded }: { expanded?: boolean }) => expanded ? <FolderOpenOutlined /> : <FolderOutlined />}
           draggable
-          onSelect={handleTreeSelect}
+          onSelect={handleSelect}
           onDrop={handleTreeDrop}
           expandedKeys={groups.filter(g => g.expanded).map(g => g.id)}
           onExpand={(expandedKeys) => {
