@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Layout } from 'antd';
 import Toolbar from './components/Toolbar';
 import SessionList from './components/SessionList';
-import Terminal from './components/Terminal';
+import TerminalTabs from './components/TerminalTabs';
 import AIAssistant from './components/AIAssistant';
 import type { ResizableProps } from 're-resizable';
 import { Resizable } from 're-resizable';
@@ -102,7 +102,7 @@ const App: React.FC = () => {
             minHeight: 0,
             backgroundColor: '#000000'
           }}>
-            <Terminal sessionId={activeSession} />
+            <TerminalTabs />
           </div>
           <Resizable
             enable={{ top: true }}

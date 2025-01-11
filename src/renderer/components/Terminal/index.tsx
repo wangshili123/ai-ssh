@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { SearchAddon } from 'xterm-addon-search';
 import { Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
-import { CopyOutlined, SearchOutlined, ReloadOutlined, SettingOutlined } from '@ant-design/icons';
+import { CopyOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import 'xterm/css/xterm.css';
 import './index.css';
 
@@ -28,6 +28,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, config }) => {
   const xtermRef = useRef<XTerm>();
   const searchAddonRef = useRef<SearchAddon>();
   const fitAddonRef = useRef<FitAddon>();
+  const [isReady, setIsReady] = useState(false);
 
   // 复制选中的文本
   const handleCopy = useCallback(() => {
@@ -47,7 +48,6 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, config }) => {
 
   // 重新加载终端
   const handleReload = useCallback(() => {
-    // TODO: 实现终端重新加载
     xtermRef.current?.clear();
     if (sessionId) {
       xtermRef.current?.writeln('重新连接到会话: ' + sessionId);
@@ -81,7 +81,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, config }) => {
 
   // 初始化终端
   const initTerminal = useCallback(() => {
-    if (!terminalRef.current) return;
+    if (!terminalRef.current || !isReady) return;
 
     try {
       // 初始化 xterm
@@ -116,7 +116,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, config }) => {
       xterm.loadAddon(searchAddon);
 
       // 调整大小
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         if (fitAddonRef.current) {
           try {
             fitAddonRef.current.fit();
@@ -124,11 +124,10 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, config }) => {
             console.error('终端大小调整失败:', error);
           }
         }
-      }, 0);
+      });
 
       // 如果有会话ID，连接到SSH
       if (sessionId) {
-        // TODO: 实现SSH连接
         xterm.writeln('连接到会话: ' + sessionId);
       } else {
         xterm.writeln('欢迎使用 AI SSH Tool!');
@@ -154,8 +153,18 @@ const Terminal: React.FC<TerminalProps> = ({ sessionId, config }) => {
     } catch (error) {
       console.error('终端初始化失败:', error);
     }
-  }, [sessionId, config]);
+  }, [sessionId, config, isReady]);
 
+  // 等待DOM准备就绪
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 初始化终端
   useEffect(() => {
     const cleanup = initTerminal();
     return () => {

@@ -1,0 +1,71 @@
+.terminal-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e1e1e;
+}
+
+.terminal-tabs .ant-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal-tabs .ant-tabs-content-holder {
+  flex: 1;
+  height: 100%;
+}
+
+.terminal-tabs .ant-tabs-content {
+  height: 100%;
+}
+
+.terminal-tabs .ant-tabs-tabpane {
+  height: 100%;
+}
+
+/* 标签页样式 */
+.terminal-tabs .ant-tabs-nav {
+  margin: 0 !important;
+  background-color: #1e1e1e;
+  border-bottom: 1px solid #333;
+}
+
+.terminal-tabs .ant-tabs-tab {
+  background: transparent !important;
+  border: none !important;
+  color: #ccc !important;
+  padding: 8px 16px !important;
+}
+
+.terminal-tabs .ant-tabs-tab-active {
+  background: #2d2d2d !important;
+}
+
+.terminal-tabs .ant-tabs-tab-btn {
+  color: #ccc !important;
+}
+
+.terminal-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #fff !important;
+}
+
+/* 新增标签按钮样式 */
+.terminal-tabs .ant-tabs-nav-add {
+  color: #ccc !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 8px 16px !important;
+}
+
+.terminal-tabs .ant-tabs-nav-add:hover {
+  color: #fff !important;
+  background: #2d2d2d !important;
+}
+
+/* 终端容器样式 */
+.terminal-tabs .terminal-container {
+  height: 100%;
+  width: 100%;
+  position: relative;
+} 
