@@ -1,0 +1,34 @@
+.terminal-container {
+  height: 100%;
+  background-color: #1e1e1e;
+  padding: 8px;
+}
+
+.terminal {
+  height: 100%;
+  width: 100%;
+}
+
+.terminal .xterm {
+  height: 100%;
+  padding: 8px;
+}
+
+/* 自定义滚动条样式 */
+.terminal ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.terminal ::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.terminal ::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 4px;
+}
+
+.terminal ::-webkit-scrollbar-thumb:hover {
+  background: #888;
+} 

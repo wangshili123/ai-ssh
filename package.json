@@ -1,0 +1,41 @@
+{
+  "name": "ai-ssh-tool",
+  "version": "1.0.0",
+  "description": "An AI-powered SSH client",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "start": "concurrently \"npm run start:renderer\" \"cross-env NODE_ENV=development npm run start:main\"",
+    "start:main": "tsc -p tsconfig.main.json && electron .",
+    "start:renderer": "webpack serve --config webpack.dev.js",
+    "build": "npm run build:main && npm run build:renderer",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "webpack --config webpack.prod.js",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "@types/xterm": "^2.0.3",
+    "antd": "^4.24.12",
+    "electron": "^25.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0",
+    "xterm-addon-web-links": "^0.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.4.2",
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "concurrently": "^8.2.0",
+    "cross-env": "^7.0.3",
+    "css-loader": "^6.8.1",
+    "electron-builder": "^24.4.0",
+    "html-webpack-plugin": "^5.5.3",
+    "style-loader": "^3.3.3",
+    "ts-loader": "^9.4.4",
+    "typescript": "^5.1.6",
+    "webpack": "^5.88.1",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1"
+  }
+}
