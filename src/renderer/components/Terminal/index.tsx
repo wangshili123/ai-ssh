@@ -106,6 +106,10 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config }) => {
           // 监听用户输入
           terminal.onData((data) => {
             if (isConnected) {
+              // 避免发送多余的回车换行
+              if (data === '\r') {
+                data = '\r\n';
+              }
               console.log('Terminal sending data:', data);
               sshService.write(sessionInfo.id, data).catch(console.error);
             }

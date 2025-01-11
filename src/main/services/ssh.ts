@@ -104,9 +104,6 @@ class SSHService {
           mainWindow.webContents.send(`ssh:close:${sessionId}`);
           this.shells.delete(sessionId);
         });
-
-        // 发送初始提示符
-        stream.write('\r\n');
         
         resolve();
       });
