@@ -1,0 +1,231 @@
+@require '../../css/includes/theme-default'
+.tabs
+  position relative
+  height 36px
+  overflow hidden
+  background main-dark
+  z-index 12
+  ::-webkit-scrollbar
+    width 0
+    display none
+.not-system-ui.is-mac .layout-item.v1 .tabs-inner
+  margin-left 42px
+.not-system-ui.is-mac.not-webapp .layout-item.v1
+  .tabs-inner
+    margin-left 72px
+.not-system-ui.is-mac.not-webapp.pinned .layout-item.v1
+  .tabs-inner
+    margin-left 0
+.not-system-ui.not-mac.not-webapp
+  .tabs-extra
+    right 96px
+.tabs-inner
+  position relative
+  z-index 2
+  padding 0
+  margin-top 0
+  display inline-block
+  height 36px
+  overflow-x scroll
+  overflow-y hidden
+
+.tabs-wrapper
+  z-index 3
+.tab
+  display inline-block
+  vertical-align middle
+  cursor pointer
+  position relative
+  min-width 100px
+  max-width 200px
+  line-height 36px
+  margin 0 1px 0 0
+  border-radius 3px 3px 0 0
+  background main-dark
+  text-align center
+  color text-dark
+  &.tab-last
+    margin-right 5px
+  .tab-reload
+  .tab-close
+    display none
+  &.active
+    color text
+    background main
+  &:hover
+    .tab-close
+      display block
+  &.dragover-tab::after
+    position absolute
+    content ''
+    left -2px
+    top 0
+    width 1px
+    border 1px dashed text-dark
+    height 36px
+  &.error
+    .tab-reload
+      display inline-block
+      color text-light
+@keyframes blink
+  0%
+    opacity 0.3
+  50%
+    opacity 1
+  100%
+    opacity 0.3
+
+.tab-terminal-feed
+.tab-traffic
+.tab-status
+  position absolute
+  left 2px
+  top 2px
+  width 5px
+  height 5px
+  border-radius 5px
+  background-color text-dark
+  &.success
+    background-color success
+  &.error
+    background-color error
+  &.processing
+    background-color primary
+.is-transporting .tab-traffic
+  display block
+  animation blink 2s infinite
+.tab-traffic
+  display none
+  left 10px
+  width 5px
+  border-radius 0
+  background-color success
+.is-terminal-active .tab-terminal-feed
+  display block
+  animation blink 2s infinite
+.tab-terminal-feed
+  display none
+  left 20px
+  border-radius 0
+  color success
+  background none
+  font-size 8px
+  left 2px
+  top 24px
+.tab-close
+  position absolute
+  right 5px
+  cursor pointer
+  top 50%
+  margin-top -8px
+  background text-dark
+  border-radius 100%
+  color text
+  height 16px
+  width 16px
+  text-align center
+  line-height 16px
+  font-size 10px
+  &:hover
+    color text-light
+
+.tabs-add-btn
+  display inline-block
+  vertical-align middle
+  margin 0 3px 0 3px
+  color text
+  &.empty
+    font-size 20px
+    margin-left 20px
+    margin-top 10px
+  &:hover
+    color text-light
+.tabs-extra
+  position absolute
+  height 40px
+  top 0
+  right 0
+  line-height 40px
+  z-index 20
+
+  .tabs-dd-icon
+    color text
+    font-size 12px
+  .tabs-add-btn
+    margin-top 0
+
+.window-controls
+  position absolute
+  right 0
+  top 0
+  z-index 900
+  border-radius 0 0 3px 3px
+  padding 0
+  background main-light
+
+.window-control-box
+  display inline-block
+  padding 5px 10px
+  color text
+  &:hover
+    color primary
+    cursor pointer
+    .icon-maximize
+      border-color primary
+.icon-maximize
+  width 10px
+  height 7px
+  border 1px solid text
+  cursor pointer
+  &.is-max
+    height 6px
+    position relative
+    &:before
+      position absolute
+      content ''
+      left -3px
+      top 3px
+      width 8px
+      height 4px
+      border 1px solid text
+      border-top none
+      border-right none
+
+.control-icon:hover
+  color text-light
+.tab-scroll-icon
+  color text-dark
+  &:hover
+    color text
+
+.add-menu-wrap
+  overflow-y scroll
+.window-controls
+  .window-control-minimize
+  .window-control-maximize
+    &:hover
+      background main-dark
+  .window-control-close:hover
+    background error
+
+.system-ui
+  .window-controls
+    display none
+.tab-title-tag
+  margin-right 5px
+  font-size 14px
+.no-sessions
+  background main-dark
+  text-align center
+  padding 50px 0
+  position absolute
+  top 36px
+  left 0
+  right 0
+  bottom 0
+  z-index 11
+.tab-count
+  border-radius 10px 2px 2px 2px
+  padding 0 4px
+  height 20px
+  line-height 21px

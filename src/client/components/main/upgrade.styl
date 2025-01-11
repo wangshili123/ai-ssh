@@ -1,0 +1,28 @@
+@require '../../css/includes/theme-default'
+.upgrade-panel
+  position fixed
+  right 10px
+  bottom 10px
+  z-index 9999
+  background main
+  color text
+  border-radius 5px
+  border 1px solid darken(main, 30%)
+  padding 0
+  width 440px
+.upgrade-panel-hide
+  left -600px
+  top 400px
+  right auto
+  bottom auto
+.close-upgrade-panel
+  &:hover
+    color success
+.upgrade-panel-title
+.upgrade-panel-body
+  padding 10px 15px
+.upgrade-panel-title
+  border-bottom 1px solid darken(main, 30%)
+.markdown-wrap
+  max-height 40vh
+  overflow-y auto

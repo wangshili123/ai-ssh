@@ -1,0 +1,32 @@
+@require '../../css/includes/theme-default'
+.qm-list-wrap
+  max-height calc(100vh - 100px)
+  overflow-y scroll
+.qm-wrap-tooltip
+  background main
+  position absolute
+  left 43px
+  right 0
+  color text
+  z-index 89
+  height auto
+  bottom 36px
+
+.qm-pinned
+  .qm-wrap-tooltip
+    height 180px
+  .qm-list-wrap
+    max-height 100px
+
+.fil-keyword
+.fil-label
+  .qm-item
+    opacity .4
+  .qm-item
+    &.name-match
+    &.label-match
+      font-weight bold
+      opacity 1
+@media (max-width: 500px)
+  .qm-search-input
+    width 100px

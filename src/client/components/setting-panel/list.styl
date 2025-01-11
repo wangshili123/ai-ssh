@@ -1,0 +1,39 @@
+@require '../../css/includes/theme-default'
+.item-list-wrap
+  overflow-y scroll
+  &::-webkit-scrollbar
+    width 0
+.list-item-edit
+.list-item-apply
+.list-item-remove
+  display none
+  width 24px
+  line-height 35px
+  text-align center
+  position absolute
+  right 0
+  top 0
+.list-item-title
+  flex-grow: 1
+.item-list-unit
+  display flex
+  position relative
+  margin-bottom 1px
+  cursor pointer
+  line-height 1.8
+  &.active
+    background primary
+    color contrastColor(primary)
+  &.current
+    font-weight bold
+  &:hover
+    background darken(primary, 30%)
+    color contrastColor(darken(primary, 30%))
+    .list-item-apply
+    .list-item-edit
+    .list-item-remove
+      display block
+.item-list
+  .list-item-edit
+  .list-item-apply
+    right 20px
