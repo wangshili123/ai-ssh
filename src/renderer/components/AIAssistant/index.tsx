@@ -58,18 +58,26 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       timestamp: Date.now()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    // 创建一个临时的 AI 回复消息
+    const tempAiMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      type: 'assistant',
+      content: '思考中...',
+      timestamp: Date.now()
+    };
+
+    setMessages(prev => [...prev, userMessage, tempAiMessage]);
     setLoading(true);
+    scrollToBottom();
 
     try {
       // 调用 AI 服务转换命令
       const command = await aiService.convertToCommand(input);
       
+      // 更新 AI 回复消息
       const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'assistant',
+        ...tempAiMessage,
         content: command.description,
-        timestamp: Date.now(),
         command
       };
       
@@ -78,13 +86,21 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       setInput('');
       setHistoryIndex(-1);
 
-      setMessages(prev => [...prev, aiMessage]);
+      // 更新消息列表，替换临时消息
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempAiMessage.id ? aiMessage : msg
+      ));
       
     } catch (error) {
+      // 更新临时消息为错误信息
+      setMessages(prev => prev.map(msg =>
+        msg.id === tempAiMessage.id
+          ? { ...msg, content: '生成命令失败，请重试' }
+          : msg
+      ));
       message.error('生成命令失败，请重试');
     } finally {
       setLoading(false);
-      // 滚动到底部
       scrollToBottom();
     }
   };
@@ -105,8 +121,8 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
 
   // 处理按键事件
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Ctrl+Enter 发送消息
-    if (e.ctrlKey && e.key === 'Enter') {
+    // 回车发送消息（非 Shift+Enter）
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
       return;
@@ -264,7 +280,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="输入内容，按 Ctrl+Enter 发送"
+          placeholder="输入内容，按回车发送，Shift+Enter 换行"
           autoSize={{ minRows: 2, maxRows: 6 }}
           disabled={loading}
         />
