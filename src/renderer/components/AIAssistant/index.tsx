@@ -1,4 +1,4 @@
-import React, { useState, useRef, KeyboardEvent } from 'react';
+import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
 import { Input, Button, message, Alert, Space, Tag } from 'antd';
 import { SendOutlined, CopyOutlined, UserOutlined, RobotOutlined, ExclamationCircleOutlined, CheckCircleOutlined, CodeOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
@@ -68,7 +68,6 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
 
     setMessages(prev => [...prev, userMessage, tempAiMessage]);
     setLoading(true);
-    scrollToBottom();
 
     try {
       // 调用 AI 服务转换命令
@@ -101,14 +100,26 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       message.error('生成命令失败，请重试');
     } finally {
       setLoading(false);
-      scrollToBottom();
     }
   };
 
   // 滚动到底部
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // 使用 setTimeout 确保在内容渲染后滚动
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'end'
+        });
+      }
+    }, 100);
   };
+
+  // 监听消息列表变化，自动滚动
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // 复制消息内容
   const copyMessage = (content: string) => {
