@@ -132,7 +132,8 @@ const AIConfigComponent: React.FC<AIConfigComponentProps> = ({
         <Form.Item
           name="baseURL"
           label="API 基础URL"
-          tooltip="如果需要使用自定义的 API 地址，请填写"
+          tooltip="API服务地址，例如：https://api.openai.com/v1"
+          rules={[{ required: true, message: '请输入API基础URL' }]}
         >
           <Input placeholder="https://api.openai.com/v1" />
         </Form.Item>

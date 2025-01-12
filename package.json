@@ -17,6 +17,8 @@
     "@types/xterm": "^2.0.3",
     "antd": "^4.24.12",
     "electron": "^25.3.1",
+    "node-fetch": "^2.7.0",
+    "openai": "^4.78.1",
     "re-resizable": "^6.10.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

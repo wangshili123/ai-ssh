@@ -1,6 +1,22 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron';
 import * as path from 'path';
 import { registerAllHandlers } from './ipc';
+
+// 创建菜单
+function createMenu() {
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: '视图',
+      submenu: [
+        { role: 'reload', label: '刷新' },
+        { role: 'forceReload', label: '强制刷新' },
+        { role: 'toggleDevTools', label: '开发者工具' }
+      ]
+    }
+  ];
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
 
 // 创建主窗口
 function createWindow() {
@@ -10,14 +26,21 @@ function createWindow() {
     height: 800,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      devTools: true
     }
   });
+
+  // 立即打开开发者工具
+  if (process.env.NODE_ENV === 'development') {
+    setTimeout(() => {
+      mainWindow.webContents.openDevTools({ mode: 'right' });
+    }, 1000);
+  }
 
   if (process.env.NODE_ENV === 'development') {
     console.log('加载开发环境 URL...');
     mainWindow.loadURL('http://localhost:3000');
-    mainWindow.webContents.openDevTools();
   } else {
     console.log('加载生产环境文件...');
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
@@ -25,14 +48,28 @@ function createWindow() {
 
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('窗口内容加载完成');
+    // 确保开发者工具打开
+    if (process.env.NODE_ENV === 'development') {
+      if (!mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.openDevTools({ mode: 'right' });
+      }
+    }
   });
 }
 
 // 初始化应用
 function initialize() {
   console.log('初始化应用...');
+  // 设置开发者工具选项
+  app.commandLine.appendSwitch('remote-debugging-port', '9222');
+  app.commandLine.appendSwitch('auto-open-devtools-for-tabs');
+  
+  // 创建菜单
+  createMenu();
+  
   // 注册所有 IPC 处理程序
   registerAllHandlers();
+  
   // 创建窗口
   createWindow();
   console.log('应用初始化完成');

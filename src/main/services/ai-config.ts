@@ -2,6 +2,7 @@ import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import fetch from 'node-fetch';
 
 // AI配置接口
 export interface AIConfig {
@@ -10,19 +11,23 @@ export interface AIConfig {
   temperature: number;
   maxTokens?: number;
   proxy?: string;
-  baseURL?: string;
+  baseURL: string;
 }
 
 // 默认配置
 const DEFAULT_CONFIG: AIConfig = {
   apiKey: '',
   model: 'gpt-3.5-turbo',
-  temperature: 0.7
+  temperature: 0.7,
+  baseURL: ''
 };
 
 // 加密密钥，实际应用中应该使用更安全的方式存储
 const ENCRYPTION_KEY = 'your-secret-key-32-chars-long!!!';
 const IV_LENGTH = 16;
+
+// 测试请求超时时间（毫秒）
+const TEST_TIMEOUT = 5000;
 
 export class AIConfigService {
   private configPath: string;
@@ -112,8 +117,48 @@ export class AIConfigService {
   async testConfig(config: AIConfig): Promise<boolean> {
     console.log('测试配置:', config);
     try {
-      // 这里实现与OpenAI API的测试连接
-      // 可以尝试发送一个简单的请求来验证配置是否正确
+      if (!config.baseURL) {
+        console.error('API URL不能为空');
+        return false;
+      }
+
+      const url = `${config.baseURL}/chat/completions`;
+
+      // 创建一个带超时的Promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('请求超时')), TEST_TIMEOUT);
+      });
+
+      // 创建API请求Promise
+      const fetchPromise = fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': config.apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [
+            { role: 'user', content: 'Hello' }
+          ],
+          temperature: config.temperature,
+          max_tokens: config.maxTokens || 50
+        })
+      });
+
+      // 使用Promise.race来实现超时控制
+      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API测试失败:', errorText);
+        return false;
+      }
+
+      // 打印响应内容
+      const responseData = await response.json();
+      console.log('API测试响应:', JSON.stringify(responseData, null, 2));
+
       return true;
     } catch (error) {
       console.error('测试AI配置失败:', error);
