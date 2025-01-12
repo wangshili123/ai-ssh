@@ -3,6 +3,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import fetch from 'node-fetch';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { HttpProxyAgent } from 'http-proxy-agent';
+import * as https from 'https';
 
 // AI配置接口
 export interface AIConfig {
@@ -123,14 +126,7 @@ export class AIConfigService {
       }
 
       const url = `${config.baseURL}/chat/completions`;
-
-      // 创建一个带超时的Promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('请求超时')), TEST_TIMEOUT);
-      });
-
-      // 创建API请求Promise
-      const fetchPromise = fetch(url, {
+      const requestOptions: any = {
         method: 'POST',
         headers: {
           'Authorization': config.apiKey,
@@ -143,11 +139,37 @@ export class AIConfigService {
           ],
           temperature: config.temperature,
           max_tokens: config.maxTokens || 50
+        }),
+        // 禁用证书验证
+        agent: new https.Agent({
+          rejectUnauthorized: false
         })
+      };
+
+      // 如果设置了代理，添加代理配置
+      if (config.proxy) {
+        console.log('使用代理:', config.proxy);
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // 禁用证书验证
+        const isHttps = url.startsWith('https://');
+        const ProxyAgent = isHttps ? HttpsProxyAgent : HttpProxyAgent;
+        requestOptions.agent = new ProxyAgent(config.proxy);
+      }
+
+      // 创建一个带超时的Promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('请求超时')), TEST_TIMEOUT);
       });
+
+      // 创建API请求Promise
+      const fetchPromise = fetch(url, requestOptions);
 
       // 使用Promise.race来实现超时控制
       const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
+      
+      console.log('HTTP状态码:', response.status);
+      console.log('请求URL:', url);
+      console.log('请求头:', requestOptions.headers);
+      console.log('请求体:', requestOptions.body);
 
       if (!response.ok) {
         const errorText = await response.text();
