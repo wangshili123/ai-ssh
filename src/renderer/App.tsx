@@ -92,7 +92,7 @@ const App: React.FC = () => {
             enable={{ top: true }}
           >
             <div className="ai-assistant-container" style={{ height: aiAssistantHeight }}>
-              <AIAssistant />
+              <AIAssistant sessionId={activeSession?.id} />
             </div>
           </Resizable>
         </Content>

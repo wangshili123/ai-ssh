@@ -5,9 +5,14 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { aiService, CommandSuggestion } from '../../services/ai';
+import { sshService } from '../../services/ssh';
 import './style.css';
 
 const { TextArea } = Input;
+
+interface AIAssistantProps {
+  sessionId?: string;
+}
 
 interface Message {
   id: string;
@@ -17,7 +22,7 @@ interface Message {
   command?: CommandSuggestion;
 }
 
-const AIAssistant: React.FC = () => {
+const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
   const [input, setInput] = useState('');
   const [inputHistory, setInputHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -25,6 +30,22 @@ const AIAssistant: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<any>(null);
+
+  // 执行命令
+  const executeCommand = async (command: string) => {
+    if (!sessionId) {
+      message.warning('请先连接到 SSH 会话');
+      return;
+    }
+
+    try {
+      // 添加换行符确保命令执行
+      await sshService.write(sessionId, command + '\n');
+      message.success('命令已发送');
+    } catch (error) {
+      message.error('执行命令失败：' + (error as Error).message);
+    }
+  };
 
   // 处理发送消息
   const handleSend = async () => {
@@ -130,12 +151,22 @@ const AIAssistant: React.FC = () => {
                 {command.risk === 'low' ? '安全' : command.risk === 'medium' ? '警告' : '危险'}
               </Tag>
             </Space>
-            <Button
-              type="text"
-              icon={<CopyOutlined />}
-              onClick={() => copyMessage(command.command)}
-              className="copy-button"
-            />
+            <Space>
+              <Button
+                type="text"
+                icon={<CopyOutlined />}
+                onClick={() => copyMessage(command.command)}
+                className="copy-button"
+              />
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => executeCommand(command.command)}
+                disabled={!sessionId}
+              >
+                运行
+              </Button>
+            </Space>
           </div>
           {command.example && (
             <div className="command-example">
