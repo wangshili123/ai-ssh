@@ -6,6 +6,7 @@ import { SearchAddon } from 'xterm-addon-search';
 import { Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { sshService } from '../../services/ssh';
+import { eventBus } from '../../services/eventBus';
 import type { SessionInfo } from '../../../main/services/storage';
 import 'xterm/css/xterm.css';
 import './index.css';
@@ -102,6 +103,8 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
         );
 
         setIsConnected(true);
+        shellIdRef.current = shellId;
+        eventBus.setCurrentShellId(shellId);
 
         // 处理终端输入
         terminal.onData((data) => {

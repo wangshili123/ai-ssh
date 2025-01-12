@@ -6,6 +6,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { aiService, CommandSuggestion } from '../../services/ai';
 import { sshService } from '../../services/ssh';
+import { eventBus } from '../../services/eventBus';
 import './style.css';
 
 const { TextArea } = Input;
@@ -33,14 +34,15 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
 
   // 执行命令
   const executeCommand = async (command: string) => {
-    if (!sessionId) {
+    const shellId = eventBus.getCurrentShellId();
+    if (!shellId) {
       message.warning('请先连接到 SSH 会话');
       return;
     }
 
     try {
       // 添加换行符确保命令执行
-      await sshService.write(sessionId, command + '\n');
+      await sshService.write(shellId, command + '\n');
       message.success('命令已发送');
     } catch (error) {
       message.error('执行命令失败：' + (error as Error).message);
