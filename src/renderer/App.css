@@ -20,6 +20,16 @@
   border-right: 1px solid #f0f0f0;
   height: 100%;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+  display: flex;
+  gap: 8px;
 }
 
 .app-content {

@@ -1,18 +1,10 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
-import { registerStorageHandlers } from './ipc/storage';
-import { initSSHHandlers } from './ipc/ssh';
-import { sshService } from './services/ssh';
+import { registerAllHandlers } from './ipc';
 
-// 注册所有IPC处理器
-function registerIPCHandlers() {
-  console.log('Registering IPC handlers...');
-  registerStorageHandlers();
-  initSSHHandlers();
-  console.log('IPC handlers registered.');
-}
-
+// 创建主窗口
 function createWindow() {
+  console.log('创建主窗口...');
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -23,19 +15,27 @@ function createWindow() {
   });
 
   if (process.env.NODE_ENV === 'development') {
+    console.log('加载开发环境 URL...');
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
+    console.log('加载生产环境文件...');
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('窗口内容加载完成');
+  });
 }
 
 // 初始化应用
 function initialize() {
-  console.log('Initializing application...');
-  registerIPCHandlers();
+  console.log('初始化应用...');
+  // 注册所有 IPC 处理程序
+  registerAllHandlers();
+  // 创建窗口
   createWindow();
-  console.log('Application initialized.');
+  console.log('应用初始化完成');
 }
 
 app.whenReady().then(() => {

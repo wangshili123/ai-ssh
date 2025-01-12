@@ -1,0 +1,47 @@
+.ai-config-card {
+  max-width: 600px;
+  margin: 20px auto;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.ai-config-card .ant-card-head {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+}
+
+.ai-config-card .ant-card-head-title {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.ai-config-card .ant-card-body {
+  padding: 24px;
+}
+
+.ai-config-card .ant-form-item-label {
+  font-weight: 500;
+}
+
+.ai-config-card .ant-input-number {
+  width: 100%;
+}
+
+.ai-config-card .ant-space {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.ai-config-card .ant-form-item-extra {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.ai-config-card .ant-tooltip {
+  max-width: 300px;
+}
+
+.ai-config-card .ant-form-item:last-child {
+  margin-bottom: 0;
+} 

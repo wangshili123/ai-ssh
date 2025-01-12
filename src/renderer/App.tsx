@@ -1,9 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { Layout } from 'antd';
+import { Layout, Button } from 'antd';
 import { Resizable } from 're-resizable';
+import { SettingOutlined } from '@ant-design/icons';
 import SessionList from './components/SessionList';
 import TerminalTabs from './components/TerminalTabs';
 import AIAssistant from './components/AIAssistant';
+import AIConfigModal from './components/AIConfigModal';
 import type { SessionInfo } from '../main/services/storage';
 import './App.css';
 
@@ -13,6 +15,7 @@ const App: React.FC = () => {
   const [activeSession, setActiveSession] = useState<SessionInfo>();
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [aiAssistantHeight, setAIAssistantHeight] = useState(200);
+  const [configModalVisible, setConfigModalVisible] = useState(false);
 
   // 处理会话选择
   const handleSessionSelect = useCallback((session: SessionInfo) => {
@@ -56,6 +59,14 @@ const App: React.FC = () => {
         enable={{ right: true }}
       >
         <Sider width={sidebarWidth} className="app-sider">
+          <div className="toolbar">
+            <Button
+              icon={<SettingOutlined />}
+              onClick={() => setConfigModalVisible(true)}
+            >
+              模型配置
+            </Button>
+          </div>
           <SessionList
             onSelect={handleSessionSelect}
             onSave={handleSessionSave}
@@ -86,6 +97,11 @@ const App: React.FC = () => {
           </Resizable>
         </Content>
       </Layout>
+
+      <AIConfigModal
+        visible={configModalVisible}
+        onClose={() => setConfigModalVisible(false)}
+      />
     </Layout>
   );
 };
