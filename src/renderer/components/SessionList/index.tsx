@@ -196,6 +196,16 @@ const SessionList: React.FC<SessionListProps> = ({
       />
       <div className="session-actions">
         <Button
+          type="primary"
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect?.(session);
+          }}
+        >
+          连接
+        </Button>
+        <Button
           type="text"
           icon={<EditOutlined />}
           onClick={(e) => {
@@ -317,10 +327,11 @@ const SessionList: React.FC<SessionListProps> = ({
   const handleSelect = (selectedKeys: React.Key[]) => {
     const sessionId = selectedKeys[0]?.toString();
     if (sessionId && sessionId !== 'ungrouped' && !groups.find(g => g.id === sessionId)) {
-      const session = sessions.find(s => s.id === sessionId);
-      if (session) {
-        onSelect?.(session);
-      }
+      // 只选中会话，不触发连接
+      // const session = sessions.find(s => s.id === sessionId);
+      // if (session) {
+      //   onSelect?.(session);
+      // }
     }
   };
 

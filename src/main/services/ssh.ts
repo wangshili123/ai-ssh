@@ -26,6 +26,12 @@ class SSHService {
       privateKey: '***'
     });
 
+    // 如果已经有连接，直接返回
+    if (this.connections.has(id)) {
+      console.log('Reusing existing connection');
+      return;
+    }
+
     return new Promise<void>((resolve, reject) => {
       const conn = new Client();
       
@@ -37,6 +43,7 @@ class SSHService {
 
       conn.on('error', (err) => {
         console.error('SSH connection error:', err);
+        this.connections.delete(id);
         reject(err);
       });
 
@@ -57,19 +64,42 @@ class SSHService {
     });
   }
 
-  async disconnect(sessionId: string) {
-    const conn = this.connections.get(sessionId);
-    if (conn) {
-      conn.end();
-      this.connections.delete(sessionId);
-      this.shells.delete(sessionId);
+  async disconnect(shellId: string) {
+    // 从 shellId 中提取 sessionId
+    const sessionId = shellId.split('-')[0];
+    
+    // 先删除 shell
+    this.shells.delete(shellId);
+
+    // 检查是否还有其他使用这个连接的 shell
+    const hasOtherShells = Array.from(this.shells.keys()).some(id => id.startsWith(sessionId + '-'));
+
+    // 如果没有其他 shell 使用这个连接，就关闭连接
+    if (!hasOtherShells) {
+      const conn = this.connections.get(sessionId);
+      if (conn) {
+        console.log(`Closing SSH connection for session ${sessionId}`);
+        conn.end();
+        this.connections.delete(sessionId);
+      }
     }
   }
 
-  async createShell(sessionId: string) {
+  async createShell(shellId: string) {
+    // 从 shellId 中提取 sessionId
+    const sessionId = shellId.split('-')[0];
     const conn = this.connections.get(sessionId);
+    
     if (!conn) {
       throw new Error('No SSH connection found');
+    }
+
+    // 如果这个 shellId 已经存在，先关闭它
+    if (this.shells.has(shellId)) {
+      console.log(`Shell ${shellId} already exists, closing it first`);
+      const oldShell = this.shells.get(shellId);
+      oldShell.end();
+      this.shells.delete(shellId);
     }
 
     return new Promise<void>((resolve, reject) => {
@@ -80,8 +110,8 @@ class SSHService {
           return;
         }
 
-        console.log('Shell created successfully');
-        this.shells.set(sessionId, stream);
+        console.log(`Shell created successfully: ${shellId}`);
+        this.shells.set(shellId, stream);
 
         // 获取主窗口
         const mainWindow = BrowserWindow.getAllWindows()[0];
@@ -94,15 +124,22 @@ class SSHService {
         // 监听数据事件
         stream.on('data', (data: Buffer) => {
           const dataStr = data.toString();
-          console.log(`Sending shell data to renderer [${sessionId}]:`, dataStr);
-          mainWindow.webContents.send(`ssh:data:${sessionId}`, dataStr);
+          console.log(`Sending shell data to renderer [${shellId}]:`, dataStr);
+          mainWindow.webContents.send(`ssh:data:${shellId}`, dataStr);
         });
 
         // 监听关闭事件
         stream.on('close', () => {
-          console.log(`Shell session closed [${sessionId}]`);
-          mainWindow.webContents.send(`ssh:close:${sessionId}`);
-          this.shells.delete(sessionId);
+          console.log(`Shell session closed [${shellId}]`);
+          mainWindow.webContents.send(`ssh:close:${shellId}`);
+          this.shells.delete(shellId);
+        });
+
+        // 监听错误事件
+        stream.on('error', (error: Error) => {
+          console.error(`Shell error [${shellId}]:`, error);
+          mainWindow.webContents.send(`ssh:close:${shellId}`);
+          this.shells.delete(shellId);
         });
         
         resolve();
@@ -110,18 +147,18 @@ class SSHService {
     });
   }
 
-  async write(sessionId: string, data: string) {
-    console.log(`Writing to shell [${sessionId}]:`, data);
-    const shell = this.shells.get(sessionId);
+  async write(shellId: string, data: string) {
+    console.log(`Writing to shell [${shellId}]:`, data);
+    const shell = this.shells.get(shellId);
     if (!shell) {
       throw new Error('No shell session found');
     }
     shell.write(data);
   }
 
-  async resize(sessionId: string, cols: number, rows: number) {
-    console.log(`Resizing shell [${sessionId}] to ${cols}x${rows}`);
-    const shell = this.shells.get(sessionId);
+  async resize(shellId: string, cols: number, rows: number) {
+    console.log(`Resizing shell [${shellId}] to ${cols}x${rows}`);
+    const shell = this.shells.get(shellId);
     if (!shell) {
       throw new Error('No shell session found');
     }

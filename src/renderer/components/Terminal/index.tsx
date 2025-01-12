@@ -22,136 +22,136 @@ interface TerminalProps {
       selectionBackground?: string;
     };
   };
+  instanceId?: string;
 }
 
-const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config }) => {
+const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<XTerm>();
   const fitAddonRef = useRef<FitAddon>();
   const searchAddonRef = useRef<SearchAddon>();
   const [isReady, setIsReady] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const shellIdRef = useRef<string>('');
+
+  // 等待 SSH 连接就绪
+  const waitForConnection = async (sessionInfo: SessionInfo): Promise<void> => {
+    let retries = 5;
+    while (retries > 0) {
+      try {
+        await sshService.connect(sessionInfo);
+        return;
+      } catch (error) {
+        retries--;
+        if (retries === 0) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  };
 
   // 初始化终端
   const initTerminal = useCallback(async () => {
-    if (!containerRef.current || !isReady) return;
+    if (!containerRef.current || !isReady) {
+      return;
+    }
 
-    try {
-      // 创建终端实例
-      const terminal = new XTerm({
-        fontSize: config?.fontSize || 14,
-        fontFamily: config?.fontFamily || 'Consolas, monospace',
-        theme: {
-          background: config?.theme?.background || '#1e1e1e',
-          foreground: config?.theme?.foreground || '#ffffff',
-          cursor: config?.theme?.cursor || '#ffffff',
-          selectionBackground: config?.theme?.selectionBackground || 'rgba(255, 255, 255, 0.3)'
-        },
-        cursorBlink: true,
-        cursorStyle: 'block',
-        allowTransparency: true,
-        scrollback: 1000,
-        cols: 80,
-        rows: 24
-      });
-
-      // 添加插件
-      const fitAddon = new FitAddon();
-      terminal.loadAddon(fitAddon);
-      fitAddonRef.current = fitAddon;
-
-      const webLinksAddon = new WebLinksAddon();
-      terminal.loadAddon(webLinksAddon);
-
-      const searchAddon = new SearchAddon();
-      terminal.loadAddon(searchAddon);
-      searchAddonRef.current = searchAddon;
-
-      // 打开终端
-      terminal.open(containerRef.current);
-      terminalRef.current = terminal;
-
-      // 调整大小
-      fitAddon.fit();
-
-      // 如果有会话信息,尝试连接
-      if (sessionInfo) {
-        try {
-          console.log('Connecting to SSH server...');
-          await sshService.connect(sessionInfo);
-          console.log('SSH connection established');
-          setIsConnected(true);
-
-          // 创建shell并处理数据
-          console.log('Creating shell session...');
-          await sshService.createShell(
-            sessionInfo.id,
-            (data) => {
-              console.log('Terminal received data:', data);
-              terminal.write(data);
-            },
-            () => {
-              console.log('SSH connection closed');
-              setIsConnected(false);
-              terminal.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
-            }
-          );
-          console.log('Shell session created');
-
-          // 发送初始终端大小
-          const { cols, rows } = terminal;
-          console.log('Setting initial terminal size:', { cols, rows });
-          await sshService.resize(sessionInfo.id, cols, rows);
-
-          // 监听用户输入
-          terminal.onData((data) => {
-            if (isConnected) {
-              // 避免发送多余的回车换行
-              if (data === '\r') {
-                data = '\r\n';
-              }
-              console.log('Terminal sending data:', data);
-              sshService.write(sessionInfo.id, data).catch(console.error);
-            }
-          });
-
-          // 监听终端大小变化
-          terminal.onResize(({ cols, rows }) => {
-            if (isConnected) {
-              console.log('Terminal resized:', { cols, rows });
-              sshService.resize(sessionInfo.id, cols, rows).catch(console.error);
-            }
-          });
-
-        } catch (error) {
-          console.error('Failed to connect:', error);
-          terminal.write(`\r\n\x1b[31m连接失败: ${error}\x1b[0m\r\n`);
-        }
-      } else {
-        terminal.write('请选择一个会话连接...\r\n');
+    // 创建终端实例
+    const terminal = new XTerm({
+      cursorBlink: true,
+      fontSize: config?.fontSize || 14,
+      fontFamily: config?.fontFamily || 'Consolas, "Courier New", monospace',
+      theme: {
+        background: config?.theme?.background || '#000000',
+        foreground: config?.theme?.foreground || '#ffffff'
       }
+    });
 
-      // 监听窗口大小变化
-      const resizeObserver = new ResizeObserver(() => {
-        fitAddon.fit();
-        if (sessionInfo && isConnected) {
-          const { cols, rows } = terminal;
-          sshService.resize(sessionInfo.id, cols, rows).catch(console.error);
-        }
-      });
-      resizeObserver.observe(containerRef.current);
+    // 添加插件
+    const fitAddon = new FitAddon();
+    const searchAddon = new SearchAddon();
+    terminal.loadAddon(fitAddon);
+    terminal.loadAddon(searchAddon);
+    searchAddonRef.current = searchAddon;
+    fitAddonRef.current = fitAddon;
 
+    // 打开终端
+    terminal.open(containerRef.current);
+    fitAddon.fit();
+    terminalRef.current = terminal;
+
+    // 连接 SSH
+    if (sessionInfo) {
+      try {
+        // 等待连接就绪
+        await waitForConnection(sessionInfo);
+        
+        const shellId = sessionInfo.id + (instanceId ? `-${instanceId}` : '');
+        shellIdRef.current = shellId;
+
+        // 创建 shell
+        await sshService.createShell(
+          shellId,
+          (data) => {
+            terminal.write(data);
+          },
+          () => {
+            setIsConnected(false);
+            shellIdRef.current = '';
+            terminal.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
+          }
+        );
+
+        setIsConnected(true);
+
+        // 处理终端输入
+        terminal.onData((data) => {
+          if (shellIdRef.current) {
+            console.log('Terminal input:', data);
+            sshService.write(shellIdRef.current, data).catch((error) => {
+              console.error('Failed to write to shell:', error);
+              terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
+            });
+          }
+        });
+
+        // 处理终端大小调整
+        const handleResize = () => {
+          if (fitAddon && terminal && shellIdRef.current && isConnected) {
+            fitAddon.fit();
+            const { rows, cols } = terminal;
+            sshService.resize(shellIdRef.current, rows, cols).catch(console.error);
+          }
+        };
+
+        // 延迟一下再调整大小，确保 shell 已经准备好
+        setTimeout(handleResize, 500);
+
+        window.addEventListener('resize', handleResize);
+
+        // 清理函数
+        return () => {
+          window.removeEventListener('resize', handleResize);
+          if (shellIdRef.current) {
+            sshService.disconnect(shellIdRef.current).catch(console.error);
+            shellIdRef.current = '';
+          }
+          setIsConnected(false);
+          terminal.dispose();
+        };
+      } catch (error) {
+        console.error('Failed to connect:', error);
+        terminal.write(`\r\n\x1b[31m连接失败: ${error}\x1b[0m\r\n`);
+        return () => {
+          terminal.dispose();
+        };
+      }
+    } else {
+      terminal.write('请选择一个会话连接...\r\n');
       return () => {
-        resizeObserver.disconnect();
-        if (isConnected && sessionInfo) {
-          sshService.disconnect(sessionInfo.id).catch(console.error);
-        }
         terminal.dispose();
       };
-    } catch (error) {
-      console.error('Failed to initialize terminal:', error);
     }
-  }, [sessionInfo, config, isReady, isConnected]);
+  }, [sessionInfo, config, isReady, instanceId]);
 
   // 在组件挂载后设置 isReady
   useEffect(() => {
@@ -187,26 +187,37 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config }) => {
 
   // 重新加载终端
   const reloadTerminal = async () => {
-    if (terminalRef.current) {
+    if (terminalRef.current && sessionInfo) {
       terminalRef.current.clear();
-      if (sessionInfo && isConnected) {
-        try {
-          await sshService.disconnect(sessionInfo.id);
-          await sshService.connect(sessionInfo);
-          await sshService.createShell(
-            sessionInfo.id,
-            (data) => {
-              terminalRef.current?.write(data);
-            },
-            () => {
-              setIsConnected(false);
-              terminalRef.current?.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
-            }
-          );
-        } catch (error) {
-          console.error('Failed to reload terminal:', error);
-          terminalRef.current.write(`\r\n\x1b[31m重新连接失败: ${error}\x1b[0m\r\n`);
+      try {
+        if (shellIdRef.current) {
+          await sshService.disconnect(shellIdRef.current);
+          shellIdRef.current = '';
         }
+        setIsConnected(false);
+
+        // 等待连接就绪
+        await waitForConnection(sessionInfo);
+        
+        const shellId = sessionInfo.id + (instanceId ? `-${instanceId}` : '');
+        shellIdRef.current = shellId;
+
+        await sshService.createShell(
+          shellId,
+          (data) => {
+            terminalRef.current?.write(data);
+          },
+          () => {
+            setIsConnected(false);
+            shellIdRef.current = '';
+            terminalRef.current?.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
+          }
+        );
+
+        setIsConnected(true);
+      } catch (error) {
+        console.error('Failed to reload terminal:', error);
+        terminalRef.current.write(`\r\n\x1b[31m重新连接失败: ${error}\x1b[0m\r\n`);
       }
     }
   };

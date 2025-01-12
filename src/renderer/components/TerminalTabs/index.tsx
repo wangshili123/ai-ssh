@@ -8,28 +8,47 @@ interface TerminalTab {
   key: string;
   title: string;
   sessionInfo?: SessionInfo;
+  instanceId: string;
 }
 
 interface TerminalTabsProps {
   sessionInfo?: SessionInfo;
+  triggerNewTab?: number;
 }
 
-const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo }) => {
+const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab }) => {
   const [activeKey, setActiveKey] = useState<string>();
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
   const [mounted, setMounted] = useState(false);
 
   // 初始化默认标签页
   useEffect(() => {
-    const defaultTab = {
-      key: '1',
-      title: '终端 1',
-      sessionInfo
-    };
-    setTabs([defaultTab]);
-    setActiveKey(defaultTab.key);
-    setMounted(true);
-  }, [sessionInfo]);
+    if (!mounted) {
+      const defaultTab = {
+        key: '1',
+        title: '终端 1',
+        sessionInfo,
+        instanceId: Date.now().toString()
+      };
+      setTabs([defaultTab]);
+      setActiveKey(defaultTab.key);
+      setMounted(true);
+    }
+  }, []);
+
+  // 监听 triggerNewTab 的变化来创建新标签页
+  useEffect(() => {
+    if (mounted && sessionInfo && triggerNewTab) {
+      const newTab = {
+        key: String(tabs.length + 1),
+        title: `终端 ${tabs.length + 1}`,
+        sessionInfo,
+        instanceId: Date.now().toString()
+      };
+      setTabs([...tabs, newTab]);
+      setActiveKey(newTab.key);
+    }
+  }, [triggerNewTab, sessionInfo]);
 
   // 切换标签页
   const onChange = (newActiveKey: string) => {
@@ -42,7 +61,8 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo }) => {
       const newTab = {
         key: String(tabs.length + 1),
         title: `终端 ${tabs.length + 1}`,
-        sessionInfo
+        sessionInfo,
+        instanceId: Date.now().toString()
       };
       setTabs([...tabs, newTab]);
       setActiveKey(newTab.key);
@@ -71,7 +91,10 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo }) => {
           label: tab.title,
           children: (
             <div style={{ height: '100%', padding: '0 1px' }}>
-              <Terminal sessionInfo={tab.sessionInfo} />
+              <Terminal 
+                sessionInfo={tab.sessionInfo} 
+                instanceId={tab.instanceId}
+              />
             </div>
           ),
           closable: tabs.length > 1
