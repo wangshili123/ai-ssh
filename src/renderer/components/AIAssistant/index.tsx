@@ -1,9 +1,10 @@
 import React, { useState, useRef, KeyboardEvent } from 'react';
-import { Input, Button, message } from 'antd';
-import { SendOutlined, CopyOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
+import { Input, Button, message, Alert, Space, Tag } from 'antd';
+import { SendOutlined, CopyOutlined, UserOutlined, RobotOutlined, ExclamationCircleOutlined, CheckCircleOutlined, CodeOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { aiService, CommandSuggestion } from '../../services/ai';
 import './style.css';
 
 const { TextArea } = Input;
@@ -13,6 +14,7 @@ interface Message {
   type: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  command?: CommandSuggestion;
 }
 
 const AIAssistant: React.FC = () => {
@@ -39,15 +41,15 @@ const AIAssistant: React.FC = () => {
     setLoading(true);
 
     try {
-      // TODO: 这里后续会实现与 AI 的实际对话
-      console.log('发送消息:', input);
+      // 调用 AI 服务转换命令
+      const command = await aiService.convertToCommand(input);
       
-      // 模拟 AI 回复
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: '这是一个测试回复，包含代码示例：\n```python\nprint("Hello, World!")\n```',
-        timestamp: Date.now()
+        content: command.description,
+        timestamp: Date.now(),
+        command
       };
       
       // 添加到历史记录
@@ -55,10 +57,10 @@ const AIAssistant: React.FC = () => {
       setInput('');
       setHistoryIndex(-1);
 
-      // 延迟一秒显示 AI 回复
-      await new Promise(resolve => setTimeout(resolve, 1000));
       setMessages(prev => [...prev, aiMessage]);
       
+    } catch (error) {
+      message.error('生成命令失败，请重试');
     } finally {
       setLoading(false);
       // 滚动到底部
@@ -107,6 +109,66 @@ const AIAssistant: React.FC = () => {
     }
   };
 
+  // 渲染命令建议
+  const renderCommandSuggestion = (command: CommandSuggestion) => {
+    if (!command.command) return null;
+
+    const riskColors = {
+      low: 'success',
+      medium: 'warning',
+      high: 'error'
+    };
+
+    return (
+      <div className="command-suggestion">
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <div className="command-header">
+            <Space>
+              <CodeOutlined />
+              <span className="command-text">{command.command}</span>
+              <Tag color={riskColors[command.risk]}>
+                {command.risk === 'low' ? '安全' : command.risk === 'medium' ? '警告' : '危险'}
+              </Tag>
+            </Space>
+            <Button
+              type="text"
+              icon={<CopyOutlined />}
+              onClick={() => copyMessage(command.command)}
+              className="copy-button"
+            />
+          </div>
+          {command.example && (
+            <div className="command-example">
+              示例：<code>{command.example}</code>
+            </div>
+          )}
+          {command.parameters && command.parameters.length > 0 && (
+            <div className="command-parameters">
+              <div className="parameters-title">参数说明：</div>
+              {command.parameters.map((param, index) => (
+                <div key={index} className="parameter-item">
+                  <Tag color={param.required ? 'blue' : 'default'}>
+                    {param.name}
+                  </Tag>
+                  <span>{param.description}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {command.risk !== 'low' && (
+            <Alert
+              message="安全提示"
+              description={command.description}
+              type={command.risk === 'medium' ? 'warning' : 'error'}
+              showIcon
+              icon={<ExclamationCircleOutlined />}
+            />
+          )}
+        </Space>
+      </div>
+    );
+  };
+
   // 渲染单个消息
   const renderMessage = (msg: Message) => {
     const isUser = msg.type === 'user';
@@ -130,26 +192,30 @@ const AIAssistant: React.FC = () => {
           />
         </div>
         <div className="message-content">
-          <ReactMarkdown
-            components={{
-              code: ({ children, className }) => {
-                const match = /language-(\w+)/.exec(className || '');
-                return match ? (
-                  <SyntaxHighlighter
-                    style={vscDarkPlus as any}
-                    language={match[1]}
-                    PreTag="div"
-                  >
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
-                ) : (
-                  <code className={className}>{children}</code>
-                );
-              }
-            }}
-          >
-            {msg.content}
-          </ReactMarkdown>
+          {msg.command ? (
+            renderCommandSuggestion(msg.command)
+          ) : (
+            <ReactMarkdown
+              components={{
+                code: ({ children, className }) => {
+                  const match = /language-(\w+)/.exec(className || '');
+                  return match ? (
+                    <SyntaxHighlighter
+                      style={vscDarkPlus as any}
+                      language={match[1]}
+                      PreTag="div"
+                    >
+                      {String(children).replace(/\n$/, '')}
+                    </SyntaxHighlighter>
+                  ) : (
+                    <code className={className}>{children}</code>
+                  );
+                }
+              }}
+            >
+              {msg.content}
+            </ReactMarkdown>
+          )}
         </div>
       </div>
     );

@@ -120,6 +120,63 @@
   margin: 0;
 }
 
+/* 命令建议样式 */
+.command-suggestion {
+  background: #fafafa;
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.command-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.command-text {
+  font-family: 'Fira Code', Consolas, Monaco, 'Andale Mono', monospace;
+  font-size: 14px;
+  background: #f0f0f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: 0 8px;
+}
+
+.command-example {
+  margin: 8px 0;
+  color: #666;
+}
+
+.command-example code {
+  background: #f0f0f0;
+  padding: 2px 4px;
+  border-radius: 2px;
+  margin: 0 4px;
+}
+
+.command-parameters {
+  margin-top: 8px;
+}
+
+.parameters-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.parameter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.parameter-item .ant-tag {
+  margin: 0;
+}
+
 /* 自定义滚动条样式 */
 .ai-messages::-webkit-scrollbar {
   width: 6px;
