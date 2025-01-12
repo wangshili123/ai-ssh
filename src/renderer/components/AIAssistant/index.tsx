@@ -1,6 +1,6 @@
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
 import { Input, Button, message, Alert, Space, Tag } from 'antd';
-import { SendOutlined, CopyOutlined, UserOutlined, RobotOutlined, ExclamationCircleOutlined, CheckCircleOutlined, CodeOutlined } from '@ant-design/icons';
+import { SendOutlined, CopyOutlined, UserOutlined, RobotOutlined, ExclamationCircleOutlined, CheckCircleOutlined, CodeOutlined, SyncOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -72,8 +72,11 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     setLoading(true);
 
     try {
+      // 清空当前会话的命令历史
+      aiService.clearCurrentCommands();
+      
       // 调用 AI 服务转换命令
-      const command = await aiService.convertToCommand(input);
+      const command = await aiService.convertToCommand(userMessage.content);
       
       // 更新 AI 回复消息
       const aiMessage: Message = {
@@ -82,7 +85,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
         command
       };
       
-      // 添加到历史记录
+      // 添加到输入历史记录
       setInputHistory(prev => [input, ...prev].slice(0, 50));
       setInput('');
       setHistoryIndex(-1);
@@ -91,7 +94,6 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       setMessages(prev => prev.map(msg => 
         msg.id === tempAiMessage.id ? aiMessage : msg
       ));
-      
     } catch (error) {
       // 更新临时消息为错误信息
       setMessages(prev => prev.map(msg =>
@@ -159,8 +161,40 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     }
   };
 
+  // 重新生成命令
+  const regenerateCommand = async (messageId: string, userInput: string) => {
+    try {
+      // 获取当前会话的命令历史
+      const commandHistory = aiService.getCurrentCommands();
+      console.log('重新生成命令 - 历史记录:', commandHistory);
+      
+      // 找到对应的用户消息
+      const userMessage = messages.find(msg => 
+        msg.type === 'user' && 
+        messages.findIndex(m => m.id === messageId) > messages.findIndex(m => m.id === msg.id)
+      );
+
+      if (!userMessage) {
+        message.error('找不到原始提问内容');
+        return;
+      }
+      
+      // 生成新的命令，排除已生成过的命令
+      const command = await aiService.convertToCommand(userMessage.content, commandHistory);
+      
+      // 更新消息列表
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId
+          ? { ...msg, content: command.description, command }
+          : msg
+      ));
+    } catch (error) {
+      message.error('生成命令失败：' + (error as Error).message);
+    }
+  };
+
   // 渲染命令建议
-  const renderCommandSuggestion = (command: CommandSuggestion) => {
+  const renderCommandSuggestion = (command: CommandSuggestion, messageId: string, userInput: string) => {
     if (!command.command) return null;
 
     const riskColors = {
@@ -168,6 +202,8 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       medium: 'warning',
       high: 'error'
     };
+
+    const shellId = eventBus.getCurrentShellId();
 
     return (
       <div className="command-suggestion">
@@ -188,10 +224,18 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
                 className="copy-button"
               />
               <Button
+                type="text"
+                icon={<SyncOutlined />}
+                onClick={() => regenerateCommand(messageId, userInput)}
+                title="生成新的命令建议"
+              >
+                换一个
+              </Button>
+              <Button
                 type="primary"
                 size="small"
                 onClick={() => executeCommand(command.command)}
-                disabled={!sessionId}
+                disabled={!shellId}
               >
                 运行
               </Button>
@@ -253,7 +297,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
         </div>
         <div className="message-content">
           {msg.command && msg.command.command ? (
-            renderCommandSuggestion(msg.command)
+            renderCommandSuggestion(msg.command, msg.id, msg.content)
           ) : (
             <ReactMarkdown
               components={{

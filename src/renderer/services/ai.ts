@@ -9,16 +9,19 @@ export interface AIConfig {
   proxyURL?: string;
 }
 
+export interface CommandParameter {
+  name: string;
+  description: string;
+  required: boolean;
+  defaultValue?: string;
+}
+
 export interface CommandSuggestion {
   command: string;
   description: string;
   risk: 'low' | 'medium' | 'high';
+  parameters?: CommandParameter[];
   example?: string;
-  parameters?: {
-    name: string;
-    description: string;
-    required: boolean;
-  }[];
 }
 
 const systemPrompt = `你是一个 Linux 命令专家，帮助用户将自然语言转换为准确的 Linux 命令。
@@ -32,26 +35,7 @@ const systemPrompt = `你是一个 Linux 命令专家，帮助用户将自然语
 2. 对于危险命令（如 rm、chmod 等），必须在 description 中说明风险
 3. 尽量提供最简洁有效的命令
 4. 如果用户的描述不够清晰，返回空命令并在 description 中说明原因
-
-示例输出：
-{
-  "command": "ls -la",
-  "description": "显示当前目录下的所有文件（包括隐藏文件），并以详细列表形式展示",
-  "risk": "low",
-  "example": "ls -la /home/user",
-  "parameters": [
-    {
-      "name": "-l",
-      "description": "使用长列表格式",
-      "required": true
-    },
-    {
-      "name": "-a",
-      "description": "显示所有文件，包括隐藏文件",
-      "required": true
-    }
-  ]
-}`;
+5. 如果提供了已生成的命令列表，必须生成一个不同的命令`;
 
 interface APIError {
   error?: {
@@ -61,6 +45,21 @@ interface APIError {
 }
 
 class AIService {
+  private static instance: AIService;
+  private currentCommands: string[] = [];
+  private config: AIConfig | null = null;
+
+  constructor() {
+    this.currentCommands = [];
+  }
+
+  public static getInstance(): AIService {
+    if (!AIService.instance) {
+      AIService.instance = new AIService();
+    }
+    return AIService.instance;
+  }
+
   private async getConfig(): Promise<AIConfig> {
     const response = await ipcRenderer.invoke('ai-config:load');
     console.log('AI 配置加载结果:', response);
@@ -74,48 +73,72 @@ class AIService {
     return config;
   }
 
-  async convertToCommand(input: string): Promise<CommandSuggestion> {
+  /**
+   * 添加命令到当前会话的历史记录
+   * @param command 生成的命令
+   */
+  addCurrentCommand(command: string) {
+    console.log('添加命令到当前会话:', command);
+    this.currentCommands.push(command);
+    console.log('当前会话的所有命令:', this.currentCommands);
+  }
+
+  /**
+   * 获取当前会话的命令历史
+   */
+  getCurrentCommands(): string[] {
+    return this.currentCommands;
+  }
+
+  /**
+   * 清空当前会话的命令历史
+   */
+  clearCurrentCommands() {
+    console.log('清空当前会话的命令历史');
+    this.currentCommands = [];
+  }
+
+  /**
+   * 将自然语言转换为命令
+   * @param input 用户输入的自然语言
+   * @param excludeCommands 要排除的命令列表
+   * @returns 生成的命令建议
+   */
+  async convertToCommand(input: string, excludeCommands?: string[]): Promise<CommandSuggestion> {
     try {
+      console.log('输入的原始内容:', input);
+      console.log('排除的命令列表:', excludeCommands);
+
       const config = await this.getConfig();
-      console.log('准备发送请求到:', config.baseURL);
       
+      // 构建用户提示，包含已生成的命令信息
+      let userPrompt = input;
+      if (excludeCommands && excludeCommands.length > 0) {
+        userPrompt = `${input}\n\n请注意：以下命令已经生成过，需要生成一个不同的命令：\n${excludeCommands.map(cmd => `- ${cmd}`).join('\n')}`;
+        console.log('构建的提示:', userPrompt);
+      }
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${config.apiKey}`
       };
 
-      console.log('请求头:', headers);
-
       const requestBody = {
         model: config.model,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: input }
+          { role: 'user', content: userPrompt }
         ],
         temperature: config.temperature,
         max_tokens: config.maxTokens,
         response_format: { type: 'json_object' }
       };
 
-      console.log('请求体:', requestBody);
-
-      const requestInit: RequestInit = {
+      const response = await fetch(`${config.baseURL}/chat/completions`, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody)
-      };
-
-      // 如果配置了代理，添加代理设置
-      if (config.proxyURL) {
-        console.log('使用代理:', config.proxyURL);
-        const proxyAgent = new URL(config.proxyURL);
-        Object.assign(requestInit, {
-          agent: proxyAgent
-        });
-      }
-
-      const response = await fetch(`${config.baseURL}/chat/completions`, requestInit);
-      console.log('收到响应状态:', response.status);
+      });
 
       if (!response.ok) {
         const apiError = await response.json() as APIError;
@@ -123,19 +146,23 @@ class AIService {
       }
 
       const data = await response.json();
-      console.log('响应数据:', data);
       try {
         const result = JSON.parse(data.choices[0].message.content);
-        // 如果成功解析为 JSON，说明是命令建议
-        return {
+        const suggestion = {
           command: result.command || '',
           description: result.description || '无法生成合适的命令',
           risk: result.risk || 'low',
           example: result.example,
           parameters: result.parameters
         };
+
+        // 记录生成的命令到当前会话历史
+        if (suggestion.command) {
+          this.addCurrentCommand(suggestion.command);
+        }
+
+        return suggestion;
       } catch (parseError) {
-        // 如果解析 JSON 失败，说明是普通回复
         return {
           command: '',
           description: data.choices[0].message.content,
@@ -206,4 +233,4 @@ class AIService {
   }
 }
 
-export const aiService = new AIService(); 
+export const aiService = AIService.getInstance(); 
