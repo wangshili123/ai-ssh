@@ -192,7 +192,7 @@ const AIAssistant: React.FC = () => {
           />
         </div>
         <div className="message-content">
-          {msg.command ? (
+          {msg.command && msg.command.command ? (
             renderCommandSuggestion(msg.command)
           ) : (
             <ReactMarkdown
@@ -213,7 +213,7 @@ const AIAssistant: React.FC = () => {
                 }
               }}
             >
-              {msg.content}
+              {msg.command ? msg.command.description : msg.content}
             </ReactMarkdown>
           )}
         </div>

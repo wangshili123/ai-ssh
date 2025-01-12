@@ -124,15 +124,24 @@ class AIService {
 
       const data = await response.json();
       console.log('响应数据:', data);
-      const result = JSON.parse(data.choices[0].message.content);
-
-      return {
-        command: result.command || '',
-        description: result.description || '无法生成合适的命令',
-        risk: result.risk || 'low',
-        example: result.example,
-        parameters: result.parameters
-      };
+      try {
+        const result = JSON.parse(data.choices[0].message.content);
+        // 如果成功解析为 JSON，说明是命令建议
+        return {
+          command: result.command || '',
+          description: result.description || '无法生成合适的命令',
+          risk: result.risk || 'low',
+          example: result.example,
+          parameters: result.parameters
+        };
+      } catch (parseError) {
+        // 如果解析 JSON 失败，说明是普通回复
+        return {
+          command: '',
+          description: data.choices[0].message.content,
+          risk: 'low'
+        };
+      }
     } catch (err: unknown) {
       const error = err as Error;
       console.error('转换命令失败:', error);
