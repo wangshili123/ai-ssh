@@ -9,6 +9,7 @@ import { sshService } from '../../services/ssh';
 import { eventBus } from '../../services/eventBus';
 import './style.css';
 import type { RadioChangeEvent } from 'antd';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AIAssistantProps {
   sessionId?: string;
@@ -92,57 +93,52 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
 
   // 处理发送消息
   const handleSend = async () => {
-    if (!input.trim() || loading) return;
-    
+    if (!input.trim()) return;
+
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: uuidv4(),
       type: 'user',
-      content: input.trim(),
+      content: input,
       timestamp: Date.now()
     };
 
-    // 创建一个临时的 AI 回复消息
-    const tempAiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      type: 'assistant',
-      content: '思考中...',
-      timestamp: Date.now()
-    };
-
-    setMessages(prev => [...prev, userMessage, tempAiMessage]);
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
     setLoading(true);
+    setInputHistory(prev => [input, ...prev].slice(0, 50));
+    setHistoryIndex(-1);
 
     try {
-      // 清空当前会话的命令历史
-      aiService.clearCurrentCommands();
-      
-      // 调用 AI 服务转换命令
-      const command = await aiService.convertToCommand(userMessage.content);
-      
-      // 更新 AI 回复消息
-      const aiMessage: Message = {
-        ...tempAiMessage,
-        content: command.description,
-        command
-      };
-      
-      // 添加到输入历史记录
-      setInputHistory(prev => [input, ...prev].slice(0, 50));
-      setInput('');
-      setHistoryIndex(-1);
-
-      // 更新消息列表，替换临时消息
-      setMessages(prev => prev.map(msg => 
-        msg.id === tempAiMessage.id ? aiMessage : msg
-      ));
+      if (mode === 'command') {
+        // 命令模式：保持现有的命令生成逻辑
+        const command = await aiService.convertToCommand(userMessage.content);
+        const assistantMessage: Message = {
+          id: uuidv4(),
+          type: 'assistant',
+          content: command.description || '抱歉，我无法理解您的需求。',
+          timestamp: Date.now(),
+          command
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        // 上下文模式：暂时保持简单回复
+        const assistantMessage: Message = {
+          id: uuidv4(),
+          type: 'assistant',
+          content: '上下文模式正在开发中...',
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      }
     } catch (error) {
-      // 更新临时消息为错误信息
-      setMessages(prev => prev.map(msg =>
-        msg.id === tempAiMessage.id
-          ? { ...msg, content: '生成命令失败，请重试' }
-          : msg
-      ));
-      message.error('生成命令失败，请重试');
+      message.error('生成回复失败：' + (error as Error).message);
+      const errorMessage: Message = {
+        id: uuidv4(),
+        type: 'assistant',
+        content: '抱歉，处理您的请求时出现错误。',
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
     }
