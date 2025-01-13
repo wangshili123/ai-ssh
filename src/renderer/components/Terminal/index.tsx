@@ -245,9 +245,13 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
   ];
 
   return (
-    <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
-      <div ref={containerRef} className="terminal-container" />
-    </Dropdown>
+    <div className="terminal-wrapper">
+      <div className="terminal-container">
+        <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
+          <div ref={containerRef} className="terminal-content" />
+        </Dropdown>
+      </div>
+    </div>
   );
 };
 

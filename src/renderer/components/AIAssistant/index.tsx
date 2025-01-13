@@ -1,5 +1,5 @@
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
-import { Input, Button, message, Alert, Space, Tag } from 'antd';
+import { Input, Button, message, Alert, Space, Tag, Radio } from 'antd';
 import { SendOutlined, CopyOutlined, UserOutlined, RobotOutlined, ExclamationCircleOutlined, CheckCircleOutlined, CodeOutlined, SyncOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -8,8 +8,7 @@ import { aiService, CommandSuggestion } from '../../services/ai';
 import { sshService } from '../../services/ssh';
 import { eventBus } from '../../services/eventBus';
 import './style.css';
-
-const { TextArea } = Input;
+import type { RadioChangeEvent } from 'antd';
 
 interface AIAssistantProps {
   sessionId?: string;
@@ -30,7 +29,49 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textAreaRef = useRef<any>(null);
+  const [mode, setMode] = useState<'command' | 'context'>(localStorage.getItem('aiMode') as 'command' | 'context' || 'command');
+  const assistantRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(400);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+
+  // 处理拖拽开始
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.target === assistantRef.current?.querySelector('.resize-handle')) {
+      setIsDragging(true);
+      dragStartX.current = e.clientX;
+      dragStartWidth.current = width;
+      e.preventDefault();
+    }
+  };
+
+  // 处理拖拽过程
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      const deltaX = dragStartX.current - e.clientX;
+      const newWidth = Math.min(Math.max(300, dragStartWidth.current + deltaX), 800);
+      setWidth(newWidth);
+      document.documentElement.style.setProperty('--ai-assistant-width', `${newWidth}px`);
+    }
+  };
+
+  // 处理拖拽结束
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // 添加和移除事件监听器
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
 
   // 执行命令
   const executeCommand = async (command: string) => {
@@ -210,14 +251,14 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       <div className="command-suggestion">
         <Space direction="vertical" style={{ width: '100%' }}>
           <div className="command-header">
-            <Space>
+            <div className="command-line">
               <CodeOutlined />
               <span className="command-text">{command.command}</span>
               <Tag color={riskColors[command.risk]}>
                 {command.risk === 'low' ? '安全' : command.risk === 'medium' ? '警告' : '危险'}
               </Tag>
-            </Space>
-            <Space>
+            </div>
+            <div className="command-actions">
               <Button
                 type="text"
                 icon={<CopyOutlined />}
@@ -240,7 +281,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
               >
                 运行
               </Button>
-            </Space>
+            </div>
           </div>
           {command.example && (
             <div className="command-example">
@@ -326,31 +367,62 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     );
   };
 
+  // 保存用户模式选择
+  useEffect(() => {
+    const savedMode = localStorage.getItem('ai-assistant-mode');
+    if (savedMode === 'context' || savedMode === 'command') {
+      setMode(savedMode);
+    }
+  }, []);
+
+  // 处理模式切换
+  const handleModeChange = (e: RadioChangeEvent) => {
+    const newMode = e.target.value;
+    setMode(newMode);
+    localStorage.setItem('ai-assistant-mode', newMode);
+  };
+
   return (
-    <div className="ai-assistant">
-      <div className="ai-messages">
-        {messages.map(renderMessage)}
-        <div ref={messagesEndRef} />
+    <div 
+      className="ai-assistant" 
+      ref={assistantRef}
+      onMouseDown={handleMouseDown}
+      style={{ width: `${width}px` }}
+    >
+      <div className="resize-handle" />
+      <div className="ai-messages" ref={messagesEndRef}>
+        {messages.map(message => renderMessage(message))}
       </div>
       <div className="ai-input-container">
-        <TextArea
-          ref={textAreaRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="输入内容，按回车发送，Shift+Enter 换行"
-          autoSize={{ minRows: 2, maxRows: 6 }}
-          disabled={loading}
-        />
-        <Button
-          type="primary"
-          icon={<SendOutlined />}
-          onClick={handleSend}
-          loading={loading}
-          disabled={!input.trim()}
-        >
-          发送
-        </Button>
+        <div className="input-wrapper">
+          <Input.TextArea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="输入内容，按回车发送，Shift+Enter 换行"
+            disabled={loading}
+            autoSize={{ minRows: 3, maxRows: 6 }}
+          />
+        </div>
+        <div className="button-wrapper">
+          <Radio.Group 
+            value={mode} 
+            onChange={handleModeChange}
+            size="small"
+          >
+            <Radio.Button value="command">命令模式</Radio.Button>
+            <Radio.Button value="context">上下文模式</Radio.Button>
+          </Radio.Group>
+          <Button
+            type="text"
+            icon={<SendOutlined />}
+            onClick={handleSend}
+            loading={loading}
+            disabled={!input.trim()}
+          >
+            发送
+          </Button>
+        </div>
       </div>
     </div>
   );
