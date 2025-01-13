@@ -168,11 +168,12 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       const commandHistory = aiService.getCurrentCommands();
       console.log('重新生成命令 - 历史记录:', commandHistory);
       
-      // 找到对应的用户消息
-      const userMessage = messages.find(msg => 
-        msg.type === 'user' && 
-        messages.findIndex(m => m.id === messageId) > messages.findIndex(m => m.id === msg.id)
-      );
+      // 找到当前 AI 消息对应的用户消息
+      const currentMessageIndex = messages.findIndex(msg => msg.id === messageId);
+      const userMessage = messages
+        .slice(0, currentMessageIndex)
+        .reverse()
+        .find(msg => msg.type === 'user');
 
       if (!userMessage) {
         message.error('找不到原始提问内容');
