@@ -241,8 +241,6 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       high: 'error'
     };
 
-    const shellId = eventBus.getCurrentShellId();
-
     return (
       <div className="command-suggestion">
         <Space direction="vertical" style={{ width: '100%' }}>
@@ -273,7 +271,6 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
                 type="primary"
                 size="small"
                 onClick={() => executeCommand(command.command)}
-                disabled={!shellId}
               >
                 运行
               </Button>
