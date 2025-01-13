@@ -231,6 +231,68 @@ class AIService {
       return `解释失败: ${error.message}`;
     }
   }
+
+  /**
+   * 处理上下文模式的请求
+   * @param input 用户输入
+   * @param context 终端上下文
+   * @returns AI 的回复
+   */
+  async getContextResponse(input: string, context: string): Promise<string> {
+    try {
+      const config = await this.getConfig();
+      
+      const systemPrompt = `你是一个 Linux 终端助手，帮助用户理解和解决终端相关问题。
+请根据用户的问题和终端输出提供帮助。
+回答时请注意：
+1. 如果终端输出中包含错误信息，解释错误原因并提供解决方案
+2. 如果用户在执行某个命令，解释命令的作用和输出的含义
+3. 如果用户遇到问题，提供具体的解决步骤
+4. 使用通俗易懂的语言解释专业术语
+5. 如果需要执行命令，请说明命令的作用和可能的风险`;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`
+      };
+
+      const userPrompt = `
+用户问题：${input}
+
+终端最近输出：
+${context}
+
+请根据终端输出和用户问题提供帮助。`;
+
+      const requestBody = {
+        model: config.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: config.temperature,
+        max_tokens: config.maxTokens
+      };
+
+      const response = await fetch(`${config.baseURL}/chat/completions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const apiError = await response.json() as APIError;
+        throw new Error(apiError.error?.message || apiError.message || '请求失败');
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error('处理上下文请求失败:', error);
+      throw error;
+    }
+  }
 }
 
 export const aiService = AIService.getInstance(); 

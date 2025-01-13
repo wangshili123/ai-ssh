@@ -7,6 +7,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { aiService, CommandSuggestion } from '../../services/ai';
 import { sshService } from '../../services/ssh';
 import { eventBus } from '../../services/eventBus';
+import { terminalOutputService } from '../../services/terminalOutput';
 import './style.css';
 import type { RadioChangeEvent } from 'antd';
 import { v4 as uuidv4 } from 'uuid';
@@ -121,14 +122,37 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
         };
         setMessages(prev => [...prev, assistantMessage]);
       } else {
-        // 上下文模式：暂时保持简单回复
-        const assistantMessage: Message = {
-          id: uuidv4(),
-          type: 'assistant',
-          content: '上下文模式正在开发中...',
-          timestamp: Date.now()
-        };
-        setMessages(prev => [...prev, assistantMessage]);
+        // 上下文模式：获取当前终端输出并发送给AI
+        const shellId = eventBus.getCurrentShellId();
+        if (!shellId) {
+          message.warning('请先连接到 SSH 会话');
+          return;
+        }
+
+        // 获取最近的终端输出
+        const terminalContext = terminalOutputService.getRecentOutput(shellId);
+        
+        try {
+          // 发送请求给AI服务
+          const response = await aiService.getContextResponse(userMessage.content, terminalContext);
+          
+          const assistantMessage: Message = {
+            id: uuidv4(),
+            type: 'assistant',
+            content: response,
+            timestamp: Date.now()
+          };
+          setMessages(prev => [...prev, assistantMessage]);
+        } catch (error) {
+          message.error('AI 助手处理失败：' + (error as Error).message);
+          const errorMessage: Message = {
+            id: uuidv4(),
+            type: 'assistant',
+            content: '抱歉，处理您的请求时出现错误。',
+            timestamp: Date.now()
+          };
+          setMessages(prev => [...prev, errorMessage]);
+        }
       }
     } catch (error) {
       message.error('生成回复失败：' + (error as Error).message);

@@ -7,6 +7,7 @@ import { Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { sshService } from '../../services/ssh';
 import { eventBus } from '../../services/eventBus';
+import { terminalOutputService } from '../../services/terminalOutput';
 import type { SessionInfo } from '../../../main/services/storage';
 import 'xterm/css/xterm.css';
 import './index.css';
@@ -94,11 +95,16 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
           shellId,
           (data) => {
             terminal.write(data);
+            // 收集终端输出
+            terminalOutputService.addOutput(shellId, data);
           },
           () => {
             setIsConnected(false);
             shellIdRef.current = '';
+            eventBus.setCurrentShellId('');
             terminal.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
+            // 清除终端输出缓存
+            terminalOutputService.clearOutput(shellId);
           }
         );
 
