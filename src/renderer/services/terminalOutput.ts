@@ -9,6 +9,7 @@ interface TerminalBuffer {
   maxLines: number;
   lastPrompt: string; // 记录最后一次的提示符
   currentCommand: string; // 当前正在输入的命令
+  isFirstConnect: boolean; // 是否是首次连接
 }
 
 /**
@@ -36,7 +37,8 @@ class TerminalOutputService {
         lines: [],
         maxLines: 1000, // 每个终端最多保存1000行输出
         lastPrompt: '',
-        currentCommand: ''
+        currentCommand: '',
+        isFirstConnect: true
       };
       this.buffers.set(shellId, buffer);
     }
@@ -73,8 +75,22 @@ class TerminalOutputService {
       .replace(/\u0000/g, '') // 移除 NULL 字符
       .replace(/\b/g, ''); // 移除退格字符
 
-    // 移除登录信息
-    processed = processed.replace(/Last login:.*$/m, '');
+    // 如果是首次连接，移除欢迎信息
+    if (buffer.isFirstConnect) {
+      if (processed.includes('Welcome to Alibaba Cloud')) {
+        buffer.isFirstConnect = false; // 标记为非首次连接
+        return ''; // 跳过欢迎信息
+      }
+    }
+
+    // 移除登录相关信息
+    processed = processed
+      .replace(/Welcome to Alibaba Cloud Elastic Compute Service ![\s\S]*?Last login:.*$/m, '')
+      .replace(/Last failed login:.*$/m, '')
+      .replace(/There were \d+ failed login attempts.*$/m, '')
+      .replace(/Last login:.*$/m, '')
+      .replace(/Updates Information Summary:[\s\S]*?https:\/\/.*\.html/g, '')
+      .replace(/Run ".*" to apply all updates\./, '');
 
     // 检测提示符
     const promptRegex = /\[.*@.*\][^#]*#/;
