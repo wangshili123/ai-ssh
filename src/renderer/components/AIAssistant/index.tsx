@@ -1,13 +1,12 @@
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
-import { Input, Button, message, Alert, Space, Tag, Radio } from 'antd';
-import { SendOutlined, CopyOutlined, UserOutlined, RobotOutlined, ExclamationCircleOutlined, CheckCircleOutlined, CodeOutlined, SyncOutlined } from '@ant-design/icons';
-import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Input, Button, message, Radio } from 'antd';
+import { SendOutlined, CopyOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
 import { aiService, CommandSuggestion } from '../../services/ai';
 import { sshService } from '../../services/ssh';
 import { eventBus } from '../../services/eventBus';
 import { terminalOutputService } from '../../services/terminalOutput';
+import CommandMode from './CommandMode';
+import ContextMode from './ContextMode';
 import './style.css';
 import type { RadioChangeEvent } from 'antd';
 import { v4 as uuidv4 } from 'uuid';
@@ -255,83 +254,6 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     }
   };
 
-  // 渲染命令建议
-  const renderCommandSuggestion = (command: CommandSuggestion, messageId: string, userInput: string) => {
-    if (!command.command) return null;
-
-    const riskColors = {
-      low: 'success',
-      medium: 'warning',
-      high: 'error'
-    };
-
-    return (
-      <div className="command-suggestion">
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div className="command-header">
-            <div className="command-line">
-              <CodeOutlined />
-              <span className="command-text">{command.command}</span>
-              <Tag color={riskColors[command.risk]}>
-                {command.risk === 'low' ? '安全' : command.risk === 'medium' ? '警告' : '危险'}
-              </Tag>
-            </div>
-            <div className="command-actions">
-              <Button
-                type="text"
-                icon={<CopyOutlined />}
-                onClick={() => copyMessage(command.command)}
-                className="copy-button"
-              />
-              <Button
-                type="text"
-                icon={<SyncOutlined />}
-                onClick={() => regenerateCommand(messageId, userInput)}
-                title="生成新的命令建议"
-              >
-                换一个
-              </Button>
-              <Button
-                type="primary"
-                size="small"
-                onClick={() => executeCommand(command.command)}
-              >
-                运行
-              </Button>
-            </div>
-          </div>
-          {command.example && (
-            <div className="command-example">
-              示例：<code>{command.example}</code>
-            </div>
-          )}
-          {command.parameters && command.parameters.length > 0 && (
-            <div className="command-parameters">
-              <div className="parameters-title">参数说明：</div>
-              {command.parameters.map((param, index) => (
-                <div key={index} className="parameter-item">
-                  <Tag color={param.required ? 'blue' : 'default'}>
-                    {param.name}
-                  </Tag>
-                  <span>{param.description}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {command.risk !== 'low' && (
-            <Alert
-              message="安全提示"
-              description={command.description}
-              type={command.risk === 'medium' ? 'warning' : 'error'}
-              showIcon
-              icon={<ExclamationCircleOutlined />}
-            />
-          )}
-        </Space>
-      </div>
-    );
-  };
-
   // 渲染单个消息
   const renderMessage = (msg: Message) => {
     const isUser = msg.type === 'user';
@@ -355,67 +277,21 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           />
         </div>
         <div className="message-content">
-          {msg.command && msg.command.command ? (
-            renderCommandSuggestion(msg.command, msg.id, msg.content)
+          {msg.command ? (
+            <CommandMode
+              command={msg.command}
+              messageId={msg.id}
+              userInput={msg.content}
+              onCopy={copyMessage}
+              onExecute={executeCommand}
+              onRegenerate={regenerateCommand}
+            />
           ) : (
-            <ReactMarkdown
-              components={{
-                code({ className, children }) {
-                  const match = /language-(\w+)/.exec(className || '');
-                  const isCommand = match && match[1] === 'command';
-
-                  if (isCommand && typeof children === 'string') {
-                    // 处理命令代码块
-                    const commands = children.trim().split('\n');
-                    return (
-                      <div className="command-suggestion">
-                        <Space direction="vertical" style={{ width: '100%' }}>
-                          {commands.map((cmd, index) => (
-                            <div key={index} className="command-header">
-                              <div className="command-line">
-                                <CodeOutlined />
-                                <span className="command-text">{cmd}</span>
-                              </div>
-                              <div className="command-actions">
-                                <Button
-                                  type="text"
-                                  icon={<CopyOutlined />}
-                                  onClick={() => copyMessage(cmd)}
-                                  className="copy-button"
-                                />
-                                <Button
-                                  type="primary"
-                                  size="small"
-                                  onClick={() => executeCommand(cmd)}
-                                >
-                                  运行
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </Space>
-                      </div>
-                    );
-                  }
-
-                  if (match && typeof children === 'string') {
-                    return (
-                      <SyntaxHighlighter
-                        style={vscDarkPlus as any}
-                        language={match[1]}
-                        PreTag="div"
-                      >
-                        {children.replace(/\n$/, '')}
-                      </SyntaxHighlighter>
-                    );
-                  }
-
-                  return <code className={className}>{children}</code>;
-                }
-              }}
-            >
-              {msg.command ? msg.command.description : msg.content}
-            </ReactMarkdown>
+            <ContextMode
+              content={msg.content}
+              onCopy={copyMessage}
+              onExecute={executeCommand}
+            />
           )}
         </div>
       </div>
