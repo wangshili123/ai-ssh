@@ -168,6 +168,10 @@
   flex-direction: column;
   gap: 6px;
   margin-bottom: 6px;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 8px;
 }
 
 .command-line {
@@ -186,7 +190,7 @@
 .command-text {
   font-family: 'Consolas', 'Courier New', monospace;
   background-color: #f0f0f0;
-  padding: 2px 4px;
+  padding: 4px 8px;
   border-radius: 4px;
   font-size: 13px;
   flex: 1;
@@ -200,11 +204,16 @@
   min-width: 50px;
 }
 
+.command-header .ant-btn-text {
+  border: none;
+}
+
 .command-header .ant-btn-text:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(24, 144, 255, 0.1);
 }
 
 .command-header .ant-btn-text .anticon {
+  font-size: 12px;
   margin-right: 4px;
 }
 

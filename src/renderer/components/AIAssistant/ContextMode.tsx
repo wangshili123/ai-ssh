@@ -40,6 +40,7 @@ const ContextMode: React.FC<ContextModeProps> = ({
                           icon={<CopyOutlined />}
                           onClick={() => onCopy(cmd)}
                           className="copy-button"
+                          size="small"
                         />
                         <Button
                           type="primary"

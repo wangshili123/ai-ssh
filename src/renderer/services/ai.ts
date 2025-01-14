@@ -261,7 +261,7 @@ class AIService {
 终端最近输出：
 ${context}
 
-请根据终端输出和用户问题提供帮助。`;
+请根据终端输出和用户问题提供帮助。没有请忽略，只关注用户问题`;
 
       const requestBody = {
         model: config.model,
