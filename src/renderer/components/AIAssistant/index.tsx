@@ -360,19 +360,57 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           ) : (
             <ReactMarkdown
               components={{
-                code: ({ children, className }) => {
+                code({ className, children }) {
                   const match = /language-(\w+)/.exec(className || '');
-                  return match ? (
-                    <SyntaxHighlighter
-                      style={vscDarkPlus as any}
-                      language={match[1]}
-                      PreTag="div"
-                    >
-                      {String(children).replace(/\n$/, '')}
-                    </SyntaxHighlighter>
-                  ) : (
-                    <code className={className}>{children}</code>
-                  );
+                  const isCommand = match && match[1] === 'command';
+
+                  if (isCommand && typeof children === 'string') {
+                    // 处理命令代码块
+                    const commands = children.trim().split('\n');
+                    return (
+                      <div className="command-suggestion">
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                          {commands.map((cmd, index) => (
+                            <div key={index} className="command-header">
+                              <div className="command-line">
+                                <CodeOutlined />
+                                <span className="command-text">{cmd}</span>
+                              </div>
+                              <div className="command-actions">
+                                <Button
+                                  type="text"
+                                  icon={<CopyOutlined />}
+                                  onClick={() => copyMessage(cmd)}
+                                  className="copy-button"
+                                />
+                                <Button
+                                  type="primary"
+                                  size="small"
+                                  onClick={() => executeCommand(cmd)}
+                                >
+                                  运行
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </Space>
+                      </div>
+                    );
+                  }
+
+                  if (match && typeof children === 'string') {
+                    return (
+                      <SyntaxHighlighter
+                        style={vscDarkPlus as any}
+                        language={match[1]}
+                        PreTag="div"
+                      >
+                        {children.replace(/\n$/, '')}
+                      </SyntaxHighlighter>
+                    );
+                  }
+
+                  return <code className={className}>{children}</code>;
                 }
               }}
             >
