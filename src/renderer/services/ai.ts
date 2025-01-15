@@ -40,6 +40,11 @@ export interface ContextCommandResponse {
   content?: string;
 }
 
+export interface ContextResponse {
+  explanation: string;
+  commands: CommandSuggestion[];
+}
+
 const systemPrompt = `你是一个 Linux 命令专家，帮助用户将自然语言转换为准确的 Linux 命令。
 请遵循以下规则：
 1. 返回的内容必须是 JSON 格式，包含以下字段：
@@ -252,9 +257,9 @@ class AIService {
    * 处理上下文模式的请求
    * @param input 用户输入
    * @param context 终端上下文
-   * @returns AI 的回复或命令建议数组
+   * @returns AI 的回复或命令建议
    */
-  async getContextResponse(input: string, context: string): Promise<string | CommandSuggestion[]> {
+  async getContextResponse(input: string, context: string): Promise<string | ContextResponse> {
     try {
       const config = await this.getConfig();
       
@@ -322,14 +327,17 @@ ${context}
       try {
         const result = JSON.parse(content) as ContextCommandResponse;
         if (result.type === 'commands' && Array.isArray(result.commands)) {
-          // 返回命令建议数组
-          return result.commands.map((cmd: { command: string; description: string; risk: 'low' | 'medium' | 'high' }) => ({
-            command: cmd.command,
-            description: cmd.description,
-            risk: cmd.risk || 'low',
-            example: undefined,
-            parameters: undefined
-          } as CommandSuggestion));
+          // 返回命令建议和说明
+          return {
+            explanation: result.explanation || '',
+            commands: result.commands.map(cmd => ({
+              command: cmd.command,
+              description: cmd.description,
+              risk: cmd.risk || 'low',
+              example: undefined,
+              parameters: undefined
+            }))
+          };
         } else if (result.type === 'text' && result.content) {
           // 返回普通文本
           return result.content;

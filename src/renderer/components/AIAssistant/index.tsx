@@ -24,6 +24,7 @@ interface Message {
   timestamp: number;
   command?: CommandSuggestion;
   commands?: CommandSuggestion[];
+  explanation?: string;
 }
 
 export enum AssistantMode {
@@ -161,14 +162,33 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           // 发送请求给AI服务
           const response = await aiService.getContextResponse(userMessage.content, terminalContext);
           
-          const assistantMessage: Message = {
-            id: uuidv4(),
-            type: 'assistant',
-            content: typeof response === 'string' ? response : '以下是可以执行的命令：',
-            timestamp: Date.now(),
-            commands: Array.isArray(response) ? response : undefined
-          };
-          setMessages(prev => [...prev, assistantMessage]);
+          if (typeof response === 'string') {
+            // 如果是普通文本回复
+            const assistantMessage: Message = {
+              id: uuidv4(),
+              type: 'assistant',
+              content: response,
+              timestamp: Date.now()
+            };
+            setMessages(prev => [...prev, assistantMessage]);
+          } else {
+            // 如果是命令建议
+            const assistantMessage: Message = {
+              id: uuidv4(),
+              type: 'assistant',
+              content: '',
+              timestamp: Date.now(),
+              explanation: response.explanation,
+              commands: response.commands.map(cmd => ({
+                command: cmd.command,
+                description: cmd.description,
+                risk: cmd.risk,
+                example: undefined,
+                parameters: undefined
+              }))
+            };
+            setMessages(prev => [...prev, assistantMessage]);
+          }
         } catch (error) {
           message.error('AI 助手处理失败：' + (error as Error).message);
           const errorMessage: Message = {
@@ -315,7 +335,16 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           />
         </div>
         <div className="message-content">
-          {msg.content}
+          {(isUser || (!msg.commands && !msg.command && msg.content)) && (
+            <div className="text-content">{msg.content}</div>
+          )}
+          
+          {!isUser && msg.explanation && (
+            <div className="explanation-content">
+              {msg.explanation}
+            </div>
+          )}
+
           {msg.command && (
             <CommandMode
               command={msg.command}
@@ -323,9 +352,10 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
               userInput={msg.content}
               onCopy={copyMessage}
               onExecute={executeCommand}
-              onRegenerate={regenerateCommand}
+              onRegenerate={mode === AssistantMode.COMMAND ? regenerateCommand : undefined}
             />
           )}
+
           {msg.commands && msg.commands.map((cmd, index) => (
             <CommandMode
               key={`${msg.id}-${index}`}
@@ -334,7 +364,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
               userInput={msg.content}
               onCopy={copyMessage}
               onExecute={executeCommand}
-              onRegenerate={regenerateCommand}
+              onRegenerate={mode === AssistantMode.COMMAND ? regenerateCommand : undefined}
             />
           ))}
         </div>

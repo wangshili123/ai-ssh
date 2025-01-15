@@ -9,7 +9,7 @@ interface CommandModeProps {
   userInput: string;
   onCopy: (text: string) => void;
   onExecute: (command: string) => void;
-  onRegenerate: (messageId: string, userInput: string) => void;
+  onRegenerate?: (messageId: string, userInput: string) => void;
 }
 
 const CommandMode: React.FC<CommandModeProps> = ({
@@ -46,14 +46,16 @@ const CommandMode: React.FC<CommandModeProps> = ({
               onClick={() => onCopy(command.command)}
               className="copy-button"
             />
-            <Button
-              type="text"
-              icon={<SyncOutlined />}
-              onClick={() => onRegenerate(messageId, userInput)}
-              title="生成新的命令建议"
-            >
-              换一个
-            </Button>
+            {onRegenerate && (
+              <Button
+                type="text"
+                icon={<SyncOutlined />}
+                onClick={() => onRegenerate(messageId, userInput)}
+                title="生成新的命令建议"
+              >
+                换一个
+              </Button>
+            )}
             <Button
               type="primary"
               size="small"
@@ -81,6 +83,9 @@ const CommandMode: React.FC<CommandModeProps> = ({
             ))}
           </div>
         )}
+        <div className="command-description">
+          {command.description}
+        </div>
         {command.risk !== 'low' && (
           <Alert
             message="安全提示"
