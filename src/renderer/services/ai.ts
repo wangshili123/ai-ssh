@@ -24,6 +24,22 @@ export interface CommandSuggestion {
   example?: string;
 }
 
+export interface AgentCommandResponse {
+  command?: string;
+  description?: string;
+}
+
+export interface ContextCommandResponse {
+  type: 'commands' | 'text';
+  explanation?: string;
+  commands?: Array<{
+    command: string;
+    description: string;
+    risk: 'low' | 'medium' | 'high';
+  }>;
+  content?: string;
+}
+
 const systemPrompt = `你是一个 Linux 命令专家，帮助用户将自然语言转换为准确的 Linux 命令。
 请遵循以下规则：
 1. 返回的内容必须是 JSON 格式，包含以下字段：
@@ -236,19 +252,34 @@ class AIService {
    * 处理上下文模式的请求
    * @param input 用户输入
    * @param context 终端上下文
-   * @returns AI 的回复
+   * @returns AI 的回复或命令建议数组
    */
-  async getContextResponse(input: string, context: string): Promise<string> {
+  async getContextResponse(input: string, context: string): Promise<string | CommandSuggestion[]> {
     try {
       const config = await this.getConfig();
       
-      const systemPrompt = `你是一个 Linux 终端助手。请遵循以下规则回答：
-1. 用最简短的语言说明问题和解决方法
-2. 如果需要执行命令，使用 \`\`\`command 格式
-3. 每个命令独占一行
-4. 避免废话和重复
-5. 如果是错误信息，直接说明原因和解决方法
-6. 不要解释命令的作用，只需列出要执行的命令`;
+      const systemPrompt = `你是一个 Linux 终端助手。请严格遵循以下规则回答：
+1. 先用简短的语言说明问题
+2. 如果需要执行命令，必须返回 JSON 格式数据，格式如下：
+   {
+     "type": "commands",
+     "explanation": "对问题的简要说明",
+     "commands": [
+       {
+         "command": "具体的命令",
+         "description": "命令的详细解释，包括参数说明",
+         "risk": "low"
+       }
+     ]
+   }
+3. 对于危险命令（如 rm、chmod 等），必须在 description 中说明风险，并将 risk 设置为 high
+4. 如果不需要执行命令，返回格式如下：
+   {
+     "type": "text",
+     "content": "你的回复内容"
+   }
+5. 避免废话和重复
+6. 如果是错误信息，直接说明原因和解决方法`;
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -270,6 +301,87 @@ ${context}
           { role: 'user', content: userPrompt }
         ],
         temperature: config.temperature,
+        max_tokens: config.maxTokens,
+        response_format: { type: 'json_object' }
+      };
+
+      const response = await fetch(`${config.baseURL}/chat/completions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const apiError = await response.json() as APIError;
+        throw new Error(apiError.error?.message || apiError.message || '请求失败');
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+      
+      try {
+        const result = JSON.parse(content) as ContextCommandResponse;
+        if (result.type === 'commands' && Array.isArray(result.commands)) {
+          // 返回命令建议数组
+          return result.commands.map((cmd: { command: string; description: string; risk: 'low' | 'medium' | 'high' }) => ({
+            command: cmd.command,
+            description: cmd.description,
+            risk: cmd.risk || 'low',
+            example: undefined,
+            parameters: undefined
+          } as CommandSuggestion));
+        } else if (result.type === 'text' && result.content) {
+          // 返回普通文本
+          return result.content;
+        }
+      } catch (e) {
+        // 如果解析失败，返回原始内容
+        return content;
+      }
+
+      return content;
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error('处理上下文请求失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取 Agent 的响应
+   * @param message 用户消息
+   * @returns Agent 的响应内容
+   */
+  async getAgentResponse(message: string): Promise<AgentCommandResponse> {
+    try {
+      const config = await this.getConfig();
+      
+      const agentSystemPrompt = `你是一个 Linux 系统助手，可以帮助用户分析任务并提供合适的命令。
+请遵循以下规则：
+1. 仔细分析用户的需求
+2. 如果需要执行命令，使用 $ 开头表示，例如：$ ls -l
+3. 在命令前后提供清晰的解释
+4. 对于危险命令，必须明确提示风险
+5. 如果不需要执行命令，直接提供建议和解释`;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`
+      };
+
+      const requestBody = {
+        model: config.model,
+        messages: [
+          {
+            role: 'system',
+            content: agentSystemPrompt
+          },
+          {
+            role: 'user',
+            content: message
+          }
+        ],
+        temperature: config.temperature,
         max_tokens: config.maxTokens
       };
 
@@ -285,10 +397,22 @@ ${context}
       }
 
       const data = await response.json();
-      return data.choices[0].message.content;
-    } catch (err: unknown) {
-      const error = err as Error;
-      console.error('处理上下文请求失败:', error);
+      const content = data.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('未获取到有效响应');
+      }
+
+      // 解析响应内容
+      const lines: string[] = content.split('\n');
+      const command = lines.find((line: string) => line.startsWith('$'))?.slice(2);
+      const description = lines.filter((line: string) => !line.startsWith('$')).join('\n').trim();
+
+      return {
+        command,
+        description
+      };
+    } catch (error) {
+      console.error('获取 Agent 响应失败:', error);
       throw error;
     }
   }

@@ -7,6 +7,8 @@ import { eventBus } from '../../services/eventBus';
 import { terminalOutputService } from '../../services/terminalOutput';
 import CommandMode from './CommandMode';
 import ContextMode from './ContextMode';
+import AgentMode from './agent/AgentMode';
+import { AgentServiceImpl } from '../../../services/agent/AgentService';
 import './style.css';
 import type { RadioChangeEvent } from 'antd';
 import { v4 as uuidv4 } from 'uuid';
@@ -21,21 +23,45 @@ interface Message {
   content: string;
   timestamp: number;
   command?: CommandSuggestion;
+  commands?: CommandSuggestion[];
+}
+
+export enum AssistantMode {
+  COMMAND = 'command',
+  CONTEXT = 'context',
+  AGENT = 'agent'
 }
 
 const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
+  // 获取初始模式
+  const getInitialMode = (): AssistantMode => {
+    const savedMode = localStorage.getItem('ai-assistant-mode');
+    switch (savedMode) {
+      case 'command':
+        return AssistantMode.COMMAND;
+      case 'context':
+        return AssistantMode.CONTEXT;
+      case 'agent':
+        return AssistantMode.AGENT;
+      default:
+        return AssistantMode.COMMAND;
+    }
+  };
+
   const [input, setInput] = useState('');
   const [inputHistory, setInputHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [mode, setMode] = useState<'command' | 'context'>(localStorage.getItem('aiMode') as 'command' | 'context' || 'command');
+  const [mode, setMode] = useState<AssistantMode>(getInitialMode());
   const assistantRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(400);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
+
+  const agentService = new AgentServiceImpl();
 
   // 处理拖拽开始
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -109,7 +135,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     setHistoryIndex(-1);
 
     try {
-      if (mode === 'command') {
+      if (mode === AssistantMode.COMMAND) {
         // 命令模式：保持现有的命令生成逻辑
         const command = await aiService.convertToCommand(userMessage.content);
         const assistantMessage: Message = {
@@ -120,7 +146,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           command
         };
         setMessages(prev => [...prev, assistantMessage]);
-      } else {
+      } else if (mode === AssistantMode.CONTEXT) {
         // 上下文模式：获取当前终端输出并发送给AI
         const shellId = eventBus.getCurrentShellId();
         if (!shellId) {
@@ -138,8 +164,9 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           const assistantMessage: Message = {
             id: uuidv4(),
             type: 'assistant',
-            content: response,
-            timestamp: Date.now()
+            content: typeof response === 'string' ? response : '以下是可以执行的命令：',
+            timestamp: Date.now(),
+            commands: Array.isArray(response) ? response : undefined
           };
           setMessages(prev => [...prev, assistantMessage]);
         } catch (error) {
@@ -152,6 +179,17 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           };
           setMessages(prev => [...prev, errorMessage]);
         }
+      } else if (mode === AssistantMode.AGENT) {
+        // Agent 模式：处理 Agent 相关逻辑
+        // 这里需要实现 Agent 模式的处理逻辑
+        // 目前只是一个占位代码
+        const agentMessage: Message = {
+          id: uuidv4(),
+          type: 'assistant',
+          content: 'Agent 模式正在处理中...',
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, agentMessage]);
       }
     } catch (error) {
       message.error('生成回复失败：' + (error as Error).message);
@@ -277,7 +315,8 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           />
         </div>
         <div className="message-content">
-          {msg.command ? (
+          {msg.content}
+          {msg.command && (
             <CommandMode
               command={msg.command}
               messageId={msg.id}
@@ -286,13 +325,18 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
               onExecute={executeCommand}
               onRegenerate={regenerateCommand}
             />
-          ) : (
-            <ContextMode
-              content={msg.content}
+          )}
+          {msg.commands && msg.commands.map((cmd, index) => (
+            <CommandMode
+              key={`${msg.id}-${index}`}
+              command={cmd}
+              messageId={msg.id}
+              userInput={msg.content}
               onCopy={copyMessage}
               onExecute={executeCommand}
+              onRegenerate={regenerateCommand}
             />
-          )}
+          ))}
         </div>
       </div>
     );
@@ -301,14 +345,18 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
   // 保存用户模式选择
   useEffect(() => {
     const savedMode = localStorage.getItem('ai-assistant-mode');
-    if (savedMode === 'context' || savedMode === 'command') {
-      setMode(savedMode);
+    if (savedMode === 'command') {
+      setMode(AssistantMode.COMMAND);
+    } else if (savedMode === 'context') {
+      setMode(AssistantMode.CONTEXT);
+    } else if (savedMode === 'agent') {
+      setMode(AssistantMode.AGENT);
     }
   }, []);
 
   // 处理模式切换
   const handleModeChange = (e: RadioChangeEvent) => {
-    const newMode = e.target.value;
+    const newMode = e.target.value as AssistantMode;
     setMode(newMode);
     localStorage.setItem('ai-assistant-mode', newMode);
   };
@@ -341,8 +389,9 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
             onChange={handleModeChange}
             size="small"
           >
-            <Radio.Button value="command">命令模式</Radio.Button>
-            <Radio.Button value="context">上下文模式</Radio.Button>
+            <Radio.Button value={AssistantMode.COMMAND}>命令模式</Radio.Button>
+            <Radio.Button value={AssistantMode.CONTEXT}>上下文模式</Radio.Button>
+            <Radio.Button value={AssistantMode.AGENT}>Agent 模式</Radio.Button>
           </Radio.Group>
           <Button
             type="text"
