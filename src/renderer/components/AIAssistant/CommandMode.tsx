@@ -1,6 +1,6 @@
 import React from 'react';
-import { Button, Space, Tag, Alert } from 'antd';
-import { CopyOutlined, CodeOutlined, SyncOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { Button, Alert } from 'antd';
+import { CopyOutlined, SendOutlined, SyncOutlined } from '@ant-design/icons';
 import { CommandSuggestion } from '../../services/ai';
 
 interface CommandModeProps {
@@ -20,82 +20,101 @@ const CommandMode: React.FC<CommandModeProps> = ({
   onExecute,
   onRegenerate
 }) => {
-  if (!command.command) return null;
+  const getRiskText = (risk: string) => {
+    switch (risk) {
+      case 'high':
+        return '高风险';
+      case 'medium':
+        return '中等风险';
+      case 'low':
+        return '低风险';
+      default:
+        return '未知风险';
+    }
+  };
 
-  const riskColors = {
-    low: 'success',
-    medium: 'warning',
-    high: 'error'
+  const getRiskDescription = (risk: string) => {
+    switch (risk) {
+      case 'high':
+        return '此命令可能会对系统造成不可逆的更改，请谨慎执行';
+      case 'medium':
+        return '此命令可能会修改系统配置，请确认后执行';
+      default:
+        return '';
+    }
   };
 
   return (
     <div className="command-suggestion">
-      <Space direction="vertical" style={{ width: '100%' }}>
-        <div className="command-header">
-          <div className="command-line">
-            <CodeOutlined />
-            <span className="command-text">{command.command}</span>
-            <Tag color={riskColors[command.risk]}>
-              {command.risk === 'low' ? '安全' : command.risk === 'medium' ? '警告' : '危险'}
-            </Tag>
-          </div>
-          <div className="command-actions">
+      {(command.risk === 'medium' || command.risk === 'high') && (
+        <Alert
+          message={`${getRiskText(command.risk)}命令`}
+          description={getRiskDescription(command.risk)}
+          type={command.risk === 'high' ? 'error' : 'warning'}
+          showIcon
+          className="risk-alert"
+        />
+      )}
+      <div className="command-content">
+        <div className="command-text">
+          <code>{command.command}</code>
+          <div className="command-buttons">
             <Button
               type="text"
               icon={<CopyOutlined />}
               onClick={() => onCopy(command.command)}
-              className="copy-button"
-            />
+            >
+              复制
+            </Button>
+            <Button
+              type="text"
+              icon={<SendOutlined />}
+              onClick={() => onExecute(command.command)}
+              danger={command.risk === 'high'}
+            >
+              运行
+            </Button>
             {onRegenerate && (
               <Button
                 type="text"
                 icon={<SyncOutlined />}
                 onClick={() => onRegenerate(messageId, userInput)}
-                title="生成新的命令建议"
               >
                 换一个
               </Button>
             )}
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => onExecute(command.command)}
-            >
-              运行
-            </Button>
           </div>
         </div>
-        {command.example && (
-          <div className="command-example">
-            示例：<code>{command.example}</code>
+        {command.description && (
+          <div className="command-description">
+            {command.description}
           </div>
         )}
         {command.parameters && command.parameters.length > 0 && (
           <div className="command-parameters">
-            <div className="parameters-title">参数说明：</div>
-            {command.parameters.map((param, index) => (
-              <div key={index} className="parameter-item">
-                <Tag color={param.required ? 'blue' : 'default'}>
-                  {param.name}
-                </Tag>
-                <span>{param.description}</span>
-              </div>
-            ))}
+            <h4>参数说明：</h4>
+            <ul>
+              {command.parameters.map((param, index) => (
+                <li key={index}>
+                  <code>{param.name}</code>: {param.description}
+                  {param.required && <span className="required">（必填）</span>}
+                  {param.defaultValue && (
+                    <span className="default-value">
+                      （默认值：{param.defaultValue}）
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
-        <div className="command-description">
-          {command.description}
-        </div>
-        {command.risk !== 'low' && (
-          <Alert
-            message="安全提示"
-            description={command.description}
-            type={command.risk === 'medium' ? 'warning' : 'error'}
-            showIcon
-            icon={<ExclamationCircleOutlined />}
-          />
+        {command.example && (
+          <div className="command-example">
+            <h4>示例：</h4>
+            <code>{command.example}</code>
+          </div>
         )}
-      </Space>
+      </div>
     </div>
   );
 };

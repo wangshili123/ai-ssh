@@ -67,10 +67,11 @@
 }
 
 .message {
-  margin-bottom: 12px;
-  padding: 8px;
-  border-radius: 6px;
-  font-size: 13px;
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .message.user {
@@ -86,14 +87,14 @@
 .message-header {
   display: flex;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .message-avatar {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: #1890ff;
+  background-color: #e6f7ff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,12 +102,16 @@
 }
 
 .message.user .message-avatar {
-  background: #52c41a;
+  background-color: #f0f5ff;
 }
 
 .message-avatar .anticon {
-  color: #fff;
-  font-size: 12px;
+  font-size: 14px;
+  color: #1890ff;
+}
+
+.message.user .message-avatar .anticon {
+  color: #2f54eb;
 }
 
 .message-info {
@@ -119,11 +124,10 @@
 .message-sender {
   font-weight: 500;
   color: #333;
-  font-size: 13px;
 }
 
 .message-time {
-  font-size: 11px;
+  font-size: 12px;
   color: #999;
 }
 
@@ -138,6 +142,7 @@
 
 .message-content {
   margin-left: 32px;
+  color: #333;
   line-height: 1.6;
 }
 
@@ -157,10 +162,11 @@
 
 /* 命令建议样式 */
 .command-suggestion {
-  background: #fafafa;
-  border-radius: 4px;
-  padding: 8px;
-  margin-top: 6px;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  background-color: #fff;
+  border: 1px solid #e8e8e8;
 }
 
 .command-header {
@@ -188,13 +194,63 @@
 }
 
 .command-text {
-  font-family: 'Consolas', 'Courier New', monospace;
-  background-color: #f0f0f0;
-  padding: 4px 8px;
+  display: block;
+  background-color: #f5f5f5;
+  padding: 8px 12px;
   border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.command-text code {
+  font-family: 'Consolas', 'Courier New', monospace;
   font-size: 13px;
-  flex: 1;
-  word-break: break-all;
+  color: #333;
+  display: block;
+  width: 100%;
+}
+
+.command-buttons {
+  display: flex;
+  gap: 4px;
+  padding: 4px 0;
+  align-items: center;
+}
+
+.command-buttons .ant-btn,
+.command-buttons .regenerate-button {
+  font-size: 12px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 2px;
+  color: #666;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.command-buttons .ant-btn:hover,
+.command-buttons .regenerate-button:hover {
+  color: #1890ff;
+  border-color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.command-buttons .ant-btn .anticon,
+.command-buttons .regenerate-button .anticon {
+  font-size: 12px;
+}
+
+.command-buttons .ant-btn-dangerous {
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+.command-buttons .ant-btn-dangerous:hover {
+  color: #ff7875;
+  border-color: #ff7875;
+  background: rgba(255, 77, 79, 0.1);
 }
 
 .command-header .ant-btn {
@@ -218,32 +274,61 @@
 }
 
 .command-example {
-  margin: 8px 0;
-  padding: 8px;
-  background-color: rgba(255, 255, 255, 0.05);
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: #fafafa;
   border-radius: 4px;
 }
 
-.command-parameters {
-  margin: 8px 0;
+.command-example h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #333;
 }
 
-.parameters-title {
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-
-.parameter-item {
-  display: flex;
-  align-items: center;
-  margin: 2px 0;
+.command-example code {
+  display: block;
+  background-color: #f0f0f0;
+  padding: 6px 8px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Courier New', monospace;
   font-size: 12px;
+  color: #333;
 }
 
-.parameter-item .ant-tag {
-  margin-right: 6px;
-  font-size: 11px;
-  padding: 0 4px;
+.command-parameters {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: #fafafa;
+  border-radius: 4px;
+}
+
+.command-parameters h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #333;
+}
+
+.command-parameters ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.command-parameters li {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.command-parameters code {
+  background-color: #f0f0f0;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.risk-alert {
+  margin-bottom: 12px;
 }
 
 /* 自定义滚动条样式 */
@@ -350,4 +435,52 @@
   color: #666;
   font-size: 13px;
   line-height: 1.5;
+}
+
+.command-wrapper {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.regenerate-button {
+  font-size: 12px !important;
+  height: 22px !important;
+  padding: 0 8px !important;
+  border: 1px solid #d9d9d9 !important;
+  border-radius: 2px !important;
+  color: #666 !important;
+  background: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  position: static !important;
+  margin-left: 4px !important;
+  opacity: 1 !important;
+}
+
+.regenerate-button:hover {
+  color: #1890ff !important;
+  border-color: #1890ff !important;
+  background: rgba(24, 144, 255, 0.1) !important;
+}
+
+.regenerate-button .anticon {
+  font-size: 12px !important;
+}
+
+.command-buttons {
+  display: flex;
+  gap: 4px;
+  padding: 4px 0;
+  align-items: center;
+}
+
+.required {
+  color: #ff4d4f;
+  margin-left: 4px;
+}
+
+.default-value {
+  color: #8c8c8c;
+  margin-left: 4px;
 } 

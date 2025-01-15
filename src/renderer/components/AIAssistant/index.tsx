@@ -1,36 +1,28 @@
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
-import { Input, Button, message, Radio } from 'antd';
-import { SendOutlined, CopyOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
-import { aiService, CommandSuggestion } from '../../services/ai';
-import { sshService } from '../../services/ssh';
-import { eventBus } from '../../services/eventBus';
+import { Input, Button, Radio, notification } from 'antd';
+import { SendOutlined } from '@ant-design/icons';
+import { v4 as uuidv4 } from 'uuid';
+import { Message } from '../../types';
+import CommandModeComponent from './modes/command';
+import ContextModeComponent from './modes/context';
+import AgentModeComponent from './modes/agent';
+import { commandModeService } from '../../services/modes/command';
+import { contextModeService } from '../../services/modes/context';
+import { agentModeService } from '../../services/modes/agent';
 import { terminalOutputService } from '../../services/terminalOutput';
-import CommandMode from './CommandMode';
-import ContextMode from './ContextMode';
-import AgentMode from './agent/AgentMode';
-import { AgentServiceImpl } from '../../../services/agent/AgentService';
+import { aiService } from '../../services/ai';
+import type { ContextResponse } from '../../services/ai';
 import './style.css';
 import type { RadioChangeEvent } from 'antd';
-import { v4 as uuidv4 } from 'uuid';
 
 interface AIAssistantProps {
   sessionId?: string;
 }
 
-interface Message {
-  id: string;
-  type: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-  command?: CommandSuggestion;
-  commands?: CommandSuggestion[];
-  explanation?: string;
-}
-
 export enum AssistantMode {
-  COMMAND = 'command',
-  CONTEXT = 'context',
-  AGENT = 'agent'
+  COMMAND = 'COMMAND',
+  CONTEXT = 'CONTEXT',
+  AGENT = 'AGENT'
 }
 
 const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
@@ -38,11 +30,11 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
   const getInitialMode = (): AssistantMode => {
     const savedMode = localStorage.getItem('ai-assistant-mode');
     switch (savedMode) {
-      case 'command':
+      case 'COMMAND':
         return AssistantMode.COMMAND;
-      case 'context':
+      case 'CONTEXT':
         return AssistantMode.CONTEXT;
-      case 'agent':
+      case 'AGENT':
         return AssistantMode.AGENT;
       default:
         return AssistantMode.COMMAND;
@@ -61,8 +53,6 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
   const [isDragging, setIsDragging] = useState(false);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
-
-  const agentService = new AgentServiceImpl();
 
   // 处理拖拽开始
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -101,285 +91,106 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     };
   }, [isDragging]);
 
-  // 执行命令
-  const executeCommand = async (command: string) => {
-    const shellId = eventBus.getCurrentShellId();
-    if (!shellId) {
-      message.warning('请先连接到 SSH 会话');
-      return;
-    }
-
-    try {
-      // 添加换行符确保命令执行
-      await sshService.write(shellId, command + '\n');
-      message.success('命令已发送');
-    } catch (error) {
-      message.error('执行命令失败：' + (error as Error).message);
+  // 处理按键事件
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(input);
     }
   };
 
   // 处理发送消息
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    const userMessage: Message = {
-      id: uuidv4(),
-      type: 'user',
-      content: input,
-      timestamp: Date.now()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setLoading(true);
-    setInputHistory(prev => [input, ...prev].slice(0, 50));
-    setHistoryIndex(-1);
+  const handleSend = async (message: string) => {
+    if (!message.trim() || loading) return;
 
     try {
-      if (mode === AssistantMode.COMMAND) {
-        // 命令模式：保持现有的命令生成逻辑
-        const command = await aiService.convertToCommand(userMessage.content);
-        const assistantMessage: Message = {
-          id: uuidv4(),
-          type: 'assistant',
-          content: command.description || '抱歉，我无法理解您的需求。',
-          timestamp: Date.now(),
-          command
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-      } else if (mode === AssistantMode.CONTEXT) {
-        // 上下文模式：获取当前终端输出并发送给AI
-        const shellId = eventBus.getCurrentShellId();
-        if (!shellId) {
-          message.warning('请先连接到 SSH 会话');
-          return;
-        }
+      setLoading(true);
+      setInput('');
+      setInputHistory(prev => [message.trim(), ...prev]);
+      setHistoryIndex(-1);
 
-        // 获取最近的终端输出
-        const terminalContext = terminalOutputService.getRecentOutput(shellId);
-        
-        try {
-          // 发送请求给AI服务
-          const response = await aiService.getContextResponse(userMessage.content, terminalContext);
-          
+      // 添加用户消息
+      const userMessage: Message = {
+        id: uuidv4(),
+        type: 'user',
+        content: message,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, userMessage]);
+
+      // 根据当前模式处理消息
+      let assistantMessage: Message;
+      switch (mode) {
+        case AssistantMode.COMMAND: {
+          const suggestion = await commandModeService.getCommandSuggestion(message);
+          assistantMessage = {
+            id: uuidv4(),
+            type: 'assistant',
+            content: message,
+            commands: [suggestion],
+            timestamp: Date.now()
+          };
+          break;
+        }
+        case AssistantMode.CONTEXT: {
+          const response = await contextModeService.getContextResponse(message);
           if (typeof response === 'string') {
-            // 如果是普通文本回复
-            const assistantMessage: Message = {
+            assistantMessage = {
               id: uuidv4(),
               type: 'assistant',
               content: response,
               timestamp: Date.now()
             };
-            setMessages(prev => [...prev, assistantMessage]);
           } else {
-            // 如果是命令建议
-            const assistantMessage: Message = {
+            assistantMessage = {
               id: uuidv4(),
               type: 'assistant',
               content: '',
               timestamp: Date.now(),
-              explanation: response.explanation,
-              commands: response.commands.map(cmd => ({
-                command: cmd.command,
-                description: cmd.description,
-                risk: cmd.risk,
-                example: undefined,
-                parameters: undefined
-              }))
+              commands: response
             };
-            setMessages(prev => [...prev, assistantMessage]);
           }
-        } catch (error) {
-          message.error('AI 助手处理失败：' + (error as Error).message);
-          const errorMessage: Message = {
+          break;
+        }
+        case AssistantMode.AGENT: {
+          const response = await agentModeService.getNextStep(message);
+          assistantMessage = {
             id: uuidv4(),
             type: 'assistant',
-            content: '抱歉，处理您的请求时出现错误。',
+            content: typeof response === 'string' ? response : '',
+            commands: Array.isArray(response) ? response : undefined,
             timestamp: Date.now()
           };
-          setMessages(prev => [...prev, errorMessage]);
+          break;
         }
-      } else if (mode === AssistantMode.AGENT) {
-        // Agent 模式：处理 Agent 相关逻辑
-        // 这里需要实现 Agent 模式的处理逻辑
-        // 目前只是一个占位代码
-        const agentMessage: Message = {
-          id: uuidv4(),
-          type: 'assistant',
-          content: 'Agent 模式正在处理中...',
-          timestamp: Date.now()
-        };
-        setMessages(prev => [...prev, agentMessage]);
+        default:
+          throw new Error(`不支持的模式: ${mode}`);
       }
-    } catch (error) {
-      message.error('生成回复失败：' + (error as Error).message);
-      const errorMessage: Message = {
-        id: uuidv4(),
-        type: 'assistant',
-        content: '抱歉，处理您的请求时出现错误。',
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, errorMessage]);
+
+      // 添加助手消息
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error('处理消息失败:', error);
+      notification.error({
+        message: '处理失败',
+        description: error.message,
+        placement: 'bottomRight',
+        duration: 3
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // 滚动到底部
-  const scrollToBottom = () => {
-    // 使用 setTimeout 确保在内容渲染后滚动
-    setTimeout(() => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ 
-          behavior: 'smooth',
-          block: 'end'
-        });
-      }
-    }, 100);
-  };
-
-  // 监听消息列表变化，自动滚动
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // 复制消息内容
-  const copyMessage = (content: string) => {
-    navigator.clipboard.writeText(content).then(() => {
-      message.success('复制成功');
-    }).catch(() => {
-      message.error('复制失败');
-    });
-  };
-
-  // 处理按键事件
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // 回车发送消息（非 Shift+Enter）
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-      return;
-    }
-
-    // 上下键浏览历史记录
-    if (e.key === 'ArrowUp' && !e.ctrlKey) {
-      e.preventDefault();
-      if (historyIndex < inputHistory.length - 1) {
-        const newIndex = historyIndex + 1;
-        setHistoryIndex(newIndex);
-        setInput(inputHistory[newIndex]);
-      }
-    } else if (e.key === 'ArrowDown' && !e.ctrlKey) {
-      e.preventDefault();
-      if (historyIndex > -1) {
-        const newIndex = historyIndex - 1;
-        setHistoryIndex(newIndex);
-        setInput(newIndex === -1 ? '' : inputHistory[newIndex]);
-      }
-    }
-  };
-
-  // 重新生成命令
-  const regenerateCommand = async (messageId: string, userInput: string) => {
-    try {
-      // 获取当前会话的命令历史
-      const commandHistory = aiService.getCurrentCommands();
-      console.log('重新生成命令 - 历史记录:', commandHistory);
-      
-      // 找到当前 AI 消息对应的用户消息
-      const currentMessageIndex = messages.findIndex(msg => msg.id === messageId);
-      const userMessage = messages
-        .slice(0, currentMessageIndex)
-        .reverse()
-        .find(msg => msg.type === 'user');
-
-      if (!userMessage) {
-        message.error('找不到原始提问内容');
-        return;
-      }
-      
-      // 生成新的命令，排除已生成过的命令
-      const command = await aiService.convertToCommand(userMessage.content, commandHistory);
-      
-      // 更新消息列表
-      setMessages(prev => prev.map(msg => 
-        msg.id === messageId
-          ? { ...msg, content: command.description, command }
-          : msg
-      ));
-    } catch (error) {
-      message.error('生成命令失败：' + (error as Error).message);
-    }
-  };
-
-  // 渲染单个消息
-  const renderMessage = (msg: Message) => {
-    const isUser = msg.type === 'user';
-    return (
-      <div key={msg.id} className={`message ${msg.type}`}>
-        <div className="message-header">
-          <div className="message-avatar">
-            {isUser ? <UserOutlined /> : <RobotOutlined />}
-          </div>
-          <div className="message-info">
-            <span className="message-sender">{isUser ? '你' : 'AI助手'}</span>
-            <span className="message-time">
-              {new Date(msg.timestamp).toLocaleString()}
-            </span>
-          </div>
-          <Button
-            type="text"
-            icon={<CopyOutlined />}
-            onClick={() => copyMessage(msg.content)}
-            className="copy-button"
-          />
-        </div>
-        <div className="message-content">
-          {(isUser || (!msg.commands && !msg.command && msg.content)) && (
-            <div className="text-content">{msg.content}</div>
-          )}
-          
-          {!isUser && msg.explanation && (
-            <div className="explanation-content">
-              {msg.explanation}
-            </div>
-          )}
-
-          {msg.command && (
-            <CommandMode
-              command={msg.command}
-              messageId={msg.id}
-              userInput={msg.content}
-              onCopy={copyMessage}
-              onExecute={executeCommand}
-              onRegenerate={mode === AssistantMode.COMMAND ? regenerateCommand : undefined}
-            />
-          )}
-
-          {msg.commands && msg.commands.map((cmd, index) => (
-            <CommandMode
-              key={`${msg.id}-${index}`}
-              command={cmd}
-              messageId={msg.id}
-              userInput={msg.content}
-              onCopy={copyMessage}
-              onExecute={executeCommand}
-              onRegenerate={mode === AssistantMode.COMMAND ? regenerateCommand : undefined}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   // 保存用户模式选择
   useEffect(() => {
     const savedMode = localStorage.getItem('ai-assistant-mode');
-    if (savedMode === 'command') {
+    if (savedMode === 'COMMAND') {
       setMode(AssistantMode.COMMAND);
-    } else if (savedMode === 'context') {
+    } else if (savedMode === 'CONTEXT') {
       setMode(AssistantMode.CONTEXT);
-    } else if (savedMode === 'agent') {
+    } else if (savedMode === 'AGENT') {
       setMode(AssistantMode.AGENT);
     }
   }, []);
@@ -391,6 +202,51 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     localStorage.setItem('ai-assistant-mode', newMode);
   };
 
+  // 处理重新生成命令
+  const handleRegenerate = async (messageId: string, userInput: string) => {
+    try {
+      setLoading(true);
+      const suggestion = await commandModeService.getCommandSuggestion(userInput);
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId) {
+          return {
+            ...msg,
+            content: userInput,
+            commands: [suggestion]
+          };
+        }
+        return msg;
+      }));
+    } catch (error) {
+      console.error('重新生成命令失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 渲染当前模式的组件
+  const renderModeComponent = () => {
+    const props = {
+      sessionId,
+      input,
+      loading,
+      messages,
+      onUpdateMessages: setMessages,
+      onRegenerate: mode === AssistantMode.COMMAND ? handleRegenerate : undefined
+    };
+
+    switch (mode) {
+      case AssistantMode.COMMAND:
+        return <CommandModeComponent {...props} />;
+      case AssistantMode.CONTEXT:
+        return <ContextModeComponent {...props} />;
+      case AssistantMode.AGENT:
+        return <AgentModeComponent {...props} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div 
       className="ai-assistant" 
@@ -400,7 +256,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     >
       <div className="resize-handle" />
       <div className="ai-messages" ref={messagesEndRef}>
-        {messages.map(message => renderMessage(message))}
+        {renderModeComponent()}
       </div>
       <div className="ai-input-container">
         <div className="input-wrapper">
@@ -426,7 +282,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           <Button
             type="text"
             icon={<SendOutlined />}
-            onClick={handleSend}
+            onClick={() => handleSend(input)}
             loading={loading}
             disabled={!input.trim()}
           >

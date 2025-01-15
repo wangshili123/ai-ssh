@@ -1,5 +1,7 @@
 import { ipcRenderer } from 'electron';
 import type { SessionInfo } from '../../main/services/storage';
+import { terminalOutputService } from './terminalOutput';
+import { eventBus } from './eventBus';
 
 console.log('Loading renderer SSH service...');
 
@@ -72,15 +74,58 @@ class SSHService {
   }
 
   async write(sessionId: string, data: string) {
-    console.log('Renderer SSHService.write called with:', sessionId, data);
+    console.log('Renderer SSHService.write called with:', { sessionId, data });
     const result = await ipcRenderer.invoke('ssh:write', sessionId, data);
     if (!result.success) {
       throw new Error(result.error);
     }
   }
 
+  async executeCommand(command: string) {
+    console.log('Renderer SSHService.executeCommand called with:', { command });
+    
+    // 获取当前活动的 shell ID
+    const currentShellId = eventBus.getCurrentShellId();
+    if (!currentShellId) {
+      throw new Error('No active shell session found');
+    }
+
+    // 记录命令到历史记录
+    terminalOutputService.addCommand(command);
+
+    try {
+      // 发送命令到终端
+      await this.write(currentShellId, command + '\n');
+
+      // 等待命令执行完成
+      return new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Command execution timeout'));
+        }, 30000); // 30秒超时
+
+        const checkOutput = () => {
+          const output = terminalOutputService.getHistory();
+          const lastOutput = output[output.length - 1]?.output;
+          
+          // 检查输出中是否包含命令提示符（$ 或 #）
+          if (lastOutput && (lastOutput.includes('$ ') || lastOutput.includes('# '))) {
+            clearTimeout(timeout);
+            resolve();
+          } else {
+            setTimeout(checkOutput, 100);
+          }
+        };
+
+        checkOutput();
+      });
+    } catch (error) {
+      console.error('Failed to execute command:', error);
+      throw error;
+    }
+  }
+
   async resize(sessionId: string, cols: number, rows: number) {
-    console.log('Renderer SSHService.resize called with:', sessionId, cols, rows);
+    console.log('Renderer SSHService.resize called with:', { sessionId, cols, rows });
     const result = await ipcRenderer.invoke('ssh:resize', sessionId, cols, rows);
     if (!result.success) {
       throw new Error(result.error);
