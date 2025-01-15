@@ -134,22 +134,14 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
         }
         case AssistantMode.CONTEXT: {
           const response = await contextModeService.getContextResponse(message);
-          if (typeof response === 'string') {
-            assistantMessage = {
-              id: uuidv4(),
-              type: 'assistant',
-              content: response,
-              timestamp: Date.now()
-            };
-          } else {
-            assistantMessage = {
-              id: uuidv4(),
-              type: 'assistant',
-              content: '',
-              timestamp: Date.now(),
-              commands: response
-            };
-          }
+          assistantMessage = {
+            id: uuidv4(),
+            type: 'assistant',
+            content: message,
+            explanation: response.explanation,
+            commands: response.commands,
+            timestamp: Date.now()
+          };
           break;
         }
         case AssistantMode.AGENT: {

@@ -3,9 +3,6 @@ import { Button } from 'antd';
 import { CopyOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
 import { CommandSuggestion } from '../../../../services/ai';
 import CommandMode from '../../CommandMode';
-import ReactMarkdown from 'react-markdown';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface ContextMessageProps {
   id: string;
@@ -51,60 +48,12 @@ const ContextMessage: React.FC<ContextMessageProps> = ({
       </div>
       <div className="message-content">
         {isUser && (
-          <div className="text-content">
-            <ReactMarkdown
-              components={{
-                code({ className, children }) {
-                  const match = /language-(\w+)/.exec(className || '');
-                  if (match && typeof children === 'string') {
-                    return (
-                      <SyntaxHighlighter
-                        style={vscDarkPlus as any}
-                        language={match[1]}
-                        PreTag="div"
-                      >
-                        {children.replace(/\n$/, '')}
-                      </SyntaxHighlighter>
-                    );
-                  }
-                  return <code className={className}>{children}</code>;
-                }
-              }}
-            >
-              {content}
-            </ReactMarkdown>
-          </div>
+          <div className="text-content">{content}</div>
         )}
 
         {!isUser && explanation && (
           <div className="explanation-content">
             {explanation}
-          </div>
-        )}
-
-        {!isUser && !commands && content && (
-          <div className="text-content">
-            <ReactMarkdown
-              components={{
-                code({ className, children }) {
-                  const match = /language-(\w+)/.exec(className || '');
-                  if (match && typeof children === 'string') {
-                    return (
-                      <SyntaxHighlighter
-                        style={vscDarkPlus as any}
-                        language={match[1]}
-                        PreTag="div"
-                      >
-                        {children.replace(/\n$/, '')}
-                      </SyntaxHighlighter>
-                    );
-                  }
-                  return <code className={className}>{children}</code>;
-                }
-              }}
-            >
-              {content}
-            </ReactMarkdown>
           </div>
         )}
 
