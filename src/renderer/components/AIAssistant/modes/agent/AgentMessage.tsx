@@ -112,6 +112,14 @@ const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSkipComman
             return null;
           }
           
+          const hasAnalysis = content.analysis;
+          const hasCommands = content.commands && content.commands.length > 0;
+          const hasResult = content.type === 'result' && content.content;
+          
+          if (!hasAnalysis && !hasCommands && !hasResult) {
+            return null;
+          }
+          
           return (
             <div key={index} className={`content-item ${content.type}`}>
               {content.analysis && (
@@ -130,7 +138,7 @@ const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSkipComman
                 />
               ))}
               
-              {content.type === 'result' && (
+              {content.type === 'result' && content.content && (
                 <div className="result-block">
                   {content.content}
                 </div>
