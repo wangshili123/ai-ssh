@@ -47,7 +47,8 @@ class ContextModeService {
    }
 3. 对于危险命令（如 rm、chmod 等），必须在 description 中说明风险
 4. 尽量提供最简洁有效的命令
-5. 如果用户的描述不够清晰，在 explanation 中说明原因`
+5. 如果用户的描述不够清晰，在 explanation 中说明原因
+6.强制要求（不要带markdown格式，json按文本格式返回）`
     }
   ];
 
