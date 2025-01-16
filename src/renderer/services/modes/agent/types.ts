@@ -62,6 +62,7 @@ export interface AgentTask {
   autoExecute: boolean;
   paused: boolean;
   currentMessage?: AgentResponse;
+  userInput?: string;
 }
 
 export interface AgentModeService {

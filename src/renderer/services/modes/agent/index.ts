@@ -147,6 +147,7 @@ class AgentModeServiceImpl implements AgentModeService {
           currentStep: -1,
           autoExecute: true,
           paused: false,
+          userInput: input,
           currentMessage: {
             status: AgentResponseStatus.THINKING,
             contents: [{

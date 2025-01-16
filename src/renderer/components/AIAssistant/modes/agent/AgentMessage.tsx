@@ -88,7 +88,7 @@ const CommandBlock: React.FC<{
           type="primary"
           onClick={() => onExecute(command.text)}
         >
-          执行命令
+          执行
         </Button>
         <Button 
           type="text"

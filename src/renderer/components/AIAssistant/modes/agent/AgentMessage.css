@@ -51,11 +51,11 @@
 .agent-message .message-content .content-item:last-child {
   border-bottom: none;
 }
-
+/* 
 .agent-message .message-content .content-item.analysis {
   background: #fafafa;
   color: #333;
-}
+} */
 
 .agent-message .message-content .content-item.command {
   background: #fafafa;

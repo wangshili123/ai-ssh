@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
 import { agentModeService } from '@/renderer/services/modes/agent';
 import { AgentResponse, AgentResponseStatus, AgentState } from '@/renderer/services/modes/agent/types';
 import AgentMessage from './AgentMessage';
@@ -12,6 +13,8 @@ interface AgentModeProps {
 
 const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
   const [currentMessage, setCurrentMessage] = useState<AgentResponse | null>(null);
+  const [userMessage, setUserMessage] = useState<string | null>(null);
+  const [messageTime, setMessageTime] = useState<number>(0);
 
   // 监听Agent服务的消息更新
   useEffect(() => {
@@ -19,6 +22,15 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
       const message = agentModeService.getCurrentMessage();
       if (message) {
         setCurrentMessage({ ...message });
+        // 获取用户的输入消息和时间
+        const task = agentModeService.getCurrentTask();
+        if (task && task.userInput) {
+          setUserMessage(task.userInput);
+          // 使用第一条消息的时间戳
+          if (message.contents.length > 0) {
+            setMessageTime(message.contents[0].timestamp);
+          }
+        }
       }
     }, 100);
 
@@ -159,6 +171,22 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
 
   return (
     <div className="agent-mode">
+      {userMessage && (
+        <div className="message user">
+          <div className="message-header">
+            <div className="message-avatar">
+              <UserOutlined />
+            </div>
+            <div className="message-time">
+              {messageTime ? new Date(messageTime).toLocaleString() : ''}
+            </div>
+          </div>
+          <div className="message-content">
+            {userMessage}
+          </div>
+        </div>
+      )}
+      
       {currentMessage && (
         <AgentMessage
           message={currentMessage}
