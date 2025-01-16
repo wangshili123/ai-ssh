@@ -16,14 +16,15 @@ class SSHService {
 
   async connect(sessionInfo: SessionInfo) {
     console.log('SSHService.connect called with:', sessionInfo);
-    const { id, host, port, username, password, privateKey } = sessionInfo;
+    const { id, host, port, username, password, privateKey, authType } = sessionInfo;
 
     console.log('Connecting to SSH server with config:', {
       host,
       port,
       username,
-      password: '***',
-      privateKey: '***'
+      authType,
+      hasPassword: !!password,
+      hasPrivateKey: !!privateKey
     });
 
     // 如果已经有连接，直接返回
@@ -53,11 +54,14 @@ class SSHService {
         username
       };
 
-      if (password) {
+      // 根据认证类型设置认证方式
+      if (authType === 'password' && password) {
         config.password = password;
-      }
-      if (privateKey) {
+      } else if (authType === 'privateKey' && privateKey) {
         config.privateKey = privateKey;
+      } else {
+        reject(new Error('Invalid authentication configuration'));
+        return;
       }
 
       conn.connect(config);

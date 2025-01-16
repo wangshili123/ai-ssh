@@ -16,6 +16,7 @@ import type { ContextResponse } from '../../services/ai';
 import AIConfigModal from '../AIConfigModal';
 import './style.css';
 import type { RadioChangeEvent } from 'antd';
+import { eventBus } from '../../services/eventBus';
 
 interface AIAssistantProps {
   sessionId?: string;
@@ -233,6 +234,18 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       },
       onExecute: async (command: string) => {
         try {
+          // 获取当前活动的 shell ID
+          const currentShellId = eventBus.getCurrentShellId();
+          if (!currentShellId) {
+            notification.error({
+              message: '执行失败',
+              description: '请先打开一个终端会话',
+              placement: 'bottomRight',
+              duration: 3
+            });
+            return;
+          }
+
           await sshService.executeCommand(command);
         } catch (error) {
           console.error('执行命令失败:', error);
