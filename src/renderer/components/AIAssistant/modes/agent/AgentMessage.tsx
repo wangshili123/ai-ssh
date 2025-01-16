@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Button, Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
 import { AgentResponse, AgentResponseStatus, MessageContent, CommandRiskLevel, CommandInfo } from '@/renderer/services/modes/agent/types';
@@ -101,12 +101,27 @@ const CommandBlock: React.FC<{
   );
 };
 
-const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSkipCommand }) => {
+export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSkipCommand }) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    if (contentRef.current) {
+      const element = contentRef.current;
+      requestAnimationFrame(() => {
+        element.scrollTop = element.scrollHeight;
+      });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [message.contents, message.status]);
+
   return (
     <div className="agent-message">
       <StatusIndicator status={message.status} />
       
-      <div className="message-content">
+      <div className="message-content" ref={contentRef}>
         {message.contents.map((content, index) => {
           if (content.type === 'output') {
             return null;
