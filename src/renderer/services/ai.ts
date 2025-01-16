@@ -47,7 +47,7 @@ export interface ContextResponse {
 
 const systemPrompt = `你是一个 Linux 命令专家，帮助用户将自然语言转换为准确的 Linux 命令。
 请遵循以下规则：
-1. 返回的内容必须是 JSON 格式，包含以下字段：
+1. 返回的内容必须是 JSON 格式，不要带markdown格式，比如{“a”:1}，包含以下字段：
    - command: 具体的 Linux 命令
    - description: 命令的中文解释
    - risk: 命令的风险等级 (low/medium/high)
@@ -265,7 +265,7 @@ class AIService {
       
       const systemPrompt = `你是一个 Linux 终端助手。请严格遵循以下规则回答：
 1. 先用简短的语言说明问题
-2. 如果需要执行命令，必须返回 JSON 格式数据，格式如下：
+2. 如果需要执行命令，必须返回 JSON 格式数据，不要带markdown格式，比如{“a”:1}，格式如下：
    {
      "type": "commands",
      "explanation": "对问题的简要说明",

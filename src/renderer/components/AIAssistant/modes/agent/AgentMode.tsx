@@ -1,37 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Input } from 'antd';
+import { agentModeService } from '@/renderer/services/modes/agent';
+import { CommandSuggestion } from '@/renderer/services/ai';
 import { Message } from '../../../../types';
 import AgentMessage from './AgentMessage';
-import { sshService } from '../../../../services/ssh';
+import { sshService } from '@/renderer/services/ssh';
 
 interface AgentModeProps {
   messages: Message[];
-  onUpdateMessages: (messages: Message[]) => void;
+  onSendMessage: (message: string) => void;
+  onCopy: (text: string) => void;
+  onExecute: (command: string) => void;
 }
 
 const AgentMode: React.FC<AgentModeProps> = ({
   messages,
-  onUpdateMessages
+  onSendMessage,
+  onCopy,
+  onExecute
 }) => {
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
-  const handleExecute = async (command: string) => {
-    try {
-      await sshService.executeCommand(command);
-    } catch (error) {
-      console.error('执行命令失败:', error);
-    }
-  };
-
   return (
-    <div className="messages-container">
-      {messages.map(message => (
+    <div className="agent-mode">
+      {messages.map((msg) => (
         <AgentMessage
-          key={message.id}
-          {...message}
-          onCopy={handleCopy}
-          onExecute={handleExecute}
+          key={msg.id}
+          {...msg}
+          onCopy={onCopy}
+          onExecute={onExecute}
         />
       ))}
     </div>

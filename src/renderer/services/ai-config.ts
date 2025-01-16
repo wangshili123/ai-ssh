@@ -37,9 +37,10 @@ class AIConfigService {
 
   // 测试配置
   async testConfig(config: AIConfig): Promise<boolean> {
-    console.log('正在测试AI配置:', config);
+    console.log('正在发送测试配置请求:', config);
     try {
       const response = await ipcRenderer.invoke('ai-config:test', config);
+      console.log('收到测试配置响应:', response);
       if (!response.success) {
         console.error('测试AI配置失败:', response.error);
         throw new Error(response.error);

@@ -37,9 +37,17 @@ const App: React.FC = () => {
         enable={{ right: true }}
       >
         <Sider width={siderWidth} className="app-sider">
+          <div className="toolbar">
+            <Button 
+              type="text"
+              icon={<SettingOutlined />}
+              onClick={() => setConfigModalVisible(true)}
+            >
+              模型配置
+            </Button>
+          </div>
           <SessionList
             onSelect={handleSessionSelect}
-            onSettings={() => setConfigModalVisible(true)}
           />
         </Sider>
       </Resizable>

@@ -52,18 +52,21 @@ const AIConfigComponent: React.FC<AIConfigComponentProps> = ({
 
   // 测试配置
   const handleTest = async () => {
+    console.log('开始测试配置...');
     try {
       setTesting(true);
       const values = await form.validateFields();
+      console.log('表单验证通过，配置值:', values);
       const isValid = await aiConfigService.testConfig(values);
+      console.log('测试结果:', isValid);
       if (isValid) {
         message.success('配置测试成功');
       } else {
         message.error('配置测试失败');
       }
     } catch (error) {
-      message.error('配置测试失败');
       console.error('配置测试失败:', error);
+      message.error('配置测试失败');
     } finally {
       setTesting(false);
     }

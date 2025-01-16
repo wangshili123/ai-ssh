@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from 'antd';
 import { CopyOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
-import { CommandSuggestion } from '../../../../services/ai';
+import { CommandSuggestion } from '@/renderer/services/ai';
 import CommandMode from '../../CommandMode';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';

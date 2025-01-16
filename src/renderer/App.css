@@ -25,11 +25,29 @@
 }
 
 .toolbar {
-  padding: 16px;
+  padding: 8px 12px;
   border-bottom: 1px solid #f0f0f0;
   background: #fafafa;
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.toolbar .ant-btn {
+  height: 32px;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar .ant-btn:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.toolbar .anticon {
+  font-size: 16px;
 }
 
 .app-content {

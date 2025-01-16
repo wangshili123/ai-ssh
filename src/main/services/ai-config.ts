@@ -129,47 +129,34 @@ export class AIConfigService {
       const requestOptions: any = {
         method: 'POST',
         headers: {
-          'Authorization': config.apiKey,
+          'Authorization': `Bearer ${config.apiKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: config.model,
-          messages: [
-            { role: 'user', content: 'Hello' }
-          ],
-          temperature: config.temperature,
-          max_tokens: config.maxTokens || 50
-        }),
-        // 禁用证书验证
-        agent: new https.Agent({
-          rejectUnauthorized: false
+          messages: [{ role: 'user', content: 'hi' }],
+          temperature: 0.7,
+          max_tokens: 10
         })
       };
 
       // 如果设置了代理，添加代理配置
       if (config.proxy) {
         console.log('使用代理:', config.proxy);
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // 禁用证书验证
         const isHttps = url.startsWith('https://');
         const ProxyAgent = isHttps ? HttpsProxyAgent : HttpProxyAgent;
         requestOptions.agent = new ProxyAgent(config.proxy);
       }
 
-      // 创建一个带超时的Promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('请求超时')), TEST_TIMEOUT);
+      console.log('发送测试请求:', {
+        url,
+        method: requestOptions.method,
+        headers: requestOptions.headers,
+        proxy: config.proxy
       });
 
-      // 创建API请求Promise
-      const fetchPromise = fetch(url, requestOptions);
-
-      // 使用Promise.race来实现超时控制
-      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
-      
+      const response = await fetch(url, requestOptions);
       console.log('HTTP状态码:', response.status);
-      console.log('请求URL:', url);
-      console.log('请求头:', requestOptions.headers);
-      console.log('请求体:', requestOptions.body);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -177,11 +164,11 @@ export class AIConfigService {
         return false;
       }
 
-      // 打印响应内容
       const responseData = await response.json();
       console.log('API测试响应:', JSON.stringify(responseData, null, 2));
 
-      return true;
+      // 检查响应中是否包含 choices 字段
+      return responseData && Array.isArray(responseData.choices);
     } catch (error) {
       console.error('测试AI配置失败:', error);
       return false;

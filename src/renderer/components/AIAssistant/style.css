@@ -53,8 +53,9 @@
 
 .button-wrapper {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
 }
 
 .ai-input-container .ant-input {
@@ -483,4 +484,88 @@
 .default-value {
   color: #8c8c8c;
   margin-left: 4px;
+}
+
+.ai-header {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+  display: flex;
+  align-items: center;
+}
+
+.ai-header .ant-btn {
+  border: none;
+  background: transparent;
+  padding: 2px 8px;
+  height: 24px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ai-header .ant-btn:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.ai-header .ant-btn .anticon {
+  font-size: 14px;
+}
+
+.button-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.button-wrapper .ant-radio-group {
+  display: flex;
+  align-items: center;
+}
+
+.button-wrapper .ant-radio-button-wrapper {
+  border: none;
+  background: transparent;
+  padding: 2px 8px;
+  height: 24px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.button-wrapper .ant-radio-button-wrapper:hover {
+  color: #1890ff;
+}
+
+.button-wrapper .ant-radio-button-wrapper-checked {
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.button-wrapper .ant-radio-button-wrapper-checked::before {
+  display: none;
+}
+
+.button-wrapper .ant-btn {
+  border: none;
+  background: transparent;
+  padding: 2px 8px;
+  height: 24px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.button-wrapper .ant-btn:hover {
+  color: #1890ff;
+  background: transparent;
+}
+
+.button-wrapper .ant-btn .anticon {
+  font-size: 16px;
 } 

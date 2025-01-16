@@ -3,7 +3,7 @@ import { aiConfigService } from '../ai-config';
 
 const systemPrompt = `你是一个 Linux 命令专家，帮助用户将自然语言转换为准确的 Linux 命令。
 请遵循以下规则：
-1. 返回的内容必须是 JSON 格式，包含以下字段：
+1. 返回的内容必须是 JSON 格式，不要带markdown格式，比如{“a”:1}，包含以下字段：
    - command: 具体的 Linux 命令
    - description: 命令的中文解释
    - risk: 命令的风险等级 (low/medium/high)
@@ -90,8 +90,13 @@ class CommandModeServiceImpl implements CommandModeService {
           command: result.command || '',
           description: result.description || '无法生成合适的命令',
           risk: result.risk || 'low',
-          example: result.example,
-          parameters: result.parameters
+          example: result.example || undefined,
+          parameters: Array.isArray(result.parameters) ? result.parameters.map((p: any) => ({
+            name: p.name || '',
+            description: p.description || '',
+            required: !!p.required,
+            defaultValue: p.defaultValue
+          })) : undefined
         };
 
         // 记录生成的命令到当前会话历史
@@ -104,7 +109,8 @@ class CommandModeServiceImpl implements CommandModeService {
         return {
           command: '',
           description: data.choices[0].message.content,
-          risk: 'low'
+          risk: 'low',
+          parameters: undefined
         };
       }
     } catch (err: unknown) {

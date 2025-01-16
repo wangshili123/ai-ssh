@@ -10,8 +10,10 @@ import { commandModeService } from '../../services/modes/command';
 import { contextModeService } from '../../services/modes/context';
 import { agentModeService } from '../../services/modes/agent';
 import { terminalOutputService } from '../../services/terminalOutput';
+import { sshService } from '../../services/ssh';
 import { aiService } from '../../services/ai';
 import type { ContextResponse } from '../../services/ai';
+import AIConfigModal from '../AIConfigModal';
 import './style.css';
 import type { RadioChangeEvent } from 'antd';
 
@@ -224,7 +226,24 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       loading,
       messages,
       onUpdateMessages: setMessages,
-      onRegenerate: mode === AssistantMode.COMMAND ? handleRegenerate : undefined
+      onRegenerate: mode === AssistantMode.COMMAND ? handleRegenerate : undefined,
+      onSendMessage: handleSend,
+      onCopy: (text: string) => {
+        navigator.clipboard.writeText(text);
+      },
+      onExecute: async (command: string) => {
+        try {
+          await sshService.executeCommand(command);
+        } catch (error) {
+          console.error('执行命令失败:', error);
+          notification.error({
+            message: '执行失败',
+            description: error instanceof Error ? error.message : '未知错误',
+            placement: 'bottomRight',
+            duration: 3
+          });
+        }
+      }
     };
 
     switch (mode) {

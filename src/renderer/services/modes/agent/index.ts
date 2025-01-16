@@ -1,11 +1,12 @@
-import { CommandSuggestion } from '../ai';
-import { aiConfigService } from '../ai-config';
-import { terminalOutputService, TerminalHistory } from '../terminalOutput';
+import { CommandSuggestion, CommandParameter } from '@/renderer/services/ai';
+import { aiConfigService } from '@/renderer/services/ai-config';
+import { terminalOutputService, TerminalHistory } from '@/renderer/services/terminalOutput';
+import { AgentModeService } from './types';
 
 const systemPrompt = `你是一个智能的 Linux 助手，帮助用户完成复杂的任务。
 请遵循以下规则：
 1. 你需要将任务分解为多个步骤，每个步骤都需要用户确认和执行。
-2. 每个步骤的返回内容必须是 JSON 格式，包含以下字段：
+2. 每个步骤的返回内容必须是 JSON 格式，不要带markdown格式，比如{“a”:1}，包含以下字段：
    - command: 具体的 Linux 命令
    - description: 命令的中文解释
    - risk: 命令的风险等级 (low/medium/high)
@@ -21,10 +22,6 @@ interface APIError {
     message: string;
   };
   message?: string;
-}
-
-export interface AgentModeService {
-  getNextStep: (input: string) => Promise<string | CommandSuggestion[]>;
 }
 
 class AgentModeServiceImpl implements AgentModeService {
@@ -103,9 +100,14 @@ ${h.output || ''}`).join('\n')}
             command: item.command || '',
             description: item.description || '无法生成合适的命令',
             risk: item.risk || 'low',
-            example: item.example,
-            parameters: item.parameters
-          }));
+            example: item.example || undefined,
+            parameters: Array.isArray(item.parameters) ? item.parameters.map((p: any) => ({
+              name: p.name || '',
+              description: p.description || '',
+              required: !!p.required,
+              defaultValue: p.defaultValue
+            } as CommandParameter)) : undefined
+          } as CommandSuggestion));
 
           // 记录当前步骤
           this.currentStepIndex++;
@@ -117,9 +119,14 @@ ${h.output || ''}`).join('\n')}
             command: result.command || '',
             description: result.description || '无法生成合适的命令',
             risk: result.risk || 'low',
-            example: result.example,
-            parameters: result.parameters
-          };
+            example: result.example || undefined,
+            parameters: Array.isArray(result.parameters) ? result.parameters.map((p: any) => ({
+              name: p.name || '',
+              description: p.description || '',
+              required: !!p.required,
+              defaultValue: p.defaultValue
+            } as CommandParameter)) : undefined
+          } as CommandSuggestion;
 
           // 记录当前步骤
           this.currentStepIndex++;
