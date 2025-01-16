@@ -4,6 +4,8 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   margin: 12px 0;
   overflow: hidden;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
 }
 
 .agent-message .status-indicator {
@@ -148,4 +150,17 @@
   padding: 8px 12px;
   border-radius: 4px;
   border: 1px solid #b7eb8f;
+}
+
+.agent-message::-webkit-scrollbar {
+  width: 6px;
+}
+
+.agent-message::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.agent-message::-webkit-scrollbar-track {
+  background: transparent;
 } 

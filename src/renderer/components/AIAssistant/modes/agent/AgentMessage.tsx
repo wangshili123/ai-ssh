@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
-import { AgentResponse, AgentResponseStatus, MessageContent, CommandRiskLevel } from '@/renderer/services/modes/agent/types';
+import { AgentResponse, AgentResponseStatus, MessageContent, CommandRiskLevel, CommandInfo } from '@/renderer/services/modes/agent/types';
 import './AgentMessage.css';
 
 interface Props {
@@ -65,59 +65,79 @@ const RiskBadge: React.FC<{ risk: CommandRiskLevel }> = ({ risk }) => {
   );
 };
 
+const CommandBlock: React.FC<{
+  command: CommandInfo;
+  onExecute: (command: string) => void;
+  onSkip: () => void;
+}> = ({ command, onExecute, onSkip }) => {
+  if (command.executed) {
+    return null;
+  }
+
+  return (
+    <div className="command-block">
+      <div className="command-info">
+        <div className="description">{command.description}</div>
+        <RiskBadge risk={command.risk} />
+      </div>
+      <div className="command-text">
+        {command.text}
+      </div>
+      <div className="command-actions">
+        <Button 
+          type="primary"
+          onClick={() => onExecute(command.text)}
+        >
+          执行命令
+        </Button>
+        <Button 
+          type="text"
+          onClick={onSkip}
+        >
+          跳过
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSkipCommand }) => {
   return (
     <div className="agent-message">
       <StatusIndicator status={message.status} />
       
       <div className="message-content">
-        {message.contents.map((content, index) => (
-          <div key={index} className={`content-item ${content.type}`}>
-            {content.type === 'analysis' && (
-              <div className="analysis-block">
-                {content.content}
-              </div>
-            )}
-            
-            {content.type === 'command' && content.command && !content.command.executed && (
-              <div className="command-block">
-                <div className="command-info">
-                  <div className="description">{content.content}</div>
-                  <RiskBadge risk={content.command.risk} />
+        {message.contents.map((content, index) => {
+          if (content.type === 'output') {
+            return null;
+          }
+          
+          return (
+            <div key={index} className={`content-item ${content.type}`}>
+              {content.analysis && (
+                <div className="analysis-block">
+                  <div className="analysis-title">执行结果分析：</div>
+                  {content.analysis}
                 </div>
-                <div className="command-text">
-                  {content.command.text}
+              )}
+              
+              {content.commands && content.commands.map((cmd, cmdIndex) => (
+                <CommandBlock
+                  key={cmdIndex}
+                  command={cmd}
+                  onExecute={onExecuteCommand}
+                  onSkip={onSkipCommand}
+                />
+              ))}
+              
+              {content.type === 'result' && (
+                <div className="result-block">
+                  {content.content}
                 </div>
-                <div className="command-actions">
-                  <Button 
-                    type="primary"
-                    onClick={() => onExecuteCommand(content.command!.text)}
-                  >
-                    执行命令
-                  </Button>
-                  <Button 
-                    type="text"
-                    onClick={onSkipCommand}
-                  >
-                    跳过
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            {content.type === 'output' && (
-              <div className="output-block">
-                <pre>{content.content}</pre>
-              </div>
-            )}
-            
-            {content.type === 'result' && (
-              <div className="result-block">
-                {content.content}
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

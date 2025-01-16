@@ -31,15 +31,19 @@ export interface CommandParameter {
   default?: string;
 }
 
+export interface CommandInfo {
+  text: string;
+  risk: CommandRiskLevel;
+  description: string;
+  executed: boolean;
+}
+
 export interface MessageContent {
   type: 'analysis' | 'command' | 'output' | 'result';
   content: string;
   timestamp: number;
-  command?: {
-    text: string;
-    risk: CommandRiskLevel;
-    executed: boolean;
-  };
+  analysis?: string;
+  commands?: CommandInfo[];
 }
 
 export interface AgentResponse {
@@ -71,4 +75,22 @@ export interface AgentModeService {
   getCurrentMessage: () => AgentResponse | null;
   updateMessageStatus: (status: AgentResponseStatus) => void;
   appendContent: (content: MessageContent) => void;
+}
+
+export interface AICommandResponse {
+  command: string;
+  description: string;
+  risk: string;
+}
+
+export interface AIResponse {
+  analysis?: string;
+  commands?: AICommandResponse[];
+}
+
+export interface CommandInfo {
+  text: string;
+  risk: CommandRiskLevel;
+  description: string;
+  executed: boolean;
 } 

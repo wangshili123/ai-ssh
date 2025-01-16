@@ -1,16 +1,33 @@
 import { CommandParameter } from '@/renderer/services/ai';
 import { aiConfigService } from '@/renderer/services/ai-config';
 import { terminalOutputService, TerminalHistory } from '@/renderer/services/terminalOutput';
-import { AgentModeService, AgentState, AgentTask, AgentResponseStatus, MessageContent, AgentResponse, CommandRiskLevel } from './types';
+import { 
+  AgentModeService, 
+  AgentState, 
+  AgentTask, 
+  AgentResponseStatus, 
+  MessageContent, 
+  AgentResponse, 
+  CommandRiskLevel,
+  AIResponse,
+  AICommandResponse
+} from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 const systemPrompt = `你是一个智能的 Linux 助手，帮助用户完成复杂的任务。
 请遵循以下规则：
 1. 你需要将任务分解为多个步骤，每个步骤都需要用户确认和执行。
-2. 每个步骤的返回内容必须是 JSON 格式，不要带markdown格式，比如{"a":1}，包含以下字段：
-   - command: 具体的 Linux 命令
-   - description: 命令的中文解释
-   - risk: 命令的风险等级 (low/medium/high)
+2. 每个步骤的返回内容必须是 JSON 格式，不要带markdown格式，格式如下：
+   {
+     "analysis": "对上一个命令执行结果的分析说明",
+     "commands": [
+       {
+         "command": "具体的Linux命令",
+         "description": "命令的中文解释",
+         "risk": "命令的风险等级(low/medium/high)"
+       }
+     ]
+   }
 3. 对于危险命令（如 rm、chmod 等），必须在 description 中说明风险。
 4. 每个步骤都要等待用户执行完成并查看输出后，再决定下一步操作。
 5. 如果任务完成，返回纯文本的总结说明。
@@ -188,22 +205,24 @@ ${h.output || ''}`).join('\n')}
 
       // 尝试解析为 JSON 格式的命令建议
       try {
-        const result = JSON.parse(content);
-        if (result.command) {
+        const result = JSON.parse(content) as AIResponse;
+        if (result.commands && Array.isArray(result.commands)) {
           // 记录当前步骤
           this.currentStepIndex++;
-          this.taskSteps[this.currentStepIndex] = result.description;
+          this.taskSteps[this.currentStepIndex] = result.commands[0].description;
 
           // 添加命令到消息内容
           this.appendContent({
             type: 'command',
-            content: result.description,
+            content: '',
             timestamp: Date.now(),
-            command: {
-              text: result.command,
-              risk: result.risk as CommandRiskLevel,
+            analysis: result.analysis,
+            commands: result.commands.map((cmd: AICommandResponse) => ({
+              text: cmd.command,
+              description: cmd.description,
+              risk: cmd.risk as CommandRiskLevel,
               executed: false
-            }
+            }))
           });
 
           // 更新状态为等待执行
