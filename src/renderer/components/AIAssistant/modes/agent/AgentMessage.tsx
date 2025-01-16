@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button, Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
 import { AgentResponse, AgentResponseStatus, MessageContent, CommandRiskLevel, CommandInfo } from '@/renderer/services/modes/agent/types';
@@ -70,8 +70,41 @@ const CommandBlock: React.FC<{
   onExecute: (command: string) => void;
   onSkip: () => void;
 }> = ({ command, onExecute, onSkip }) => {
-  if (command.executed) {
-    return null;
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(command.executed);
+
+  const handleExecute = async () => {
+    setIsExecuting(true);
+    await onExecute(command.text);
+  };
+
+  const handleStop = async () => {
+    await onExecute('\x03'); // 发送 Ctrl+C 信号
+    setIsExecuting(false);
+    setIsCompleted(true);
+  };
+
+  // 如果命令已执行或已停止，只显示禁用的"已执行"按钮
+  if (isCompleted || command.executed) {
+    return (
+      <div className="command-block">
+        <div className="command-info">
+          <div className="description">{command.description}</div>
+          <RiskBadge risk={command.risk} />
+        </div>
+        <div className="command-text">
+          {command.text}
+        </div>
+        <div className="command-actions">
+          <Button 
+            type="text"
+            disabled
+          >
+            已执行
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -84,18 +117,35 @@ const CommandBlock: React.FC<{
         {command.text}
       </div>
       <div className="command-actions">
-        <Button 
-          type="primary"
-          onClick={() => onExecute(command.text)}
-        >
-          执行
-        </Button>
-        <Button 
-          type="text"
-          onClick={onSkip}
-        >
-          跳过
-        </Button>
+        {isExecuting ? (
+          <>
+            <div className="executing-status">
+              <Spin size="small" />
+              <span>执行中...</span>
+            </div>
+            <Button 
+              danger
+              onClick={handleStop}
+            >
+              停止
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button 
+              type="primary"
+              onClick={handleExecute}
+            >
+              执行
+            </Button>
+            <Button 
+              type="text"
+              onClick={onSkip}
+            >
+              跳过
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );

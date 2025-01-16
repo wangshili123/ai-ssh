@@ -37,15 +37,19 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // 检查是否包含命令提示符
-  const hasPrompt = (output: string): boolean => {
-    // 检查常见的提示符格式
+  // 检查命令是否执行完成
+  const isCommandComplete = (output: string): boolean => {
+    // 检查是否有命令提示符
     const prompts = [
       /\[.*?\][#\$]\s*$/,  // 匹配 [user@host]# 或 [user@host]$ 格式
       /[$#>]\s*$/,         // 匹配行尾的 $、# 或 > 
       /\][$#>]\s*$/,       // 匹配 ]#、]$ 或 ]> 
     ];
-    return prompts.some(prompt => prompt.test(output));
+
+    // 检查最后一行是否是提示符
+    const lines = output.split('\n');
+    const lastLine = lines[lines.length - 1].trim();
+    return prompts.some(prompt => prompt.test(lastLine));
   };
 
   // 处理命令执行完成
@@ -58,18 +62,6 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
       if (!currentTask) {
         console.error('没有当前任务');
         return;
-      }
-      
-      // 确保自动执行模式开启
-      if (!currentTask.autoExecute) {
-        console.log('自动执行模式已关闭，手动开启');
-        agentModeService.toggleAutoExecute();
-      }
-      
-      // 确保任务未暂停
-      if (currentTask.paused) {
-        console.log('任务已暂停，恢复执行');
-        agentModeService.togglePause();
       }
       
       // 先设置状态为分析中
@@ -97,75 +89,43 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
   // 处理命令执行
   const handleExecuteCommand = async (command: string) => {
     try {
+      // 如果是 Ctrl+C 信号，直接发送并返回，不进行后续处理
+      if (command === '\x03') {
+        await onExecute(command);
+        return;
+      }
+
       console.log('开始执行命令:', command);
-      // 更新状态为执行中
       agentModeService.setState(AgentState.EXECUTING);
       agentModeService.updateMessageStatus(AgentResponseStatus.EXECUTING);
       
-      // 记录执行前的历史记录长度
       const startHistoryLength = terminalOutputService.getHistory().length;
       console.log('初始历史记录长度:', startHistoryLength);
-      
-      // 设置命令执行超时时间（5秒）
-      const COMMAND_TIMEOUT = 5000;
-      let isTimeout = false;
-      
-      // 创建超时定时器
-      const timeoutId = setTimeout(() => {
-        isTimeout = true;
-        // 发送 Ctrl+C 信号
-        onExecute('\x03');
-        console.log('命令执行超时，已发送终止信号');
-      }, COMMAND_TIMEOUT);
       
       await onExecute(command);
       console.log('命令已发送到终端');
       
-      let checkCount = 0;
-      const MAX_CHECKS = 100; // 10秒超时
+      let isTerminated = false;
       
-      // 等待命令执行完成（通过检查输出中是否包含命令提示符）
       const checkOutput = async () => {
-        checkCount++;
+        if (isTerminated) return;
+        
         const history = terminalOutputService.getHistory();
-        console.log(`第 ${checkCount} 次检查, 当前历史长度:`, history.length);
-        
-        // 如果超过最大检查次数或命令被终止，进入下一步
-        if (checkCount >= MAX_CHECKS || isTimeout) {
-          console.log('命令执行结束（超时或被终止）');
-          clearTimeout(timeoutId);
-          const newOutputs = history.slice(startHistoryLength);
-          const fullOutput = newOutputs.map(output => output.output).join('\n');
-          await handleCommandComplete(fullOutput + (isTimeout ? '\n[命令已自动终止]' : ''));
-          return;
-        }
-        
-        // 如果历史记录没有更新，继续等待
-        if (history.length <= startHistoryLength) {
-          console.log('历史记录未更新，继续等待');
-          setTimeout(checkOutput, 100);
-          return;
-        }
-        
-        // 获取新的输出
         const newOutputs = history.slice(startHistoryLength);
-        const lastOutput = newOutputs[newOutputs.length - 1];
-        console.log('最新输出:', lastOutput?.output);
+        const fullOutput = newOutputs.map(output => output.output).join('\n');
         
-        if (lastOutput?.output && hasPrompt(lastOutput.output)) {
+        // 检查是否有命令提示符
+        if (isCommandComplete(fullOutput)) {
           console.log('检测到命令提示符，命令执行完成');
-          clearTimeout(timeoutId);
-          // 收集所有新输出
-          const fullOutput = newOutputs.map(output => output.output).join('\n');
-          console.log('发送完整输出到 Agent:', fullOutput);
+          isTerminated = true;
           await handleCommandComplete(fullOutput);
-        } else {
-          console.log('未检测到命令提示符，继续等待');
-          setTimeout(checkOutput, 100);
+          return;
         }
+        
+        // 继续检查
+        setTimeout(checkOutput, 100);
       };
       
-      // 立即开始检查输出
       console.log('开始检查输出');
       checkOutput();
     } catch (error) {

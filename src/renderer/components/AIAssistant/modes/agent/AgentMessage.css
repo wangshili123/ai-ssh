@@ -108,12 +108,28 @@
   display: flex;
   gap: 8px;
   margin-top: 8px;
+  align-items: center;
+}
+
+.agent-message .command-block .executing-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1890ff;
+  font-size: 13px;
 }
 
 .agent-message .command-block .command-actions button {
   font-size: 12px;
   padding: 0 12px;
-  height: 24px;
+  height: 28px;
+}
+
+.agent-message .command-block .command-actions button[disabled] {
+  background-color: #f5f5f5;
+  color: rgba(0, 0, 0, 0.25);
+  border-color: #d9d9d9;
+  cursor: not-allowed;
 }
 
 .agent-message .risk-badge {
