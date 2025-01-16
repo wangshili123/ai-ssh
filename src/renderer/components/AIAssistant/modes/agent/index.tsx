@@ -10,13 +10,15 @@ interface AgentModeProps {
   onSendMessage: (message: string) => void;
   onCopy: (text: string) => void;
   onExecute: (command: string) => void;
+  onUpdateMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
 const AgentMode: React.FC<AgentModeProps> = ({
   messages,
   onSendMessage,
   onCopy,
-  onExecute
+  onExecute,
+  onUpdateMessages
 }) => {
   return (
     <div className="agent-mode">
@@ -26,6 +28,7 @@ const AgentMode: React.FC<AgentModeProps> = ({
           {...msg}
           onCopy={onCopy}
           onExecute={onExecute}
+          onUpdateMessages={onUpdateMessages}
         />
       ))}
     </div>

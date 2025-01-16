@@ -1,32 +1,34 @@
-import React, { useState } from 'react';
-import { Input } from 'antd';
-import { agentModeService } from '@/renderer/services/modes/agent';
-import { CommandSuggestion } from '@/renderer/services/ai';
-import { Message } from '../../../../types';
+import React from 'react';
 import AgentMessage from './AgentMessage';
-import { sshService } from '@/renderer/services/ssh';
+import { Message } from '../../../../types';
 
 interface AgentModeProps {
   messages: Message[];
-  onSendMessage: (message: string) => void;
   onCopy: (text: string) => void;
   onExecute: (command: string) => void;
+  onUpdateMessages: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
 const AgentMode: React.FC<AgentModeProps> = ({
   messages,
-  onSendMessage,
   onCopy,
-  onExecute
+  onExecute,
+  onUpdateMessages
 }) => {
   return (
     <div className="agent-mode">
-      {messages.map((msg) => (
+      {messages.map((message) => (
         <AgentMessage
-          key={msg.id}
-          {...msg}
+          key={message.id}
+          id={message.id}
+          type={message.type}
+          content={message.content}
+          timestamp={message.timestamp}
+          explanation={message.explanation}
+          commands={message.commands}
           onCopy={onCopy}
           onExecute={onExecute}
+          onUpdateMessages={onUpdateMessages}
         />
       ))}
     </div>

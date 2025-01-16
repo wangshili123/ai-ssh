@@ -8,6 +8,15 @@ export enum AgentResponseStatus {
   ERROR = 'error'
 }
 
+export enum AgentState {
+  IDLE = 'idle',
+  PLANNING = 'planning',
+  EXECUTING = 'executing',
+  ANALYZING = 'analyzing',
+  COMPLETED = 'completed',
+  ERROR = 'error'
+}
+
 export enum CommandRiskLevel {
   LOW = 'low',
   MEDIUM = 'medium',
@@ -31,12 +40,20 @@ export interface AgentResponse {
 export interface AgentTask {
   id: string;
   goal: string;
-  status: AgentResponseStatus;
+  state: AgentState;
   steps: string[];
   currentStep: number;
   error?: string;
+  autoExecute: boolean;
+  paused: boolean;
 }
 
 export interface AgentModeService {
   getNextStep: (input: string) => Promise<string | CommandSuggestion[]>;
+  toggleAutoExecute: () => void;
+  togglePause: () => void;
+  getCurrentTask: () => AgentTask | null;
+  getState: () => AgentState;
+  setState: (state: AgentState) => void;
+  handleCommandExecuted: (output: string) => Promise<string | CommandSuggestion[] | null>;
 } 
