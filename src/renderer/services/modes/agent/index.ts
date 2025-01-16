@@ -1,7 +1,7 @@
-import { CommandSuggestion, CommandParameter } from '@/renderer/services/ai';
+import { CommandParameter } from '@/renderer/services/ai';
 import { aiConfigService } from '@/renderer/services/ai-config';
 import { terminalOutputService, TerminalHistory } from '@/renderer/services/terminalOutput';
-import { AgentModeService, AgentState, AgentTask } from './types';
+import { AgentModeService, AgentState, AgentTask, AgentResponseStatus, MessageContent, AgentResponse, CommandRiskLevel } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 const systemPrompt = `你是一个智能的 Linux 助手，帮助用户完成复杂的任务。
@@ -11,8 +11,6 @@ const systemPrompt = `你是一个智能的 Linux 助手，帮助用户完成复
    - command: 具体的 Linux 命令
    - description: 命令的中文解释
    - risk: 命令的风险等级 (low/medium/high)
-   - example: 使用示例（可选）
-   - parameters: 参数说明（可选）
 3. 对于危险命令（如 rm、chmod 等），必须在 description 中说明风险。
 4. 每个步骤都要等待用户执行完成并查看输出后，再决定下一步操作。
 5. 如果任务完成，返回纯文本的总结说明。
@@ -31,12 +29,10 @@ class AgentModeServiceImpl implements AgentModeService {
   private taskSteps: string[] = [];
   private currentStepIndex: number = -1;
 
-  // 获取当前状态
   getState(): AgentState {
     return this.currentTask?.state || AgentState.IDLE;
   }
 
-  // 设置状态
   setState(state: AgentState): void {
     if (this.currentTask) {
       this.currentTask.state = state;
@@ -44,12 +40,26 @@ class AgentModeServiceImpl implements AgentModeService {
     }
   }
 
-  // 获取当前任务
   getCurrentTask(): AgentTask | null {
     return this.currentTask;
   }
 
-  // 切换自动执行
+  getCurrentMessage(): AgentResponse | null {
+    return this.currentTask?.currentMessage || null;
+  }
+
+  updateMessageStatus(status: AgentResponseStatus): void {
+    if (this.currentTask?.currentMessage) {
+      this.currentTask.currentMessage.status = status;
+    }
+  }
+
+  appendContent(content: MessageContent): void {
+    if (this.currentTask?.currentMessage) {
+      this.currentTask.currentMessage.contents.push(content);
+    }
+  }
+
   toggleAutoExecute(): void {
     if (this.currentTask) {
       this.currentTask.autoExecute = !this.currentTask.autoExecute;
@@ -57,7 +67,6 @@ class AgentModeServiceImpl implements AgentModeService {
     }
   }
 
-  // 切换暂停状态
   togglePause(): void {
     if (this.currentTask) {
       this.currentTask.paused = !this.currentTask.paused;
@@ -65,40 +74,41 @@ class AgentModeServiceImpl implements AgentModeService {
     }
   }
 
-  // 处理命令执行完成
-  async handleCommandExecuted(output: string): Promise<string | CommandSuggestion[] | null> {
+  async handleCommandExecuted(output: string): Promise<void> {
     if (!this.currentTask || this.currentTask.paused || !this.currentTask.autoExecute) {
-      return null;
+      return;
     }
 
     // 更新状态为分析中
     this.setState(AgentState.ANALYZING);
+    this.updateMessageStatus(AgentResponseStatus.ANALYZING);
+
+    // 添加命令输出到当前消息
+    this.appendContent({
+      type: 'output',
+      content: output,
+      timestamp: Date.now()
+    });
 
     try {
-      // 自动调用下一步
-      const result = await this.getNextStep(output);
-      
-      if (typeof result === 'string') {
-        // 如果返回字符串，说明是任务完成或错误信息
-        this.setState(result.includes('任务完成') ? AgentState.COMPLETED : AgentState.ERROR);
-      } else {
-        // 如果返回命令建议，更新状态为等待执行
-        this.setState(AgentState.EXECUTING);
-      }
-
-      return result;
+      // 获取下一步
+      await this.getNextStep(output);
     } catch (error) {
       console.error('处理命令执行结果失败:', error);
       this.setState(AgentState.ERROR);
-      return `处理失败: ${error instanceof Error ? error.message : '未知错误'}`;
+      this.updateMessageStatus(AgentResponseStatus.ERROR);
+      this.appendContent({
+        type: 'result',
+        content: `处理失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        timestamp: Date.now()
+      });
     }
   }
 
-  async getNextStep(input: string): Promise<string | CommandSuggestion[]> {
+  async getNextStep(input: string): Promise<void> {
     try {
       console.log('输入的原始内容:', input);
 
-      // 获取终端输出历史
       const history = terminalOutputService.getHistory();
       console.log('终端历史:', history);
 
@@ -109,7 +119,6 @@ class AgentModeServiceImpl implements AgentModeService {
         'Authorization': `Bearer ${config.apiKey}`
       };
 
-      // 构建上下文提示
       let contextPrompt = '';
       if (!this.currentTask || this.getState() === AgentState.IDLE) {
         // 新任务
@@ -120,7 +129,15 @@ class AgentModeServiceImpl implements AgentModeService {
           steps: [],
           currentStep: -1,
           autoExecute: true,
-          paused: false
+          paused: false,
+          currentMessage: {
+            status: AgentResponseStatus.THINKING,
+            contents: [{
+              type: 'analysis',
+              content: `开始分析任务：${input}`,
+              timestamp: Date.now()
+            }]
+          }
         };
         this.taskSteps = [];
         this.currentStepIndex = -1;
@@ -143,6 +160,7 @@ ${h.output || ''}`).join('\n')}
 
       // 更新状态为思考中
       this.setState(AgentState.PLANNING);
+      this.updateMessageStatus(AgentResponseStatus.THINKING);
 
       const requestBody = {
         model: config.model,
@@ -171,69 +189,68 @@ ${h.output || ''}`).join('\n')}
       // 尝试解析为 JSON 格式的命令建议
       try {
         const result = JSON.parse(content);
-        if (Array.isArray(result)) {
-          const suggestions = result.map(item => ({
-            command: item.command || '',
-            description: item.description || '无法生成合适的命令',
-            risk: item.risk || 'low',
-            example: item.example || undefined,
-            parameters: Array.isArray(item.parameters) ? item.parameters.map((p: any) => ({
-              name: p.name || '',
-              description: p.description || '',
-              required: !!p.required,
-              defaultValue: p.defaultValue
-            } as CommandParameter)) : undefined
-          } as CommandSuggestion));
-
+        if (result.command) {
           // 记录当前步骤
           this.currentStepIndex++;
-          this.taskSteps[this.currentStepIndex] = suggestions[0].description;
+          this.taskSteps[this.currentStepIndex] = result.description;
+
+          // 添加命令到消息内容
+          this.appendContent({
+            type: 'command',
+            content: result.description,
+            timestamp: Date.now(),
+            command: {
+              text: result.command,
+              risk: result.risk as CommandRiskLevel,
+              executed: false
+            }
+          });
 
           // 更新状态为等待执行
           this.setState(AgentState.EXECUTING);
-
-          return suggestions;
+          this.updateMessageStatus(AgentResponseStatus.WAITING);
         } else {
-          const suggestion = {
-            command: result.command || '',
-            description: result.description || '无法生成合适的命令',
-            risk: result.risk || 'low',
-            example: result.example || undefined,
-            parameters: Array.isArray(result.parameters) ? result.parameters.map((p: any) => ({
-              name: p.name || '',
-              description: p.description || '',
-              required: !!p.required,
-              defaultValue: p.defaultValue
-            } as CommandParameter)) : undefined
-          } as CommandSuggestion;
-
-          // 记录当前步骤
-          this.currentStepIndex++;
-          this.taskSteps[this.currentStepIndex] = suggestion.description;
-
-          // 更新状态为等待执行
-          this.setState(AgentState.EXECUTING);
-
-          return [suggestion];
+          // 如果不是命令，说明是分析结果
+          this.appendContent({
+            type: 'analysis',
+            content: content,
+            timestamp: Date.now()
+          });
         }
       } catch (parseError) {
         // 如果不是 JSON 格式，说明任务已完成或需要处理错误
         if (content.includes('任务完成') || content.includes('总结')) {
+          this.appendContent({
+            type: 'result',
+            content: content,
+            timestamp: Date.now()
+          });
           // 清空当前任务
           this.currentTask = null;
           this.taskSteps = [];
           this.currentStepIndex = -1;
           // 更新状态为完成
           this.setState(AgentState.COMPLETED);
+          this.updateMessageStatus(AgentResponseStatus.COMPLETED);
+        } else {
+          this.appendContent({
+            type: 'analysis',
+            content: content,
+            timestamp: Date.now()
+          });
         }
-        return content;
       }
     } catch (err: unknown) {
       const error = err as Error;
       console.error('处理任务失败:', error);
       // 更新状态为错误
       this.setState(AgentState.ERROR);
-      return `处理失败: ${error.message}`;
+      this.updateMessageStatus(AgentResponseStatus.ERROR);
+      this.appendContent({
+        type: 'result',
+        content: `处理失败: ${error.message}`,
+        timestamp: Date.now()
+      });
     }
   }
 }

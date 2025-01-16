@@ -1,0 +1,126 @@
+.agent-message {
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin: 16px 0;
+  overflow: hidden;
+}
+
+.agent-message .status-indicator {
+  padding: 8px 16px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agent-message .status-indicator.thinking,
+.agent-message .status-indicator.executing,
+.agent-message .status-indicator.analyzing {
+  background: #e6f7ff;
+}
+
+.agent-message .status-indicator.waiting {
+  background: #fff7e6;
+}
+
+.agent-message .status-indicator.completed {
+  background: #f6ffed;
+}
+
+.agent-message .status-indicator.error {
+  background: #fff1f0;
+}
+
+.agent-message .status-indicator .status-text {
+  font-size: 14px;
+  color: #333;
+}
+
+.agent-message .message-content .content-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.agent-message .message-content .content-item:last-child {
+  border-bottom: none;
+}
+
+.agent-message .message-content .content-item.analysis {
+  background: #f6f8ff;
+}
+
+.agent-message .message-content .content-item.command {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.agent-message .message-content .content-item.output {
+  background: #f5f5f5;
+}
+
+.agent-message .message-content .content-item.output pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: 'Consolas', monospace;
+  font-size: 13px;
+}
+
+.agent-message .message-content .content-item.result {
+  background: #f6ffed;
+}
+
+.agent-message .command-block .command-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.agent-message .command-block .command-info .description {
+  font-size: 14px;
+}
+
+.agent-message .command-block .command-text {
+  background: #2a2a2a;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-family: 'Consolas', monospace;
+  margin: 8px 0;
+}
+
+.agent-message .command-block .command-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.agent-message .risk-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #fff;
+}
+
+.agent-message .risk-badge.high {
+  background: #ff4d4f;
+}
+
+.agent-message .risk-badge.medium {
+  background: #faad14;
+}
+
+.agent-message .risk-badge.low {
+  background: #52c41a;
+}
+
+.agent-message .analysis-block {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.agent-message .result-block {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #52c41a;
+} 

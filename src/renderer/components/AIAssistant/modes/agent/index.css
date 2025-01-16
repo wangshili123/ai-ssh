@@ -1,0 +1,21 @@
+.agent-mode {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+  overflow-y: auto;
+  background: #f0f2f5;
+}
+
+.agent-mode::-webkit-scrollbar {
+  width: 6px;
+}
+
+.agent-mode::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.agent-mode::-webkit-scrollbar-track {
+  background: transparent;
+} 

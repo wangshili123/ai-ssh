@@ -148,15 +148,11 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           break;
         }
         case AssistantMode.AGENT: {
-          const response = await agentModeService.getNextStep(message);
-          assistantMessage = {
-            id: uuidv4(),
-            type: 'assistant',
-            content: typeof response === 'string' ? response : '',
-            commands: Array.isArray(response) ? response : undefined,
-            timestamp: Date.now()
-          };
-          break;
+          // 直接调用 getNextStep，不需要处理返回值
+          // 因为消息会通过 AgentMessage 组件自动更新
+          await agentModeService.getNextStep(message);
+          // 不需要创建新的消息，因为 AgentMessage 组件会自动显示
+          return;
         }
         default:
           throw new Error(`不支持的模式: ${mode}`);
@@ -221,7 +217,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
 
   // 渲染当前模式的组件
   const renderModeComponent = () => {
-    const props = {
+    const commonProps = {
       sessionId,
       input,
       loading,
@@ -261,11 +257,11 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
 
     switch (mode) {
       case AssistantMode.COMMAND:
-        return <CommandModeComponent {...props} />;
+        return <CommandModeComponent {...commonProps} />;
       case AssistantMode.CONTEXT:
-        return <ContextModeComponent {...props} />;
+        return <ContextModeComponent {...commonProps} />;
       case AssistantMode.AGENT:
-        return <AgentModeComponent {...props} />;
+        return <AgentModeComponent onExecute={commonProps.onExecute} />;
       default:
         return null;
     }

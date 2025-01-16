@@ -4,6 +4,7 @@ export enum AgentResponseStatus {
   THINKING = 'thinking',
   WAITING = 'waiting',
   EXECUTING = 'executing',
+  ANALYZING = 'analyzing',
   COMPLETED = 'completed',
   ERROR = 'error'
 }
@@ -30,10 +31,20 @@ export interface CommandParameter {
   default?: string;
 }
 
+export interface MessageContent {
+  type: 'analysis' | 'command' | 'output' | 'result';
+  content: string;
+  timestamp: number;
+  command?: {
+    text: string;
+    risk: CommandRiskLevel;
+    executed: boolean;
+  };
+}
+
 export interface AgentResponse {
   status: AgentResponseStatus;
-  message?: string;
-  commands?: CommandSuggestion[];
+  contents: MessageContent[];
   error?: string;
 }
 
@@ -46,14 +57,18 @@ export interface AgentTask {
   error?: string;
   autoExecute: boolean;
   paused: boolean;
+  currentMessage?: AgentResponse;
 }
 
 export interface AgentModeService {
-  getNextStep: (input: string) => Promise<string | CommandSuggestion[]>;
+  getNextStep: (input: string) => Promise<void>;
   toggleAutoExecute: () => void;
   togglePause: () => void;
   getCurrentTask: () => AgentTask | null;
   getState: () => AgentState;
   setState: (state: AgentState) => void;
-  handleCommandExecuted: (output: string) => Promise<string | CommandSuggestion[] | null>;
+  handleCommandExecuted: (output: string) => Promise<void>;
+  getCurrentMessage: () => AgentResponse | null;
+  updateMessageStatus: (status: AgentResponseStatus) => void;
+  appendContent: (content: MessageContent) => void;
 } 
