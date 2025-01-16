@@ -20,30 +20,26 @@
 ### 0.2 目录结构示例
 ```
 src/renderer/
-  ├── components/
-  │   └── AIAssistant/
-  │       ├── agent/                    # Agent 相关组件
-  │       │   ├── AgentMode.tsx         # Agent 模式主组件
-  │       │   ├── AgentContext.tsx      # Agent 上下文组件
-  │       │   ├── AgentResponse.tsx     # Agent 响应组件
-  │       │   ├── CommandConfirm.tsx    # 命令确认组件
-  │       │   ├── ResultCard.tsx        # 结果展示组件
-  │       │   └── types.ts              # 组件类型定义
-  │       └── ...
-  ├── services/
-  │   └── agent/                        # Agent 相关服务
-  │       ├── AgentService.ts           # Agent 主服务
-  │       ├── DialogueEngine.ts         # 对话引擎
-  │       ├── TaskPlanner.ts            # 任务规划器
-  │       ├── CommandGenerator.ts       # 命令生成器
-  │       ├── ResultAnalyzer.ts         # 结果分析器
-  │       ├── types.ts                  # 服务类型定义
-  │       ├── constants.ts              # 常量定义
-  │       └── utils/                    # 工具函数
-  │           ├── prompt.ts             # 提示词工具
-  │           ├── parser.ts             # 解析工具
-  │           └── validator.ts          # 验证工具
-  └── ...
+  ├── components/AIAssistant/
+  │   └── modes/agent/              # Agent UI 组件（现有）
+  │       ├── AgentMode.tsx        # 主组件
+  │       ├── AgentMessage.tsx     # 消息组件
+  │       ├── CommandConfirm.tsx   # 命令确认组件（新增）
+  │       ├── ResultCard.tsx       # 结果展示组件（新增）
+  │       ├── types.ts             # 组件类型定义（新增）
+  │       └── index.tsx            # 导出文件
+  └── services/modes/agent/         # Agent 服务目录（重构）
+      ├── index.ts                 # 服务导出（从现有 agent.ts 迁移）
+      ├── types.ts                 # 类型定义
+      ├── constants.ts             # 常量定义
+      ├── DialogueEngine.ts        # 对话引擎
+      ├── TaskPlanner.ts           # 任务规划器
+      ├── CommandGenerator.ts      # 命令生成器
+      ├── ResultAnalyzer.ts        # 结果分析器
+      └── utils/                   # 工具函数
+          ├── prompt.ts            # 提示词工具
+          ├── parser.ts            # 解析工具
+          └── validator.ts         # 验证工具
 ```
 
 ### 0.3 代码组织原则
