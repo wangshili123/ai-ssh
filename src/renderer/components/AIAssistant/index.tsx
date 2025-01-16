@@ -3,9 +3,9 @@ import { Input, Button, Radio, notification } from 'antd';
 import { SendOutlined } from '@ant-design/icons';
 import { v4 as uuidv4 } from 'uuid';
 import { Message } from '../../types';
-import CommandModeComponent from './modes/command';
-import ContextModeComponent from './modes/context';
-import AgentModeComponent from './modes/agent';
+import CommandMode from './modes/command';
+import ContextMode from './modes/context';
+import AgentMode from './modes/agent/AgentMode';
 import { commandModeService } from '../../services/modes/command';
 import { contextModeService } from '../../services/modes/context';
 import { agentModeService } from '../../services/modes/agent';
@@ -257,11 +257,11 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
 
     switch (mode) {
       case AssistantMode.COMMAND:
-        return <CommandModeComponent {...commonProps} />;
+        return <CommandMode {...commonProps} />;
       case AssistantMode.CONTEXT:
-        return <ContextModeComponent {...commonProps} />;
+        return <ContextMode {...commonProps} />;
       case AssistantMode.AGENT:
-        return <AgentModeComponent onExecute={commonProps.onExecute} />;
+        return <AgentMode onExecute={commonProps.onExecute} />;
       default:
         return null;
     }
