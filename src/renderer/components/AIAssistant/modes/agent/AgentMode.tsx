@@ -3,6 +3,7 @@ import { agentModeService } from '@/renderer/services/modes/agent';
 import { AgentResponse } from '@/renderer/services/modes/agent/types';
 import AgentMessage from './AgentMessage';
 import './index.css';
+import { terminalOutputService } from '@/renderer/services/terminalOutput';
 
 interface AgentModeProps {
   onExecute: (command: string) => void;
@@ -27,6 +28,22 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
   const handleExecuteCommand = async (command: string) => {
     try {
       await onExecute(command);
+      
+      // 等待命令执行完成（通过检查输出中是否包含命令提示符）
+      const checkOutput = async () => {
+        const history = terminalOutputService.getHistory();
+        const lastOutput = history[history.length - 1];
+        
+        if (lastOutput?.output && (lastOutput.output.includes('$ ') || lastOutput.output.includes('# '))) {
+          // 命令执行完成，发送结果给 Agent 分析
+          await agentModeService.handleCommandExecuted(lastOutput.output || '');
+        } else {
+          // 继续等待
+          setTimeout(checkOutput, 500);
+        }
+      };
+      
+      checkOutput();
     } catch (error) {
       console.error('执行命令失败:', error);
     }
