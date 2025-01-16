@@ -106,6 +106,18 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
       const startHistoryLength = terminalOutputService.getHistory().length;
       console.log('初始历史记录长度:', startHistoryLength);
       
+      // 设置命令执行超时时间（5秒）
+      const COMMAND_TIMEOUT = 5000;
+      let isTimeout = false;
+      
+      // 创建超时定时器
+      const timeoutId = setTimeout(() => {
+        isTimeout = true;
+        // 发送 Ctrl+C 信号
+        onExecute('\x03');
+        console.log('命令执行超时，已发送终止信号');
+      }, COMMAND_TIMEOUT);
+      
       await onExecute(command);
       console.log('命令已发送到终端');
       
@@ -118,12 +130,13 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
         const history = terminalOutputService.getHistory();
         console.log(`第 ${checkCount} 次检查, 当前历史长度:`, history.length);
         
-        // 如果超过最大检查次数，强制进入下一步
-        if (checkCount >= MAX_CHECKS) {
-          console.log('达到最大检查次数，强制进入下一步');
+        // 如果超过最大检查次数或命令被终止，进入下一步
+        if (checkCount >= MAX_CHECKS || isTimeout) {
+          console.log('命令执行结束（超时或被终止）');
+          clearTimeout(timeoutId);
           const newOutputs = history.slice(startHistoryLength);
           const fullOutput = newOutputs.map(output => output.output).join('\n');
-          await handleCommandComplete(fullOutput);
+          await handleCommandComplete(fullOutput + (isTimeout ? '\n[命令已自动终止]' : ''));
           return;
         }
         
@@ -141,6 +154,7 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
         
         if (lastOutput?.output && hasPrompt(lastOutput.output)) {
           console.log('检测到命令提示符，命令执行完成');
+          clearTimeout(timeoutId);
           // 收集所有新输出
           const fullOutput = newOutputs.map(output => output.output).join('\n');
           console.log('发送完整输出到 Agent:', fullOutput);
