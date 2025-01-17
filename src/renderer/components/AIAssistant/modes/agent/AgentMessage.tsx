@@ -73,6 +73,14 @@ const CommandBlock: React.FC<{
   const [isExecuting, setIsExecuting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(command.executed);
 
+  // 监听命令状态变化
+  useEffect(() => {
+    if (command.executed) {
+      setIsExecuting(false);
+      setIsCompleted(true);
+    }
+  }, [command.executed]);
+
   const handleExecute = async () => {
     setIsExecuting(true);
     await onExecute(command.text);

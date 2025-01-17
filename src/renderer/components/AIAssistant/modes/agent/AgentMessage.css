@@ -2,7 +2,7 @@
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  margin: 12px 0;
+  margin: 10px 0;
   overflow: hidden;
   max-height: calc(100vh - 200px);
   overflow-y: auto;

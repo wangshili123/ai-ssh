@@ -11,7 +11,7 @@
 .terminal-container {
   flex: 1;
   position: relative;
-  margin-right: var(--ai-assistant-width, 400px);
+  margin-right: var(--ai-assistant-width, 500px);
   transition: margin-right 0.3s ease;
 }
 

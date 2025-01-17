@@ -14,7 +14,7 @@ import {
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
-const systemPrompt = `你是一个智能的 Linux 助手，帮助用户完成复杂的任务。
+const systemPrompt = `你是一个智能的 Linux 助手，帮助和主导用户完成复杂的任务。
 请遵循以下规则：
 1. 你需要将任务分解为多个步骤，每个步骤都需要用户确认和执行。
 2. 每个步骤的返回内容必须是 JSON 格式，不要带markdown格式，格式如下：
@@ -32,6 +32,7 @@ const systemPrompt = `你是一个智能的 Linux 助手，帮助用户完成复
 4. 每个步骤都要等待用户执行完成并查看输出后，再决定下一步操作。
 5. 如果任务完成，返回纯文本的总结说明。
 6. 如果遇到错误，需要提供诊断和解决方案。
+7. 如果需要填写参数，请根据上下文提供的信息填入，尽量避免用户输入，比如：kill 123456,不要kill <PID>
 7. 强制要求（不要带markdown格式，json按文本格式返回）`;
 
 interface APIError {
@@ -99,6 +100,17 @@ class AgentModeServiceImpl implements AgentModeService {
     // 更新状态为分析中
     this.setState(AgentState.ANALYZING);
     this.updateMessageStatus(AgentResponseStatus.ANALYZING);
+
+    // 更新最后一个命令的执行状态
+    if (this.currentTask.currentMessage) {
+      const lastContent = this.currentTask.currentMessage.contents[this.currentTask.currentMessage.contents.length - 1];
+      if (lastContent.type === 'command' && lastContent.commands) {
+        lastContent.commands = lastContent.commands.map(cmd => ({
+          ...cmd,
+          executed: true
+        }));
+      }
+    }
 
     // 添加命令输出到当前消息
     this.appendContent({
