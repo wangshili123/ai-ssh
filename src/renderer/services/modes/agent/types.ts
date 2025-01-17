@@ -66,16 +66,17 @@ export interface AgentTask {
 }
 
 export interface AgentModeService {
-  getNextStep: (input: string) => Promise<void>;
-  toggleAutoExecute: () => void;
-  togglePause: () => void;
-  getCurrentTask: () => AgentTask | null;
-  getState: () => AgentState;
-  setState: (state: AgentState) => void;
-  handleCommandExecuted: (output: string) => Promise<void>;
-  getCurrentMessage: () => AgentResponse | null;
-  updateMessageStatus: (status: AgentResponseStatus) => void;
-  appendContent: (content: MessageContent) => void;
+  getState(): AgentState;
+  setState(state: AgentState): void;
+  getCurrentTask(): AgentTask | null;
+  getCurrentMessage(): AgentResponse | null;
+  updateMessageStatus(status: AgentResponseStatus): void;
+  appendContent(content: MessageContent): void;
+  toggleAutoExecute(): void;
+  togglePause(): void;
+  handleCommandExecuted(output: string): Promise<void>;
+  getNextStep(input: string, isNewUserQuery?: boolean): Promise<void>;
+  getAllMessages(): AgentResponse[];
 }
 
 export interface AICommandResponse {
@@ -94,4 +95,8 @@ export interface CommandInfo {
   risk: CommandRiskLevel;
   description: string;
   executed: boolean;
+}
+
+export interface AgentHistory {
+  messages: AgentResponse[];
 } 

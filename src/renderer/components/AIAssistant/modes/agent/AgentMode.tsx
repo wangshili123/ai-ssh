@@ -13,12 +13,18 @@ interface AgentModeProps {
 
 const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
   const [currentMessage, setCurrentMessage] = useState<AgentResponse | null>(null);
+  const [messages, setMessages] = useState<AgentResponse[]>([]);
   const [userMessage, setUserMessage] = useState<string | null>(null);
   const [messageTime, setMessageTime] = useState<number>(0);
 
   // 监听Agent服务的消息更新
   useEffect(() => {
     const interval = setInterval(() => {
+      // 获取所有历史消息
+      const allMessages = agentModeService.getAllMessages();
+      setMessages(allMessages);
+
+      // 获取当前消息
       const message = agentModeService.getCurrentMessage();
       if (message) {
         setCurrentMessage({ ...message });
@@ -145,29 +151,35 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
 
   return (
     <div className="agent-mode">
-      {userMessage && (
-        <div className="message user">
-          <div className="message-header">
-            <div className="message-avatar">
-              <UserOutlined />
-            </div>
-            <div className="message-time">
-              {messageTime ? new Date(messageTime).toLocaleString() : ''}
-            </div>
-          </div>
-          <div className="message-content">
-            {userMessage}
-          </div>
-        </div>
-      )}
-      
-      {currentMessage && (
-        <AgentMessage
-          message={currentMessage}
-          onExecuteCommand={handleExecuteCommand}
-          onSkipCommand={handleSkipCommand}
-        />
-      )}
+      {messages.map((message, index) => {
+        const task = agentModeService.getCurrentTask();
+        const isCurrentMessage = task?.currentMessage === message;
+        
+        return (
+          <React.Fragment key={index}>
+            {task?.userInput && (
+              <div className="message user">
+                <div className="message-header">
+                  <div className="message-avatar">
+                    <UserOutlined />
+                  </div>
+                  <div className="message-time">
+                    {message.contents[0]?.timestamp ? new Date(message.contents[0].timestamp).toLocaleString() : ''}
+                  </div>
+                </div>
+                <div className="message-content">
+                  {task.userInput}
+                </div>
+              </div>
+            )}
+            <AgentMessage
+              message={message}
+              onExecuteCommand={isCurrentMessage ? handleExecuteCommand : undefined}
+              onSkipCommand={isCurrentMessage ? handleSkipCommand : undefined}
+            />
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 };

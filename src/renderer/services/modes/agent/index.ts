@@ -46,6 +46,7 @@ class AgentModeServiceImpl implements AgentModeService {
   private currentTask: AgentTask | null = null;
   private taskSteps: string[] = [];
   private currentStepIndex: number = -1;
+  private messageHistory: AgentResponse[] = [];
 
   getState(): AgentState {
     return this.currentTask?.state || AgentState.IDLE;
@@ -66,15 +67,27 @@ class AgentModeServiceImpl implements AgentModeService {
     return this.currentTask?.currentMessage || null;
   }
 
+  getAllMessages(): AgentResponse[] {
+    return this.messageHistory;
+  }
+
   updateMessageStatus(status: AgentResponseStatus): void {
     if (this.currentTask?.currentMessage) {
       this.currentTask.currentMessage.status = status;
+      const lastMessage = this.messageHistory[this.messageHistory.length - 1];
+      if (lastMessage) {
+        lastMessage.status = status;
+      }
     }
   }
 
   appendContent(content: MessageContent): void {
     if (this.currentTask?.currentMessage) {
       this.currentTask.currentMessage.contents.push(content);
+      const lastMessage = this.messageHistory[this.messageHistory.length - 1];
+      if (lastMessage) {
+        lastMessage.contents.push(content);
+      }
     }
   }
 
@@ -134,9 +147,10 @@ class AgentModeServiceImpl implements AgentModeService {
     }
   }
 
-  async getNextStep(input: string): Promise<void> {
+  async getNextStep(input: string, isNewUserQuery: boolean = false): Promise<void> {
     try {
       console.log('输入的原始内容:', input);
+      console.log('是否是新的用户查询:', isNewUserQuery);
 
       const history = terminalOutputService.getHistory();
       console.log('终端历史:', history);
@@ -149,8 +163,22 @@ class AgentModeServiceImpl implements AgentModeService {
       };
 
       let contextPrompt = '';
-      if (!this.currentTask || this.getState() === AgentState.IDLE) {
-        // 新任务
+      // 如果是新的用户查询，或者没有当前任务，或者状态为空闲，则创建新任务
+      if (isNewUserQuery || !this.currentTask || this.getState() === AgentState.IDLE) {
+        // 创建新消息
+        const newMessage: AgentResponse = {
+          status: AgentResponseStatus.THINKING,
+          contents: [{
+            type: 'analysis',
+            content: `开始分析任务：${input}`,
+            timestamp: Date.now()
+          }]
+        };
+        
+        // 添加到历史记录
+        this.messageHistory.push(newMessage);
+
+        // 创建新任务
         this.currentTask = {
           id: uuidv4(),
           goal: input,
@@ -160,15 +188,9 @@ class AgentModeServiceImpl implements AgentModeService {
           autoExecute: true,
           paused: false,
           userInput: input,
-          currentMessage: {
-            status: AgentResponseStatus.THINKING,
-            contents: [{
-              type: 'analysis',
-              content: `开始分析任务：${input}`,
-              timestamp: Date.now()
-            }]
-          }
+          currentMessage: newMessage
         };
+
         this.taskSteps = [];
         this.currentStepIndex = -1;
         contextPrompt = `新任务：${input}\n请规划第一个步骤。`;

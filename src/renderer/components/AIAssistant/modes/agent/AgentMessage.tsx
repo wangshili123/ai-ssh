@@ -6,8 +6,8 @@ import './AgentMessage.css';
 
 interface Props {
   message: AgentResponse;
-  onExecuteCommand: (command: string) => void;
-  onSkipCommand: () => void;
+  onExecuteCommand?: (command: string) => void;
+  onSkipCommand?: () => void;
 }
 
 const StatusIndicator: React.FC<{ status: AgentResponseStatus }> = ({ status }) => {
@@ -67,8 +67,8 @@ const RiskBadge: React.FC<{ risk: CommandRiskLevel }> = ({ risk }) => {
 
 const CommandBlock: React.FC<{
   command: CommandInfo;
-  onExecute: (command: string) => void;
-  onSkip: () => void;
+  onExecute?: (command: string) => void;
+  onSkip?: () => void;
 }> = ({ command, onExecute, onSkip }) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(command.executed);
@@ -82,11 +82,13 @@ const CommandBlock: React.FC<{
   }, [command.executed]);
 
   const handleExecute = async () => {
+    if (!onExecute) return;
     setIsExecuting(true);
     await onExecute(command.text);
   };
 
   const handleStop = async () => {
+    if (!onExecute) return;
     await onExecute('\x03'); // 发送 Ctrl+C 信号
     setIsExecuting(false);
     setIsCompleted(true);

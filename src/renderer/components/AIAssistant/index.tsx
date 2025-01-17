@@ -150,7 +150,8 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
         case AssistantMode.AGENT: {
           // 直接调用 getNextStep，不需要处理返回值
           // 因为消息会通过 AgentMessage 组件自动更新
-          await agentModeService.getNextStep(message);
+          // 用户主动发送消息时，传入 true 表示这是新的用户查询
+          await agentModeService.getNextStep(message, true);
           // 不需要创建新的消息，因为 AgentMessage 组件会自动显示
           return;
         }
