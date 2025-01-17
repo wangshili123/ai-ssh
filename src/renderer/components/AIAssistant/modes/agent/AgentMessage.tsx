@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { Button, Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
 import { AgentResponse, AgentResponseStatus, MessageContent, CommandRiskLevel, CommandInfo } from '@/renderer/services/modes/agent/types';
@@ -164,63 +164,107 @@ const CommandBlock: React.FC<{
 export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSkipCommand }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     if (contentRef.current) {
       const element = contentRef.current;
       requestAnimationFrame(() => {
         element.scrollTop = element.scrollHeight;
       });
     }
-  };
+  }, []);
 
   useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('AgentMessage useEffect 触发:', {
+        status: message.status,
+        contentsLength: message.contents.length,
+        contents: message.contents.map(c => ({
+          type: c.type,
+          hasAnalysis: !!c.analysis,
+          hasCommands: c.commands?.length || 0,
+          timestamp: c.timestamp
+        }))
+      });
+    }
     scrollToBottom();
-  }, [message.contents, message.status]);
+  }, [message.contents, message.status, scrollToBottom]);
+
+  const renderContent = useCallback((content: MessageContent, index: number) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`渲染第 ${index + 1}/${message.contents.length} 个内容块:`, {
+        type: content.type,
+        hasAnalysis: !!content.analysis,
+        hasCommands: content.commands?.length || 0,
+        timestamp: content.timestamp,
+        content: content.content,
+        analysis: content.analysis
+      });
+    }
+
+    if (content.type === 'output') {
+      return null;
+    }
+    
+    const hasAnalysis = content.analysis;
+    const hasCommands = content.commands && content.commands.length > 0;
+    const hasResult = content.type === 'result' && content.content;
+    
+    if (!hasAnalysis && !hasCommands && !hasResult) {
+      return null;
+    }
+    
+    return (
+      <div key={index} className={`content-item ${content.type}`}>
+        {content.analysis && (
+          <div className="analysis-block">
+            <div className="analysis-title">执行结果分析：</div>
+            {content.analysis}
+          </div>
+        )}
+        
+        {content.commands && content.commands.map((cmd, cmdIndex) => {
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`渲染命令 ${cmdIndex + 1}/${content.commands?.length}:`, {
+              text: cmd.text,
+              description: cmd.description,
+              risk: cmd.risk,
+              executed: cmd.executed
+            });
+          }
+          return (
+            <CommandBlock
+              key={cmdIndex}
+              command={cmd}
+              onExecute={onExecuteCommand}
+              onSkip={onSkipCommand}
+            />
+          );
+        })}
+        
+        {content.type === 'result' && content.content && (
+          <div className="result-block">
+            {content.content}
+          </div>
+        )}
+      </div>
+    );
+  }, [onExecuteCommand, onSkipCommand]);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('AgentMessage 开始渲染:', {
+      status: message.status,
+      contentsLength: message.contents.length,
+      hasExecuteHandler: !!onExecuteCommand,
+      hasSkipHandler: !!onSkipCommand
+    });
+  }
 
   return (
     <div className="agent-message">
       <StatusIndicator status={message.status} />
       
       <div className="message-content" ref={contentRef}>
-        {message.contents.map((content, index) => {
-          if (content.type === 'output') {
-            return null;
-          }
-          
-          const hasAnalysis = content.analysis;
-          const hasCommands = content.commands && content.commands.length > 0;
-          const hasResult = content.type === 'result' && content.content;
-          
-          if (!hasAnalysis && !hasCommands && !hasResult) {
-            return null;
-          }
-          
-          return (
-            <div key={index} className={`content-item ${content.type}`}>
-              {content.analysis && (
-                <div className="analysis-block">
-                  <div className="analysis-title">执行结果分析：</div>
-                  {content.analysis}
-                </div>
-              )}
-              
-              {content.commands && content.commands.map((cmd, cmdIndex) => (
-                <CommandBlock
-                  key={cmdIndex}
-                  command={cmd}
-                  onExecute={onExecuteCommand}
-                  onSkip={onSkipCommand}
-                />
-              ))}
-              
-              {content.type === 'result' && content.content && (
-                <div className="result-block">
-                  {content.content}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {message.contents.map(renderContent)}
       </div>
     </div>
   );

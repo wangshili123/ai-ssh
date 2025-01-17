@@ -82,12 +82,22 @@ class AgentModeServiceImpl implements AgentModeService {
   }
 
   appendContent(content: MessageContent): void {
+    console.log('appendContent 被调用:', {
+      type: content.type,
+      hasAnalysis: !!content.analysis,
+      hasCommands: content.commands?.length || 0,
+      timestamp: content.timestamp
+    });
+
     if (this.currentTask?.currentMessage) {
-      this.currentTask.currentMessage.contents.push(content);
       const lastMessage = this.messageHistory[this.messageHistory.length - 1];
-      if (lastMessage) {
-        lastMessage.contents.push(content);
+      if (lastMessage !== this.currentTask.currentMessage) {
+        console.warn('currentMessage 和 lastMessage 不是同一个引用');
+        this.currentTask.currentMessage = lastMessage;
       }
+      
+      console.log('当前消息内容数量:', this.currentTask.currentMessage.contents.length);
+      this.currentTask.currentMessage.contents.push(content);
     }
   }
 
@@ -110,6 +120,13 @@ class AgentModeServiceImpl implements AgentModeService {
       return;
     }
 
+    console.log('handleCommandExecuted 被调用:', {
+      output,
+      currentTaskExists: !!this.currentTask,
+      currentState: this.getState(),
+      messageContentsLength: this.currentTask?.currentMessage?.contents.length
+    });
+
     // 更新状态为分析中
     this.setState(AgentState.ANALYZING);
     this.updateMessageStatus(AgentResponseStatus.ANALYZING);
@@ -117,6 +134,11 @@ class AgentModeServiceImpl implements AgentModeService {
     // 更新最后一个命令的执行状态
     if (this.currentTask.currentMessage) {
       const lastContent = this.currentTask.currentMessage.contents[this.currentTask.currentMessage.contents.length - 1];
+      console.log('更新最后一个命令状态:', {
+        type: lastContent.type,
+        hasCommands: !!lastContent.commands
+      });
+
       if (lastContent.type === 'command' && lastContent.commands) {
         lastContent.commands = lastContent.commands.map(cmd => ({
           ...cmd,
@@ -134,7 +156,9 @@ class AgentModeServiceImpl implements AgentModeService {
 
     try {
       // 获取下一步
+      console.log('准备获取下一步操作');
       await this.getNextStep(output);
+      console.log('获取下一步操作完成');
     } catch (error) {
       console.error('处理命令执行结果失败:', error);
       this.setState(AgentState.ERROR);
@@ -149,8 +173,12 @@ class AgentModeServiceImpl implements AgentModeService {
 
   async getNextStep(input: string, isNewUserQuery: boolean = false): Promise<void> {
     try {
-      console.log('输入的原始内容:', input);
-      console.log('是否是新的用户查询:', isNewUserQuery);
+      console.log('getNextStep 被调用:', {
+        input,
+        isNewUserQuery,
+        currentTaskExists: !!this.currentTask,
+        currentState: this.getState()
+      });
 
       const history = terminalOutputService.getHistory();
       console.log('终端历史:', history);
@@ -165,6 +193,7 @@ class AgentModeServiceImpl implements AgentModeService {
       let contextPrompt = '';
       // 如果是新的用户查询，或者没有当前任务，或者状态为空闲，则创建新任务
       if (isNewUserQuery || !this.currentTask || this.getState() === AgentState.IDLE) {
+        console.log('创建新任务和消息');
         // 创建新消息
         const newMessage: AgentResponse = {
           status: AgentResponseStatus.THINKING,
@@ -177,6 +206,7 @@ class AgentModeServiceImpl implements AgentModeService {
         
         // 添加到历史记录
         this.messageHistory.push(newMessage);
+        console.log('历史消息数量:', this.messageHistory.length);
 
         // 创建新任务
         this.currentTask = {
@@ -195,6 +225,7 @@ class AgentModeServiceImpl implements AgentModeService {
         this.currentStepIndex = -1;
         contextPrompt = `新任务：${input}\n请规划第一个步骤。`;
       } else {
+        console.log('继续当前任务');
         // 继续当前任务
         contextPrompt = `
 当前任务：${this.currentTask.goal}
@@ -224,6 +255,12 @@ ${h.output || ''}`).join('\n')}
         max_tokens: config.maxTokens
       };
 
+      console.log('发送请求到 AI:', {
+        contextPrompt,
+        temperature: config.temperature,
+        max_tokens: config.maxTokens
+      });
+
       const response = await fetch(`${config.baseURL}/chat/completions`, {
         method: 'POST',
         headers,
@@ -237,14 +274,21 @@ ${h.output || ''}`).join('\n')}
 
       const data = await response.json();
       const content = data.choices[0].message.content;
+      console.log('收到 AI 响应:', content);
 
       // 尝试解析为 JSON 格式的命令建议
       try {
         const result = JSON.parse(content) as AIResponse;
+        console.log('解析 AI 响应:', result);
+
         if (result.commands && Array.isArray(result.commands)) {
           // 记录当前步骤
           this.currentStepIndex++;
           this.taskSteps[this.currentStepIndex] = result.commands[0].description;
+          console.log('添加新步骤:', {
+            index: this.currentStepIndex,
+            description: result.commands[0].description
+          });
 
           // 添加命令到消息内容
           this.appendContent({
@@ -272,6 +316,7 @@ ${h.output || ''}`).join('\n')}
           });
         }
       } catch (parseError) {
+        console.log('解析 AI 响应失败:', parseError);
         // 如果不是 JSON 格式，说明任务已完成或需要处理错误
         if (content.includes('任务完成') || content.includes('总结')) {
           this.appendContent({
