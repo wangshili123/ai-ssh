@@ -87,35 +87,35 @@ src/renderer/
 ## 一、基础框架搭建
 
 ### 1.1 Agent 状态管理
-- [ ] 定义 Agent 状态
-  * [ ] IDLE: 空闲状态，等待新任务
-  * [ ] PLANNING: 规划任务步骤
-  * [ ] EXECUTING: 执行命令
-  * [ ] ANALYZING: 分析执行结果
-  * [ ] COMPLETED: 任务完成
-  * [ ] ERROR: 错误状态
+- [x] 定义 Agent 状态
+  * [x] IDLE: 空闲状态，等待新任务
+  * [x] PLANNING: 规划任务步骤
+  * [x] EXECUTING: 执行命令
+  * [x] ANALYZING: 分析执行结果
+  * [x] COMPLETED: 任务完成
+  * [x] ERROR: 错误状态
 
 ### 1.2 Agent 自动化执行引擎
-- [ ] 实现状态机管理器
-  * [ ] 创建 AgentStateManager 类
-    - [ ] 管理状态转换
-    - [ ] 触发相应的处理函数
-    - [ ] 维护任务上下文
-  * [ ] 实现状态转换规则
-    - [ ] IDLE -> PLANNING: 接收新任务
-    - [ ] PLANNING -> EXECUTING: 生成命令
-    - [ ] EXECUTING -> ANALYZING: 命令执行完成
-    - [ ] ANALYZING -> PLANNING: 需要后续步骤
-    - [ ] ANALYZING -> COMPLETED: 任务完成
-    - [ ] 任意状态 -> ERROR: 发生错误
-    - [ ] ERROR -> PLANNING: 错误恢复
+- [x] 实现状态机管理器
+  * [x] 创建 AgentStateManager 类
+    - [x] 管理状态转换
+    - [x] 触发相应的处理函数
+    - [x] 维护任务上下文
+  * [x] 实现状态转换规则
+    - [x] IDLE -> PLANNING: 接收新任务
+    - [x] PLANNING -> EXECUTING: 生成命令
+    - [x] EXECUTING -> ANALYZING: 命令执行完成
+    - [x] ANALYZING -> PLANNING: 需要后续步骤
+    - [x] ANALYZING -> COMPLETED: 任务完成
+    - [x] 任意状态 -> ERROR: 发生错误
+    - [x] ERROR -> PLANNING: 错误恢复
 
-- [ ] 实现自动化执行流程
-  * [ ] 创建 AgentExecutor 类
-    - [ ] 监听命令执行状态
-    - [ ] 自动获取执行结果
-    - [ ] 自动触发结果分析
-    - [ ] 自动执行下一步骤
+- [x] 实现自动化执行流程
+  * [x] 创建 AgentExecutor 类
+    - [x] 监听命令执行状态
+    - [x] 自动获取执行结果
+    - [x] 自动触发结果分析
+    - [x] 自动执行下一步骤
   * [ ] 实现任务中断和恢复
     - [ ] 保存执行状态
     - [ ] 记录执行历史
