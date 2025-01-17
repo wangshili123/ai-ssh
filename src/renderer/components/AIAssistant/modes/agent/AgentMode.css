@@ -1,14 +1,19 @@
 .agent-mode {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  padding: 16px;
+  flex: 1;
   overflow-y: auto;
   background: #f0f2f5;
+  padding: 16px;
+  min-height: 0;
+  height: 100%;
+  position: relative;
+  gap: 16px;
 }
 
 .agent-mode::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 .agent-mode::-webkit-scrollbar-thumb {
@@ -89,22 +94,26 @@
 }
 
 .agent-message .message-content {
-  max-height: calc(100vh - 200px);
+  max-height: 60vh;
   overflow-y: auto;
   padding: 12px;
   margin-left: -5px;
   flex: 1;
 }
 
+.agent-mode::-webkit-scrollbar,
 .agent-message .message-content::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
+.agent-mode::-webkit-scrollbar-thumb,
 .agent-message .message-content::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 3px;
 }
 
+.agent-mode::-webkit-scrollbar-track,
 .agent-message .message-content::-webkit-scrollbar-track {
   background: transparent;
 }

@@ -190,16 +190,16 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
   }, [message.contents, message.status, scrollToBottom]);
 
   const renderContent = useCallback((content: MessageContent, index: number) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`渲染第 ${index + 1}/${message.contents.length} 个内容块:`, {
-        type: content.type,
-        hasAnalysis: !!content.analysis,
-        hasCommands: content.commands?.length || 0,
-        timestamp: content.timestamp,
-        content: content.content,
-        analysis: content.analysis
-      });
-    }
+    // if (process.env.NODE_ENV === 'development') {
+    //   console.log(`渲染第 ${index + 1}/${message.contents.length} 个内容块:`, {
+    //     type: content.type,
+    //     hasAnalysis: !!content.analysis,
+    //     hasCommands: content.commands?.length || 0,
+    //     timestamp: content.timestamp,
+    //     content: content.content,
+    //     analysis: content.analysis
+    //   });
+    // }
 
     if (content.type === 'output') {
       return null;
@@ -223,14 +223,14 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
         )}
         
         {content.commands && content.commands.map((cmd, cmdIndex) => {
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`渲染命令 ${cmdIndex + 1}/${content.commands?.length}:`, {
-              text: cmd.text,
-              description: cmd.description,
-              risk: cmd.risk,
-              executed: cmd.executed
-            });
-          }
+          // if (process.env.NODE_ENV === 'development') {
+          //   console.log(`渲染命令 ${cmdIndex + 1}/${content.commands?.length}:`, {
+          //     text: cmd.text,
+          //     description: cmd.description,
+          //     risk: cmd.risk,
+          //     executed: cmd.executed
+          //   });
+          // }
           return (
             <CommandBlock
               key={cmdIndex}
@@ -251,12 +251,12 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
   }, [onExecuteCommand, onSkipCommand]);
 
   if (process.env.NODE_ENV === 'development') {
-    console.log('AgentMessage 开始渲染:', {
-      status: message.status,
-      contentsLength: message.contents.length,
-      hasExecuteHandler: !!onExecuteCommand,
-      hasSkipHandler: !!onSkipCommand
-    });
+    // console.log('AgentMessage 开始渲染:', {
+    //   status: message.status,
+    //   contentsLength: message.contents.length,
+    //   hasExecuteHandler: !!onExecuteCommand,
+    //   hasSkipHandler: !!onSkipCommand
+    // });
   }
 
   return (

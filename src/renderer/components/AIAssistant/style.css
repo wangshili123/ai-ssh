@@ -10,6 +10,7 @@
   z-index: 1000;
   user-select: none;
   min-width: 400px;
+  height: 100vh;
 }
 
 .resize-handle {
@@ -32,6 +33,10 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
 }
 
 /* 输入区域 */

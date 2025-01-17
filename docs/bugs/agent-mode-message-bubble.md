@@ -1,41 +1,54 @@
-# Agent模式消息气泡显示问题
+# Agent模式消息气泡区域滚动条问题
 
 ## 问题描述
-1. AI回复会显示两次内容在一个回复泡泡里面，重复显示了。
-2. 聊天框没有滚动条，多轮对话后不会往下滚。
+当聊天消息数量增多时，聊天区域不会显示滚动条，导致无法查看历史消息。
 
-## 问题分析
-### 1. AI回复重复显示问题
-在 `handleCommandExecuted` 方法中，每次执行命令后：
-1. 添加命令输出到当前消息
-2. 调用 `getNextStep` 获取 AI 的分析
-3. 在 `getNextStep` 中重新构建完整的 prompt
-4. 由于每次都用相同的输入构建 prompt，AI 会给出相同的分析结果
+## 问题原因
+1. 在 `AgentMode.tsx` 中，聊天区域的根元素 `.agent-mode` 虽然设置了 `overflow-y: auto`，但是没有设置正确的flex布局来限制容器大小。
 
-### 2. 滚动条问题
-待分析...
+2. 在 CSS 中，虽然定义了滚动条样式，但是由于容器高度和flex布局设置不正确，导致滚动条无法生效。
 
-## 修复方案
-### 1. AI回复重复显示问题
-修改 `handleCommandExecuted` 方法的逻辑：
-1. 不要每次都调用 `getNextStep`
-2. 只在命令执行完成且需要进一步分析时才调用
-3. 在构建 prompt 时，只包含新的命令输出，而不是完整历史
+## 解决方案
+1. 修改了 `AgentMode.css` 中的样式：
+```css
+.agent-mode {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  background: #f0f2f5;
+  padding: 16px;
+  min-height: 0; /* 确保flex子元素可以正确滚动 */
+  height: 100%; /* 继承父容器高度 */
+  position: relative;
+  gap: 16px; /* 添加消息之间的间距 */
+}
+```
 
-### 2. 滚动条问题
-待实现...
+2. 创建了独立的 `AgentMessage.css` 文件，优化了消息容器的样式：
+```css
+.agent-message {
+  flex-shrink: 0; /* 防止消息被压缩 */
+  /* 其他样式保持不变 */
+}
 
-## 修复进度
-- [ ] 修复 AI 回复重复显示问题
-  - [ ] 修改 handleCommandExecuted 方法的执行逻辑
-  - [ ] 优化 prompt 构建方式
-- [ ] 修复滚动条问题
+.agent-message .message-content {
+  overflow-y: auto;
+  padding: 12px;
+  flex: 1;
+  min-height: 0; /* 确保flex子元素可以正确滚动 */
+}
+```
 
-## 修改记录
-### 2024-01-17
-1. 分析了 AI 回复重复显示的根本原因：
-   - 每次命令执行后都重新构建完整 prompt
-   - 相同的输入导致 AI 给出相同的分析
-2. 制定了新的修复方案：
-   - 优化命令执行后的处理逻辑
-   - 改进 prompt 构建方式 
+3. 统一了滚动条样式，提供更好的用户体验。
+
+## 相关文件
+- src/renderer/components/AIAssistant/modes/agent/AgentMode.tsx
+- src/renderer/components/AIAssistant/modes/agent/AgentMode.css
+- src/renderer/components/AIAssistant/modes/agent/AgentMessage.css
+
+## 优先级
+中等 - 影响用户体验但不影响核心功能
+
+## 状态
+已修复 ✅
