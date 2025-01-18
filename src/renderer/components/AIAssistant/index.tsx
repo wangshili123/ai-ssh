@@ -167,7 +167,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       notification.error({
         message: '处理失败',
         description: error.message,
-        placement: 'bottomRight',
+        placement: 'bottomLeft',
         duration: 3
       });
     } finally {
@@ -237,7 +237,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
             notification.error({
               message: '执行失败',
               description: '请先打开一个终端会话',
-              placement: 'bottomRight',
+              placement: 'bottomLeft',
               duration: 3
             });
             return;
@@ -249,7 +249,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           notification.error({
             message: '执行失败',
             description: error instanceof Error ? error.message : '未知错误',
-            placement: 'bottomRight',
+            placement: 'bottomLeft',
             duration: 3
           });
         }

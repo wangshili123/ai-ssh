@@ -14,6 +14,7 @@ import {
 import { DialogueManager } from './dialogue';
 import { AGENT_SYSTEM_PROMPT, APIError } from './constants';
 import { v4 as uuidv4 } from 'uuid';
+import { notification } from 'antd';
 
 class AgentModeServiceImpl implements AgentModeService {
   private currentTask: AgentTask | null = null;
@@ -171,6 +172,13 @@ class AgentModeServiceImpl implements AgentModeService {
       // 如果是新的用户查询，或者没有当前任务，或者状态为空闲，则创建新任务
       if (isNewUserQuery || !this.currentTask || this.getState() === AgentState.IDLE) {
         console.log('创建新任务和消息');
+
+        // 如果存在当前消息，将其状态更新为已完成
+        if (this.currentTask?.currentMessage) {
+          this.currentTask.currentMessage.status = AgentResponseStatus.COMPLETED;
+          this.currentTask.state = AgentState.COMPLETED;
+        }
+
         // 创建新消息
         const newMessage: AgentResponse = {
           status: AgentResponseStatus.THINKING,
@@ -257,7 +265,7 @@ class AgentModeServiceImpl implements AgentModeService {
         // 使用正则表达式提取 JSON 内容
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
-          throw new Error('未找到有效的 JSON 内容');
+          throw new Error('未找到有效的 JSON 内容：'+content);
         }
 
         const jsonContent = jsonMatch[0];
@@ -302,9 +310,18 @@ class AgentModeServiceImpl implements AgentModeService {
         console.error('解析 AI 响应失败:', error);
         this.setState(AgentState.ERROR);
         this.updateMessageStatus(AgentResponseStatus.ERROR);
+        
+        // 显示错误通知
+        notification.error({
+          message: 'AI 响应解析失败',
+          description: error instanceof Error ? error.message : '未知错误',
+          placement: 'bottomLeft',
+          duration: 3
+        });
+
         this.appendContent({
           type: 'error',
-          content: `解析响应失败: ${error instanceof Error ? error.message : '未知错误'}`,
+          content: `AI 响应解析失败: ${error instanceof Error ? error.message : '未知错误'}`,
           timestamp: Date.now()
         });
       }
