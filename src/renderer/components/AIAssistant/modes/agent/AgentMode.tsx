@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Input } from 'antd';
+import React, { useEffect, useState } from 'react';
 import { UserOutlined } from '@ant-design/icons';
-import { agentModeService } from '@/renderer/services/modes/agent';
-import { AgentResponse, AgentResponseStatus, AgentState } from '@/renderer/services/modes/agent/types';
+import { agentModeService } from '../../../../services/modes/agent';
+import { terminalOutputService } from '../../../../services/terminalOutput';
+import { autoExecuteService } from '../../../../services/modes/agent/autoExecute';
+import { AgentResponse, AgentResponseStatus, AgentState } from '../../../../services/modes/agent/types';
 import AgentMessage from './AgentMessage';
 import './AgentMode.css';
-import { terminalOutputService } from '@/renderer/services/terminalOutput';
 
 interface AgentModeProps {
   onExecute: (command: string) => void;
@@ -41,6 +41,11 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
     }, 100);
 
     return () => clearInterval(interval);
+  }, []);
+
+  // 设置命令执行回调
+  useEffect(() => {
+    autoExecuteService.setExecuteCommandCallback(handleExecuteCommand);
   }, []);
 
   // 检查命令是否执行完成
