@@ -284,10 +284,10 @@ ${h.output || ''}`).join('\n')}
         if (result.commands && Array.isArray(result.commands)) {
           // 记录当前步骤
           this.currentStepIndex++;
-          this.taskSteps[this.currentStepIndex] = result.commands[0].description;
+          this.taskSteps[this.currentStepIndex] = result.commands[0].command;
           console.log('添加新步骤:', {
             index: this.currentStepIndex,
-            description: result.commands[0].description
+            description: result.commands[0].command
           });
 
           // 添加命令到消息内容
