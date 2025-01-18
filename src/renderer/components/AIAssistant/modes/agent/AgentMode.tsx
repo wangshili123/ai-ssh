@@ -129,7 +129,7 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
         }
         
         // 继续检查
-        setTimeout(checkOutput, 100);
+        setTimeout(checkOutput, 300);
       };
       
       console.log('开始检查输出');
