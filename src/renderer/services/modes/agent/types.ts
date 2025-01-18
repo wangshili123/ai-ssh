@@ -39,11 +39,16 @@ export interface CommandInfo {
 }
 
 export interface MessageContent {
-  type: 'analysis' | 'command' | 'output' | 'result';
+  type: 'analysis' | 'command' | 'output' | 'result' | 'error';
   content: string;
   timestamp: number;
   analysis?: string;
-  commands?: CommandInfo[];
+  commands?: Array<{
+    text: string;
+    description: string;
+    risk: CommandRiskLevel;
+    executed: boolean;
+  }>;
 }
 
 export interface AgentResponse {

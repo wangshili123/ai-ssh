@@ -101,7 +101,7 @@ class SSHService {
       return new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error('Command execution timeout'));
-        }, 30000); // 30秒超时
+        }, 360000); // 360秒超时
 
         const checkOutput = () => {
           const output = terminalOutputService.getHistory();
