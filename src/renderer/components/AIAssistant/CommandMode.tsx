@@ -25,7 +25,7 @@ const CommandMode: React.FC<CommandModeProps> = ({
       case 'high':
         return '高风险';
       case 'medium':
-        return '中等风险';
+        return '中风险';
       case 'low':
         return '低风险';
       default:
