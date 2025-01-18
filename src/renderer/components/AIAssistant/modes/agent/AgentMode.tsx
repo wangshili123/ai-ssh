@@ -118,13 +118,17 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
         
         const history = terminalOutputService.getHistory();
         const newOutputs = history.slice(startHistoryLength);
-        const fullOutput = newOutputs.map(output => output.output).join('\n');
+        
+        // 分别获取命令和输出
+        const lastCommand = command;  // 保存当前执行的命令
+        const outputsOnly = newOutputs.map(output => output.output).join('\n');
         
         // 检查是否有命令提示符
-        if (isCommandComplete(fullOutput)) {
+        if (isCommandComplete(outputsOnly)) {
           console.log('检测到命令提示符，命令执行完成');
           isTerminated = true;
-          await handleCommandComplete(fullOutput);
+          // 将命令和输出分开传递
+          await handleCommandComplete(`${lastCommand}\n${outputsOnly}`);
           return;
         }
         

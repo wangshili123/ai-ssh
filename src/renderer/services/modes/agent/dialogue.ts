@@ -80,59 +80,45 @@ export class DialogueManager {
       return input;
     }
 
-    let content = '';
-    
-    // 如果有命令执行历史，添加到内容中
-    if (history.length > 0) {
-      // 只处理最后一条命令的输出
-      const lastHistory = history[history.length - 1];
-      console.log('input', input);
-      // 1. 先添加继续执行的内容
-      content = `n执行情况：${input}\n`;
+    // 从输入中分离命令和输出
+    const [command, ...outputLines] = input.split('\n');
+    let output = outputLines.join('\n');
+
+    // 处理输出内容
+    if (output) {
+      // 移除 ANSI 颜色代码
+      output = output.replace(/\x1B\[[0-9;]*[JKmsu]/g, '');
       
-      // 2. 添加命令执行情况
-      content += '\n执行情况：\n';
-      content += `${lastHistory.command || ''}\n`;
+      // 移除重复空行和首尾空白
+      output = output.trim().replace(/\n\s*\n/g, '\n');
       
-      // 3. 处理输出内容
-      let output = lastHistory.output || '';
-      if (output) {
-        // 移除 ANSI 颜色代码
-        output = output.replace(/\x1B\[[0-9;]*[JKmsu]/g, '');
-        
-        // 移除重复空行和首尾空白
-        output = output.trim().replace(/\n\s*\n/g, '\n');
-        
-        // 按行分割并过滤空行
-        let lines = output.split('\n').filter(line => line.trim());
-        
-        // 限制总行数（保留最新的行）
-        if (lines.length > this.MAX_OUTPUT_LINES) {
-          const omittedLines = lines.length - this.MAX_OUTPUT_LINES;
-          lines = [
-            `...(省略前 ${omittedLines} 行)...`,
-            ...lines.slice(-this.MAX_OUTPUT_LINES)
-          ];
-        }
-        
-        // 对每行进行长度限制（保留每行最新的内容）
-        lines = lines.map(line => {
-          const trimmedLine = line.trim();
-          if (trimmedLine.length > this.MAX_OUTPUT_LENGTH) {
-            const omittedLength = trimmedLine.length - this.MAX_OUTPUT_LENGTH;
-            return `...(省略前 ${omittedLength} 字符)...${trimmedLine.slice(-this.MAX_OUTPUT_LENGTH)}`;
-          }
-          return trimmedLine;
-        });
-        
-        content += lines.join('\n');
+      // 按行分割并过滤空行
+      let lines = output.split('\n').filter(line => line.trim());
+      
+      // 限制总行数（保留最新的行）
+      if (lines.length > this.MAX_OUTPUT_LINES) {
+        const omittedLines = lines.length - this.MAX_OUTPUT_LINES;
+        lines = [
+          `...(省略前 ${omittedLines} 行)...`,
+          ...lines.slice(-this.MAX_OUTPUT_LINES)
+        ];
       }
-    } else {
-      // 如果没有历史记录，只添加继续执行的内容
-      content = `继续执行：${input}`;
+      
+      // 对每行进行长度限制（保留每行最新的内容）
+      lines = lines.map(line => {
+        const trimmedLine = line.trim();
+        if (trimmedLine.length > this.MAX_OUTPUT_LENGTH) {
+          const omittedLength = trimmedLine.length - this.MAX_OUTPUT_LENGTH;
+          return `...(省略前 ${omittedLength} 字符)...${trimmedLine.slice(-this.MAX_OUTPUT_LENGTH)}`;
+        }
+        return trimmedLine;
+      });
+      
+      // 组合命令和处理后的输出
+      return `执行命令：${command}\n执行结果：\n${lines.join('\n')}`;
     }
 
-    return content;
+    return `执行命令：${command}`;
   }
 
   /**
