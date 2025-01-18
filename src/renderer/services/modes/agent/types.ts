@@ -54,7 +54,7 @@ export interface MessageContent {
 export interface AgentResponse {
   status: AgentResponseStatus;
   contents: MessageContent[];
-  error?: string;
+  userInput?: string;
 }
 
 export interface AgentTask {

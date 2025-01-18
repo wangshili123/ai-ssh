@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Input } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import { agentModeService } from '@/renderer/services/modes/agent';
 import { AgentResponse, AgentResponseStatus, AgentState } from '@/renderer/services/modes/agent/types';
@@ -22,17 +21,21 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
     const interval = setInterval(() => {
       // 获取所有历史消息
       const allMessages = agentModeService.getAllMessages();
-      setMessages(allMessages);
+      setMessages(allMessages.map(msg => ({
+        ...msg,
+        userInput: msg.userInput || agentModeService.getCurrentTask()?.userInput
+      })));
 
       // 获取当前消息
       const message = agentModeService.getCurrentMessage();
       if (message) {
-        setCurrentMessage({ ...message });
-        // 获取用户的输入消息和时间
         const task = agentModeService.getCurrentTask();
-        if (task && task.userInput) {
+        setCurrentMessage({
+          ...message,
+          userInput: task?.userInput
+        });
+        if (task?.userInput) {
           setUserMessage(task.userInput);
-          // 使用第一条消息的时间戳
           if (message.contents.length > 0) {
             setMessageTime(message.contents[0].timestamp);
           }
@@ -161,7 +164,7 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
         
         return (
           <React.Fragment key={index}>
-            {task?.userInput && (
+            {message.userInput && (
               <div className="message user">
                 <div className="message-header">
                   <div className="message-avatar">
@@ -172,7 +175,7 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
                   </div>
                 </div>
                 <div className="message-content">
-                  {task.userInput}
+                  {message.userInput}
                 </div>
               </div>
             )}

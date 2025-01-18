@@ -178,7 +178,8 @@ class AgentModeServiceImpl implements AgentModeService {
             type: 'analysis',
             content: `开始分析任务：${input}`,
             timestamp: Date.now()
-          }]
+          }],
+          userInput: input
         };
         
         // 添加到历史记录
