@@ -69,8 +69,7 @@ const CommandBlock: React.FC<{
   command: CommandInfo;
   onExecute?: (command: string) => void;
   onSkip?: () => void;
-  onHandleExecute: () => Promise<void>;
-}> = ({ command, onExecute, onSkip, onHandleExecute }) => {
+}> = ({ command, onExecute, onSkip }) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(command.executed);
 
@@ -81,6 +80,15 @@ const CommandBlock: React.FC<{
       setIsCompleted(true);
     }
   }, [command.executed]);
+
+  const handleExecute = async () => {
+    if (!onExecute) return;
+    setIsExecuting(true);
+    await onExecute(command.text);
+  };
+
+  // 暴露 setIsExecuting 方法
+  (command as any).setIsExecuting = setIsExecuting;
 
   const handleStop = async () => {
     if (!onExecute) return;
@@ -139,7 +147,7 @@ const CommandBlock: React.FC<{
           <>
             <Button 
               type="primary"
-              onClick={onHandleExecute}
+              onClick={handleExecute}
             >
               执行
             </Button>
@@ -241,7 +249,6 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
               command={cmd}
               onExecute={onExecuteCommand}
               onSkip={onSkipCommand}
-              onHandleExecute={() => handleExecute(cmd)}
             />
           );
         })}
