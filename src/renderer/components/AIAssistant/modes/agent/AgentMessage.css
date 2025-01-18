@@ -89,4 +89,33 @@
   margin-top: 12px;
   width: 100%;
   border: 1px solid #f0f0f0;
+}
+
+/* 命令文本样式 */
+.agent-message .command-block .command-text {
+  background: #f5f5f5;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin: 8px 0;
+  font-family: monospace;
+  white-space: pre-wrap;       /* 保留空格和换行，允许自动换行 */
+  word-wrap: break-word;       /* 允许长单词断行 */
+  max-height: 200px;           /* 最大高度 */
+  overflow-y: auto;            /* 垂直方向可滚动 */
+  overflow-x: auto;            /* 水平方向可滚动 */
+}
+
+/* 命令文本滚动条样式 */
+.agent-message .command-block .command-text::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.agent-message .command-block .command-text::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.agent-message .command-block .command-text::-webkit-scrollbar-track {
+  background: transparent;
 } 

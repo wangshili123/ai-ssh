@@ -251,9 +251,16 @@ class AgentModeServiceImpl implements AgentModeService {
 
       console.log('收到 AI 响应:', content);
 
-      // 尝试解析为 JSON 格式的命令建议
+      // 尝试提取和解析 JSON 内容
       try {
-        const result = JSON.parse(content) as AIResponse;
+        // 使用正则表达式提取 JSON 内容
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('未找到有效的 JSON 内容');
+        }
+
+        const jsonContent = jsonMatch[0];
+        const result = JSON.parse(jsonContent) as AIResponse;
         console.log('解析 AI 响应:', result);
 
         if (result.commands && Array.isArray(result.commands) && result.commands.length > 0) {

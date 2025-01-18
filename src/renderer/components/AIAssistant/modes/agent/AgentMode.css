@@ -29,17 +29,18 @@
 .message.user {
   align-self: flex-end;
   max-width: 80%;
-  margin: 8px 0;
-  padding: 12px 16px;
-  background: #95ec69;
+  margin: 4px 0;
+  background: #e6f7ff;
   border-radius: 12px 12px 2px 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .message.user .message-header {
+  padding: 4px 12px;
+  border-bottom: 1px solid #e8e8e8;
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  gap: 8px;
 }
 
 .message.user .message-avatar {
@@ -59,9 +60,10 @@
 }
 
 .message.user .message-content {
-  color: #333;
-  font-size: 14px;
-  line-height: 1.6;
+  padding: 1px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-all;
 }
 
 .message.user .message-time {
@@ -172,7 +174,7 @@
   font-size: 13px;
   color: #595959;
   flex: 1;
-  margin-right: 12px;
+  margin-right: 1px;
 }
 
 .agent-message .command-block .command-text {
