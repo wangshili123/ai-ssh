@@ -256,7 +256,7 @@ class AgentModeServiceImpl implements AgentModeService {
         const result = JSON.parse(content) as AIResponse;
         console.log('解析 AI 响应:', result);
 
-        if (result.commands && Array.isArray(result.commands)) {
+        if (result.commands && Array.isArray(result.commands) && result.commands.length > 0) {
           // 记录当前步骤
           this.currentStepIndex++;
           this.taskSteps[this.currentStepIndex] = result.commands[0].command;
