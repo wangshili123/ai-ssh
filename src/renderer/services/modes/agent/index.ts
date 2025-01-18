@@ -207,8 +207,8 @@ class AgentModeServiceImpl implements AgentModeService {
       this.updateMessageStatus(AgentResponseStatus.THINKING);
 
       // 格式化当前状态并添加到对话历史
-      const currentState = this.dialogueManager.formatCurrentState(input, history);
-      this.dialogueManager.addDialogue(currentState);
+      const currentState = this.dialogueManager.formatCurrentState(input, history, isNewUserQuery);
+      this.dialogueManager.addDialogue(currentState, isNewUserQuery);
 
       const requestBody = {
         model: config.model,
