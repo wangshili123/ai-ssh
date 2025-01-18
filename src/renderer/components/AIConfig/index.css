@@ -44,4 +44,56 @@
 
 .ai-config-card .ant-form-item:last-child {
   margin-bottom: 0;
+}
+
+/* Agent 模式配置卡片样式 */
+.agent-config-card {
+  margin-top: 24px;
+  margin-bottom: 24px;
+  background: #fafafa;
+}
+
+.agent-config-card .ant-card-head {
+  padding: 12px 24px;
+  background: #f5f5f5;
+}
+
+.agent-config-card .ant-card-head-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.agent-config-card .ant-card-body {
+  padding: 16px 24px;
+}
+
+.agent-config-card .ant-radio-group {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+}
+
+.agent-config-card .ant-radio-button-wrapper {
+  flex: 1;
+  text-align: center;
+}
+
+.agent-config-card .ant-radio-button-wrapper-disabled {
+  cursor: not-allowed;
+  color: rgba(0, 0, 0, 0.25);
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+}
+
+/* 调整 Tooltip 样式 */
+.agent-config-card .ant-tooltip-inner ul {
+  margin: 8px 0 0 0;
+  padding-left: 16px;
+  list-style-type: none;
+}
+
+.agent-config-card .ant-tooltip-inner li {
+  margin: 4px 0;
+  color: #fff;
+  font-size: 12px;
 } 
