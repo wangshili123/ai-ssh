@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { Button, Spin } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
-import { AgentResponse, AgentResponseStatus, MessageContent, CommandRiskLevel, CommandInfo } from '@/renderer/services/modes/agent/types';
+import { AgentResponse, AgentResponseStatus, MessageContent, CommandRiskLevel, CommandInfo, AgentState } from '@/renderer/services/modes/agent/types';
+import { agentModeService } from '@/renderer/services/modes/agent';
 import './AgentMessage.css';
 
 interface Props {
@@ -69,7 +70,8 @@ const CommandBlock: React.FC<{
   command: CommandInfo;
   onExecute?: (command: string) => void;
   onSkip?: () => void;
-}> = ({ command, onExecute, onSkip }) => {
+  message: AgentResponse;
+}> = ({ command, onExecute, onSkip, message }) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(command.executed);
 
@@ -81,14 +83,29 @@ const CommandBlock: React.FC<{
     }
   }, [command.executed]);
 
+  // 监听消息状态变化
+  useEffect(() => {
+    const task = agentModeService.getCurrentTask();
+    const isCurrentCommand = message.contents.some(content => 
+      content.type === 'command' && 
+      content.commands?.some(cmd => cmd.text === command.text)
+    );
+
+    // 只有当前命令且正在执行时才显示执行状态
+    if (isCurrentCommand && 
+        message.status === AgentResponseStatus.EXECUTING && 
+        task?.autoExecute) {
+      setIsExecuting(true);
+    } else {
+      setIsExecuting(false);
+    }
+  }, [command.text, message.status, message.contents]);
+
   const handleExecute = async () => {
     if (!onExecute) return;
     setIsExecuting(true);
     await onExecute(command.text);
   };
-
-  // 暴露 setIsExecuting 方法
-  (command as any).setIsExecuting = setIsExecuting;
 
   const handleStop = async () => {
     if (!onExecute) return;
@@ -109,12 +126,7 @@ const CommandBlock: React.FC<{
           {command.text}
         </div>
         <div className="command-actions">
-          <Button 
-            type="text"
-            disabled
-          >
-            已执行
-          </Button>
+          <Button type="text" disabled>已执行</Button>
         </div>
       </div>
     );
@@ -249,6 +261,7 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
               command={cmd}
               onExecute={onExecuteCommand}
               onSkip={onSkipCommand}
+              message={message}
             />
           );
         })}

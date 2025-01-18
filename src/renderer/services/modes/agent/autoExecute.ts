@@ -65,17 +65,7 @@ export class AutoExecuteService {
 
     try {
       console.log('开始执行命令:', command);
-      // 查找命令对应的 DOM 元素
-      const commandElement = document.querySelector(`[data-command="${command}"]`);
-      if (commandElement) {
-        const executeButton = commandElement.querySelector('button');
-        if (executeButton) {
-          executeButton.click();
-          return;
-        }
-      }
-      
-      // 如果找不到按钮，则使用回调函数执行
+      // 直接使用回调函数执行命令
       await this.executeCommandCallback(command);
     } catch (error) {
       console.error('执行命令失败:', error);

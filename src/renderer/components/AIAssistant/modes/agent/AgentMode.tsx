@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { UserOutlined } from '@ant-design/icons';
 import { agentModeService } from '../../../../services/modes/agent';
 import { terminalOutputService } from '../../../../services/terminalOutput';
@@ -10,6 +10,21 @@ import './AgentMode.css';
 interface AgentModeProps {
   onExecute: (command: string) => void;
 }
+
+// 检查命令是否执行完成
+const checkCommandComplete = (output: string): boolean => {
+  // 检查是否有命令提示符
+  const prompts = [
+    /\[.*?\][#\$]\s*$/,  // 匹配 [user@host]# 或 [user@host]$ 格式
+    /[$#>]\s*$/,         // 匹配行尾的 $、# 或 > 
+    /\][$#>]\s*$/,       // 匹配 ]#、]$ 或 ]> 
+  ];
+
+  // 检查最后一行是否是提示符
+  const lines = output.split('\n');
+  const lastLine = lines[lines.length - 1].trim();
+  return prompts.some(prompt => prompt.test(lastLine));
+};
 
 const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
   const [currentMessage, setCurrentMessage] = useState<AgentResponse | null>(null);
@@ -43,28 +58,8 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // 设置命令执行回调
-  useEffect(() => {
-    autoExecuteService.setExecuteCommandCallback(handleExecuteCommand);
-  }, []);
-
-  // 检查命令是否执行完成
-  const isCommandComplete = (output: string): boolean => {
-    // 检查是否有命令提示符
-    const prompts = [
-      /\[.*?\][#\$]\s*$/,  // 匹配 [user@host]# 或 [user@host]$ 格式
-      /[$#>]\s*$/,         // 匹配行尾的 $、# 或 > 
-      /\][$#>]\s*$/,       // 匹配 ]#、]$ 或 ]> 
-    ];
-
-    // 检查最后一行是否是提示符
-    const lines = output.split('\n');
-    const lastLine = lines[lines.length - 1].trim();
-    return prompts.some(prompt => prompt.test(lastLine));
-  };
-
   // 处理命令执行完成
-  const handleCommandComplete = async (output: string) => {
+  const handleCommandComplete = useCallback(async (output: string) => {
     try {
       console.log('准备处理命令执行完成');
       
@@ -95,10 +90,10 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
       agentModeService.setState(AgentState.ERROR);
       agentModeService.updateMessageStatus(AgentResponseStatus.ERROR);
     }
-  };
+  }, [currentMessage?.status]);
 
   // 处理命令执行
-  const handleExecuteCommand = async (command: string) => {
+  const handleExecuteCommand = useCallback(async (command: string) => {
     try {
       // 如果是 Ctrl+C 信号，直接发送并返回，不进行后续处理
       if (command === '\x03') {
@@ -129,7 +124,7 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
         const outputsOnly = newOutputs.map(output => output.output).join('\n');
         
         // 检查是否有命令提示符
-        if (isCommandComplete(outputsOnly)) {
+        if (checkCommandComplete(outputsOnly)) {
           console.log('检测到命令提示符，命令执行完成');
           isTerminated = true;
           // 将命令和输出分开传递
@@ -148,7 +143,12 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
       agentModeService.setState(AgentState.ERROR);
       agentModeService.updateMessageStatus(AgentResponseStatus.ERROR);
     }
-  };
+  }, [onExecute, handleCommandComplete]);
+
+  // 设置命令执行回调
+  useEffect(() => {
+    autoExecuteService.setExecuteCommandCallback(handleExecuteCommand);
+  }, [handleExecuteCommand]);
 
   // 处理跳过命令
   const handleSkipCommand = () => {
