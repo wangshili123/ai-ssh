@@ -65,8 +65,6 @@ export class AutoExecuteService {
 
     try {
       console.log('开始执行命令:', command);
-      agentModeService.setState(AgentState.EXECUTING);
-      agentModeService.updateMessageStatus(AgentResponseStatus.EXECUTING);
       await this.executeCommandCallback(command);
     } catch (error) {
       console.error('执行命令失败:', error);

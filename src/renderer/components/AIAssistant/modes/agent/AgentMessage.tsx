@@ -69,7 +69,8 @@ const CommandBlock: React.FC<{
   command: CommandInfo;
   onExecute?: (command: string) => void;
   onSkip?: () => void;
-}> = ({ command, onExecute, onSkip }) => {
+  onHandleExecute: () => Promise<void>;
+}> = ({ command, onExecute, onSkip, onHandleExecute }) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(command.executed);
 
@@ -80,12 +81,6 @@ const CommandBlock: React.FC<{
       setIsCompleted(true);
     }
   }, [command.executed]);
-
-  const handleExecute = async () => {
-    if (!onExecute) return;
-    setIsExecuting(true);
-    await onExecute(command.text);
-  };
 
   const handleStop = async () => {
     if (!onExecute) return;
@@ -144,7 +139,7 @@ const CommandBlock: React.FC<{
           <>
             <Button 
               type="primary"
-              onClick={handleExecute}
+              onClick={onHandleExecute}
             >
               执行
             </Button>
@@ -163,6 +158,15 @@ const CommandBlock: React.FC<{
 
 export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSkipCommand }) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const [executingCommandIndex, setExecutingCommandIndex] = useState<number | null>(null);
+
+  const handleExecute = async (command: CommandInfo) => {
+    if (!onExecuteCommand) return;
+    setExecutingCommandIndex(message.contents.findIndex(content => 
+      content.type === 'command' && content.commands?.some(cmd => cmd === command)
+    ));
+    await onExecuteCommand(command.text);
+  };
 
   const scrollToBottom = useCallback(() => {
     if (contentRef.current) {
@@ -237,6 +241,7 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
               command={cmd}
               onExecute={onExecuteCommand}
               onSkip={onSkipCommand}
+              onHandleExecute={() => handleExecute(cmd)}
             />
           );
         })}
@@ -248,7 +253,7 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
         )}
       </div>
     );
-  }, [onExecuteCommand, onSkipCommand]);
+  }, [onExecuteCommand, onSkipCommand, handleExecute]);
 
   if (process.env.NODE_ENV === 'development') {
     // console.log('AgentMessage 开始渲染:', {
