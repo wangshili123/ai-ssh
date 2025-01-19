@@ -38,7 +38,6 @@ const AIConfigComponent: React.FC<AIConfigComponentProps> = ({
       setLoading(true);
       const values = await form.validateFields();
       await aiConfigService.saveConfig(values);
-      message.success('配置已保存');
       onSaveSuccess?.();
     } catch (error) {
       const err = error as Error;
