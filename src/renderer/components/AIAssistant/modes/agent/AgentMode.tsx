@@ -34,30 +34,55 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
 
   // 监听Agent服务的消息更新
   useEffect(() => {
-    const interval = setInterval(() => {
-      // 获取所有历史消息
-      const allMessages = agentModeService.getAllMessages();
-      setMessages(allMessages.map(msg => ({
-        ...msg,
-        userInput: msg.userInput || agentModeService.getCurrentTask()?.userInput
-      })));
+    let lastMessageCount = 0;
+    let lastMessageStatus = '';
+    let lastTaskId = '';
 
-      // 获取当前消息
-      const message = agentModeService.getCurrentMessage();
-      if (message) {
-        const task = agentModeService.getCurrentTask();
-        setCurrentMessage({
-          ...message,
-          userInput: task?.userInput
-        });
-        if (task?.userInput) {
-          setUserMessage(task.userInput);
-          if (message.contents.length > 0) {
-            setMessageTime(message.contents[0].timestamp);
+    const interval = setInterval(() => {
+      // 获取当前状态
+      const currentTask = agentModeService.getCurrentTask();
+      const allMessages = agentModeService.getAllMessages();
+      const currentMessage = agentModeService.getCurrentMessage();
+
+      // 检查是否需要更新
+      const needUpdate = 
+        allMessages.length !== lastMessageCount ||
+        currentMessage?.status !== lastMessageStatus ||
+        currentTask?.id !== lastTaskId;
+
+      if (needUpdate) {
+        // 更新历史消息
+        setMessages(allMessages.map(msg => ({
+          ...msg,
+          userInput: msg.userInput || currentTask?.userInput
+        })));
+
+        // 更新当前消息
+        if (currentMessage) {
+          setCurrentMessage({
+            ...currentMessage,
+            userInput: currentTask?.userInput
+          });
+          if (currentTask?.userInput) {
+            setUserMessage(currentTask.userInput);
+            if (currentMessage.contents.length > 0) {
+              setMessageTime(currentMessage.contents[0].timestamp);
+            }
           }
         }
+
+        // 更新状态记录
+        lastMessageCount = allMessages.length;
+        lastMessageStatus = currentMessage?.status || '';
+        lastTaskId = currentTask?.id || '';
+
+        console.log('[AgentMode] 状态已更新:', {
+          messageCount: allMessages.length,
+          messageStatus: currentMessage?.status,
+          taskId: currentTask?.id
+        });
       }
-    }, 100);
+    }, 500);  // 增加轮询间隔到500ms
 
     return () => clearInterval(interval);
   }, []);
