@@ -6,6 +6,7 @@ export enum AgentResponseStatus {
   EXECUTING = 'executing',
   ANALYZING = 'analyzing',
   COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
   ERROR = 'error'
 }
 
@@ -15,6 +16,7 @@ export enum AgentState {
   EXECUTING = 'executing',
   ANALYZING = 'analyzing',
   COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
   ERROR = 'error'
 }
 

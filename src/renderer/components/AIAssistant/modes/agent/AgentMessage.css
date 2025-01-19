@@ -46,6 +46,23 @@
 }
 
 /* 状态样式 */
+.agent-message .status-indicator.cancelled {
+  background: #f5f5f5;
+  color: #999;
+}
+
+/* 取消按钮样式 */
+.agent-message .status-indicator .cancel-button {
+  margin-left: auto;
+  padding: 0 4px;
+  height: 24px;
+  color: #999;
+}
+
+.agent-message .status-indicator .cancel-button:hover {
+  color: #ff4d4f;
+}
+
 .agent-message .status-indicator.thinking,
 .agent-message .status-indicator.executing,
 .agent-message .status-indicator.analyzing {

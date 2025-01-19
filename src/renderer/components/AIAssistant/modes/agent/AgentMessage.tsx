@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { Button, Spin } from 'antd';
-import { LoadingOutlined } from '@ant-design/icons';
+import { LoadingOutlined, StopOutlined } from '@ant-design/icons';
 import { AgentResponse, AgentResponseStatus, MessageContent, CommandRiskLevel, CommandInfo, AgentState } from '@/renderer/services/modes/agent/types';
 import { agentModeService } from '@/renderer/services/modes/agent';
 import './AgentMessage.css';
@@ -11,7 +11,12 @@ interface Props {
   onSkipCommand?: () => void;
 }
 
-const StatusIndicator: React.FC<{ status: AgentResponseStatus }> = ({ status }) => {
+interface StatusIndicatorProps {
+  status: AgentResponseStatus;
+  onCancel?: () => void;
+}
+
+const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, onCancel }) => {
   const getStatusText = () => {
     switch (status) {
       case AgentResponseStatus.THINKING:
@@ -24,6 +29,8 @@ const StatusIndicator: React.FC<{ status: AgentResponseStatus }> = ({ status }) 
         return '分析中...';
       case AgentResponseStatus.COMPLETED:
         return '已完成';
+      case AgentResponseStatus.CANCELLED:
+        return '已取消';
       case AgentResponseStatus.ERROR:
         return '出错了';
       default:
@@ -37,10 +44,33 @@ const StatusIndicator: React.FC<{ status: AgentResponseStatus }> = ({ status }) 
     AgentResponseStatus.ANALYZING
   ].includes(status);
 
+  const canCancel = [
+    AgentResponseStatus.THINKING,
+    AgentResponseStatus.WAITING,
+    AgentResponseStatus.EXECUTING,
+    AgentResponseStatus.ANALYZING
+  ].includes(status);
+
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    }
+  };
+
   return (
     <div className={`status-indicator ${status.toLowerCase()}`}>
       {isLoading && <Spin indicator={<LoadingOutlined />} />}
       <span className="status-text">{getStatusText()}</span>
+      {canCancel && (
+        <Button 
+          type="text" 
+          size="small" 
+          icon={<StopOutlined />} 
+          onClick={handleCancel}
+          className="cancel-button"
+          title="取消任务"
+        />
+      )}
     </div>
   );
 };
@@ -273,6 +303,15 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
   const contentRef = useRef<HTMLDivElement>(null);
   const [executingCommandIndex, setExecutingCommandIndex] = useState<number | null>(null);
 
+  const handleCancel = useCallback(() => {
+    const task = agentModeService.getCurrentTask();
+    if (task) {
+      console.log('[AgentMessage] 取消任务:', task.id);
+      agentModeService.setState(AgentState.CANCELLED);
+      agentModeService.updateMessageStatus(AgentResponseStatus.CANCELLED);
+    }
+  }, []);
+
   const handleExecute = async (command: CommandInfo) => {
     if (!onExecuteCommand) return;
     setExecutingCommandIndex(message.contents.findIndex(content => 
@@ -379,7 +418,7 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
 
   return (
     <div className="agent-message">
-      <StatusIndicator status={message.status} />
+      <StatusIndicator status={message.status} onCancel={handleCancel} />
       
       <div className="message-content" ref={contentRef}>
         {message.contents.map(renderContent)}
