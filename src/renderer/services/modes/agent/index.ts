@@ -14,6 +14,7 @@ import {
 import { DialogueManager } from './dialogue';
 import { AGENT_SYSTEM_PROMPT, APIError } from './constants';
 import { v4 as uuidv4 } from 'uuid';
+import { notification } from 'antd';
 import { autoExecuteService } from '@/renderer/services/modes/agent/autoExecute';
 
 class AgentModeServiceImpl implements AgentModeService {

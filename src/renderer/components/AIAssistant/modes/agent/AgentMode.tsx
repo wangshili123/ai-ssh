@@ -99,26 +99,73 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
   // 处理命令执行
   const handleExecuteCommand = useCallback(async (command: string) => {
     try {
+      console.log('[AgentMode] 开始处理命令执行:', command);
+      
       // 如果是 Ctrl+C 信号，直接发送并返回，不进行后续处理
       if (command === '\x03') {
+        console.log('[AgentMode] 发送 Ctrl+C 信号');
         await onExecute(command);
+        
+        // 更新状态
+        const currentTask = agentModeService.getCurrentTask();
+        if (currentTask) {
+          console.log('[AgentMode] 更新任务状态为分析中');
+          agentModeService.setState(AgentState.ANALYZING);
+          agentModeService.updateMessageStatus(AgentResponseStatus.ANALYZING);
+        }
         return;
       }
 
-      console.log('开始执行命令:', command);
+      const currentTask = agentModeService.getCurrentTask();
+      console.log('[AgentMode] 当前任务状态:', {
+        taskId: currentTask?.id,
+        taskPaused: currentTask?.paused,
+        taskState: currentTask?.state,
+        messageStatus: currentTask?.currentMessage?.status
+      });
+
+      if (!currentTask) {
+        console.error('[AgentMode] 执行失败: 没有当前任务');
+        return;
+      }
+
+      // 如果任务已暂停，先恢复
+      if (currentTask.paused) {
+        console.log('[AgentMode] 任务已暂停，正在恢复');
+        agentModeService.togglePause();
+      }
+
+      console.log('[AgentMode] 更新状态为执行中');
       agentModeService.setState(AgentState.EXECUTING);
       agentModeService.updateMessageStatus(AgentResponseStatus.EXECUTING);
       
       const startHistoryLength = terminalOutputService.getHistory().length;
-      console.log('初始历史记录长度:', startHistoryLength);
+      console.log('[AgentMode] 初始历史记录长度:', startHistoryLength);
       
+      console.log('[AgentMode] 发送命令到终端:', command);
       await onExecute(command);
-      console.log('命令已发送到终端');
+      console.log('[AgentMode] 命令已发送到终端');
       
       let isTerminated = false;
       
       const checkOutput = async () => {
-        if (isTerminated) return;
+        if (isTerminated) {
+          console.log('[AgentMode] 检查已终止');
+          return;
+        }
+        
+        const task = agentModeService.getCurrentTask();
+        console.log('[AgentMode] 检查输出时的任务状态:', {
+          taskId: task?.id,
+          taskPaused: task?.paused,
+          taskState: task?.state
+        });
+
+        if (task?.paused) {
+          console.log('[AgentMode] 任务已暂停，停止检查输出');
+          isTerminated = true;
+          return;
+        }
         
         const history = terminalOutputService.getHistory();
         const newOutputs = history.slice(startHistoryLength);
@@ -127,9 +174,14 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
         const lastCommand = command;  // 保存当前执行的命令
         const outputsOnly = newOutputs.map(output => output.output).join('\n');
         
+        console.log('[AgentMode] 检查输出:', {
+          outputLength: outputsOnly.length,
+          lastLine: outputsOnly.split('\n').pop()
+        });
+        
         // 检查是否有命令提示符
         if (checkCommandComplete(outputsOnly)) {
-          console.log('检测到命令提示符，命令执行完成');
+          console.log('[AgentMode] 检测到命令提示符，命令执行完成');
           isTerminated = true;
           // 将命令和输出分开传递
           await handleCommandComplete(`${lastCommand}\n${outputsOnly}`);
@@ -140,10 +192,10 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
         setTimeout(checkOutput, 300);
       };
       
-      console.log('开始检查输出');
+      console.log('[AgentMode] 开始检查输出');
       checkOutput();
     } catch (error) {
-      console.error('执行命令失败:', error);
+      console.error('[AgentMode] 执行命令失败:', error);
       agentModeService.setState(AgentState.ERROR);
       agentModeService.updateMessageStatus(AgentResponseStatus.ERROR);
     }
@@ -155,18 +207,60 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
   }, [handleExecuteCommand]);
 
   // 处理跳过命令
-  const handleSkipCommand = () => {
-    console.log('跳过当前命令');
-    agentModeService.setState(AgentState.ANALYZING);
-    agentModeService.updateMessageStatus(AgentResponseStatus.ANALYZING);
-    agentModeService.handleCommandExecuted('Command skipped');
-  };
+  const handleSkipCommand = useCallback(() => {
+    try {
+      console.log('[AgentMode] 开始处理跳过命令');
+      const currentTask = agentModeService.getCurrentTask();
+      if (!currentTask) {
+        console.error('[AgentMode] 跳过命令失败: 没有当前任务');
+        return;
+      }
+
+      console.log('[AgentMode] 当前任务状态:', {
+        taskId: currentTask.id,
+        paused: currentTask.paused,
+        state: currentTask.state
+      });
+
+      // 如果任务已暂停，先恢复
+      if (currentTask.paused) {
+        console.log('[AgentMode] 任务已暂停，先恢复');
+        agentModeService.togglePause();
+      }
+
+      console.log('[AgentMode] 更新状态为分析中');
+      agentModeService.setState(AgentState.ANALYZING);
+      agentModeService.updateMessageStatus(AgentResponseStatus.ANALYZING);
+      
+      console.log('[AgentMode] 调用 handleCommandExecuted');
+      agentModeService.handleCommandExecuted('Command skipped');
+      
+      console.log('[AgentMode] 跳过命令处理完成');
+    } catch (error) {
+      console.error('[AgentMode] 跳过命令失败:', error);
+      agentModeService.setState(AgentState.ERROR);
+      agentModeService.updateMessageStatus(AgentResponseStatus.ERROR);
+    }
+  }, []);
 
   return (
     <div className="agent-mode">
       {messages.map((message, index) => {
         const task = agentModeService.getCurrentTask();
-        const isCurrentMessage = task?.currentMessage === message;
+        // 修改判断逻辑：检查消息内容和时间戳是否匹配
+        const isCurrentMessage = task?.currentMessage?.contents.some(content => 
+          message.contents.some(msgContent => 
+            content.timestamp === msgContent.timestamp
+          )
+        );
+        
+        console.log('[AgentMode] 渲染消息:', {
+          messageIndex: index,
+          isCurrentMessage,
+          messageStatus: message.status,
+          currentMessageTimestamp: task?.currentMessage?.contents[0]?.timestamp,
+          thisMessageTimestamp: message.contents[0]?.timestamp
+        });
         
         return (
           <React.Fragment key={index}>

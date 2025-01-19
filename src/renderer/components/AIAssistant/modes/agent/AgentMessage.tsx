@@ -77,24 +77,45 @@ const CommandBlock: React.FC<{
 
   // 监听命令状态变化
   useEffect(() => {
+    console.log('[AgentMessage] 命令状态变化:', {
+      commandText: command.text,
+      executed: command.executed
+    });
     if (command.executed) {
       setIsExecuting(false);
       setIsCompleted(true);
     }
-  }, [command.executed]);
+  }, [command.executed, command.text]);
 
   // 监听消息状态变化
   useEffect(() => {
     const task = agentModeService.getCurrentTask();
-    const isCurrentCommand = message.contents.some(content => 
-      content.type === 'command' && 
-      content.commands?.some(cmd => cmd.text === command.text)
+    console.log('[AgentMessage] 消息状态变化:', {
+      commandText: command.text,
+      messageStatus: message.status,
+      taskId: task?.id,
+      messageTimestamp: message.contents[0]?.timestamp,
+      currentMessageTimestamp: task?.currentMessage?.contents[0]?.timestamp
+    });
+
+    // 检查是否是当前正在执行的命令
+    const isCurrentCommand = task?.currentMessage?.contents.some(content => 
+      message.contents.some(msgContent => 
+        content.timestamp === msgContent.timestamp &&
+        content.type === 'command' &&
+        content.commands?.some(cmd => cmd.text === command.text)
+      )
     );
 
-    // 只有当前命令且正在执行时才显示执行状态
-    if (isCurrentCommand && 
-        message.status === AgentResponseStatus.EXECUTING && 
-        task?.autoExecute) {
+    console.log('[AgentMessage] 命令状态检查:', {
+      isCurrentCommand,
+      commandText: command.text,
+      messageStatus: message.status
+    });
+
+    // 更新执行状态
+    if (isCurrentCommand && message.status === AgentResponseStatus.EXECUTING) {
+      console.log('[AgentMessage] 设置命令为执行中:', command.text);
       setIsExecuting(true);
     } else {
       setIsExecuting(false);
@@ -102,16 +123,88 @@ const CommandBlock: React.FC<{
   }, [command.text, message.status, message.contents]);
 
   const handleExecute = async () => {
-    if (!onExecute) return;
-    setIsExecuting(true);
-    await onExecute(command.text);
+    if (!onExecute) {
+      console.log('[AgentMessage] 执行回调未定义');
+      return;
+    }
+    try {
+      console.log('[AgentMessage] 开始执行命令:', {
+        commandText: command.text,
+        messageStatus: message.status,
+        isExecuting,
+        isCompleted
+      });
+
+      const task = agentModeService.getCurrentTask();
+      console.log('[AgentMessage] 当前任务状态:', {
+        taskId: task?.id,
+        taskPaused: task?.paused,
+        isCurrentMessage: task?.currentMessage === message
+      });
+
+      setIsExecuting(true);
+      console.log('[AgentMessage] 已设置执行状态为 true');
+      
+      await onExecute(command.text);
+      console.log('[AgentMessage] 命令已发送到执行回调');
+    } catch (error) {
+      console.error('[AgentMessage] 执行命令失败:', error);
+      setIsExecuting(false);
+    }
   };
 
   const handleStop = async () => {
-    if (!onExecute) return;
-    await onExecute('\x03'); // 发送 Ctrl+C 信号
-    setIsExecuting(false);
-    setIsCompleted(true);
+    if (!onExecute) {
+      console.log('[AgentMessage] 停止回调未定义');
+      return;
+    }
+    try {
+      console.log('[AgentMessage] 开始处理停止命令');
+      const task = agentModeService.getCurrentTask();
+      console.log('[AgentMessage] 当前任务状态:', {
+        taskId: task?.id,
+        taskPaused: task?.paused,
+        messageStatus: message.status
+      });
+
+      // 先发送 Ctrl+C 信号
+      console.log('[AgentMessage] 发送 Ctrl+C 信号');
+      await onExecute('\x03');
+
+      // 更新状态
+      console.log('[AgentMessage] 更新状态');
+      agentModeService.setState(AgentState.ANALYZING);
+      agentModeService.updateMessageStatus(AgentResponseStatus.ANALYZING);
+      
+      // 暂停任务
+      if (!task?.paused) {
+        console.log('[AgentMessage] 暂停任务');
+        agentModeService.togglePause();
+      }
+
+      // 更新本地状态
+      setIsExecuting(false);
+      console.log('[AgentMessage] 停止命令处理完成');
+    } catch (error) {
+      console.error('[AgentMessage] 停止命令失败:', error);
+      setIsExecuting(false);
+    }
+  };
+
+  const handleSkip = () => {
+    if (!onSkip) {
+      console.log('[AgentMessage] 跳过回调未定义');
+      return;
+    }
+    try {
+      console.log('[AgentMessage] 开始跳过命令:', command.text);
+      onSkip();
+      setIsCompleted(true);
+      setIsExecuting(false);
+      console.log('[AgentMessage] 命令已跳过，状态已更新');
+    } catch (error) {
+      console.error('[AgentMessage] 跳过命令失败:', error);
+    }
   };
 
   // 如果命令已执行或已停止，只显示禁用的"已执行"按钮
@@ -165,7 +258,7 @@ const CommandBlock: React.FC<{
             </Button>
             <Button 
               type="text"
-              onClick={onSkip}
+              onClick={handleSkip}
             >
               跳过
             </Button>
