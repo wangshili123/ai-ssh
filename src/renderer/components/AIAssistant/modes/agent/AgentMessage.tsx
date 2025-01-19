@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
-import { Button, Spin } from 'antd';
-import { LoadingOutlined, StopOutlined } from '@ant-design/icons';
+import { Button, Spin, Input, message as antMsg } from 'antd';
+import { LoadingOutlined, StopOutlined, CopyOutlined } from '@ant-design/icons';
 import { AgentResponse, AgentResponseStatus, MessageContent, CommandRiskLevel, CommandInfo, AgentState } from '@/renderer/services/modes/agent/types';
 import { agentModeService } from '@/renderer/services/modes/agent';
 import './AgentMessage.css';
@@ -104,6 +104,8 @@ const CommandBlock: React.FC<{
 }> = ({ command, onExecute, onSkip, message }) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(command.executed);
+  const [commandText, setCommandText] = useState(command.text);
+  const [isEditing, setIsEditing] = useState(false);
 
   // 监听命令状态变化
   useEffect(() => {
@@ -152,6 +154,20 @@ const CommandBlock: React.FC<{
     }
   }, [command.text, message.status, message.contents]);
 
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(commandText);
+      antMsg.success('命令已复制');
+    } catch (error) {
+      console.error('复制命令失败:', error);
+      antMsg.error('复制失败');
+    }
+  };
+
+  const handleCommandChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCommandText(e.target.value);
+  };
+
   const handleExecute = async () => {
     if (!onExecute) {
       console.log('[AgentMessage] 执行回调未定义');
@@ -159,7 +175,7 @@ const CommandBlock: React.FC<{
     }
     try {
       console.log('[AgentMessage] 开始执行命令:', {
-        commandText: command.text,
+        commandText,
         messageStatus: message.status,
         isExecuting,
         isCompleted
@@ -175,7 +191,7 @@ const CommandBlock: React.FC<{
       setIsExecuting(true);
       console.log('[AgentMessage] 已设置执行状态为 true');
       
-      await onExecute(command.text);
+      await onExecute(commandText);
       console.log('[AgentMessage] 命令已发送到执行回调');
     } catch (error) {
       console.error('[AgentMessage] 执行命令失败:', error);
@@ -261,8 +277,13 @@ const CommandBlock: React.FC<{
         <div className="description">{command.description}</div>
         <RiskBadge risk={command.risk} />
       </div>
-      <div className="command-text">
-        {command.text}
+      <div className="command-text-container">
+        <Input.TextArea
+          value={commandText}
+          onChange={handleCommandChange}
+          autoSize={{ minRows: 1, maxRows: 6 }}
+          className="command-text-input"
+        />
       </div>
       <div className="command-actions">
         {isExecuting ? (
@@ -291,6 +312,14 @@ const CommandBlock: React.FC<{
               onClick={handleSkip}
             >
               跳过
+            </Button>
+            <Button
+              type="text"
+              icon={<CopyOutlined />}
+              onClick={handleCopy}
+              title="复制命令"
+            >
+              复制
             </Button>
           </>
         )}
