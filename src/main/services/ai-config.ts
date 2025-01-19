@@ -15,6 +15,9 @@ export interface AIConfig {
   maxTokens?: number;
   proxy?: string;
   baseURL: string;
+  // Agent 模式配置
+  agentAutoRun?: boolean;
+  agentRiskLevel?: 'low' | 'medium' | 'high';
 }
 
 // 默认配置
@@ -22,7 +25,9 @@ const DEFAULT_CONFIG: AIConfig = {
   apiKey: '',
   model: 'gpt-3.5-turbo',
   temperature: 0.7,
-  baseURL: ''
+  baseURL: '',
+  agentAutoRun: false,
+  agentRiskLevel: 'low'
 };
 
 // 加密密钥，实际应用中应该使用更安全的方式存储

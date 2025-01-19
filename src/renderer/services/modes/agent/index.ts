@@ -14,7 +14,7 @@ import {
 import { DialogueManager } from './dialogue';
 import { AGENT_SYSTEM_PROMPT, APIError } from './constants';
 import { v4 as uuidv4 } from 'uuid';
-import { notification } from 'antd';
+import { autoExecuteService } from '@/renderer/services/modes/agent/autoExecute';
 
 class AgentModeServiceImpl implements AgentModeService {
   private currentTask: AgentTask | null = null;
@@ -294,10 +294,17 @@ class AgentModeServiceImpl implements AgentModeService {
               executed: false
             }))
           });
-
           // 更新状态为等待执行
           this.setState(AgentState.EXECUTING);
           this.updateMessageStatus(AgentResponseStatus.WAITING);
+
+          // 检查是否可以自动执行命令
+          const command = result.commands[0];
+          const canAutoExecute = await autoExecuteService.canAutoExecute(command.risk as CommandRiskLevel);
+          if (canAutoExecute) {
+            console.log('自动执行命令:', command.command);
+            await autoExecuteService.executeCommand(command.command);
+          }
         } else {
           // 如果不是命令，说明是分析结果
           this.appendContent({
