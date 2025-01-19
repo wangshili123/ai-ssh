@@ -76,11 +76,11 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
         lastMessageStatus = currentMessage?.status || '';
         lastTaskId = currentTask?.id || '';
 
-        console.log('[AgentMode] 状态已更新:', {
-          messageCount: allMessages.length,
-          messageStatus: currentMessage?.status,
-          taskId: currentTask?.id
-        });
+        // console.log('[AgentMode] 状态已更新:', {
+        //   messageCount: allMessages.length,
+        //   messageStatus: currentMessage?.status,
+        //   taskId: currentTask?.id
+        // });
       }
     }, 500);  // 增加轮询间隔到500ms
 
@@ -127,7 +127,7 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
       console.log('[AgentMode] 开始处理命令执行:', command);
       
       // 如果是 Ctrl+C 信号，直接发送并返回，不进行后续处理
-      if (command === '\x03') {
+      if (command === 'q') {
         console.log('[AgentMode] 发送 Ctrl+C 信号');
         await onExecute(command);
         

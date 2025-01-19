@@ -197,9 +197,9 @@ const CommandBlock: React.FC<{
         messageStatus: message.status
       });
 
-      // 先发送 Ctrl+C 信号
-      console.log('[AgentMessage] 发送 Ctrl+C 信号');
-      await onExecute('\x03');
+      // 发送 q 命令来停止，不带换行符
+      console.log('[AgentMessage] 发送停止命令: q');
+      await onExecute('q\x1B');  // 使用 ESC 键而不是换行符
 
       // 更新状态
       console.log('[AgentMessage] 更新状态');
