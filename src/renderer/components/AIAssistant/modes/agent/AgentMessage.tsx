@@ -215,21 +215,24 @@ const CommandBlock: React.FC<{
 
       // 发送 q 命令来停止，不带换行符
       console.log('[AgentMessage] 发送停止命令: q');
-      await onExecute('q\x1B');  // 使用 ESC 键而不是换行符
+      await onExecute('q');  // 使用 ESC 键而不是换行符
 
       // 更新状态
       console.log('[AgentMessage] 更新状态');
       agentModeService.setState(AgentState.ANALYZING);
       agentModeService.updateMessageStatus(AgentResponseStatus.ANALYZING);
       
-      // 暂停任务
-      if (!task?.paused) {
-        console.log('[AgentMessage] 暂停任务');
+      // 设置命令为已执行状态
+      setIsCompleted(true);
+      setIsExecuting(false);
+      command.executed = true;  // 更新命令的执行状态
+
+      // 如果任务被暂停，恢复任务以触发下一步
+      if (task?.paused) {
+        console.log('[AgentMessage] 恢复任务以触发下一步');
         agentModeService.togglePause();
       }
 
-      // 更新本地状态
-      setIsExecuting(false);
       console.log('[AgentMessage] 停止命令处理完成');
     } catch (error) {
       console.error('[AgentMessage] 停止命令失败:', error);
