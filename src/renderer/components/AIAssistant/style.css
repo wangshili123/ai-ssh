@@ -49,6 +49,43 @@
 
 .input-wrapper {
   margin-bottom: 8px;
+  position: relative;
+}
+
+.new-chat-button {
+  position: absolute;
+  right: 8px;
+  top: -28px;
+  z-index: 1;
+  padding: 4px;
+  height: 24px;
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  transition: all 0.3s;
+  border-radius: 4px;
+  background: transparent;
+}
+
+.new-chat-button:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.new-chat-button:active {
+  transform: scale(0.95);
+}
+
+.new-chat-button .anticon {
+  font-size: 16px;
+  transition: transform 0.3s;
+}
+
+.new-chat-button:hover .anticon {
+  transform: rotate(90deg);
 }
 
 .input-wrapper .ant-input {

@@ -1,6 +1,6 @@
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
-import { Input, Button, Radio, notification } from 'antd';
-import { SendOutlined } from '@ant-design/icons';
+import { Input, Button, Radio, notification, Modal } from 'antd';
+import { SendOutlined, PlusCircleOutlined } from '@ant-design/icons';
 import { v4 as uuidv4 } from 'uuid';
 import { Message } from '../../types';
 import CommandMode from './modes/command';
@@ -216,6 +216,29 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     }
   };
 
+  // 处理清除对话记录
+  const handleClearMessages = () => {
+    Modal.confirm({
+      title: '确认清除对话',
+      content: '是否确认清除当前所有对话记录？此操作不可恢复。',
+      okText: '确认',
+      cancelText: '取消',
+      onOk: () => {
+        setMessages([]);
+        setInput('');
+        // 如果是 Agent 模式，还需要清除 agentModeService 的状态
+        if (mode === AssistantMode.AGENT) {
+          agentModeService.reset();
+        }
+        notification.success({
+          message: '对话已清除',
+          placement: 'bottomLeft',
+          duration: 2
+        });
+      }
+    });
+  };
+
   // 渲染当前模式的组件
   const renderModeComponent = () => {
     const commonProps = {
@@ -281,6 +304,13 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       </div>
       <div className="ai-input-container">
         <div className="input-wrapper">
+          <Button
+            type="text"
+            icon={<PlusCircleOutlined />}
+            className="new-chat-button"
+            onClick={handleClearMessages}
+            title="新对话"
+          />
           <Input.TextArea
             value={input}
             onChange={e => setInput(e.target.value)}

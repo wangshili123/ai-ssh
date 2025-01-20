@@ -86,6 +86,10 @@ export interface AgentModeService {
   handleCommandExecuted(output: string): Promise<void>;
   getNextStep(input: string, isNewUserQuery?: boolean): Promise<void>;
   getAllMessages(): AgentResponse[];
+  /**
+   * 重置所有状态，清除当前任务和消息历史
+   */
+  reset(): void;
 }
 
 export interface AIResponse {

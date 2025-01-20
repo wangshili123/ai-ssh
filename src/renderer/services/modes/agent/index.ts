@@ -341,6 +341,25 @@ class AgentModeServiceImpl implements AgentModeService {
       });
     }
   }
+
+  /**
+   * 重置所有状态，清除当前任务和消息历史
+   */
+  reset(): void {
+    // 清除当前任务
+    this.currentTask = null;
+    // 清除消息历史
+    this.messageHistory = [];
+    // 重置任务步骤
+    this.taskSteps = [];
+    this.currentStepIndex = -1;
+    // 重置状态
+    this.setState(AgentState.IDLE);
+    // 重置对话管理器
+    this.dialogueManager = new DialogueManager(AGENT_SYSTEM_PROMPT);
+    
+    console.log('Agent状态已重置');
+  }
 }
 
 // 导出服务实例
