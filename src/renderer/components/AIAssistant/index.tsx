@@ -57,6 +57,31 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
 
+  // 为每个模式维护独立的消息记录
+  const [commandMessages, setCommandMessages] = useState<Message[]>([]);
+  const [contextMessages, setContextMessages] = useState<Message[]>([]);
+  
+  // 获取当前模式的消息和设置函数
+  const getCurrentModeMessages = () => {
+    switch (mode) {
+      case AssistantMode.COMMAND:
+        return {
+          messages: commandMessages,
+          setMessages: setCommandMessages
+        };
+      case AssistantMode.CONTEXT:
+        return {
+          messages: contextMessages,
+          setMessages: setContextMessages
+        };
+      default:
+        return {
+          messages: [],
+          setMessages: () => {}
+        };
+    }
+  };
+
   // 处理拖拽开始
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.target === assistantRef.current?.querySelector('.resize-handle')) {
@@ -112,6 +137,8 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       setInputHistory(prev => [message.trim(), ...prev]);
       setHistoryIndex(-1);
 
+      const { messages, setMessages } = getCurrentModeMessages();
+
       // 添加用户消息
       const userMessage: Message = {
         id: uuidv4(),
@@ -119,7 +146,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
         content: message,
         timestamp: Date.now()
       };
-      setMessages(prev => [...prev, userMessage]);
+      setMessages([...messages, userMessage]);
 
       // 根据当前模式处理消息
       let assistantMessage: Message;
@@ -133,6 +160,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
             command: suggestion,
             timestamp: Date.now()
           };
+          setCommandMessages(prev => [...prev, assistantMessage]);
           break;
         }
         case AssistantMode.CONTEXT: {
@@ -145,22 +173,16 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
             command: response.command,
             timestamp: Date.now()
           };
+          setContextMessages(prev => [...prev, assistantMessage]);
           break;
         }
         case AssistantMode.AGENT: {
-          // 直接调用 getNextStep，不需要处理返回值
-          // 因为消息会通过 AgentMessage 组件自动更新
-          // 用户主动发送消息时，传入 true 表示这是新的用户查询
           await agentModeService.getNextStep(message, true);
-          // 不需要创建新的消息，因为 AgentMessage 组件会自动显示
-          return;
+          break;
         }
         default:
           throw new Error(`不支持的模式: ${mode}`);
       }
-
-      // 添加助手消息
-      setMessages(prev => [...prev, assistantMessage]);
     } catch (err: unknown) {
       const error = err as Error;
       console.error('处理消息失败:', error);
@@ -199,7 +221,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     try {
       setLoading(true);
       const suggestion = await commandModeService.getCommandSuggestion(userInput);
-      setMessages(prev => prev.map(msg => {
+      setCommandMessages(prev => prev.map(msg => {
         if (msg.id === messageId) {
           return {
             ...msg,
@@ -220,18 +242,26 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
   const handleClearMessages = () => {
     Modal.confirm({
       title: '确认清除对话',
-      content: '是否确认清除当前所有对话记录？此操作不可恢复。',
+      content: '是否确认清除当前模式下的所有对话记录？此操作不可恢复。',
       okText: '确认',
       cancelText: '取消',
       onOk: () => {
+        const { setMessages } = getCurrentModeMessages();
         setMessages([]);
         setInput('');
-        // 如果是 Agent 模式，还需要清除 agentModeService 的状态
-        if (mode === AssistantMode.AGENT) {
-          agentModeService.reset();
+        
+        // 根据不同模式清除相应的状态
+        switch (mode) {
+          case AssistantMode.AGENT:
+            agentModeService.reset();
+            break;
+          case AssistantMode.CONTEXT:
+            contextModeService.clearHistory();
+            break;
         }
+
         notification.success({
-          message: '对话已清除',
+          message: `${mode === AssistantMode.COMMAND ? '命令模式' : mode === AssistantMode.CONTEXT ? '上下文模式' : 'Agent模式'}对话已清除`,
           placement: 'bottomLeft',
           duration: 2
         });
@@ -241,12 +271,14 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
 
   // 渲染当前模式的组件
   const renderModeComponent = () => {
+    const { messages } = getCurrentModeMessages();
+    
     const commonProps = {
       sessionId,
       input,
       loading,
       messages,
-      onUpdateMessages: setMessages,
+      onUpdateMessages: getCurrentModeMessages().setMessages,
       onRegenerate: mode === AssistantMode.COMMAND ? handleRegenerate : undefined,
       onSendMessage: handleSend,
       onCopy: (text: string) => {
