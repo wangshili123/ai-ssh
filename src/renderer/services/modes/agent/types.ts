@@ -38,6 +38,7 @@ export interface CommandInfo {
   risk: CommandRiskLevel;
   description: string;
   executed: boolean;
+  stopCommand?: string;  // 终止命令，如 'q' 或 '\x03'
 }
 
 export interface MessageContent {
@@ -50,6 +51,7 @@ export interface MessageContent {
     description: string;
     risk: CommandRiskLevel;
     executed: boolean;
+    stopCommand?: string;
   }>;
 }
 
@@ -95,13 +97,6 @@ export interface AICommandResponse {
 export interface AIResponse {
   analysis?: string;
   commands?: AICommandResponse[];
-}
-
-export interface CommandInfo {
-  text: string;
-  risk: CommandRiskLevel;
-  description: string;
-  executed: boolean;
 }
 
 export interface AgentHistory {

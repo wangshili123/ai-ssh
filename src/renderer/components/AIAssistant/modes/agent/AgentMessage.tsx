@@ -213,9 +213,10 @@ const CommandBlock: React.FC<{
         messageStatus: message.status
       });
 
-      // 发送 q 命令来停止，不带换行符
-      console.log('[AgentMessage] 发送停止命令: q');
-      await onExecute('q');  // 使用 ESC 键而不是换行符
+      // 使用命令指定的终止方式，如果没有则使用默认的 Ctrl+C
+      const stopKey = command.stopCommand || '\x03';
+      console.log('[AgentMessage] 发送停止命令:', stopKey);
+      await onExecute(stopKey);
 
       // 更新状态
       console.log('[AgentMessage] 更新状态');
