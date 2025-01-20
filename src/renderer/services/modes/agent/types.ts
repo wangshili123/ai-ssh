@@ -34,11 +34,11 @@ export interface CommandParameter {
 }
 
 export interface CommandInfo {
-  text: string;
-  risk: CommandRiskLevel;
-  description: string;
-  executed: boolean;
-  stopCommand?: string;  // 终止命令，如 'q' 或 '\x03'
+  command: string;            // 命令文本
+  risk: CommandRiskLevel;     // 风险等级
+  description: string;        // 命令描述
+  executed: boolean;          // 是否已执行
+  stopCommand?: string;       // 终止命令，如 'q' 或 '\x03'
 }
 
 export interface MessageContent {
@@ -46,13 +46,12 @@ export interface MessageContent {
   content: string;
   timestamp: number;
   analysis?: string;
-  commands?: Array<{
-    text: string;
-    description: string;
-    risk: CommandRiskLevel;
-    executed: boolean;
-    stopCommand?: string;
-  }>;
+  command?: string;
+  description?: string;
+  risk?: CommandRiskLevel;
+  executed?: boolean;
+  stopCommand?: string;
+  isEnd?: boolean;
 }
 
 export interface AgentResponse {
@@ -88,15 +87,13 @@ export interface AgentModeService {
   getAllMessages(): AgentResponse[];
 }
 
-export interface AICommandResponse {
+export interface AIResponse {
+  analysis?: string;
   command: string;
   description: string;
   risk: string;
-}
-
-export interface AIResponse {
-  analysis?: string;
-  commands?: AICommandResponse[];
+  stopCommand?: string;
+  isEnd?: boolean;
 }
 
 export interface AgentHistory {

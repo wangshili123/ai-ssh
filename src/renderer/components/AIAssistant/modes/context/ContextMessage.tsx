@@ -10,7 +10,7 @@ interface ContextMessageProps {
   content: string;
   timestamp: number;
   explanation?: string;
-  commands?: CommandSuggestion[];
+  command?: CommandSuggestion;
   onCopy: (text: string) => void;
   onExecute: (command: string) => void;
 }
@@ -21,7 +21,7 @@ const ContextMessage: React.FC<ContextMessageProps> = ({
   content,
   timestamp,
   explanation,
-  commands,
+  command,
   onCopy,
   onExecute
 }) => {
@@ -57,17 +57,17 @@ const ContextMessage: React.FC<ContextMessageProps> = ({
           </div>
         )}
 
-        {commands && commands.map((cmd, index) => (
-          <div key={`${id}-${index}`} className="command-wrapper">
+        {command && (
+          <div className="command-wrapper">
             <CommandMode
-              command={cmd}
+              command={command}
               messageId={id}
               userInput={content}
               onCopy={onCopy}
               onExecute={onExecute}
             />
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

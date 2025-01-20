@@ -130,7 +130,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
             id: uuidv4(),
             type: 'assistant',
             content: message,
-            commands: [suggestion],
+            command: suggestion,
             timestamp: Date.now()
           };
           break;
@@ -142,7 +142,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
             type: 'assistant',
             content: message,
             explanation: response.explanation,
-            commands: response.commands,
+            command: response.command,
             timestamp: Date.now()
           };
           break;
@@ -204,7 +204,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           return {
             ...msg,
             content: userInput,
-            commands: [suggestion]
+            command: suggestion
           };
         }
         return msg;

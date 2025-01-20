@@ -32,17 +32,17 @@ export interface AgentCommandResponse {
 export interface ContextCommandResponse {
   type: 'commands' | 'text';
   explanation?: string;
-  commands?: Array<{
+  command?: {
     command: string;
     description: string;
     risk: 'low' | 'medium' | 'high';
-  }>;
+  };
   content?: string;
 }
 
 export interface ContextResponse {
   explanation: string;
-  commands: CommandSuggestion[];
+  command: CommandSuggestion;
 }
 
 const systemPrompt = `你是一个 Linux 命令专家，帮助用户将自然语言转换为准确的 Linux 命令。
@@ -327,17 +327,17 @@ ${context}
       
       try {
         const result = JSON.parse(content) as ContextCommandResponse;
-        if (result.type === 'commands' && Array.isArray(result.commands)) {
+        if (result.type === 'commands' && result.command) {
           // 返回命令建议和说明
           return {
             explanation: result.explanation || '',
-            commands: result.commands.map(cmd => ({
-              command: cmd.command,
-              description: cmd.description,
-              risk: cmd.risk || 'low',
+            command: {
+              command: result.command.command,
+              description: result.command.description,
+              risk: result.command.risk || 'low',
               example: undefined,
               parameters: undefined
-            }))
+            }
           };
         } else if (result.type === 'text' && result.content) {
           // 返回普通文本

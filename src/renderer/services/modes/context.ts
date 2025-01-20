@@ -20,7 +20,7 @@ interface AIResponse {
 
 export interface ContextResponse {
   explanation?: string;
-  commands?: CommandSuggestion[];
+  command?: CommandSuggestion;
 }
 
 class ContextModeService {
@@ -111,11 +111,11 @@ class ContextModeService {
         
         return {
           explanation: result.explanation,
-          commands: result.commands?.map((item: CommandResponse) => ({
+          command: result.commands?.map((item: CommandResponse) => ({
             command: item.command || '',
             description: item.description || '无法生成合适的命令',
             risk: item.risk || 'low'
-          }))
+          }))[0]
         };
       } catch (parseError) {
         // 如果不是 JSON 格式，作为普通文本返回

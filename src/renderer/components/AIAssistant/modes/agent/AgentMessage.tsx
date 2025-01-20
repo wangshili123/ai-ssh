@@ -104,26 +104,26 @@ const CommandBlock: React.FC<{
 }> = ({ command, onExecute, onSkip, message }) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(command.executed);
-  const [commandText, setCommandText] = useState(command.text);
+  const [commandText, setCommandText] = useState(command.command);
   const [isEditing, setIsEditing] = useState(false);
 
   // 监听命令状态变化
   useEffect(() => {
     console.log('[AgentMessage] 命令状态变化:', {
-      commandText: command.text,
+      commandText: command.command,
       executed: command.executed
     });
     if (command.executed) {
       setIsExecuting(false);
       setIsCompleted(true);
     }
-  }, [command.executed, command.text]);
+  }, [command.executed, command.command]);
 
   // 监听消息状态变化
   useEffect(() => {
     const task = agentModeService.getCurrentTask();
     console.log('[AgentMessage] 消息状态变化:', {
-      commandText: command.text,
+      commandText: command.command,
       messageStatus: message.status,
       taskId: task?.id,
       messageTimestamp: message.contents[0]?.timestamp,
@@ -135,24 +135,24 @@ const CommandBlock: React.FC<{
       message.contents.some(msgContent => 
         content.timestamp === msgContent.timestamp &&
         content.type === 'command' &&
-        content.commands?.some(cmd => cmd.text === command.text)
+        content.command === command.command
       )
     );
 
     console.log('[AgentMessage] 命令状态检查:', {
       isCurrentCommand,
-      commandText: command.text,
+      commandText: command.command,
       messageStatus: message.status
     });
 
     // 更新执行状态
     if (isCurrentCommand && message.status === AgentResponseStatus.EXECUTING) {
-      console.log('[AgentMessage] 设置命令为执行中:', command.text);
+      console.log('[AgentMessage] 设置命令为执行中:', command.command);
       setIsExecuting(true);
     } else {
       setIsExecuting(false);
     }
-  }, [command.text, message.status, message.contents]);
+  }, [command.command, message.status, message.contents]);
 
   const handleCopy = async () => {
     try {
@@ -247,7 +247,7 @@ const CommandBlock: React.FC<{
       return;
     }
     try {
-      console.log('[AgentMessage] 开始跳过命令:', command.text);
+      console.log('[AgentMessage] 开始跳过命令:', command.command);
       onSkip();
       setIsCompleted(true);
       setIsExecuting(false);
@@ -266,7 +266,7 @@ const CommandBlock: React.FC<{
           <RiskBadge risk={command.risk} />
         </div>
         <div className="command-text">
-          {command.text}
+          {command.command}
         </div>
         <div className="command-actions">
           <Button type="text" disabled>已执行</Button>
@@ -348,9 +348,9 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
   const handleExecute = async (command: CommandInfo) => {
     if (!onExecuteCommand) return;
     setExecutingCommandIndex(message.contents.findIndex(content => 
-      content.type === 'command' && content.commands?.some(cmd => cmd === command)
+      content.type === 'command' && content.command === command.command
     ));
-    await onExecuteCommand(command.text);
+    await onExecuteCommand(command.command);
   };
 
   const scrollToBottom = useCallback(() => {
@@ -370,7 +370,7 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
         contents: message.contents.map(c => ({
           type: c.type,
           hasAnalysis: !!c.analysis,
-          hasCommands: c.commands?.length || 0,
+          hasCommand: !!c.command,
           timestamp: c.timestamp
         }))
       });
@@ -379,26 +379,15 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
   }, [message.contents, message.status, scrollToBottom]);
 
   const renderContent = useCallback((content: MessageContent, index: number) => {
-    // if (process.env.NODE_ENV === 'development') {
-    //   console.log(`渲染第 ${index + 1}/${message.contents.length} 个内容块:`, {
-    //     type: content.type,
-    //     hasAnalysis: !!content.analysis,
-    //     hasCommands: content.commands?.length || 0,
-    //     timestamp: content.timestamp,
-    //     content: content.content,
-    //     analysis: content.analysis
-    //   });
-    // }
-
     if (content.type === 'output') {
       return null;
     }
     
     const hasAnalysis = content.analysis;
-    const hasCommands = content.commands && content.commands.length > 0;
+    const hasCommand = content.command;
     const hasResult = content.type === 'result' && content.content;
     
-    if (!hasAnalysis && !hasCommands && !hasResult) {
+    if (!hasAnalysis && !hasCommand && !hasResult) {
       return null;
     }
     
@@ -411,25 +400,19 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
           </div>
         )}
         
-        {content.commands && content.commands.map((cmd, cmdIndex) => {
-          // if (process.env.NODE_ENV === 'development') {
-          //   console.log(`渲染命令 ${cmdIndex + 1}/${content.commands?.length}:`, {
-          //     text: cmd.text,
-          //     description: cmd.description,
-          //     risk: cmd.risk,
-          //     executed: cmd.executed
-          //   });
-          // }
-          return (
-            <CommandBlock
-              key={cmdIndex}
-              command={cmd}
-              onExecute={onExecuteCommand}
-              onSkip={onSkipCommand}
-              message={message}
-            />
-          );
-        })}
+        {content.command && (
+          <CommandBlock
+            command= {{
+              command: content.command,
+              description: '',  // 添加必要的字段
+              risk: CommandRiskLevel.LOW,  // 设置默认风险等级
+              executed: false
+            }}
+            onExecute={onExecuteCommand}
+            onSkip={onSkipCommand}
+            message={message}
+          />
+        )}
         
         {content.type === 'result' && content.content && (
           <div className="result-block">
@@ -438,7 +421,7 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
         )}
       </div>
     );
-  }, [onExecuteCommand, onSkipCommand, handleExecute]);
+  }, [onExecuteCommand, onSkipCommand]);
 
   if (process.env.NODE_ENV === 'development') {
     // console.log('AgentMessage 开始渲染:', {

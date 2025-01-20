@@ -8,8 +8,8 @@ import {
   MessageContent, 
   AgentResponse, 
   CommandRiskLevel,
-  AIResponse,
-  AICommandResponse
+  AIResponse
+
 } from './types';
 import { DialogueManager } from './dialogue';
 import { AGENT_SYSTEM_PROMPT, APIError } from './constants';
@@ -65,7 +65,7 @@ class AgentModeServiceImpl implements AgentModeService {
     console.log('appendContent 被调用:', {
       type: content.type,
       hasAnalysis: !!content.analysis,
-      hasCommands: content.commands?.length || 0,
+      hasCommand: !!content.command,
       timestamp: content.timestamp
     });
 
@@ -116,14 +116,12 @@ class AgentModeServiceImpl implements AgentModeService {
       const lastContent = this.currentTask.currentMessage.contents[this.currentTask.currentMessage.contents.length - 1];
       console.log('更新最后一个命令状态:', {
         type: lastContent.type,
-        hasCommands: !!lastContent.commands
+        hasCommand: !!lastContent.command
       });
 
-      if (lastContent.type === 'command' && lastContent.commands) {
-        lastContent.commands = lastContent.commands.map(cmd => ({
-          ...cmd,
-          executed: true
-        }));
+      if (lastContent.type === 'command' && lastContent.command) {
+        lastContent.command =lastContent.command;
+        lastContent.executed = true;
       }
     }
 
@@ -273,14 +271,10 @@ class AgentModeServiceImpl implements AgentModeService {
         const result = JSON.parse(jsonContent) as AIResponse;
         console.log('解析 AI 响应:', result);
 
-        if (result.commands && Array.isArray(result.commands) && result.commands.length > 0) {
+        if (!result.isEnd) {
           // 记录当前步骤
           this.currentStepIndex++;
-          this.taskSteps[this.currentStepIndex] = result.commands[0].command;
-          console.log('添加新步骤:', {
-            index: this.currentStepIndex,
-            description: result.commands[0].command
-          });
+          this.taskSteps[this.currentStepIndex] = result.command;
 
           // 添加命令到消息内容
           this.appendContent({
@@ -288,29 +282,31 @@ class AgentModeServiceImpl implements AgentModeService {
             content: '',
             timestamp: Date.now(),
             analysis: result.analysis,
-            commands: result.commands.map((cmd: AICommandResponse) => ({
-              text: cmd.command,
-              description: cmd.description,
-              risk: cmd.risk as CommandRiskLevel,
-              executed: false
-            }))
+            command: result.command,
+            description: result.description,
+            risk: result.risk as CommandRiskLevel,
+            executed: false,
+            stopCommand: result.stopCommand,
+            isEnd: result.isEnd
           });
           // 更新状态为等待执行
           this.setState(AgentState.EXECUTING);
           this.updateMessageStatus(AgentResponseStatus.WAITING);
 
           // 检查是否可以自动执行命令
-          const command = result.commands[0];
-          const canAutoExecute = await autoExecuteService.canAutoExecute(command.risk as CommandRiskLevel);
+          const canAutoExecute = await autoExecuteService.canAutoExecute(result.risk as CommandRiskLevel);
           if (canAutoExecute) {
-            console.log('自动执行命令:', command.command);
-            await autoExecuteService.executeCommand(command.command);
+            console.log('自动执行命令:', result.command);
+            await autoExecuteService.executeCommand(result.command);
           }
-        } else {
-          // 如果不是命令，说明是分析结果
+      
+        }    // 如果命令标记为结束，更新任务状态
+        else if (result.isEnd) {
+          this.setState(AgentState.COMPLETED);
+          this.updateMessageStatus(AgentResponseStatus.COMPLETED);
           this.appendContent({
             type: 'analysis',
-            content: content,
+            content:  result.analysis || content,
             timestamp: Date.now()
           });
         }
