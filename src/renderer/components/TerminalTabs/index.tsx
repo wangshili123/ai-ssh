@@ -128,32 +128,42 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
   }
 
   return (
-    <div className="terminal-tabs">
-      <Tabs
-        type="editable-card"
-        onChange={onChange}
-        activeKey={activeKey}
-        onEdit={onEdit}
-        items={tabs.map(tab => ({
-          key: tab.key,
-          label: (
-            <Badge 
-              status={tab.connected ? 'success' : 'error'} 
-              text={tab.title} 
-              className="tab-badge"
-            />
-          ),
-          children: (
-            <div style={{ height: '100%', padding: '0 1px' }}>
-              <Terminal 
-                sessionInfo={tab.sessionInfo} 
-                instanceId={tab.instanceId}
+    <div className="terminal-tabs" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="terminal-tabs-nav">
+        <Tabs
+          type="editable-card"
+          onChange={onChange}
+          activeKey={activeKey}
+          onEdit={onEdit}
+          items={tabs.map(tab => ({
+            key: tab.key,
+            label: (
+              <Badge 
+                status={tab.connected ? 'success' : 'error'} 
+                text={tab.title} 
+                className="tab-badge"
               />
-            </div>
-          ),
-          closable: tabs.length > 1
-        }))}
-      />
+            ),
+            children: null
+          }))}
+        />
+      </div>
+      <div className="terminal-tabs-content">
+        {tabs.map(tab => (
+          <div 
+            key={tab.key} 
+            style={{ 
+              height: '100%', 
+              display: activeKey === tab.key ? 'block' : 'none' 
+            }}
+          >
+            <Terminal 
+              sessionInfo={tab.sessionInfo} 
+              instanceId={tab.instanceId}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
