@@ -311,12 +311,12 @@ const CommandBlock: React.FC<{
             >
               执行
             </Button>
-            <Button 
+            {/* <Button 
               type="text"
               onClick={handleSkip}
             >
               跳过
-            </Button>
+            </Button> */}
             <Button
               type="text"
               icon={<CopyOutlined />}
@@ -404,8 +404,8 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
           <CommandBlock
             command= {{
               command: content.command,
-              description: '',  // 添加必要的字段
-              risk: CommandRiskLevel.LOW,  // 设置默认风险等级
+              description: content.description || '',  // 添加必要的字段
+              risk: content.risk || CommandRiskLevel.UNKNOWN,  // 设置默认风险等级
               executed: false
             }}
             onExecute={onExecuteCommand}

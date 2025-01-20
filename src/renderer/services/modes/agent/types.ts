@@ -23,7 +23,8 @@ export enum AgentState {
 export enum CommandRiskLevel {
   LOW = 'low',
   MEDIUM = 'medium',
-  HIGH = 'high'
+  HIGH = 'high',
+  UNKNOWN = 'unknown'
 }
 
 export interface CommandParameter {
@@ -93,7 +94,7 @@ export interface AIResponse {
   description: string;
   risk: string;
   stopCommand?: string;
-  isEnd?: boolean;
+  isEnd?: string;
 }
 
 export interface AgentHistory {

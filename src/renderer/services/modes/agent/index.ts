@@ -271,7 +271,7 @@ class AgentModeServiceImpl implements AgentModeService {
         const result = JSON.parse(jsonContent) as AIResponse;
         console.log('解析 AI 响应:', result);
 
-        if (!result.isEnd) {
+        if (result.isEnd==="false") {
           // 记录当前步骤
           this.currentStepIndex++;
           this.taskSteps[this.currentStepIndex] = result.command;
@@ -287,7 +287,7 @@ class AgentModeServiceImpl implements AgentModeService {
             risk: result.risk as CommandRiskLevel,
             executed: false,
             stopCommand: result.stopCommand,
-            isEnd: result.isEnd
+            isEnd: false
           });
           // 更新状态为等待执行
           this.setState(AgentState.EXECUTING);
@@ -301,13 +301,14 @@ class AgentModeServiceImpl implements AgentModeService {
           }
       
         }    // 如果命令标记为结束，更新任务状态
-        else if (result.isEnd) {
+        else if (result.isEnd === "true") {
           this.setState(AgentState.COMPLETED);
           this.updateMessageStatus(AgentResponseStatus.COMPLETED);
           this.appendContent({
             type: 'analysis',
             content:  result.analysis || content,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            isEnd: true
           });
         }
       } catch (error) {
