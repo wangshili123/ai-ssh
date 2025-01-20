@@ -42,7 +42,7 @@ module.exports = {
     static: {
       directory: path.join(__dirname, 'dist/renderer'),
     },
-    port: 3000,
+    port: 3001,
     hot: true,
   },
 }; 

@@ -26,57 +26,87 @@
 }
 
 /* 标签页样式 */
-.terminal-tabs .ant-tabs-nav {
-  margin: 0 !important;
+.terminal-tabs-nav {
   background-color: #fafafa;
   border-bottom: 1px solid #333;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
 }
 
-.terminal-tabs .ant-tabs-tab {
+.terminal-tabs-nav .ant-tabs {
+  margin: 0;
+  padding: 0;
+}
+
+.terminal-tabs-nav .ant-tabs-nav {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.terminal-tabs-nav .ant-tabs-nav-wrap {
+  margin: 0 !important;
+}
+
+.terminal-tabs-nav .ant-tabs-nav-list {
+  margin: 0 !important;
+}
+
+.terminal-tabs-nav .ant-tabs-tab {
   background: transparent !important;
   border: none !important;
-  color: #ccc !important;
+  color: #3a3737 !important;
   padding: 8px 16px !important;
+  margin: 0 !important;
+  height: 36px !important;
+  line-height: 20px !important;
+  border-right: 1px solid #e5e5e5 !important;
 }
 
-.terminal-tabs .ant-tabs-tab-active {
+.terminal-tabs-nav .ant-tabs-tab-active {
   background: rgb(24 159 255 / 32%) !important;
 }
 
-.terminal-tabs .ant-tabs-tab-btn {
-  color: #ccc !important;
-}
-
-.terminal-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+.terminal-tabs-nav .ant-tabs-tab-active .ant-tabs-tab-btn {
   color: #fff !important;
 }
 
-/* 新增标签按钮样式 */
-.terminal-tabs .ant-tabs-nav-add {
+.terminal-tabs-nav .ant-tabs-nav-add {
   color: #3a3737 !important;
   background: transparent !important;
   border: none !important;
   padding: 8px 16px !important;
+  margin: 0 !important;
+  height: 36px !important;
+  line-height: 20px !important;
 }
 
-.terminal-tabs .ant-tabs-nav-add:hover {
+.terminal-tabs-nav .ant-tabs-nav-add:hover {
   color: #fff !important;
-  background: #2d2d2d !important;
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
-/* 终端容器样式 */
+.terminal-tabs-content {
+  height: calc(100vh - 36px);
+  margin-top: 36px;
+  background-color: #1e1e1e;
+  position: relative;
+}
+
 .terminal-tabs .terminal-container {
   height: 100%;
   width: 100%;
   position: relative;
 }
 
-.terminal-tabs .tab-badge {
+.tab-badge {
   display: flex;
   align-items: center;
 }
 
-.terminal-tabs .tab-badge .ant-badge-status-dot {
+.tab-badge .ant-badge-status-dot {
   width: 6px;
   height: 6px;
   margin-right: 8px;
