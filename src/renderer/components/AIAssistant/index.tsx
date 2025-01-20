@@ -156,8 +156,8 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           assistantMessage = {
             id: uuidv4(),
             type: 'assistant',
-            content: message,
-            command: suggestion,
+            content: '',  // AI 助手没有文本内容
+            commands: [suggestion],  // 将命令建议放入 commands 数组
             timestamp: Date.now()
           };
           setCommandMessages(prev => [...prev, assistantMessage]);
@@ -168,8 +168,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
           assistantMessage = {
             id: uuidv4(),
             type: 'assistant',
-            content: message,
-            explanation: response.explanation,
+            content: response.explanation || '',
             command: response.command,
             timestamp: Date.now()
           };

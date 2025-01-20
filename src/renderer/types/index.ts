@@ -6,6 +6,7 @@ export interface Message {
   content: string;
   timestamp: number;
   command?: CommandSuggestion;
+  commands?: CommandSuggestion[];
   explanation?: string;
 }
 
