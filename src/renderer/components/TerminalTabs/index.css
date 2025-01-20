@@ -28,7 +28,7 @@
 /* 标签页样式 */
 .terminal-tabs .ant-tabs-nav {
   margin: 0 !important;
-  background-color: #1e1e1e;
+  background-color: #fafafa;
   border-bottom: 1px solid #333;
 }
 
@@ -40,7 +40,7 @@
 }
 
 .terminal-tabs .ant-tabs-tab-active {
-  background: #2d2d2d !important;
+  background: rgb(24 159 255 / 32%) !important;
 }
 
 .terminal-tabs .ant-tabs-tab-btn {
@@ -53,7 +53,7 @@
 
 /* 新增标签按钮样式 */
 .terminal-tabs .ant-tabs-nav-add {
-  color: #ccc !important;
+  color: #3a3737 !important;
   background: transparent !important;
   border: none !important;
   padding: 8px 16px !important;
