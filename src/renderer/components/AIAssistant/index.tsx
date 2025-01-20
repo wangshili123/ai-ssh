@@ -256,6 +256,12 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
             break;
           case AssistantMode.CONTEXT:
             contextModeService.clearHistory();
+            // 清空终端输出历史
+            terminalOutputService.clear();
+            break;
+          case AssistantMode.COMMAND:
+            // 命令模式也需要清空终端输出历史
+            terminalOutputService.clear();
             break;
         }
 
