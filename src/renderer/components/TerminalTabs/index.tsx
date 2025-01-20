@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs } from 'antd';
+import { Tabs, Badge } from 'antd';
 import type { SessionInfo } from '../../../main/services/storage';
 import Terminal from '../Terminal';
 import { eventBus } from '../../services/eventBus';
@@ -10,6 +10,7 @@ interface TerminalTab {
   title: string;
   sessionInfo?: SessionInfo;
   instanceId: string;
+  connected: boolean;
 }
 
 interface TerminalTabsProps {
@@ -29,7 +30,8 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
         key: '1',
         title: sessionInfo?.name || '终端 1',
         sessionInfo,
-        instanceId: Date.now().toString()
+        instanceId: Date.now().toString(),
+        connected: false
       };
       setTabs([defaultTab]);
       setActiveKey(defaultTab.key);
@@ -49,12 +51,33 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
         key: String(tabs.length + 1),
         title: sessionInfo.name || `终端 ${tabs.length + 1}`,
         sessionInfo,
-        instanceId: Date.now().toString()
+        instanceId: Date.now().toString(),
+        connected: false
       };
       setTabs([...tabs, newTab]);
       setActiveKey(newTab.key);
     }
   }, [triggerNewTab, sessionInfo]);
+
+  // 监听连接状态变化
+  useEffect(() => {
+    const handleConnectionChange = (data: { shellId: string; connected: boolean }) => {
+      setTabs(prevTabs => 
+        prevTabs.map(tab => {
+          const tabShellId = tab.sessionInfo?.id + (tab.instanceId ? `-${tab.instanceId}` : '');
+          if (tabShellId === data.shellId) {
+            return { ...tab, connected: data.connected };
+          }
+          return tab;
+        })
+      );
+    };
+
+    eventBus.on('terminal-connection-change', handleConnectionChange);
+    return () => {
+      eventBus.off('terminal-connection-change', handleConnectionChange);
+    };
+  }, []);
 
   // 切换标签页
   const onChange = (newActiveKey: string) => {
@@ -75,7 +98,8 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
         key: String(tabs.length + 1),
         title: sessionInfo?.name || `终端 ${tabs.length + 1}`,
         sessionInfo,
-        instanceId: Date.now().toString()
+        instanceId: Date.now().toString(),
+        connected: false
       };
       setTabs([...tabs, newTab]);
       setActiveKey(newTab.key);
@@ -112,7 +136,13 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
         onEdit={onEdit}
         items={tabs.map(tab => ({
           key: tab.key,
-          label: tab.title,
+          label: (
+            <Badge 
+              status={tab.connected ? 'success' : 'error'} 
+              text={tab.title} 
+              className="tab-badge"
+            />
+          ),
           children: (
             <div style={{ height: '100%', padding: '0 1px' }}>
               <Terminal 

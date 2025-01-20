@@ -105,12 +105,16 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
             terminal.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
             // 清除终端输出缓存
             terminalOutputService.clearOutput(shellId);
+            // 发送连接状态变化事件
+            eventBus.emit('terminal-connection-change', { shellId, connected: false });
           }
         );
 
         setIsConnected(true);
         shellIdRef.current = shellId;
         eventBus.setCurrentShellId(shellId);
+        // 发送连接状态变化事件
+        eventBus.emit('terminal-connection-change', { shellId, connected: true });
 
         // 处理终端输入
         terminal.onData((data) => {
