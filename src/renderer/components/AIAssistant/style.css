@@ -9,8 +9,48 @@
   flex-direction: column;
   z-index: 1000;
   user-select: none;
-  min-width: 400px;
+  min-width: 40px;
   height: 100vh;
+  transition: width 0.3s ease;
+}
+
+.collapse-button {
+  position: absolute;
+  left: 0;
+  top: 12px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 0 4px 4px 0;
+  color: #999;
+  cursor: pointer;
+  z-index: 1001;
+  transition: all 0.3s;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  border: none;
+  padding: 0;
+}
+
+.collapse-button:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.collapse-button .anticon {
+  font-size: 12px;
+  transition: transform 0.3s;
+}
+
+.ai-assistant.collapsed {
+  width: 40px !important;
+  background: #fff;
+}
+
+.ai-assistant.collapsed .resize-handle {
+  display: none;
 }
 
 .resize-handle {
@@ -21,6 +61,7 @@
   width: 8px;
   cursor: col-resize;
   background: transparent;
+  z-index: 1000;
 }
 
 .resize-handle:hover {
