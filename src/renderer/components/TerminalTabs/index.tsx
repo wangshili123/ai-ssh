@@ -27,7 +27,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
     if (!mounted) {
       const defaultTab = {
         key: '1',
-        title: '终端 1',
+        title: sessionInfo?.name || '终端 1',
         sessionInfo,
         instanceId: Date.now().toString()
       };
@@ -47,7 +47,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
     if (mounted && sessionInfo && triggerNewTab) {
       const newTab = {
         key: String(tabs.length + 1),
-        title: `终端 ${tabs.length + 1}`,
+        title: sessionInfo.name || `终端 ${tabs.length + 1}`,
         sessionInfo,
         instanceId: Date.now().toString()
       };
@@ -73,7 +73,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
     if (action === 'add') {
       const newTab = {
         key: String(tabs.length + 1),
-        title: `终端 ${tabs.length + 1}`,
+        title: sessionInfo?.name || `终端 ${tabs.length + 1}`,
         sessionInfo,
         instanceId: Date.now().toString()
       };
