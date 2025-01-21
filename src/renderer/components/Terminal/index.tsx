@@ -204,10 +204,13 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
       terminalRef.current.clear();
       try {
         if (shellIdRef.current) {
+          // 清除终端输出缓存
+          terminalOutputService.clearOutput(shellIdRef.current);
           await sshService.disconnect(shellIdRef.current);
           shellIdRef.current = '';
         }
         setIsConnected(false);
+        eventBus.emit('terminal-connection-change', { shellId: shellIdRef.current, connected: false });
 
         // 等待连接就绪
         await waitForConnection(sessionInfo);
@@ -219,15 +222,25 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
           shellId,
           (data) => {
             terminalRef.current?.write(data);
+            // 收集终端输出
+            terminalOutputService.addOutput(shellId, data);
           },
           () => {
             setIsConnected(false);
             shellIdRef.current = '';
+            eventBus.setCurrentShellId('');
             terminalRef.current?.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
+            // 清除终端输出缓存
+            terminalOutputService.clearOutput(shellId);
+            // 发送连接状态变化事件
+            eventBus.emit('terminal-connection-change', { shellId, connected: false });
           }
         );
 
         setIsConnected(true);
+        eventBus.setCurrentShellId(shellId);
+        // 发送连接状态变化事件
+        eventBus.emit('terminal-connection-change', { shellId, connected: true });
       } catch (error) {
         console.error('Failed to reload terminal:', error);
         terminalRef.current.write(`\r\n\x1b[31m重新连接失败: ${error}\x1b[0m\r\n`);
