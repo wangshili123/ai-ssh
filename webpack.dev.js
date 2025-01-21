@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { localConfig } = require('../src/config/local.config');
 
 module.exports = {
   mode: 'development',
@@ -42,7 +43,7 @@ module.exports = {
     static: {
       directory: path.join(__dirname, 'dist/renderer'),
     },
-    port: 3000,
+    port: localConfig.devPort,
     hot: true,
   },
 }; 

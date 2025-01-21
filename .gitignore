@@ -34,3 +34,6 @@ Thumbs.db
 # Debug
 debug.log 
 node_modules/*
+
+# 本地配置文件
+src/config/local.config.ts

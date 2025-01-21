@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron';
 import * as path from 'path';
 import { registerAllHandlers } from './ipc';
+import { localConfig } from '../config/local.config';
 
 // 创建菜单
 function createMenu() {
@@ -52,7 +53,7 @@ function createWindow() {
 
   if (process.env.NODE_ENV === 'development') {
     console.log('加载开发环境 URL...');
-    mainWindow.loadURL('http://localhost:3000');
+    mainWindow.loadURL(`http://localhost:${localConfig.mainPort}`);
   } else {
     console.log('加载生产环境文件...');
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
