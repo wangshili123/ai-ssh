@@ -10,10 +10,10 @@
 .file-browser-navbar {
   display: flex;
   align-items: center;
-  padding: 8px;
+  padding: 4px 8px;
   gap: 8px;
+  background-color: #ffffff;
   border-bottom: 1px solid #e5e5e5;
-  background-color: #f9f9f9;
 }
 
 .nav-controls {
@@ -22,35 +22,20 @@
 }
 
 .nav-controls .ant-btn {
-  color: #666;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
 }
 
-.nav-breadcrumb {
+.nav-controls .ant-btn:hover {
+  background-color: #f5f5f5;
+}
+
+.nav-path {
   flex: 1;
-  margin: 0 8px;
-}
-
-.nav-search {
-  width: 200px;
-}
-
-/* 工具栏样式 */
-.file-browser-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px;
-  background-color: #f9f9f9;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.toolbar-left {
-  display: flex;
-  gap: 8px;
-}
-
-.toolbar-left .ant-btn {
-  color: #666;
+  padding: 4px 8px;
+  color: #333;
+  font-size: 12px;
 }
 
 /* 主内容区样式 */
@@ -60,51 +45,96 @@
   overflow: hidden;
 }
 
-/* 侧边栏样式 */
-.content-sidebar {
+/* 目录树样式 */
+.content-tree {
   width: 200px;
   padding: 8px;
   border-right: 1px solid #e5e5e5;
-  background-color: #f9f9f9;
+  background-color: #ffffff;
+  overflow: auto;
 }
 
-.sidebar-section {
-  margin-bottom: 16px;
+.content-tree .ant-tree {
+  font-size: 12px;
 }
 
-.sidebar-title {
-  padding: 4px 8px;
-  color: #666;
-  font-weight: 500;
+.content-tree .ant-tree-node-content-wrapper {
+  padding: 2px 4px;
 }
 
-.sidebar-item {
-  padding: 4px 8px;
-  margin: 2px 0;
-  color: #333;
-  cursor: pointer;
-  border-radius: 4px;
+.content-tree .ant-tree-node-content-wrapper:hover {
+  background-color: #f5f5f5;
 }
 
-.sidebar-item:hover {
-  background-color: #f0f0f0;
+.content-tree .ant-tree-node-selected {
+  background-color: #e6f7ff;
 }
 
 /* 文件列表样式 */
 .content-files {
   flex: 1;
   overflow: auto;
-  padding: 8px;
+}
+
+.content-files .ant-table {
+  font-size: 12px;
 }
 
 .content-files .ant-table-thead > tr > th {
-  background-color: #f9f9f9;
-  color: #666;
-  font-weight: 500;
+  background-color: #ffffff;
+  color: #333;
+  font-weight: normal;
+  border-bottom: 1px solid #e5e5e5;
+  padding: 8px;
 }
 
 .content-files .ant-table-tbody > tr > td {
-  color: #333;
+  padding: 4px 8px;
+}
+
+.content-files .ant-table-tbody > tr:hover > td {
+  background-color: #f5f5f5;
+}
+
+.content-files .ant-table-row-selected > td {
+  background-color: #e6f7ff !important;
+}
+
+/* 右键菜单样式 */
+.ant-dropdown-menu {
+  padding: 4px 0;
+}
+
+.ant-dropdown-menu-item {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.ant-dropdown-menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+/* 滚动条样式 */
+.content-tree::-webkit-scrollbar,
+.content-files::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.content-tree::-webkit-scrollbar-track,
+.content-files::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+
+.content-tree::-webkit-scrollbar-thumb,
+.content-files::-webkit-scrollbar-thumb {
+  background: #e5e5e5;
+  border-radius: 4px;
+}
+
+.content-tree::-webkit-scrollbar-thumb:hover,
+.content-files::-webkit-scrollbar-thumb:hover {
+  background: #d5d5d5;
 }
 
 /* 状态栏样式 */
@@ -137,23 +167,4 @@
 
 .ant-select {
   border-radius: 4px;
-}
-
-/* 滚动条样式 */
-.content-files::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.content-files::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.content-files::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-
-.content-files::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
 } 
