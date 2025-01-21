@@ -9,18 +9,19 @@ interface IPCResponse<T = void> {
 }
 
 /**
- * 注册SFTP相关的IPC处理器
+ * 初始化SFTP相关的IPC处理器
  */
 export function initSFTPHandlers() {
-  console.log('初始化SFTP处理器...');
+  console.log('Initializing SFTP handlers...');
 
   // 读取目录内容
   ipcMain.handle('sftp:read-directory', async (_, sessionId: string, path: string): Promise<IPCResponse<FileEntry[]>> => {
     try {
+      console.log(`[IPC] 处理 sftp:read-directory 请求: sessionId=${sessionId}, path=${path}`);
       const entries = await sftpService.readDirectory(sessionId, path);
       return { success: true, data: entries };
     } catch (error: any) {
-      console.error('读取目录失败:', error);
+      console.error('[IPC] SFTP read directory error:', error);
       return { success: false, error: error.message };
     }
   });
@@ -28,13 +29,14 @@ export function initSFTPHandlers() {
   // 关闭SFTP客户端
   ipcMain.handle('sftp:close', async (_, sessionId: string): Promise<IPCResponse> => {
     try {
+      console.log(`[IPC] 处理 sftp:close 请求: sessionId=${sessionId}`);
       await sftpService.closeSFTPClient(sessionId);
       return { success: true };
     } catch (error: any) {
-      console.error('关闭SFTP客户端失败:', error);
+      console.error('[IPC] SFTP close error:', error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log('SFTP处理器初始化完成');
+  console.log('SFTP handlers initialized.');
 } 

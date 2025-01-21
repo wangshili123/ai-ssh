@@ -54,12 +54,24 @@ const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
       const entries = await sftpService.readDirectory(sessionId, path);
       console.log(`[DirectoryTree] 获取到目录数据:`, entries);
       
-      // 过滤并排序目录
+      console.log(`[DirectoryTree] 开始过滤目录，原始条目:`, entries.map(e => ({
+        name: e.name,
+        isDirectory: e.isDirectory,
+        path: e.path,
+        size: e.size,
+        modifyTime: e.modifyTime,
+        permissions: e.permissions
+      })));
+      
       const directories = entries
-        .filter((entry: FileEntry) => entry.isDirectory)
+        .filter((entry: FileEntry) => {
+          const isDir = entry.isDirectory;
+          console.log(`[DirectoryTree] 检查条目 ${entry.name}: isDirectory=${isDir}, size=${entry.size}, permissions=${entry.permissions}`);
+          return isDir;
+        })
         .sort((a: FileEntry, b: FileEntry) => a.name.localeCompare(b.name));
       
-      console.log(`[DirectoryTree] 过滤出 ${directories.length} 个目录`);
+      console.log(`[DirectoryTree] 过滤后的目录:`, directories.map(d => d.name));
       // 转换为树节点
       const nodes = directories.map(convertToTreeNode);
       

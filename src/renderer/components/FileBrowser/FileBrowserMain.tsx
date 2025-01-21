@@ -34,8 +34,8 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
     return null;
   }
 
-  // 生成完整的shellId
-  const shellId = sessionInfo.id + (sessionInfo.instanceId ? `-${sessionInfo.instanceId}` : '');
+  // 生成完整的sessionId
+  const sessionId = sessionInfo.id;
   
   // 右键菜单项
   const contextMenuItems: MenuProps['items'] = [
@@ -147,7 +147,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
         {/* 目录树 */}
         <div className="content-tree">
           <DirectoryTreeComponent
-            sessionId={shellId}
+            sessionId={sessionId}
             onSelect={handleDirectorySelect}
           />
         </div>

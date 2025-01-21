@@ -18,10 +18,8 @@ class SSHService {
   /**
    * 获取SSH连接
    */
-  getConnection(shellId: string): Client | undefined {
-    console.log(`[SSH] 获取连接: ${shellId}`);
-    // 从shellId中提取sessionId
-    const sessionId = shellId.split('-')[0];
+  getConnection(sessionId: string): Client | undefined {
+    console.log(`[SSH] 获取连接: ${sessionId}`);
     const conn = this.connections.get(sessionId);
     if (!conn) {
       console.log(`[SSH] 未找到连接: ${sessionId}`);
@@ -32,10 +30,8 @@ class SSHService {
   /**
    * 检查连接状态
    */
-  isConnected(shellId: string): boolean {
-    console.log(`[SSH] 检查连接状态: ${shellId}`);
-    // 从shellId中提取sessionId
-    const sessionId = shellId.split('-')[0];
+  isConnected(sessionId: string): boolean {
+    console.log(`[SSH] 检查连接状态: ${sessionId}`);
     const conn = this.connections.get(sessionId);
     return !!conn;
   }
