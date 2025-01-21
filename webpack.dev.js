@@ -1,6 +1,12 @@
+require('ts-node').register({
+  compilerOptions: {
+    module: 'commonjs'
+  }
+});
+
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const { localConfig } = require('../src/config/local.config');
+const { localConfig } = require('./src/config/local.config');
 
 module.exports = {
   mode: 'development',
