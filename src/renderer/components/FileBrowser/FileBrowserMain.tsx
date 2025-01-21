@@ -147,7 +147,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
         {/* 目录树 */}
         <div className="content-tree">
           <DirectoryTreeComponent
-            sessionId={sessionInfo.id}
+            sessionId={shellId}
             onSelect={handleDirectorySelect}
           />
         </div>

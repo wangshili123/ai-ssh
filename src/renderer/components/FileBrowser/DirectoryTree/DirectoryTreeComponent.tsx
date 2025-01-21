@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Tree, message } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import { sftpService } from '../../../services/sftp';
@@ -33,53 +33,51 @@ const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
   const [treeData, setTreeData] = useState<DataNode[]>([]);
   // 加载状态
   const [loading, setLoading] = useState(false);
+  // 用于防止重复加载
+  const loadingRef = useRef(false);
+  // 记录当前的sessionId
+  const sessionIdRef = useRef<string>();
 
   // 加载目录数据
   const loadDirectoryData = useCallback(async (path: string = '/') => {
+    // 如果正在加载，或者sessionId变化了，就不执行
+    if (loadingRef.current || sessionId !== sessionIdRef.current) {
+      console.log(`[DirectoryTree] 跳过加载: 正在加载=${loadingRef.current}, sessionId变化=${sessionId !== sessionIdRef.current}`);
+      return;
+    }
+
     console.log(`[DirectoryTree] 开始加载目录: ${path}`);
     try {
       setLoading(true);
+      loadingRef.current = true;
 
-      // 等待SSH连接建立
-      let retryCount = 0;
-      while (retryCount < 3) {
-        try {
-          const entries = await sftpService.readDirectory(sessionId, path);
-          console.log(`[DirectoryTree] 获取到目录数据:`, entries);
-          
-          // 过滤并排序目录
-          const directories = entries
-            .filter((entry: FileEntry) => entry.isDirectory)
-            .sort((a: FileEntry, b: FileEntry) => a.name.localeCompare(b.name));
-          
-          console.log(`[DirectoryTree] 过滤出 ${directories.length} 个目录`);
-          // 转换为树节点
-          const nodes = directories.map(convertToTreeNode);
-          
-          if (path === '/') {
-            // 根目录直接设置
-            console.log(`[DirectoryTree] 设置根目录数据`);
-            setTreeData(nodes);
-          } else {
-            // 更新指定节点的子节点
-            console.log(`[DirectoryTree] 更新节点 ${path} 的子节点`);
-            setTreeData(prev => updateTreeData(prev, path, nodes));
-          }
-          break;
-        } catch (error) {
-          console.log(`[DirectoryTree] 尝试 ${retryCount + 1}/3 失败:`, error);
-          if (retryCount === 2) {
-            throw error;
-          }
-          retryCount++;
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+      const entries = await sftpService.readDirectory(sessionId, path);
+      console.log(`[DirectoryTree] 获取到目录数据:`, entries);
+      
+      // 过滤并排序目录
+      const directories = entries
+        .filter((entry: FileEntry) => entry.isDirectory)
+        .sort((a: FileEntry, b: FileEntry) => a.name.localeCompare(b.name));
+      
+      console.log(`[DirectoryTree] 过滤出 ${directories.length} 个目录`);
+      // 转换为树节点
+      const nodes = directories.map(convertToTreeNode);
+      
+      if (path === '/') {
+        // 根目录直接设置
+        console.log(`[DirectoryTree] 设置根目录数据`);
+        setTreeData(nodes);
+      } else {
+        // 更新指定节点的子节点
+        console.log(`[DirectoryTree] 更新节点 ${path} 的子节点`);
+        setTreeData(prev => updateTreeData(prev, path, nodes));
       }
     } catch (error) {
       console.error('[DirectoryTree] 加载目录失败:', error);
       message.error('加载目录失败: ' + (error as Error).message);
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   }, [sessionId]);
 
@@ -131,9 +129,15 @@ const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
   useEffect(() => {
     console.log(`[DirectoryTree] sessionId变化: ${sessionId}`);
     if (sessionId) {
+      sessionIdRef.current = sessionId;
       loadDirectoryData();
     }
-  }, [sessionId, loadDirectoryData]);
+    
+    // 清理函数
+    return () => {
+      sessionIdRef.current = undefined;
+    };
+  }, [sessionId]);
 
   return (
     <div className="directory-tree">

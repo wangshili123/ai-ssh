@@ -33,12 +33,14 @@ class SFTPService {
   /**
    * 获取SFTP客户端
    */
-  private async getSFTPClient(sessionId: string): Promise<SFTPWrapper> {
-    console.log(`[SFTP] 尝试获取SFTP客户端: ${sessionId}`);
+  private async getSFTPClient(shellId: string): Promise<SFTPWrapper> {
+    console.log(`[SFTP] 尝试获取SFTP客户端: ${shellId}`);
+    // 从shellId中提取sessionId
+    const sessionId = shellId.split('-')[0];
 
     // 检查SSH连接状态
-    if (!sshService.isConnected(sessionId)) {
-      console.error(`[SFTP] SSH连接未建立: ${sessionId}`);
+    if (!sshService.isConnected(shellId)) {
+      console.error(`[SFTP] SSH连接未建立: ${shellId}`);
       throw new Error('SSH connection not established');
     }
 
@@ -49,9 +51,9 @@ class SFTPService {
     }
 
     // 获取SSH连接
-    const conn = sshService.getConnection(sessionId);
+    const conn = sshService.getConnection(shellId);
     if (!conn) {
-      console.error(`[SFTP] 无法获取SSH连接: ${sessionId}`);
+      console.error(`[SFTP] 无法获取SSH连接: ${shellId}`);
       throw new Error('No SSH connection found');
     }
 
@@ -74,10 +76,10 @@ class SFTPService {
   /**
    * 读取目录内容
    */
-  async readDirectory(sessionId: string, path: string): Promise<FileEntry[]> {
-    console.log(`[SFTP] 开始读取目录: ${path}, sessionId: ${sessionId}`);
+  async readDirectory(shellId: string, path: string): Promise<FileEntry[]> {
+    console.log(`[SFTP] 开始读取目录: ${path}, shellId: ${shellId}`);
     try {
-      const sftp = await this.getSFTPClient(sessionId);
+      const sftp = await this.getSFTPClient(shellId);
       console.log(`[SFTP] 成功获取SFTP客户端`);
       
       return new Promise<FileEntry[]>((resolve, reject) => {
@@ -115,7 +117,9 @@ class SFTPService {
   /**
    * 关闭SFTP客户端
    */
-  async closeSFTPClient(sessionId: string): Promise<void> {
+  async closeSFTPClient(shellId: string): Promise<void> {
+    // 从shellId中提取sessionId
+    const sessionId = shellId.split('-')[0];
     const sftp = this.sftpClients.get(sessionId);
     if (sftp) {
       sftp.end();
