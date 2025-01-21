@@ -116,6 +116,9 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
         // 发送连接状态变化事件
         eventBus.emit('terminal-connection-change', { shellId, connected: true });
 
+        // 自动聚焦终端
+        terminal.focus();
+
         // 处理终端输入
         terminal.onData((data) => {
           if (shellIdRef.current) {
@@ -182,6 +185,23 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     };
   }, [initTerminal]);
 
+  // 监听标签切换，自动聚焦当前终端
+  useEffect(() => {
+    const handleTabChange = () => {
+      if (terminalRef.current) {
+        // 添加一个小延迟，确保 DOM 已经更新
+        setTimeout(() => {
+          terminalRef.current?.focus();
+        }, 100);
+      }
+    };
+
+    eventBus.on('tab-change', handleTabChange);
+    return () => {
+      eventBus.off('tab-change', handleTabChange);
+    };
+  }, []);
+
   // 复制选中的文本
   const copySelectedText = () => {
     const selection = terminalRef.current?.getSelection();
@@ -204,10 +224,13 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
       terminalRef.current.clear();
       try {
         if (shellIdRef.current) {
+          // 清除终端输出缓存
+          terminalOutputService.clearOutput(shellIdRef.current);
           await sshService.disconnect(shellIdRef.current);
           shellIdRef.current = '';
         }
         setIsConnected(false);
+        eventBus.emit('terminal-connection-change', { shellId: shellIdRef.current, connected: false });
 
         // 等待连接就绪
         await waitForConnection(sessionInfo);
@@ -219,15 +242,25 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
           shellId,
           (data) => {
             terminalRef.current?.write(data);
+            // 收集终端输出
+            terminalOutputService.addOutput(shellId, data);
           },
           () => {
             setIsConnected(false);
             shellIdRef.current = '';
+            eventBus.setCurrentShellId('');
             terminalRef.current?.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
+            // 清除终端输出缓存
+            terminalOutputService.clearOutput(shellId);
+            // 发送连接状态变化事件
+            eventBus.emit('terminal-connection-change', { shellId, connected: false });
           }
         );
 
         setIsConnected(true);
+        eventBus.setCurrentShellId(shellId);
+        // 发送连接状态变化事件
+        eventBus.emit('terminal-connection-change', { shellId, connected: true });
       } catch (error) {
         console.error('Failed to reload terminal:', error);
         terminalRef.current.write(`\r\n\x1b[31m重新连接失败: ${error}\x1b[0m\r\n`);
