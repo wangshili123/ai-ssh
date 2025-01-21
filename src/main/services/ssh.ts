@@ -107,12 +107,24 @@ class SSHService {
     }
 
     return new Promise<void>((resolve, reject) => {
-      conn.shell((err, stream) => {
+      // 设置 PTY 选项，启用正确的终端模式
+      const ptyConfig = {
+        term: 'xterm-256color',
+        rows: 24,
+        cols: 80,
+        // 启用 PTY 模式
+        pty: true
+      };
+
+      conn.shell(ptyConfig, (err, stream) => {
         if (err) {
           console.error('Failed to create shell:', err);
           reject(err);
           return;
         }
+
+        // 设置流的编码
+        stream.setEncoding('utf8');
 
         console.log(`Shell created successfully: ${shellId}`);
         this.shells.set(shellId, stream);

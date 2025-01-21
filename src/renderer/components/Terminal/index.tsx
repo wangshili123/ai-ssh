@@ -65,7 +65,11 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
       theme: {
         background: config?.theme?.background || '#000000',
         foreground: config?.theme?.foreground || '#ffffff'
-      }
+      },
+      convertEol: true,
+      rightClickSelectsWord: true,
+      cols: 80,
+      rows: 24
     });
 
     // 添加插件
@@ -78,7 +82,29 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
 
     // 打开终端
     terminal.open(containerRef.current);
-    fitAddon.fit();
+    
+    // 处理终端大小调整
+    const handleResize = () => {
+      if (fitAddon && terminal && shellIdRef.current && isConnected) {
+        const currentCols = terminal.cols;
+        const currentRows = terminal.rows;
+        
+        // 执行自适应
+        fitAddon.fit();
+        
+        // 获取自适应后的大小
+        const newCols = terminal.cols;
+        const newRows = terminal.rows;
+        
+        // 如果大小有变化，通知服务器
+        if (newCols !== currentCols || newRows !== currentRows) {
+          sshService.resize(shellIdRef.current, newRows, newCols).catch(console.error);
+        }
+      }
+    };
+
+    // 初始化大小
+    handleResize();
     terminalRef.current = terminal;
 
     // 连接 SSH
@@ -130,18 +156,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
           }
         });
 
-        // 处理终端大小调整
-        const handleResize = () => {
-          if (fitAddon && terminal && shellIdRef.current && isConnected) {
-            fitAddon.fit();
-            const { rows, cols } = terminal;
-            sshService.resize(shellIdRef.current, rows, cols).catch(console.error);
-          }
-        };
-
-        // 延迟一下再调整大小，确保 shell 已经准备好
-        setTimeout(handleResize, 500);
-
+        // 监听窗口大小变化
         window.addEventListener('resize', handleResize);
 
         // 清理函数
