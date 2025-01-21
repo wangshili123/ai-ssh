@@ -67,6 +67,12 @@
   border-top: 1px solid #333;
 }
 
+.ai-assistant-container {
+  height: 100%;
+  background: #1e1e1e;
+  border-top: 1px solid #333;
+}
+
 /* 调整分割条样式 */
 .app-content .react-resizable-handle {
   height: 6px;
@@ -80,11 +86,4 @@
 
 .app-content .react-resizable-handle:hover {
   background: #444;
-}
-
-.ai-assistant-container {
-  height: 100%;
-  background-color: #ffffff;
-  border-top: 1px solid #f0f0f0;
-  overflow: auto;
 } 
