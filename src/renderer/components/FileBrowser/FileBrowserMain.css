@@ -1,24 +1,159 @@
 .file-browser-main {
-  height: 100%;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  color: #d4d4d4;
+  height: 100%;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e5e5;
 }
 
-.file-browser-header {
-  padding: 8px 12px;
-  background: #252526;
-  border-bottom: 1px solid #333;
+/* 导航栏样式 */
+.file-browser-navbar {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  gap: 8px;
+  border-bottom: 1px solid #e5e5e5;
+  background-color: #f9f9f9;
 }
 
-.connection-info {
-  font-size: 12px;
-  color: #969696;
+.nav-controls {
+  display: flex;
+  gap: 4px;
 }
 
+.nav-controls .ant-btn {
+  color: #666;
+}
+
+.nav-breadcrumb {
+  flex: 1;
+  margin: 0 8px;
+}
+
+.nav-search {
+  width: 200px;
+}
+
+/* 工具栏样式 */
+.file-browser-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.toolbar-left {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar-left .ant-btn {
+  color: #666;
+}
+
+/* 主内容区样式 */
 .file-browser-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 侧边栏样式 */
+.content-sidebar {
+  width: 200px;
+  padding: 8px;
+  border-right: 1px solid #e5e5e5;
+  background-color: #f9f9f9;
+}
+
+.sidebar-section {
+  margin-bottom: 16px;
+}
+
+.sidebar-title {
+  padding: 4px 8px;
+  color: #666;
+  font-weight: 500;
+}
+
+.sidebar-item {
+  padding: 4px 8px;
+  margin: 2px 0;
+  color: #333;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.sidebar-item:hover {
+  background-color: #f0f0f0;
+}
+
+/* 文件列表样式 */
+.content-files {
   flex: 1;
   overflow: auto;
   padding: 8px;
+}
+
+.content-files .ant-table-thead > tr > th {
+  background-color: #f9f9f9;
+  color: #666;
+  font-weight: 500;
+}
+
+.content-files .ant-table-tbody > tr > td {
+  color: #333;
+}
+
+/* 状态栏样式 */
+.file-browser-statusbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background-color: #f9f9f9;
+  border-top: 1px solid #e5e5e5;
+  color: #666;
+  font-size: 12px;
+}
+
+/* 通用样式覆盖 */
+.ant-breadcrumb {
+  color: #666;
+}
+
+.ant-breadcrumb a {
+  color: #333;
+}
+
+.ant-btn {
+  border-radius: 4px;
+}
+
+.ant-input {
+  border-radius: 4px;
+}
+
+.ant-select {
+  border-radius: 4px;
+}
+
+/* 滚动条样式 */
+.content-files::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.content-files::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.content-files::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.content-files::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 } 
