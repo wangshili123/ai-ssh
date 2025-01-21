@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { ipcRenderer } from 'electron';
 import { SessionInfo } from '../../types';
-import { Tree, Table, Button, Dropdown, message } from 'antd';
+import { Tree, Table, Button, Dropdown, message, Spin } from 'antd';
 import type { MenuProps } from 'antd';
 import { 
   ArrowLeftOutlined, 
@@ -10,7 +11,7 @@ import {
   FileOutlined,
 } from '@ant-design/icons';
 import DirectoryTreeComponent from './DirectoryTree/DirectoryTreeComponent';
-import { sftpService } from '../../services/sftp';
+import { sftpConnectionManager } from '../../services/sftpConnectionManager';
 import type { FileEntry } from '../../../main/types/file';
 import './FileBrowserMain.css';
 
@@ -18,16 +19,19 @@ interface FileBrowserMainProps {
   /**
    * 当前会话信息
    */
-  sessionInfo?: SessionInfo & {
-    instanceId?: string;  // 添加instanceId
-  };
+  sessionInfo: SessionInfo;
+  /**
+   * 标签页ID
+   */
+  tabId: string;
 }
 
 /**
  * 文件浏览器主组件
  */
 const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
-  sessionInfo
+  sessionInfo,
+  tabId
 }) => {
   // 当前选中的路径
   const [currentPath, setCurrentPath] = useState('/');
@@ -35,46 +39,106 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
   const [fileList, setFileList] = useState<FileEntry[]>([]);
   // 加载状态
   const [loading, setLoading] = useState(false);
+  // 历史记录
+  const [history, setHistory] = useState<string[]>(['/']);
+  // 当前历史位置
+  const [historyIndex, setHistoryIndex] = useState(0);
+  // 连接状态
+  const [isConnected, setIsConnected] = useState(false);
 
-  // 获取会话ID和Shell ID
-  const baseSessionId = sessionInfo?.id || '';
-  const shellId = sessionInfo?.instanceId 
-    ? `${baseSessionId}-${sessionInfo.instanceId}`
-    : baseSessionId;
-  
-  console.log(`[FileBrowser] 使用会话ID: ${baseSessionId}, Shell ID: ${shellId}`);
+  // 初始化SFTP连接
+  useEffect(() => {
+    let mounted = true;
+
+    const initConnection = async () => {
+      try {
+        await sftpConnectionManager.createConnection(sessionInfo, tabId);
+        if (mounted) {
+          setIsConnected(true);
+        }
+      } catch (error) {
+        // 连接失败时不显示错误，继续尝试
+        if (mounted) {
+          setTimeout(initConnection, 500);
+        }
+      }
+    };
+
+    initConnection();
+
+    // 清理函数
+    return () => {
+      mounted = false;
+      sftpConnectionManager.closeConnection(tabId);
+      setIsConnected(false);
+    };
+  }, [sessionInfo, tabId]);
 
   // 加载文件列表数据
   const loadFileList = useCallback(async (path: string) => {
-    if (!sessionInfo?.id) return;
-    
-    console.log(`[FileBrowser] 加载文件列表: ${path}`);
+    if (!isConnected) {
+      return;
+    }
+
+    const conn = sftpConnectionManager.getConnection(tabId);
+    if (!conn) {
+      return;
+    }
+
     setLoading(true);
-    
     try {
-      const entries = await sftpService.readDirectory(baseSessionId, path);
-      console.log(`[FileBrowser] 获取到文件列表:`, entries);
-      setFileList(entries);
+      const result = await ipcRenderer.invoke('sftp:read-directory', conn.id, path);
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      setFileList(result.data);
+      sftpConnectionManager.updateCurrentPath(tabId, path);
     } catch (error) {
-      console.error('[FileBrowser] 加载文件列表失败:', error);
-      message.error('加载文件列表失败: ' + (error as Error).message);
+      // 只在非连接相关错误时显示错误消息
+      if (!(error as Error).message.includes('SFTP连接不存在')) {
+        message.error('加载文件列表失败: ' + (error as Error).message);
+      }
       setFileList([]);
     } finally {
       setLoading(false);
     }
-  }, [sessionInfo?.id, baseSessionId]);
+  }, [tabId, isConnected]);
 
   // 监听路径变化
   useEffect(() => {
-    if (currentPath && sessionInfo?.id) {
+    if (currentPath) {
       loadFileList(currentPath);
     }
-  }, [currentPath, loadFileList, sessionInfo?.id]);
+  }, [currentPath, loadFileList]);
 
   // 处理目录选择
   const handleDirectorySelect = useCallback((path: string) => {
     setCurrentPath(path);
-  }, []);
+    // 添加到历史记录
+    setHistory(prev => [...prev.slice(0, historyIndex + 1), path]);
+    setHistoryIndex(prev => prev + 1);
+  }, [historyIndex]);
+
+  // 处理后退
+  const handleBack = useCallback(() => {
+    if (historyIndex > 0) {
+      setHistoryIndex(prev => prev - 1);
+      setCurrentPath(history[historyIndex - 1]);
+    }
+  }, [history, historyIndex]);
+
+  // 处理前进
+  const handleForward = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(prev => prev + 1);
+      setCurrentPath(history[historyIndex + 1]);
+    }
+  }, [history, historyIndex]);
+
+  // 处理刷新
+  const handleRefresh = useCallback(() => {
+    loadFileList(currentPath);
+  }, [currentPath, loadFileList]);
 
   // 格式化文件大小
   const formatFileSize = useCallback((size: number): string => {
@@ -113,10 +177,6 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
     
     return permissions.join('');
   }, []);
-
-  if (!sessionInfo) {
-    return null;
-  }
 
   // 右键菜单项
   const contextMenuItems: MenuProps['items'] = [
@@ -202,14 +262,33 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
     },
   ];
 
+  if (!isConnected) {
+    return (
+      <div className="file-browser-main">
+        <Spin tip="正在连接SFTP服务器..." />
+      </div>
+    );
+  }
+
   return (
     <div className="file-browser-main">
       {/* 顶部导航 */}
       <div className="file-browser-navbar">
         <div className="nav-controls">
-          <Button icon={<ArrowLeftOutlined />} />
-          <Button icon={<ArrowRightOutlined />} />
-          <Button icon={<ReloadOutlined />} />
+          <Button 
+            icon={<ArrowLeftOutlined />} 
+            onClick={handleBack}
+            disabled={historyIndex === 0}
+          />
+          <Button 
+            icon={<ArrowRightOutlined />} 
+            onClick={handleForward}
+            disabled={historyIndex === history.length - 1}
+          />
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={handleRefresh}
+          />
         </div>
         <div className="nav-path">
           {currentPath}
@@ -221,8 +300,8 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
         {/* 目录树 */}
         <div className="content-tree">
           <DirectoryTreeComponent
-            sessionId={baseSessionId}
-            shellId={shellId}
+            sessionInfo={sessionInfo}
+            tabId={tabId}
             onSelect={handleDirectorySelect}
           />
         </div>
@@ -241,17 +320,16 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
                 rowSelection={{
                   type: 'checkbox',
                 }}
+                onRow={(record) => ({
+                  onDoubleClick: () => {
+                    if (record.isDirectory) {
+                      handleDirectorySelect(record.path);
+                    }
+                  },
+                })}
               />
             </div>
           </Dropdown>
-        </div>
-      </div>
-
-      {/* 状态栏 */}
-      <div className="file-browser-statusbar">
-        <div className="status-left">{fileList.length} 个项目</div>
-        <div className="status-right">
-          {sessionInfo.username}@{sessionInfo.host}
         </div>
       </div>
     </div>

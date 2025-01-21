@@ -68,12 +68,12 @@ const App: React.FC = () => {
             enable={{ top: true }}
           >
             <div className="file-browser-container">
-              <FileBrowserMain 
-                sessionInfo={currentTabSession ? {
-                  ...currentTabSession,
-                  instanceId: eventBus.getCurrentShellId()?.split('-')[1]
-                } : undefined} 
-              />
+              {currentTabSession && (
+                <FileBrowserMain 
+                  sessionInfo={currentTabSession}
+                  tabId={eventBus.getCurrentShellId() || ''}
+                />
+              )}
             </div>
           </Resizable>
           <Resizable

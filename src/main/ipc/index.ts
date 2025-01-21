@@ -1,10 +1,12 @@
 import { registerStorageHandlers } from './storage';
 import { initSSHHandlers } from './ssh';
 import { registerAIConfigHandlers } from './ai-config';
-import { initSFTPHandlers } from './sftp';
+import { registerSFTPHandlers } from './sftp';
 
-// 注册所有 IPC 处理程序
-export function registerAllHandlers() {
+/**
+ * 注册所有IPC处理器
+ */
+export function registerAllHandlers(): void {
   console.log('开始注册所有 IPC 处理程序...');
   
   try {
@@ -22,7 +24,7 @@ export function registerAllHandlers() {
 
     // 注册 SFTP 处理程序
     console.log('注册 SFTP 处理程序...');
-    initSFTPHandlers();
+    registerSFTPHandlers();
     
     console.log('所有 IPC 处理程序注册完成');
   } catch (error) {

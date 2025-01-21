@@ -1,7 +1,7 @@
 import { Client } from 'ssh2';
 import type { SessionInfo } from './storage';
 import { BrowserWindow } from 'electron';
-import { sftpService } from './sftp';
+import { sftpManager } from './sftp';
 
 console.log('Loading SSH service...');
 
@@ -48,12 +48,6 @@ class SSHService {
       hasPassword: !!password,
       hasPrivateKey: !!privateKey
     });
-
-    // 如果已经有连接，先关闭旧的SFTP客户端
-    if (this.connections.has(id)) {
-      console.log('Closing existing SFTP client');
-      await sftpService.closeSFTPClient(id);
-    }
 
     return new Promise<void>((resolve, reject) => {
       const conn = new Client();
@@ -105,8 +99,6 @@ class SSHService {
       const conn = this.connections.get(sessionId);
       if (conn) {
         console.log(`Closing SSH connection for session ${sessionId}`);
-        // 关闭SFTP客户端
-        await sftpService.closeSFTPClient(sessionId);
         conn.end();
         this.connections.delete(sessionId);
       }

@@ -32,7 +32,7 @@ function createMenu() {
 }
 
 // 创建主窗口
-function createWindow() {
+function createWindow(): BrowserWindow {
   console.log('创建主窗口...');
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -68,38 +68,48 @@ function createWindow() {
       }
     }
   });
+
+  return mainWindow;
 }
 
-// 初始化应用
-function initialize() {
-  console.log('初始化应用...');
-  // 设置开发者工具选项
-  app.commandLine.appendSwitch('remote-debugging-port', '9222');
-  app.commandLine.appendSwitch('auto-open-devtools-for-tabs');
-  
-  // 创建菜单
-  createMenu();
-  
-  // 注册所有 IPC 处理程序
-  registerAllHandlers();
-  
-  // 创建窗口
-  createWindow();
-  console.log('应用初始化完成');
-}
+async function main() {
+  try {
+    // 等待应用程序就绪
+    await app.whenReady();
+    
+    // 设置开发者工具选项
+    app.commandLine.appendSwitch('remote-debugging-port', '9222');
+    app.commandLine.appendSwitch('auto-open-devtools-for-tabs');
+    
+    // 创建菜单
+    createMenu();
+    
+    // 注册所有 IPC 处理程序
+    registerAllHandlers();
+    
+    // 创建主窗口
+    createWindow();
+    
+    // 当所有窗口关闭时退出应用
+    app.on('window-all-closed', () => {
+      if (process.platform !== 'darwin') {
+        app.quit();
+      }
+    });
+    
+    // 当应用程序激活时，如果没有窗口则创建一个新窗口
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
 
-app.whenReady().then(() => {
-  initialize();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-});
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+    console.log('应用程序初始化完成');
+  } catch (error) {
+    console.error('应用程序启动失败:', error);
     app.quit();
   }
-}); 
+}
+
+// 启动应用程序
+main(); 
