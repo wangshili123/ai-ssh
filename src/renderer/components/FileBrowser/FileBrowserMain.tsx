@@ -9,6 +9,7 @@ import {
   FolderOutlined,
   FileOutlined,
 } from '@ant-design/icons';
+import DirectoryTreeComponent from './DirectoryTree/DirectoryTreeComponent';
 import './FileBrowserMain.css';
 
 interface FileBrowserMainProps {
@@ -26,6 +27,9 @@ interface FileBrowserMainProps {
 const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
   sessionInfo
 }) => {
+  // 当前选中的路径
+  const [currentPath, setCurrentPath] = useState('/');
+
   if (!sessionInfo) {
     return null;
   }
@@ -119,6 +123,11 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
     },
   ];
 
+  // 处理目录选择
+  const handleDirectorySelect = (path: string) => {
+    setCurrentPath(path);
+  };
+
   return (
     <div className="file-browser-main">
       {/* 顶部导航 */}
@@ -129,7 +138,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
           <Button icon={<ReloadOutlined />} />
         </div>
         <div className="nav-path">
-          /root
+          {currentPath}
         </div>
       </div>
 
@@ -137,27 +146,9 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
       <div className="file-browser-content">
         {/* 目录树 */}
         <div className="content-tree">
-          <Tree
-            treeData={[
-              {
-                title: '/',
-                key: '/',
-                children: [
-                  {
-                    title: 'bin',
-                    key: '/bin',
-                  },
-                  {
-                    title: 'etc',
-                    key: '/etc',
-                  },
-                  {
-                    title: 'home',
-                    key: '/home',
-                  },
-                ],
-              },
-            ]}
+          <DirectoryTreeComponent
+            sessionId={sessionInfo.id}
+            onSelect={handleDirectorySelect}
           />
         </div>
 

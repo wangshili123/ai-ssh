@@ -1,6 +1,7 @@
 import { Client } from 'ssh2';
 import type { SessionInfo } from './storage';
 import { BrowserWindow } from 'electron';
+import { sftpService } from './sftp';
 
 console.log('Loading SSH service...');
 
@@ -12,6 +13,27 @@ class SSHService {
     console.log('Initializing SSHService...');
     this.connections = new Map();
     this.shells = new Map();
+  }
+
+  /**
+   * 获取SSH连接
+   */
+  getConnection(sessionId: string): Client | undefined {
+    console.log(`[SSH] 获取连接: ${sessionId}`);
+    const conn = this.connections.get(sessionId);
+    if (!conn) {
+      console.log(`[SSH] 未找到连接: ${sessionId}`);
+    }
+    return conn;
+  }
+
+  /**
+   * 检查连接状态
+   */
+  isConnected(sessionId: string): boolean {
+    console.log(`[SSH] 检查连接状态: ${sessionId}`);
+    const conn = this.connections.get(sessionId);
+    return !!conn;
   }
 
   async connect(sessionInfo: SessionInfo) {
@@ -27,10 +49,10 @@ class SSHService {
       hasPrivateKey: !!privateKey
     });
 
-    // 如果已经有连接，直接返回
+    // 如果已经有连接，先关闭旧的SFTP客户端
     if (this.connections.has(id)) {
-      console.log('Reusing existing connection');
-      return;
+      console.log('Closing existing SFTP client');
+      await sftpService.closeSFTPClient(id);
     }
 
     return new Promise<void>((resolve, reject) => {
@@ -83,6 +105,8 @@ class SSHService {
       const conn = this.connections.get(sessionId);
       if (conn) {
         console.log(`Closing SSH connection for session ${sessionId}`);
+        // 关闭SFTP客户端
+        await sftpService.closeSFTPClient(sessionId);
         conn.end();
         this.connections.delete(sessionId);
       }

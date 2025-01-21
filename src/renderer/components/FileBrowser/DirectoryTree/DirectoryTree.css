@@ -1,0 +1,21 @@
+.directory-tree {
+  height: 100%;
+  overflow: auto;
+  padding: 8px;
+  position: relative;
+}
+
+.directory-tree-content {
+  height: 100%;
+}
+
+.directory-tree-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 8px 16px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+} 
