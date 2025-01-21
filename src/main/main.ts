@@ -12,6 +12,18 @@ function createMenu() {
         { role: 'forceReload', label: '强制刷新' },
         { role: 'toggleDevTools', label: '开发者工具' }
       ]
+    },
+    {
+      label: '设置',
+      submenu: [
+        { 
+          label: '模型配置',
+          click: () => {
+            // 通过 IPC 通知渲染进程打开模型配置
+            BrowserWindow.getFocusedWindow()?.webContents.send('open-ai-config');
+          }
+        }
+      ]
     }
   ];
   const menu = Menu.buildFromTemplate(template);
