@@ -27,7 +27,10 @@ const App: React.FC = () => {
 
   // 处理标签页切换
   const handleTabChange = useCallback((session: SessionInfo) => {
+    // 当从会话列表选择会话时，触发新标签创建
+    setActiveSession(session);
     setCurrentTabSession(session);
+    setTriggerNewTab(prev => prev + 1);
   }, []);
 
   return (

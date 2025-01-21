@@ -34,23 +34,23 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
   // 初始化默认标签页
   useEffect(() => {
     if (!mounted) {
-      const defaultTab = {
-        key: '1',
-        title: sessionInfo?.name || '终端 1',
-        sessionInfo,
-        instanceId: Date.now().toString(),
-        connected: false
-      };
-      setTabs([defaultTab]);
-      setActiveKey(defaultTab.key);
-      // 设置初始的shellId
-      if (sessionInfo) {
-        const shellId = sessionInfo.id + (defaultTab.instanceId ? `-${defaultTab.instanceId}` : '');
-        eventBus.setCurrentShellId(shellId);
-        onTabChange?.(sessionInfo);
-        // 触发标签切换事件
-        eventBus.emit('tab-change');
-      }
+      // const defaultTab = {
+      //   key: '1',
+      //   title: sessionInfo?.name || '终端 1',
+      //   sessionInfo,
+      //   instanceId: Date.now().toString(),
+      //   connected: false
+      // };
+      // setTabs([defaultTab]);
+      // setActiveKey(defaultTab.key);
+      // // 设置初始的shellId
+      // if (sessionInfo) {
+      //   const shellId = sessionInfo.id + (defaultTab.instanceId ? `-${defaultTab.instanceId}` : '');
+      //   eventBus.setCurrentShellId(shellId);
+      //   onTabChange?.(sessionInfo);
+      //   // 触发标签切换事件
+      //   eventBus.emit('tab-change');
+      // }
       setMounted(true);
     }
   }, []);
@@ -59,7 +59,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
   useEffect(() => {
     if (mounted && sessionInfo && triggerNewTab) {
       const newTab = {
-        key: String(tabs.length + 1),
+        key: String(Date.now()), // 使用时间戳作为唯一key
         title: sessionInfo.name || `终端 ${tabs.length + 1}`,
         sessionInfo,
         instanceId: Date.now().toString(),
@@ -67,7 +67,9 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
       };
       setTabs([...tabs, newTab]);
       setActiveKey(newTab.key);
-      onTabChange?.(sessionInfo);
+      // 设置当前的shellId
+      const shellId = sessionInfo.id + (newTab.instanceId ? `-${newTab.instanceId}` : '');
+      eventBus.setCurrentShellId(shellId);
       // 触发标签切换事件
       eventBus.emit('tab-change');
     }
@@ -164,6 +166,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
             onChange={onChange}
             activeKey={activeKey}
             onEdit={onEdit}
+            hideAdd={true}
             items={tabs.map(tab => ({
               key: tab.key,
               label: (
@@ -199,6 +202,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
         onClose={() => setSessionListVisible(false)}
         onSelect={(session) => {
           setSessionListVisible(false);
+          // 只需要通知父组件，让父组件触发新标签的创建
           if (onTabChange) {
             onTabChange(session);
           }

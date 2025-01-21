@@ -17,7 +17,9 @@ const SessionListModal: React.FC<SessionListModalProps> = ({
 }) => {
   // 处理会话选择
   const handleSelect = (session: SessionInfo) => {
+    // 先触发选择事件，这样会更新 App 组件中的 activeSession
     onSelect(session);
+    // 然后关闭弹窗
     onClose();
   };
 
