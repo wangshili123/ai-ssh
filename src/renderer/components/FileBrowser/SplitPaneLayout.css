@@ -1,0 +1,33 @@
+.split-pane-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+.top-pane {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bottom-pane {
+  border-top: 1px solid #333;
+  background: #1e1e1e;
+}
+
+/* 调整手柄样式 */
+.bottom-pane > div:first-child {
+  height: 6px !important;
+  background: #333;
+  cursor: row-resize;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.bottom-pane > div:first-child:hover {
+  background: #444;
+} 

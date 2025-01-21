@@ -25,4 +25,29 @@ export interface SSHService {
   write: (sessionId: string, data: string) => Promise<void>;
   resize: (sessionId: string, cols: number, rows: number) => Promise<void>;
   executeCommand: (sessionId: string, command: string) => Promise<void>;
+}
+
+/**
+ * 会话信息接口
+ */
+export interface SessionInfo {
+  id: string;
+  name?: string;
+  host: string;
+  port: number;
+  username: string;
+  password?: string;
+  privateKey?: string;
+  authType: 'password' | 'privateKey';
+  status?: 'connected' | 'disconnected' | 'connecting' | 'error';
+}
+
+/**
+ * 分组信息接口
+ */
+export interface GroupInfo {
+  id: string;
+  name: string;
+  expanded?: boolean;
+  order?: number;
 } 

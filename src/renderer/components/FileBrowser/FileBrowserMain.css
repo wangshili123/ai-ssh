@@ -1,0 +1,24 @@
+.file-browser-main {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+  color: #d4d4d4;
+}
+
+.file-browser-header {
+  padding: 8px 12px;
+  background: #252526;
+  border-bottom: 1px solid #333;
+}
+
+.connection-info {
+  font-size: 12px;
+  color: #969696;
+}
+
+.file-browser-content {
+  flex: 1;
+  overflow: auto;
+  padding: 8px;
+} 

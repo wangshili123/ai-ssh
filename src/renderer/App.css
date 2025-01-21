@@ -17,11 +17,9 @@
 }
 
 .app-sider {
-  border-right: 1px solid #f0f0f0;
   height: 100%;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
+  background: #fff;
+  border-right: 1px solid #e8e8e8;
 }
 
 .toolbar {
@@ -53,15 +51,35 @@
 .app-content {
   display: flex;
   flex-direction: column;
+  height: 100%;
   position: relative;
-  padding: 0 1px;
 }
 
 .terminal-container {
   flex: 1;
-  position: relative;
   min-height: 0;
-  background-color: #000000;
+  background: #1e1e1e;
+}
+
+.file-browser-container {
+  height: 100%;
+  background: #1e1e1e;
+  border-top: 1px solid #333;
+}
+
+/* 调整分割条样式 */
+.app-content .react-resizable-handle {
+  height: 6px;
+  background: #333;
+  cursor: row-resize;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.app-content .react-resizable-handle:hover {
+  background: #444;
 }
 
 .ai-assistant-container {
