@@ -1,6 +1,7 @@
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
 import { Input, Button, Radio, notification, Modal } from 'antd';
 import { SendOutlined, PlusCircleOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { ipcRenderer } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import { Message } from '../../types';
 import CommandMode from './modes/command';
@@ -355,68 +356,95 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     }
   }, []);
 
+  const [configModalVisible, setConfigModalVisible] = useState(false);
+
+  // 监听打开配置对话框的 IPC 消息
+  useEffect(() => {
+    const handleOpenConfig = () => {
+      console.log('收到打开配置对话框的消息');
+      setConfigModalVisible(true);
+    };
+
+    ipcRenderer.on('open-ai-config', handleOpenConfig);
+
+    return () => {
+      ipcRenderer.removeListener('open-ai-config', handleOpenConfig);
+    };
+  }, []);
+
+  // 处理配置对话框关闭
+  const handleConfigModalClose = () => {
+    setConfigModalVisible(false);
+  };
+
   return (
-    <div 
-      className={`ai-assistant ${isCollapsed ? 'collapsed' : ''}`}
-      ref={assistantRef}
-      onMouseDown={handleMouseDown}
-      style={{ width: `${width}px` }}
-    >
-      <div className="resize-handle" />
-      <Button
-        type="text"
-        icon={isCollapsed ? <LeftOutlined /> : <RightOutlined />}
-        className="collapse-button"
-        onClick={handleCollapse}
-        title={isCollapsed ? "展开" : "收起"}
+    <>
+      <div 
+        className={`ai-assistant ${isCollapsed ? 'collapsed' : ''}`}
+        ref={assistantRef}
+        onMouseDown={handleMouseDown}
+        style={{ width: `${width}px` }}
+      >
+        <div className="resize-handle" />
+        <Button
+          type="text"
+          icon={isCollapsed ? <LeftOutlined /> : <RightOutlined />}
+          className="collapse-button"
+          onClick={handleCollapse}
+          title={isCollapsed ? "展开" : "收起"}
+        />
+        {!isCollapsed && (
+          <>
+            <div className="ai-messages" ref={messagesEndRef}>
+              {renderModeComponent()}
+            </div>
+            <div className="ai-input-container">
+              <div className="input-wrapper">
+                <Button
+                  type="text"
+                  icon={<PlusCircleOutlined />}
+                  className="new-chat-button"
+                  onClick={handleClearMessages}
+                  title="新对话"
+                />
+                <Input.TextArea
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="输入内容，按回车发送，Shift+Enter 换行"
+                  disabled={loading}
+                  autoSize={{ minRows: 3, maxRows: 6 }}
+                />
+              </div>
+              <div className="button-wrapper">
+                <Radio.Group 
+                  value={mode} 
+                  onChange={handleModeChange}
+                  size="small"
+                >
+                  <Radio.Button value={AssistantMode.COMMAND}>命令模式</Radio.Button>
+                  <Radio.Button value={AssistantMode.CONTEXT}>上下文模式</Radio.Button>
+                  <Radio.Button value={AssistantMode.AGENT}>Agent 模式</Radio.Button>
+                </Radio.Group>
+                <Button
+                  type="text"
+                  icon={<SendOutlined />}
+                  onClick={() => handleSend(input)}
+                  loading={loading}
+                  disabled={!input.trim()}
+                >
+                  发送
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+      <AIConfigModal
+        visible={configModalVisible}
+        onClose={handleConfigModalClose}
       />
-      {!isCollapsed && (
-        <>
-          <div className="ai-messages" ref={messagesEndRef}>
-            {renderModeComponent()}
-          </div>
-          <div className="ai-input-container">
-            <div className="input-wrapper">
-              <Button
-                type="text"
-                icon={<PlusCircleOutlined />}
-                className="new-chat-button"
-                onClick={handleClearMessages}
-                title="新对话"
-              />
-              <Input.TextArea
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="输入内容，按回车发送，Shift+Enter 换行"
-                disabled={loading}
-                autoSize={{ minRows: 3, maxRows: 6 }}
-              />
-            </div>
-            <div className="button-wrapper">
-              <Radio.Group 
-                value={mode} 
-                onChange={handleModeChange}
-                size="small"
-              >
-                <Radio.Button value={AssistantMode.COMMAND}>命令模式</Radio.Button>
-                <Radio.Button value={AssistantMode.CONTEXT}>上下文模式</Radio.Button>
-                <Radio.Button value={AssistantMode.AGENT}>Agent 模式</Radio.Button>
-              </Radio.Group>
-              <Button
-                type="text"
-                icon={<SendOutlined />}
-                onClick={() => handleSend(input)}
-                loading={loading}
-                disabled={!input.trim()}
-              >
-                发送
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+    </>
   );
 };
 

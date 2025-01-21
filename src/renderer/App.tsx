@@ -37,7 +37,7 @@ const App: React.FC = () => {
         enable={{ right: true }}
       >
         <Sider width={siderWidth} className="app-sider">
-          <div className="toolbar">
+          {/* <div className="toolbar">
             <Button 
               type="text"
               icon={<SettingOutlined />}
@@ -45,7 +45,7 @@ const App: React.FC = () => {
             >
               模型配置
             </Button>
-          </div>
+          </div> */}
           <SessionList
             onSelect={handleSessionSelect}
           />
