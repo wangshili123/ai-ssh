@@ -52,7 +52,7 @@ function createWindow() {
 
   if (process.env.NODE_ENV === 'development') {
     console.log('加载开发环境 URL...');
-    mainWindow.loadURL('http://localhost:3001');
+    mainWindow.loadURL('http://localhost:3000');
   } else {
     console.log('加载生产环境文件...');
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));

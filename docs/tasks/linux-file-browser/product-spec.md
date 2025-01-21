@@ -10,6 +10,24 @@ Linux文件浏览器是AI-SSH工具的核心功能之一，旨在为用户提供
 - 需要频繁操作Linux文件的开发者
 - 不熟悉Linux命令的新手用户
 
+src/renderer/
+  ├── components/
+  │   └── FileBrowser/                # 文件浏览器组件目录
+  │       ├── index.tsx               # 主组件
+  │       ├── Navigation/             # 导航组件
+  │       │   ├── PathBreadcrumb.tsx  # 路径导航
+  │       │   └── ToolBar.tsx         # 工具栏
+  │       ├── FileList/               # 文件列表组件
+  │       │   ├── ListView.tsx        # 列表视图
+  │       │   └── GridView.tsx        # 网格视图
+  │       ├── ContextMenu/            # 右键菜单
+  │       └── Transfer/               # 文件传输组件
+  └── services/
+      └── fileBrowser/                # 文件操作服务
+          ├── fileOperation.ts        # 文件操作
+          ├── transferManager.ts      # 传输管理
+          └── types.ts               # 类型定义
+
 ## 2. 功能设计
 
 ### 2.1 基础文件操作
