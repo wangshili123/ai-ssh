@@ -27,8 +27,9 @@
 
 /* 标签页样式 */
 .terminal-tabs-nav {
-  background-color: #fafafa;
-  border-bottom: 1px solid #333;
+  background: #f0f2f5;
+  padding: 0;
+  border-bottom: 1px solid #d9d9d9;
   position: absolute;
   top: 0;
   left: 0;
@@ -88,7 +89,20 @@
   background: rgba(255, 255, 255, 0.1) !important;
 }
 
+.terminal-tabs-header {
+  display: flex;
+  align-items: center;
+}
+
+.session-list-btn {
+  margin: 0 8px;
+  padding: 4px 8px;
+  font-size: 16px;
+}
+
 .terminal-tabs-content {
+  flex: 1;
+  overflow: hidden;
   height: calc(100vh - 36px);
   margin-top: 36px;
   background-color: #1e1e1e;
@@ -102,12 +116,18 @@
 }
 
 .tab-badge {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  gap: 4px;
 }
 
 .tab-badge .ant-badge-status-dot {
   width: 6px;
   height: 6px;
   margin-right: 8px;
+}
+
+/* 确保Tabs组件占满剩余空间 */
+.terminal-tabs-header .ant-tabs {
+  flex: 1;
 } 
