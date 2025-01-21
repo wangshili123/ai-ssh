@@ -116,6 +116,9 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
         // 发送连接状态变化事件
         eventBus.emit('terminal-connection-change', { shellId, connected: true });
 
+        // 自动聚焦终端
+        terminal.focus();
+
         // 处理终端输入
         terminal.onData((data) => {
           if (shellIdRef.current) {
@@ -181,6 +184,23 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
       cleanup?.then((fn) => fn?.());
     };
   }, [initTerminal]);
+
+  // 监听标签切换，自动聚焦当前终端
+  useEffect(() => {
+    const handleTabChange = () => {
+      if (terminalRef.current) {
+        // 添加一个小延迟，确保 DOM 已经更新
+        setTimeout(() => {
+          terminalRef.current?.focus();
+        }, 100);
+      }
+    };
+
+    eventBus.on('tab-change', handleTabChange);
+    return () => {
+      eventBus.off('tab-change', handleTabChange);
+    };
+  }, []);
 
   // 复制选中的文本
   const copySelectedText = () => {

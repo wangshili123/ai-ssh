@@ -39,6 +39,8 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
       if (sessionInfo) {
         const shellId = sessionInfo.id + (defaultTab.instanceId ? `-${defaultTab.instanceId}` : '');
         eventBus.setCurrentShellId(shellId);
+        // 触发标签切换事件
+        eventBus.emit('tab-change');
       }
       setMounted(true);
     }
@@ -56,6 +58,8 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
       };
       setTabs([...tabs, newTab]);
       setActiveKey(newTab.key);
+      // 触发标签切换事件
+      eventBus.emit('tab-change');
     }
   }, [triggerNewTab, sessionInfo]);
 
@@ -88,6 +92,8 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
       // 更新当前活动的shellId
       const shellId = activeTab.sessionInfo.id + (activeTab.instanceId ? `-${activeTab.instanceId}` : '');
       eventBus.setCurrentShellId(shellId);
+      // 触发标签切换事件
+      eventBus.emit('tab-change');
     }
   };
 
@@ -107,6 +113,8 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
       if (sessionInfo) {
         const shellId = sessionInfo.id + (newTab.instanceId ? `-${newTab.instanceId}` : '');
         eventBus.setCurrentShellId(shellId);
+        // 触发标签切换事件
+        eventBus.emit('tab-change');
       }
     } else if (action === 'remove' && typeof targetKey === 'string') {
       const newTabs = tabs.filter(tab => tab.key !== targetKey);
@@ -118,6 +126,8 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({ sessionInfo, triggerNewTab 
         if (lastTab.sessionInfo) {
           const shellId = lastTab.sessionInfo.id + (lastTab.instanceId ? `-${lastTab.instanceId}` : '');
           eventBus.setCurrentShellId(shellId);
+          // 触发标签切换事件
+          eventBus.emit('tab-change');
         }
       }
     }
