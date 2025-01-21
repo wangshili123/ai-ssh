@@ -154,7 +154,7 @@
         - [x] 添加输出截断提示
           * [x] 在输出开头添加截断说明
           * [x] 显示实际输出行数信息
-  * [ ] Agent模式 [设计文档: docs/agent-mode-ui-design.md]
+  * [x] Agent模式 [设计文档: docs/agent-mode-ui-design.md]
 
 
 
