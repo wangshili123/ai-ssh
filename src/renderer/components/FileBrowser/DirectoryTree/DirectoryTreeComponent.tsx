@@ -8,6 +8,7 @@ import './DirectoryTree.css';
 
 interface DirectoryTreeProps {
   sessionId: string;
+  shellId: string;
   onSelect?: (path: string) => void;
 }
 
@@ -27,6 +28,7 @@ function convertToTreeNode(entry: FileEntry): DataNode {
  */
 const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
   sessionId,
+  shellId,
   onSelect
 }) => {
   // 目录树数据
@@ -35,18 +37,18 @@ const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
   const [loading, setLoading] = useState(false);
   // 用于防止重复加载
   const loadingRef = useRef(false);
-  // 记录当前的sessionId
-  const sessionIdRef = useRef<string>();
+  // 记录当前的shellId
+  const shellIdRef = useRef<string>();
 
   // 加载目录数据
   const loadDirectoryData = useCallback(async (path: string = '/') => {
-    // 如果正在加载，或者sessionId变化了，就不执行
-    if (loadingRef.current || sessionId !== sessionIdRef.current) {
-      console.log(`[DirectoryTree] 跳过加载: 正在加载=${loadingRef.current}, sessionId变化=${sessionId !== sessionIdRef.current}`);
+    // 如果正在加载，或者shellId变化了，就不执行
+    if (loadingRef.current || shellId !== shellIdRef.current) {
+      console.log(`[DirectoryTree] 跳过加载: 正在加载=${loadingRef.current}, shellId变化=${shellId !== shellIdRef.current}`);
       return;
     }
 
-    console.log(`[DirectoryTree] 开始加载目录: ${path}`);
+    console.log(`[DirectoryTree] 开始加载目录: ${path}, sessionId: ${sessionId}, shellId: ${shellId}`);
     try {
       setLoading(true);
       loadingRef.current = true;
@@ -91,7 +93,7 @@ const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
       setLoading(false);
       loadingRef.current = false;
     }
-  }, [sessionId]);
+  }, [sessionId, shellId]);
 
   // 更新树节点数据
   const updateTreeData = (list: DataNode[], key: string, children: DataNode[]): DataNode[] => {
@@ -112,15 +114,29 @@ const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
     });
   };
 
+  // 监听会话变化
+  useEffect(() => {
+    console.log(`[DirectoryTree] Shell ID变化: ${shellId}`);
+    // 重置状态
+    setTreeData([]);
+    setLoading(false);
+    loadingRef.current = false;
+    shellIdRef.current = shellId;
+
+    // 加载根目录数据
+    if (sessionId && shellId) {
+      loadDirectoryData('/');
+    }
+  }, [shellId, sessionId, loadDirectoryData]);
+
   // 处理展开/折叠
   const onExpand = useCallback(async (expandedKeys: React.Key[], info: any) => {
     console.log(`[DirectoryTree] 展开/折叠事件:`, {
       expanded: info.expanded,
       node: info.node
     });
-
+    
     if (info.expanded) {
-      // 展开节点时加载数据
       await loadDirectoryData(info.node.key as string);
     }
   }, [loadDirectoryData]);
@@ -131,37 +147,29 @@ const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
       selectedKeys,
       node: info.node
     });
-
+    
     if (selectedKeys.length > 0) {
       onSelect?.(selectedKeys[0] as string);
     }
   }, [onSelect]);
 
-  // 初始加载根目录
-  useEffect(() => {
-    console.log(`[DirectoryTree] sessionId变化: ${sessionId}`);
-    if (sessionId) {
-      sessionIdRef.current = sessionId;
-      loadDirectoryData();
-    }
-    
-    // 清理函数
-    return () => {
-      sessionIdRef.current = undefined;
-    };
-  }, [sessionId]);
-
   return (
     <div className="directory-tree">
-      <Tree
-        className="directory-tree-content"
-        showLine
-        showIcon
-        treeData={treeData}
-        onExpand={onExpand}
-        onSelect={handleSelect}
-      />
-      {loading && <div className="directory-tree-loading">加载中...</div>}
+      <div className="directory-tree-content">
+        <Tree
+          showLine
+          showIcon
+          className="custom-tree"
+          onExpand={onExpand}
+          onSelect={handleSelect}
+          treeData={treeData}
+        />
+      </div>
+      {loading && (
+        <div className="directory-tree-loading">
+          加载中...
+        </div>
+      )}
     </div>
   );
 };
