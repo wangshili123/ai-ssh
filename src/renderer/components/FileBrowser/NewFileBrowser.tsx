@@ -8,6 +8,7 @@ import Navigation from './Navigation';
 import type { SessionInfo } from '../../types';
 import type { FileEntry } from '../../../main/types/file';
 import './NewFileBrowser.css';
+import { eventBus } from '../../services/eventBus';
 
 interface NewFileBrowserProps {
   sessionInfo?: SessionInfo;
@@ -58,8 +59,10 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
     if (!sessionInfo) return null;
     
     const stateKey = getStateKey(tabId, sessionInfo.id);
+    console.log('[FileBrowser] 获取标签页状态:', { stateKey, exists: tabStates.has(stateKey) });
+
     if (!tabStates.has(stateKey)) {
-      tabStates.set(stateKey, {
+      const initialState = {
         currentPath: '/',
         treeData: [],
         expandedKeys: [],
@@ -67,9 +70,14 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
         isInitialized: false,
         isConnected: false,
         sessionId: sessionInfo.id
-      });
+      };
+      console.log('[FileBrowser] 创建新的标签页状态:', initialState);
+      tabStates.set(stateKey, initialState);
     }
-    return tabStates.get(stateKey)!;
+
+    const state = tabStates.get(stateKey)!;
+    console.log('[FileBrowser] 返回标签页状态:', state);
+    return state;
   }, [tabId, sessionInfo]);
 
   // 使用标签页状态
@@ -83,6 +91,7 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
       if (!prev) return null;
       const newState = { ...prev, ...updates };
       const stateKey = getStateKey(tabId, sessionInfo.id);
+      console.log('[FileBrowser] 更新标签页状态:', { stateKey, updates, newState });
       tabStates.set(stateKey, newState);
       return newState;
     });
@@ -102,7 +111,9 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
       const existingConn = sftpConnectionManager.getConnection(tabId);
       if (existingConn) {
         console.log(`[FileBrowser] 复用已有连接 - tabId: ${tabId}`);
-        updateTabState({ isConnected: true });
+        if (!tabState?.isConnected) {
+          updateTabState({ isConnected: true });
+        }
         setLoading(false);
         return;
       }
@@ -115,6 +126,7 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
       
       // 如果标签页未初始化，则初始化根目录
       if (tabState && !tabState.isInitialized) {
+        console.log('[FileBrowser] 开始初始化根目录');
         const rootFiles = await sftpConnectionManager.readDirectory(tabId, '/');
         if (mountedRef.current) {
           const rootDirs = rootFiles
@@ -125,6 +137,7 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
               isLeaf: false,
             }));
           
+          console.log('[FileBrowser] 根目录初始化完成:', rootDirs);
           updateTabState({
             fileList: rootFiles,
             treeData: rootDirs,
@@ -135,7 +148,9 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
       }
       
       if (mountedRef.current) {
-        updateTabState({ isConnected: true });
+        if (!tabState?.isConnected) {
+          updateTabState({ isConnected: true });
+        }
         // 重置连接尝试次数
         connectionAttemptRef.current = 0;
       }
@@ -164,34 +179,92 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
 
     // 重新获取状态
     const newState = getTabState();
-    setTabState(newState);
-
-    if (sessionInfo && newState && !newState.isConnected) {
-      initConnection();
+    if (newState && (!tabState || tabState.sessionId !== newState.sessionId)) {
+      console.log('[FileBrowser] 设置新的标签页状态:', newState);
+      setTabState(newState);
+      
+      // 只在首次连接时初始化
+      if (sessionInfo && !newState.isInitialized) {
+        console.log('[FileBrowser] 开始初始化连接');
+        initConnection();
+      }
     }
     
     return () => {
       mountedRef.current = false;
     };
-  }, [sessionInfo, getTabState, initConnection]);
+  }, [sessionInfo, getTabState, initConnection, tabState]);
 
   // 处理目录树展开
   const handleExpand = useCallback((keys: Key[]) => {
     if (!mountedRef.current) return;
+    console.log('[FileBrowser] 处理目录树展开:', keys);
     updateTabState({ expandedKeys: keys as string[] });
   }, [updateTabState]);
 
   // 处理目录选择
   const handleSelect = useCallback((path: string) => {
     if (!mountedRef.current) return;
+    console.log('[FileBrowser] 选择目录:', path);
     updateTabState({ currentPath: path });
-  }, [updateTabState]);
+
+    // 加载选中目录的内容
+    if (sessionInfo) {
+      sftpConnectionManager.readDirectory(tabId, path).then(files => {
+        if (mountedRef.current) {
+          updateTabState({ fileList: files });
+        }
+      }).catch(error => {
+        console.error('[FileBrowser] 加载目录内容失败:', error);
+      });
+    }
+  }, [updateTabState, tabId, sessionInfo]);
 
   // 处理文件列表更新
   const handleFileListChange = useCallback((files: FileEntry[]) => {
     if (!mountedRef.current) return;
+    console.log('[FileBrowser] 更新文件列表:', files.length);
     updateTabState({ fileList: files });
   }, [updateTabState]);
+
+  // 处理目录树数据更新
+  const handleTreeDataUpdate = useCallback((newTreeData: any[]) => {
+    if (!mountedRef.current) return;
+    console.log('[FileBrowser] 更新目录树数据:', newTreeData);
+    updateTabState({ 
+      treeData: newTreeData,
+      isInitialized: true
+    });
+  }, [updateTabState]);
+
+  // 监听标签页变化
+  useEffect(() => {
+    const handleTabChange = (data: { tabId: string; sessionInfo?: SessionInfo }) => {
+      if (data.tabId === tabId && data.sessionInfo) {
+        console.log('[FileBrowser] 收到标签页变化事件:', data);
+        // 重新获取状态
+        const newState = getTabState();
+        if (newState) {
+          setTabState(newState);
+          // 如果已经初始化过，重新加载当前目录
+          if (newState.isInitialized && newState.currentPath) {
+            sftpConnectionManager.readDirectory(tabId, newState.currentPath).then(files => {
+              if (mountedRef.current) {
+                updateTabState({ fileList: files });
+              }
+            }).catch(error => {
+              console.error('[FileBrowser] 重新加载目录失败:', error);
+            });
+          }
+        }
+      }
+    };
+
+    eventBus.on('tab-change', handleTabChange);
+    return () => {
+      eventBus.off('tab-change', handleTabChange);
+    };
+  }, [tabId, getTabState, updateTabState]);
 
   if (!sessionInfo || !tabState) {
     return (
@@ -225,6 +298,7 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
             loading={loading}
             onExpand={handleExpand}
             onSelect={handleSelect}
+            onTreeDataUpdate={handleTreeDataUpdate}
           />
         </div>
       </div>

@@ -1,9 +1,10 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { Tree, Spin } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import type { Key } from 'rc-tree/lib/interface';
 import debounce from 'lodash/debounce';
 import { sftpConnectionManager } from '../../services/sftpConnectionManager';
+import { eventBus } from '../../services/eventBus';
 import type { SessionInfo } from '../../types';
 import type { FileEntry } from '../../../main/types/file';
 
@@ -15,6 +16,7 @@ interface DirectoryTreeProps {
   loading: boolean;
   onExpand: (keys: Key[]) => void;
   onSelect: (path: string) => void;
+  onTreeDataUpdate?: (newTreeData: DataNode[]) => void;
 }
 
 const DirectoryTree: React.FC<DirectoryTreeProps> = ({
@@ -25,11 +27,18 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
   loading,
   onExpand,
   onSelect,
+  onTreeDataUpdate,
 }) => {
   const loadedKeysRef = useRef<Set<string>>(new Set());
   const lastUpdateTimeRef = useRef<number>(0);
+  const [isConnected, setIsConnected] = useState(false);
 
   const loadData = useCallback(async (node: any) => {
+    if (!isConnected) {
+      console.log('[DirectoryTree] 等待SFTP连接建立...');
+      return;
+    }
+
     const now = Date.now();
     // 如果距离上次更新不足500ms，则跳过
     if (now - lastUpdateTimeRef.current < 500) {
@@ -38,44 +47,127 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
     lastUpdateTimeRef.current = now;
 
     const path = node.key as string;
-    if (loadedKeysRef.current.has(path)) {
-      return;
-    }
+    console.log('[DirectoryTree] 开始加载目录:', { path, node });
 
     try {
       const files = await sftpConnectionManager.readDirectory(tabId, path);
+      console.log('[DirectoryTree] 读取到文件列表:', files);
+
       const children = files
         .filter((file: FileEntry) => file.isDirectory)
         .map((file: FileEntry) => ({
           title: file.name,
-          key: `${path}/${file.name}`.replace(/\/+/g, '/'),
+          key: `${path === '/' ? '' : path}/${file.name}`.replace(/\/+/g, '/'),
           isLeaf: false,
         }));
 
-      node.children = children;
-      loadedKeysRef.current.add(path);
-      
-      // 强制更新树节点
-      onExpand([...expandedKeys]);
-    } catch (error) {
+      console.log('[DirectoryTree] 处理后的目录列表:', children);
+
+      if (path === '/') {
+        // 如果是根目录，直接更新整个树数据
+        onExpand([]);
+        onTreeDataUpdate?.(children);
+        return children;
+      } else {
+        // 如果是子目录，更新节点的子节点
+        node.children = children;
+        loadedKeysRef.current.add(path);
+        // 强制更新树节点
+        onExpand([...expandedKeys]);
+      }
+    } catch (error: any) {
       console.error('[DirectoryTree] 加载目录失败:', error);
+      if (error?.message?.includes('SFTP连接不存在')) {
+        setIsConnected(false);
+      }
     }
-  }, [tabId, expandedKeys, onExpand]);
+  }, [tabId, expandedKeys, onExpand, isConnected, onTreeDataUpdate]);
+
+  // 监听连接状态
+  useEffect(() => {
+    const checkConnection = () => {
+      const connection = sftpConnectionManager.getConnection(tabId);
+      const newConnected = !!connection;
+      console.log('[DirectoryTree] 检查连接状态:', { 
+        tabId, 
+        hasConnection: newConnected, 
+        currentConnected: isConnected,
+        treeDataLength: treeData.length
+      });
+
+      if (newConnected !== isConnected) {
+        setIsConnected(newConnected);
+        if (newConnected && treeData.length === 0) {
+          console.log('[DirectoryTree] 尝试加载根目录');
+          // 直接加载根目录
+          sftpConnectionManager.readDirectory(tabId, '/').then(files => {
+            console.log('[DirectoryTree] 读取到根目录文件:', files);
+            const rootDirs = files
+              .filter((file: FileEntry) => file.isDirectory)
+              .map((file: FileEntry) => ({
+                title: file.name,
+                key: `/${file.name}`.replace(/\/+/g, '/'),
+                isLeaf: false,
+              }));
+            console.log('[DirectoryTree] 生成的树节点:', rootDirs);
+            onTreeDataUpdate?.(rootDirs);
+          }).catch(error => {
+            console.error('[DirectoryTree] 加载根目录失败:', error);
+          });
+        }
+      }
+    };
+
+    // 初始检查
+    checkConnection();
+
+    // 监听标签页变化事件
+    const handleTabChange = (data: { tabId: string }) => {
+      if (data.tabId === tabId) {
+        console.log('[DirectoryTree] 收到标签页变化事件');
+        checkConnection();
+      }
+    };
+
+    eventBus.on('tab-change', handleTabChange);
+    
+    // 定期检查连接状态
+    const timer = setInterval(checkConnection, 1000);
+
+    return () => {
+      eventBus.off('tab-change', handleTabChange);
+      clearInterval(timer);
+    };
+  }, [tabId, isConnected, treeData, onTreeDataUpdate]);
+
+  useEffect(() => {
+    console.log('[DirectoryTree] 树数据更新:', { 
+      treeDataLength: treeData.length,
+      expandedKeys,
+      isConnected
+    });
+  }, [treeData, expandedKeys, isConnected]);
 
   // 使用防抖包装的展开处理函数
   const handleExpand = useCallback(
     debounce((keys: Key[]) => {
-      onExpand(keys);
+      if (isConnected) {
+        console.log('[DirectoryTree] 展开节点:', keys);
+        onExpand(keys);
+      }
     }, 300, { leading: true, trailing: true }),
-    [onExpand]
+    [onExpand, isConnected]
   );
 
   // 使用防抖包装的选择处理函数
   const handleSelect = useCallback(
     debounce((_: any, { node }: any) => {
-      onSelect(node.key);
+      if (isConnected) {
+        console.log('[DirectoryTree] 选择节点:', node.key);
+        onSelect(node.key);
+      }
     }, 300, { leading: true, trailing: true }),
-    [onSelect]
+    [onSelect, isConnected]
   );
 
   if (loading) {
