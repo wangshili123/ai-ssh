@@ -152,7 +152,32 @@ const App: React.FC = () => {
           className="ai-sider"
           trigger={null}
         >
-          <div className="ai-assistant-container">
+          <div 
+            className="ai-assistant-container"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget.querySelector('.resize-handle')) {
+                const startX = e.clientX;
+                const startWidth = aiSiderWidth;
+                
+                const handleMouseMove = (moveEvent: MouseEvent) => {
+                  if (!isCollapsed) {
+                    const deltaX = startX - moveEvent.clientX;
+                    const newWidth = Math.min(Math.max(300, startWidth + deltaX), 800);
+                    setAiSiderWidth(newWidth);
+                  }
+                };
+                
+                const handleMouseUp = () => {
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+              }
+            }}
+          >
+            <div className="resize-handle" />
             <AIAssistant 
               sessionId={sessionMap[eventBus.getCurrentTabId() || '']?.id} 
               isCollapsed={isCollapsed}

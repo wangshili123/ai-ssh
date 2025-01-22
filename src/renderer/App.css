@@ -50,7 +50,22 @@
   height: 100%;
   border-left: 1px solid #e8e8e8;
   background: #fff !important;
-  transition: all 0.3s ease !important;
+  transition: width 0.3s ease !important;
+  position: relative;
+}
+
+/* 修改折叠方向 */
+.ant-layout-has-sider > .ant-layout-sider-has-trigger {
+  padding-right: 0 !important;
+}
+
+.ant-layout-sider-children {
+  width: 100% !important;
+}
+
+.ant-layout-sider.ai-sider {
+  right: 0 !important;
+  position: relative !important;
 }
 
 .ai-sider.ant-layout-sider-collapsed {
@@ -60,10 +75,30 @@
   flex: 0 0 40px !important;
 }
 
+.resize-handle {
+  position: absolute;
+  width: 6px;
+  height: 100%;
+  left: -3px;
+  top: 0;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 1000;
+}
+
+.resize-handle:hover {
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.ai-sider.ant-layout-sider-collapsed .resize-handle {
+  display: none;
+}
+
 .ai-assistant-container {
   height: 100%;
   background: #fff;
   overflow: hidden;
+  position: relative;
 }
 
 /* 调整分割条样式 */
