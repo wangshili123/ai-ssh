@@ -64,20 +64,26 @@ const App: React.FC = () => {
 
   // 渲染文件浏览器
   const renderFileBrowser = () => {
-    const tabId = eventBus.getCurrentTabId() || '';
-    const session = tabId ? sessionMap[tabId] : undefined;
-
-    console.log('[App] 渲染文件浏览器:', { 
-      tabId, 
-      session: session?.name,
-      tabInfo: tabId ? eventBus.getTabInfo(tabId) : undefined 
-    });
-
+    const currentTabId = eventBus.getCurrentTabId() || '';
+    
     return (
-      <NewFileBrowser
-        sessionInfo={session}
-        tabId={tabId}
-      />
+      <div className="file-browser-instances">
+        {Object.entries(sessionMap).map(([tabId, session]) => (
+          <div
+            key={tabId}
+            style={{
+              height: '100%',
+              display: currentTabId === tabId ? 'block' : 'none',
+              position: 'relative'
+            }}
+          >
+            <NewFileBrowser
+              sessionInfo={session}
+              tabId={tabId}
+            />
+          </div>
+        ))}
+      </div>
     );
   };
 

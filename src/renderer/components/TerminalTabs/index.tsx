@@ -4,6 +4,7 @@ import type { SessionInfo } from '../../../main/services/storage';
 import Terminal from '../Terminal';
 import { eventBus } from '../../services/eventBus';
 import { sftpConnectionManager } from '../../services/sftpConnectionManager';
+import { generateUniqueId } from '../../utils';
 import './index.css';
 
 interface TerminalTab {
@@ -21,6 +22,11 @@ interface TerminalTabsProps {
   onTabChange?: (session: SessionInfo) => void;
 }
 
+interface TabState {
+  shellId: string | null;
+  sessionInfo?: SessionInfo;
+}
+
 const TerminalTabs: React.FC<TerminalTabsProps> = ({ 
   sessionInfo, 
   triggerNewTab,
@@ -30,6 +36,8 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
   const [mounted, setMounted] = useState(false);
   const tabUpdateRef = useRef(false);
+  const [activeTab, setActiveTab] = useState<string>('');
+  const [tabState, setTabState] = useState<Record<string, TabState>>({});
 
   // 初始化默认标签页
   useEffect(() => {
@@ -151,25 +159,63 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
 
   // 处理标签页切换
   const handleTabChange = useCallback((activeKey: string) => {
-    console.log('[TerminalTabs] 切换标签页:', activeKey);
-    setActiveKey(activeKey);
-
     const tab = tabs.find(t => t.key === activeKey);
     if (tab && tab.sessionInfo) {
-      console.log('[TerminalTabs] 找到标签页:', tab);
+      console.log('[TerminalTabs] 切换标签页:', tab);
       const shellId = `${tab.sessionInfo.id}-${tab.instanceId}`;
+      
+      // 先设置当前标签页和 shell
       eventBus.setCurrentTabId(tab.tabId);
       eventBus.setCurrentShellId(shellId);
-      eventBus.emit('tab-change', { 
-        shellId, 
+      
+      // 再触发标签页切换事件
+      eventBus.emit('tab-change', {
+        shellId,
         tabId: tab.tabId,
-        sessionInfo: tab.sessionInfo 
+        sessionInfo: tab.sessionInfo
       });
+      
+      setActiveKey(activeKey);
       onTabChange?.(tab.sessionInfo);
-    } else {
-      console.log('[TerminalTabs] 未找到标签页或会话信息:', activeKey);
     }
   }, [tabs, onTabChange]);
+
+  // 处理新建标签页
+  const handleNewTab = useCallback(() => {
+    if (sessionInfo) {
+      const instanceId = Date.now().toString();
+      const tabId = `tab-${instanceId}`;
+      const newTab = {
+        key: String(tabs.length + 1),
+        title: sessionInfo.name || `终端 ${tabs.length + 1}`,
+        sessionInfo,
+        instanceId,
+        tabId,
+        connected: false
+      };
+
+      // 先设置状态
+      setTabs(prev => [...prev, newTab]);
+      setActiveKey(newTab.key);
+
+      // 设置 shellId 和触发事件
+      const shellId = `${sessionInfo.id}-${instanceId}`;
+      
+      // 先触发新标签页创建事件
+      eventBus.emit('tab-create', {
+        shellId,
+        tabId,
+        sessionInfo,
+        isNew: true
+      });
+
+      // 再设置当前标签页和 shell
+      eventBus.setCurrentTabId(tabId);
+      eventBus.setCurrentShellId(shellId);
+      
+      onTabChange?.(sessionInfo);
+    }
+  }, [sessionInfo, tabs.length, onTabChange]);
 
   // 编辑标签页（添加/删除）
   const onEdit = (targetKey: React.MouseEvent | React.KeyboardEvent | string, action: 'add' | 'remove') => {

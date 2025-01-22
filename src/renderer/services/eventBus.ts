@@ -2,21 +2,22 @@ import { EventEmitter } from 'events';
 import type { SessionInfo } from '../../main/services/storage';
 
 export interface TabInfo {
-  shellId: string;
   tabId: string;
+  shellId: string | null;
   sessionInfo?: SessionInfo;
 }
 
-interface ConnectionInfo {
+export interface ConnectionInfo {
   shellId: string;
   connected: boolean;
 }
 
-type EventMap = {
+export interface EventMap {
   'tab-change': TabInfo;
+  'tab-create': TabInfo & { isNew: boolean };
   'terminal-connection-change': ConnectionInfo;
-  'shellIdChanged': string;
   'tabIdChanged': string;
+  'shellIdChanged': string;
 }
 
 class EventBus extends EventEmitter {

@@ -52,7 +52,92 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
   const [loading, setLoading] = useState(true);
   const mountedRef = useRef(false);
   const connectionAttemptRef = useRef(0);
+  const renderCountRef = useRef(0);
   const maxConnectionAttempts = 3;
+
+  // 每次渲染时记录
+  renderCountRef.current += 1;
+  console.log('[FileBrowser] 组件渲染:', { 
+    renderCount: renderCountRef.current,
+    tabId, 
+    sessionInfo,
+    hasState: tabStates.has(tabId),
+    mountedRef: mountedRef.current,
+    stateSize: tabStates.size,
+    loading
+  });
+
+  // 初始化状态
+  const [tabState, setTabState] = useState<TabState | null>(() => {
+    const state = tabStates.get(tabId);
+    console.log('[FileBrowser] 初始化状态:', {
+      tabId,
+      hasState: !!state,
+      state
+    });
+    if (!state && sessionInfo) {
+      const initialState: TabState = {
+        currentPath: '/',
+        treeData: [],
+        expandedKeys: [],
+        fileList: [],
+        isInitialized: false,
+        isConnected: false,
+        sessionId: sessionInfo.id
+      };
+      tabStates.set(tabId, initialState);
+      return initialState;
+    }
+    return state || null;
+  });
+
+  // 监听组件挂载和卸载
+  useEffect(() => {
+    console.log('[FileBrowser] 组件挂载:', {
+      tabId,
+      sessionId: sessionInfo?.id,
+      hasState: tabStates.has(tabId)
+    });
+
+    mountedRef.current = true;
+
+    return () => {
+      console.log('[FileBrowser] 组件卸载:', {
+        tabId,
+        sessionId: sessionInfo?.id,
+        hasState: tabStates.has(tabId)
+      });
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // 监听 props 变化
+  useEffect(() => {
+    console.log('[FileBrowser] Props 变化:', {
+      tabId,
+      sessionId: sessionInfo?.id,
+      hasState: tabStates.has(tabId),
+      state: tabStates.get(tabId)
+    });
+  }, [tabId, sessionInfo]);
+
+  // 更新标签页状态
+  const updateTabState = useCallback((updates: Partial<TabState>) => {
+    console.log('[FileBrowser] 更新状态:', {
+      tabId,
+      updates,
+      currentState: tabStates.get(tabId)
+    });
+
+    if (!mountedRef.current || !sessionInfo) return;
+    
+    setTabState(prev => {
+      if (!prev) return null;
+      const newState = { ...prev, ...updates };
+      tabStates.set(tabId, newState);
+      return newState;
+    });
+  }, [tabId, sessionInfo]);
 
   // 获取或创建标签页状态
   const getTabState = useCallback(() => {
@@ -78,23 +163,6 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
     return tabStates.get(stateKey)!;
   }, [tabId, sessionInfo]);
 
-  // 使用标签页状态
-  const [tabState, setTabState] = useState<TabState | null>(() => getTabState());
-
-  // 更新标签页状态
-  const updateTabState = useCallback((updates: Partial<TabState>) => {
-    if (!mountedRef.current || !sessionInfo) return;
-    
-    setTabState(prev => {
-      if (!prev) return null;
-      const newState = { ...prev, ...updates };
-      const stateKey = getStateKey(tabId);
-      console.log('[FileBrowser] 更新标签页状态:', { stateKey, updates, newState });
-      tabStates.set(stateKey, newState);
-      return newState;
-    });
-  }, [tabId, sessionInfo]);
-
   // 初始化SFTP连接
   const initConnection = useCallback(async () => {
     if (!sessionInfo || !mountedRef.current) return;
@@ -105,100 +173,66 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
     }
     
     try {
-      // 检查是否已经存在连接
-      const existingConn = sftpConnectionManager.getConnection(tabId);
-      if (existingConn) {
-        console.log(`[FileBrowser] 复用已有连接 - tabId: ${tabId}`);
-        if (!tabState?.isConnected) {
-          updateTabState({ isConnected: true });
-        }
-        setLoading(false);
-        return;
-      }
-
       setLoading(true);
       connectionAttemptRef.current++;
       console.log(`[FileBrowser] 创建新连接(第${connectionAttemptRef.current}次尝试) - tabId: ${tabId}`);
       
-      await sftpConnectionManager.createConnection(sessionInfo, tabId);
-      
-      // 如果标签页未初始化，则初始化根目录
-      if (tabState && !tabState.isInitialized) {
-        console.log('[FileBrowser] 开始初始化根目录');
-        const rootFiles = await sftpConnectionManager.readDirectory(tabId, '/');
-        if (mountedRef.current) {
-          const rootDirs = rootFiles
-            .filter(file => file.isDirectory)
-            .map(file => ({
-              title: file.name,
-              key: `/${file.name}`.replace(/\/+/g, '/'),
-              isLeaf: false,
-            }));
-          
-          console.log('[FileBrowser] 根目录初始化完成:', rootDirs);
-          updateTabState({
-            fileList: rootFiles,
-            treeData: rootDirs,
-            isInitialized: true,
-            isConnected: true
-          });
-        }
+      // 检查是否已经存在连接，如果不存在则创建
+      if (!sftpConnectionManager.getConnection(tabId)) {
+        await sftpConnectionManager.createConnection(sessionInfo, tabId);
       }
       
+      console.log('[FileBrowser] 开始初始化根目录');
+      const rootFiles = await sftpConnectionManager.readDirectory(tabId, '/');
+      
       if (mountedRef.current) {
-        if (!tabState?.isConnected) {
-          updateTabState({ isConnected: true });
-        }
+        const rootDirs = rootFiles
+          .filter(file => file.isDirectory)
+          .map(file => ({
+            title: file.name,
+            key: `/${file.name}`.replace(/\/+/g, '/'),
+            isLeaf: false,
+          }));
+        
+        console.log('[FileBrowser] 根目录初始化完成:', rootDirs);
+        updateTabState({
+          currentPath: '/',
+          fileList: rootFiles,
+          treeData: rootDirs,
+          isInitialized: true,
+          isConnected: true
+        });
+        
         // 重置连接尝试次数
         connectionAttemptRef.current = 0;
+        setLoading(false);
       }
     } catch (error: unknown) {
       const sftpError = error as SFTPError;
       console.error(`[FileBrowser] 连接失败(第${connectionAttemptRef.current}次尝试) - tabId: ${tabId}:`, sftpError);
-      // 如果是连接重置错误，等待一段时间后重试
+      
       if (sftpError.message?.includes('ECONNRESET') && connectionAttemptRef.current < maxConnectionAttempts) {
         setTimeout(() => {
           if (mountedRef.current) {
             initConnection();
           }
-        }, 1000 * connectionAttemptRef.current); // 递增重试延迟
-      }
-    } finally {
-      if (mountedRef.current) {
+        }, 1000 * connectionAttemptRef.current);
+      } else {
         setLoading(false);
       }
     }
-  }, [sessionInfo, tabId, tabState, updateTabState]);
+  }, [sessionInfo, tabId, updateTabState]);
 
   // 监听会话信息变化
   useEffect(() => {
-    mountedRef.current = true;
-    connectionAttemptRef.current = 0;
+    if (!sessionInfo || !mountedRef.current) return;
 
-    // 重新获取状态
-    const newState = getTabState();
-    if (newState) {
-      console.log('[FileBrowser] 设置新的标签页状态:', newState);
-      setTabState(newState);
-      
-      // 只在首次连接时初始化
-      if (sessionInfo && !newState.isInitialized && !newState.isConnected) {
-        console.log('[FileBrowser] 开始初始化连接');
-        initConnection();
-      }
+    const currentState = tabStates.get(tabId);
+    if (!currentState?.isInitialized || !currentState?.isConnected) {
+      console.log('[FileBrowser] 需要初始化连接');
+      initConnection();
     }
-    
-    return () => {
-      mountedRef.current = false;
-      // 清理当前标签页的状态
-      if (tabId) {
-        console.log('[FileBrowser] 清理标签页状态:', tabId);
-        tabStates.delete(tabId);
-        // 清理 SFTP 连接
-        sftpConnectionManager.closeConnection(tabId);
-      }
-    };
-  }, [sessionInfo?.id, tabId]); // 只在sessionInfo.id或tabId变化时重新运行
+  }, [sessionInfo, tabId, initConnection]);
 
   // 处理目录树展开
   const handleExpand = useCallback((keys: Key[]) => {
@@ -244,34 +278,82 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
 
   // 监听标签页变化
   useEffect(() => {
-    const handleTabChange = (data: { tabId: string; sessionInfo?: SessionInfo }) => {
-      if (data.tabId === tabId && data.sessionInfo && data.sessionInfo.id === sessionInfo?.id) {
-        console.log('[FileBrowser] 收到标签页变化事件:', data);
+    // 处理新标签页创建
+    const handleTabCreate = (data: { tabId: string; sessionInfo?: SessionInfo; isNew?: boolean }) => {
+      if (data.tabId === tabId && data.sessionInfo && data.sessionInfo.id === sessionInfo?.id && data.isNew) {
+        console.log('[FileBrowser] 收到新标签页创建事件:', data);
         
-        const currentState = tabStates.get(tabId);
-        if (!currentState?.isInitialized && !currentState?.isConnected) {
-          console.log('[FileBrowser] 开始初始化连接');
-          initConnection();
-        } else if (currentState?.currentPath) {
-          // 如果已经初始化过，重新加载当前目录
-          sftpConnectionManager.readDirectory(tabId, currentState.currentPath)
-            .then(files => {
-              if (mountedRef.current) {
-                updateTabState({ fileList: files });
-              }
-            })
-            .catch(error => {
-              console.error('[FileBrowser] 重新加载目录失败:', error);
-            });
-        }
+        // 新标签页总是需要初始化
+        const initialState = {
+          currentPath: '/',
+          treeData: [],
+          expandedKeys: [],
+          fileList: [],
+          isInitialized: false,
+          isConnected: false,
+          sessionId: sessionInfo.id
+        };
+        
+        tabStates.set(tabId, initialState);
+        setTabState(initialState);
+        initConnection();
       }
     };
 
-    eventBus.on('tab-change', handleTabChange);
+    // 只监听 tab-create 事件
+    eventBus.on('tab-create', handleTabCreate);
+
+    // 检查是否需要初始化
+    const currentState = tabStates.get(tabId);
+    if (!currentState && sessionInfo) {
+      console.log('[FileBrowser] 初始化新标签页:', tabId);
+      const initialState = {
+        currentPath: '/',
+        treeData: [],
+        expandedKeys: [],
+        fileList: [],
+        isInitialized: false,
+        isConnected: false,
+        sessionId: sessionInfo.id
+      };
+      
+      tabStates.set(tabId, initialState);
+      setTabState(initialState);
+      initConnection();
+    } else if (currentState) {
+      console.log('[FileBrowser] 使用现有状态:', currentState);
+      setTabState(currentState);
+      setLoading(false);
+    }
+
     return () => {
-      eventBus.off('tab-change', handleTabChange);
+      eventBus.off('tab-create', handleTabCreate);
     };
-  }, [tabId, sessionInfo?.id, initConnection, updateTabState]);
+  }, [tabId, sessionInfo?.id, initConnection]);
+
+  // 添加一个清理函数
+  const cleanupTab = useCallback(() => {
+    if (tabId) {
+      console.log('[FileBrowser] 清理标签页资源:', tabId);
+      const currentState = tabStates.get(tabId);
+      if (currentState?.isInitialized) {
+        sftpConnectionManager.closeConnection(tabId);
+      }
+      tabStates.delete(tabId);
+    }
+  }, [tabId]);
+
+  // 在组件完全卸载时清理资源
+  useEffect(() => {
+    return () => {
+      // 检查标签页是否真的被删除了
+      setTimeout(() => {
+        if (!document.querySelector(`[data-tab-id="${tabId}"]`)) {
+          cleanupTab();
+        }
+      }, 100);
+    };
+  }, [tabId, cleanupTab]);
 
   if (!sessionInfo || !tabState) {
     return (
@@ -294,7 +376,11 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
   }
 
   return (
-    <div className="file-browser-main">
+    <div 
+      className="file-browser-main"
+      data-tab-id={tabId}
+      data-render-count={renderCountRef.current}
+    >
       <div className="file-browser-sider">
         <div className="file-browser-tree">
           <MemoizedDirectoryTree
