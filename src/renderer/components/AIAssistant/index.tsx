@@ -52,11 +52,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<AssistantMode>(getInitialMode());
-  const assistantRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(400);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartX = useRef(0);
-  const dragStartWidth = useRef(0);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // 为每个模式维护独立的消息记录
   const [commandMessages, setCommandMessages] = useState<Message[]>([]);
@@ -82,43 +78,6 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
         };
     }
   };
-
-  // 处理拖拽开始
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.target === assistantRef.current?.querySelector('.resize-handle')) {
-      setIsDragging(true);
-      dragStartX.current = e.clientX;
-      dragStartWidth.current = width;
-      e.preventDefault();
-    }
-  };
-
-  // 处理拖拽过程
-  const handleMouseMove = (e: MouseEvent) => {
-    if (isDragging) {
-      const deltaX = dragStartX.current - e.clientX;
-      const newWidth = Math.min(Math.max(300, dragStartWidth.current + deltaX), 800);
-      setWidth(newWidth);
-      document.documentElement.style.setProperty('--ai-assistant-width', `${newWidth}px`);
-    }
-  };
-
-  // 处理拖拽结束
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // 添加和移除事件监听器
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isDragging]);
 
   // 处理按键事件
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -329,33 +288,6 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
     }
   };
 
-  // 添加收缩状态
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    return localStorage.getItem('ai-assistant-collapsed') === 'true';
-  });
-  const [previousWidth, setPreviousWidth] = useState(400);
-
-  // 处理收缩/展开
-  const handleCollapse = () => {
-    if (!isCollapsed) {
-      // 收缩前保存当前宽度
-      setPreviousWidth(width);
-      setWidth(40);
-    } else {
-      // 展开时恢复之前的宽度
-      setWidth(previousWidth);
-    }
-    setIsCollapsed(!isCollapsed);
-    localStorage.setItem('ai-assistant-collapsed', (!isCollapsed).toString());
-  };
-
-  // 初始化时设置正确的宽度
-  useEffect(() => {
-    if (isCollapsed) {
-      setWidth(40);
-    }
-  }, []);
-
   const [configModalVisible, setConfigModalVisible] = useState(false);
 
   // 监听打开配置对话框的 IPC 消息
@@ -378,73 +310,52 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
   };
 
   return (
-    <>
-      <div 
-        className={`ai-assistant ${isCollapsed ? 'collapsed' : ''}`}
-        ref={assistantRef}
-        onMouseDown={handleMouseDown}
-        style={{ width: `${width}px` }}
-      >
-        <div className="resize-handle" />
-        <Button
-          type="text"
-          icon={isCollapsed ? <LeftOutlined /> : <RightOutlined />}
-          className="collapse-button"
-          onClick={handleCollapse}
-          title={isCollapsed ? "展开" : "收起"}
-        />
-        {!isCollapsed && (
-          <>
-            <div className="ai-messages" ref={messagesEndRef}>
-              {renderModeComponent()}
+    <div className={`ai-assistant ${isCollapsed ? 'collapsed' : ''}`}>
+      <Button
+        className="collapse-button"
+        icon={isCollapsed ? <RightOutlined /> : <LeftOutlined />}
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      />
+      {!isCollapsed && (
+        <>
+          <div className="ai-messages" ref={messagesEndRef}>
+            {renderModeComponent()}
+          </div>
+          <div className="ai-input-container">
+            <div className="input-wrapper">
+              <Input.TextArea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="输入内容，按 Enter 发送..."
+                autoSize={{ minRows: 1, maxRows: 6 }}
+                disabled={loading}
+              />
             </div>
-            <div className="ai-input-container">
-              <div className="input-wrapper">
-                <Button
-                  type="text"
-                  icon={<PlusCircleOutlined />}
-                  className="new-chat-button"
-                  onClick={handleClearMessages}
-                  title="新对话"
-                />
-                <Input.TextArea
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="输入内容，按回车发送，Shift+Enter 换行"
-                  disabled={loading}
-                  autoSize={{ minRows: 3, maxRows: 6 }}
-                />
-              </div>
-              <div className="button-wrapper">
-                <Radio.Group 
-                  value={mode} 
-                  onChange={handleModeChange}
-                  size="small"
-                >
-                  <Radio.Button value={AssistantMode.COMMAND}>命令模式</Radio.Button>
-                  <Radio.Button value={AssistantMode.CONTEXT}>上下文模式</Radio.Button>
-                  <Radio.Button value={AssistantMode.AGENT}>Agent 模式</Radio.Button>
-                </Radio.Group>
-                <Button
-                  type="text"
-                  icon={<SendOutlined />}
-                  onClick={() => handleSend(input)}
-                  loading={loading}
-                  disabled={!input.trim()}
-                >
-                  发送
-                </Button>
-              </div>
+            <div className="button-wrapper">
+              <Radio.Group value={mode} onChange={handleModeChange} size="small">
+                <Radio.Button value={AssistantMode.COMMAND}>命令模式</Radio.Button>
+                <Radio.Button value={AssistantMode.CONTEXT}>上下文模式</Radio.Button>
+                <Radio.Button value={AssistantMode.AGENT}>Agent模式</Radio.Button>
+              </Radio.Group>
+              <Button
+                type="primary"
+                icon={<SendOutlined />}
+                onClick={() => handleSend(input)}
+                loading={loading}
+                disabled={!input.trim()}
+              >
+                发送
+              </Button>
             </div>
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
       <AIConfigModal
         visible={configModalVisible}
         onClose={handleConfigModalClose}
       />
-    </>
+    </div>
   );
 };
 

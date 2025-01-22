@@ -10,7 +10,7 @@ import { eventBus } from './services/eventBus';
 import type { TabInfo } from './services/eventBus';
 import './App.css';
 
-const { Content } = Layout;
+const { Content, Sider } = Layout;
 
 const App: React.FC = () => {
   const [activeSession, setActiveSession] = useState<SessionInfo>();
@@ -18,7 +18,7 @@ const App: React.FC = () => {
   const [currentTabSession, setCurrentTabSession] = useState<SessionInfo>();
   const [triggerNewTab, setTriggerNewTab] = useState(0);
   const [fileBrowserHeight, setFileBrowserHeight] = useState(300);
-  const [aiAssistantHeight, setAIAssistantHeight] = useState(200);
+  const [aiSiderWidth, setAiSiderWidth] = useState(400);
   const [currentTabId, setCurrentTabId] = useState<string>('');
 
   // 监听标签页变化
@@ -97,7 +97,7 @@ const App: React.FC = () => {
   return (
     <Layout className="app-container">
       <Layout>
-        <Content className="app-content">
+        <Content className="main-content">
           <div className="terminal-container">
             <TerminalTabs 
               sessionInfo={activeSession}
@@ -142,20 +142,23 @@ const App: React.FC = () => {
               </div>
             </div>
           </Resizable>
-          <Resizable
-            size={{ height: aiAssistantHeight, width: '100%' }}
-            onResizeStop={(e, direction, ref, d) => {
-              setAIAssistantHeight(aiAssistantHeight + d.height);
-            }}
-            minHeight={100}
-            maxHeight={500}
-            enable={{ top: true }}
-          >
+        </Content>
+        
+        <Resizable
+          size={{ width: aiSiderWidth }}
+          onResizeStop={(e, direction, ref, d) => {
+            setAiSiderWidth(aiSiderWidth + d.width);
+          }}
+          minWidth={300}
+          maxWidth={800}
+          enable={{ left: true }}
+        >
+          <Sider width={aiSiderWidth} className="ai-sider">
             <div className="ai-assistant-container">
               <AIAssistant sessionId={sessionMap[eventBus.getCurrentTabId() || '']?.id} />
             </div>
-          </Resizable>
-        </Content>
+          </Sider>
+        </Resizable>
       </Layout>
       <AppStatusBar />
     </Layout>
