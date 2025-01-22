@@ -1,6 +1,9 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { Table, Spin, message } from 'antd';
+import type { TablePaginationConfig } from 'antd/es/table';
+import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import debounce from 'lodash/debounce';
+import dayjs from 'dayjs';
 import { sftpConnectionManager } from '../../services/sftpConnectionManager';
 import { eventBus } from '../../services/eventBus';
 import type { FileEntry } from '../../../main/types/file';
@@ -16,6 +19,35 @@ interface FileListProps {
   onFileListChange: (files: FileEntry[]) => void;
 }
 
+// 将权限数字转换为字符串表示
+const formatPermissions = (permissions: number): string => {
+  const type = (permissions & 0o170000) === 0o040000 ? 'd' : '-';
+  const user = ((permissions & 0o400) ? 'r' : '-') +
+               ((permissions & 0o200) ? 'w' : '-') +
+               ((permissions & 0o100) ? 'x' : '-');
+  const group = ((permissions & 0o040) ? 'r' : '-') +
+                ((permissions & 0o020) ? 'w' : '-') +
+                ((permissions & 0o010) ? 'x' : '-');
+  const other = ((permissions & 0o004) ? 'r' : '-') +
+                ((permissions & 0o002) ? 'w' : '-') +
+                ((permissions & 0o001) ? 'x' : '-');
+  return `${type}${user}${group}${other}`;
+};
+
+// 格式化文件大小
+const formatFileSize = (size: number): string => {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let index = 0;
+  let fileSize = size;
+
+  while (fileSize >= 1024 && index < units.length - 1) {
+    fileSize /= 1024;
+    index++;
+  }
+
+  return `${fileSize.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
+};
+
 const FileList: React.FC<FileListProps> = ({
   sessionInfo,
   tabId,
@@ -25,6 +57,7 @@ const FileList: React.FC<FileListProps> = ({
   onFileListChange,
 }) => {
   const [isConnected, setIsConnected] = useState(false);
+  const [sortedInfo, setSortedInfo] = useState<SorterResult<FileEntry>>({});
 
   // 使用 debounce 防止频繁读取目录
   const loadDirectory = useCallback(
@@ -92,34 +125,78 @@ const FileList: React.FC<FileListProps> = ({
     }
   }, [currentPath, isConnected, loadDirectory]);
 
+  const handleTableChange = (
+    _pagination: TablePaginationConfig,
+    _filters: Record<string, FilterValue | null>,
+    sorter: SorterResult<FileEntry> | SorterResult<FileEntry>[]
+  ) => {
+    setSortedInfo(Array.isArray(sorter) ? sorter[0] || {} : sorter);
+  };
+
   const columns = [
     {
       title: '文件名',
       dataIndex: 'name',
       key: 'name',
+      sorter: (a: FileEntry, b: FileEntry) => {
+        // 目录优先排序
+        if (a.isDirectory !== b.isDirectory) {
+          return a.isDirectory ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+      },
+      sortOrder: sortedInfo.columnKey === 'name' ? sortedInfo.order : null,
       render: (text: string, record: FileEntry) => (
         <span>
-          {record.isDirectory ? '📁 ' : '📄 '}
+          <span className="file-icon">{record.isDirectory ? '📁' : '📄'}</span>
           {text}
         </span>
       ),
+      width: '35%',
+      ellipsis: true,
     },
     {
       title: '大小',
       dataIndex: 'size',
       key: 'size',
-      render: (size: number) => {
-        if (size < 1024) return `${size} B`;
-        if (size < 1024 * 1024) return `${(size / 1024).toFixed(2)} KB`;
-        if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(2)} MB`;
-        return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`;
-      },
+      sorter: (a: FileEntry, b: FileEntry) => a.size - b.size,
+      sortOrder: sortedInfo.columnKey === 'size' ? sortedInfo.order : null,
+      render: (size: number, record: FileEntry) => 
+        record.isDirectory ? '-' : formatFileSize(size),
+      width: 100,
+    },
+    {
+      title: '类型',
+      key: 'type',
+      render: (_: unknown, record: FileEntry) => 
+        record.isDirectory ? '文件夹' : '文件',
+      width: 80,
     },
     {
       title: '修改时间',
       dataIndex: 'modifyTime',
       key: 'modifyTime',
-      render: (time: number) => new Date(time).toLocaleString(),
+      sorter: (a: FileEntry, b: FileEntry) => a.modifyTime - b.modifyTime,
+      sortOrder: sortedInfo.columnKey === 'modifyTime' ? sortedInfo.order : null,
+      render: (time: number) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
+      width: 150,
+    },
+    {
+      title: '权限',
+      dataIndex: 'permissions',
+      key: 'permissions',
+      render: (permissions: number) => formatPermissions(permissions),
+      width: 100,
+    },
+    {
+      title: '用户/组',
+      key: 'ownership',
+      render: (_: unknown, record: FileEntry) => {
+        const owner = record.owner?.toString() || '-';
+        const group = record.group?.toString() || '-';
+        return `${owner}/${group}`;
+      },
+      width: 120,
     },
   ];
 
@@ -139,6 +216,8 @@ const FileList: React.FC<FileListProps> = ({
         rowKey="name"
         pagination={false}
         size="small"
+        onChange={handleTableChange}
+        scroll={{ x: 'max-content' }}
       />
     </div>
   );
