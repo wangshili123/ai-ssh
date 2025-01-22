@@ -50,7 +50,7 @@
   height: 100%;
   border-left: 1px solid #e8e8e8;
   background: #fff !important;
-  transition: width 0.3s ease !important;
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1) !important;
   position: relative;
 }
 
@@ -61,6 +61,7 @@
 
 .ant-layout-sider-children {
   width: 100% !important;
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1) !important;
 }
 
 .ant-layout-sider.ai-sider {
@@ -73,6 +74,7 @@
   min-width: 40px !important;
   max-width: 40px !important;
   flex: 0 0 40px !important;
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1) !important;
 }
 
 .resize-handle {
