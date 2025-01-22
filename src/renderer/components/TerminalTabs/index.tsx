@@ -37,109 +37,66 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
   const [activeKey, setActiveKey] = useState<string>();
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
   const [mounted, setMounted] = useState(false);
-  const tabUpdateRef = useRef(false);
-  const [activeTab, setActiveTab] = useState<string>('');
-  const [tabState, setTabState] = useState<Record<string, TabState>>({});
+  const prevTriggerRef = useRef<number>();
   const [sessionListVisible, setSessionListVisible] = useState(false);
 
   // 初始化默认标签页
   useEffect(() => {
     if (!mounted) {
-      // console.log('[TerminalTabs] 初始化默认标签页');
-      // eventBus.debugState();
-
-      // const instanceId = Date.now().toString();
-      // const tabId = `tab-${instanceId}`;
-      // const defaultTab = {
-      //   key: '1',
-      //   title: sessionInfo?.name || '终端 1',
-      //   sessionInfo,
-      //   instanceId,
-      //  tabId,
-      //   connected: false
-      // };
-
-      // console.log('[TerminalTabs] 创建默认标签页:', defaultTab);
-
-      // 先设置状态
-      // setTabs([defaultTab]);
-      // setActiveKey(defaultTab.key);
-
-      // // 如果有会话信息，设置 shellId 和触发事件
-      // if (sessionInfo) {
-      //   const shellId = `${sessionInfo.id}-${instanceId}`;
-        // console.log('[TerminalTabs] 设置初始状态:', { shellId, tabId });
-        
-        // 清理可能存在的临时状态
-        // const tempTabId = `temp-${sessionInfo.id}`;
-        // eventBus.removeTab(tempTabId);
-        // sftpConnectionManager.closeConnection(tempTabId);
-
-        // 先设置 tabId 和 shellId
-        // eventBus.setCurrentTabId(tabId);
-      //   eventBus.setCurrentShellId(shellId);
-        // 再触发事件
-        // eventBus.emit('tab-change', { shellId, tabId, sessionInfo });
-      //   onTabChange?.(sessionInfo);
-
-      //   console.log('[TerminalTabs] 初始化完成');
-      //   eventBus.debugState();
-      // }
+      setMounted(true);
     }
-    setMounted(true);
   }, []);
 
   // 监听 triggerNewTab 的变化来创建新标签页
   useEffect(() => {
-    if (mounted && sessionInfo && triggerNewTab && !tabUpdateRef.current) {
-      console.log('[TerminalTabs] 触发新标签页创建:', { sessionInfo });
-      tabUpdateRef.current = true;
-      
-      // 生成唯一的实例ID和标签ID
-      const instanceId = Date.now().toString();
-      const tabId = `tab-${instanceId}`;
-      const shellId = `${sessionInfo.id}-${instanceId}`;
-
-      // 先清理可能存在的临时状态
-      const tempTabId = `temp-${sessionInfo.id}`;
-      eventBus.removeTab(tempTabId);
-      sftpConnectionManager.closeConnection(tempTabId);
-
-      // 创建新标签页
-      const newTab = {
-        key: String(Date.now()), // 使用时间戳作为唯一key
-        title: sessionInfo.name || `终端 ${tabs.length + 1}`,
-        sessionInfo,
-        instanceId,
-        tabId,
-        connected: false
-      };
-
-      // 先设置状态
-      setTabs(prev => [...prev, newTab]);
-      setActiveKey(newTab.key);
-
-      // 先设置 tabId 和 shellId
-      eventBus.setCurrentTabId(tabId);
-      eventBus.setCurrentShellId(shellId);
-      
-      // 再触发事件，确保包含完整的会话信息
-      eventBus.emit('tab-change', { 
-        shellId, 
-        tabId, 
-        sessionInfo 
-      });
-      
-      console.log('[TerminalTabs] 新标签页创建完成:', { tabId, shellId, sessionInfo });
-      // 设置当前的shellId
-      eventBus.setCurrentShellId(shellId);
-      
-      // 重置标记
-      setTimeout(() => {
-        tabUpdateRef.current = false;
-      }, 0);
+    // 如果 triggerNewTab 没有变化,或者与上一次相同,则不处理
+    if (!mounted || !sessionInfo || !triggerNewTab || triggerNewTab === prevTriggerRef.current) {
+      return;
     }
-  }, [triggerNewTab, sessionInfo, mounted, tabs.length, onTabChange]);
+    
+    // 更新上一次的值
+    prevTriggerRef.current = triggerNewTab;
+    
+    console.log('[TerminalTabs] 触发新标签页创建:', { sessionInfo });
+    
+    // 生成唯一的实例ID和标签ID
+    const instanceId = Date.now().toString();
+    const tabId = `tab-${instanceId}`;
+    const shellId = `${sessionInfo.id}-${instanceId}`;
+
+    // 先清理可能存在的临时状态
+    const tempTabId = `temp-${sessionInfo.id}`;
+    eventBus.removeTab(tempTabId);
+    sftpConnectionManager.closeConnection(tempTabId);
+
+    // 创建新标签页
+    const newTab = {
+      key: String(Date.now()),
+      title: sessionInfo.name || `终端 ${tabs.length + 1}`,
+      sessionInfo,
+      instanceId,
+      tabId,
+      connected: false
+    };
+
+    // 更新状态
+    setTabs(prev => [...prev, newTab]);
+    setActiveKey(newTab.key);
+
+    // 设置当前标签页和shell
+    eventBus.setCurrentTabId(tabId);
+    eventBus.setCurrentShellId(shellId);
+    
+    // 触发事件
+    eventBus.emit('tab-change', { 
+      shellId, 
+      tabId, 
+      sessionInfo 
+    });
+    
+    console.log('[TerminalTabs] 新标签页创建完成:', { tabId, shellId, sessionInfo });
+    
+  }, [triggerNewTab, sessionInfo, mounted, tabs.length]);
 
   // 监听连接状态变化
   useEffect(() => {
