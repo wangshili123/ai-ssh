@@ -10,32 +10,36 @@
 
 .collapse-button {
   position: absolute;
-  left: 0;
-  top: 12px;
+  left: 4px;
+  top: 4px;
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
-  border-radius: 0 4px 4px 0;
-  color: #999;
+  background: transparent;
+  color: #1890ff;
   cursor: pointer;
   z-index: 1001;
   transition: all 0.3s;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   border: none;
   padding: 0;
+  box-shadow: none;
 }
 
 .collapse-button:hover {
-  color: #1890ff;
-  background: rgba(24, 144, 255, 0.1);
+  color: #40a9ff;
+  background: transparent;
+  transform: scale(1.1);
+}
+
+.collapse-button:active {
+  transform: scale(0.9);
 }
 
 .collapse-button .anticon {
-  font-size: 12px;
-  transition: transform 0.3s;
+  font-size: 20px;
+  transition: all 0.3s;
 }
 
 .ai-assistant.collapsed {
@@ -43,7 +47,61 @@
 }
 
 .ai-assistant.collapsed .collapse-button {
-  left: 8px;
+  left: 4px;
+  color: #bfbfbf;
+}
+
+.ai-assistant.collapsed .collapse-button:hover {
+  color: #1890ff;
+}
+
+/* 移除 ant-btn 的默认样式 */
+.collapse-button.ant-btn {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+  color: #1890ff !important;
+  cursor: pointer;
+  z-index: 1001;
+  transition: all 0.3s;
+  border: none !important;
+  padding: 0;
+  box-shadow: none !important;
+}
+
+.collapse-button.ant-btn:hover {
+  transform: scale(1.1);
+  background: transparent !important;
+  color: #1890ff !important;
+}
+
+.collapse-button.ant-btn .anticon {
+  font-size: 20px;
+  transition: all 0.3s;
+}
+
+.ai-assistant.collapsed .collapse-button.ant-btn {
+  left: 4px;
+  color: #bfbfbf !important;
+}
+
+.ai-assistant.collapsed .collapse-button.ant-btn:hover {
+  color: #1890ff !important;
+}
+
+/* 移除其他 ant-btn 的默认样式 */
+.collapse-button.ant-btn:focus,
+.collapse-button.ant-btn:active {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #1890ff !important;
 }
 
 /* 消息列表区域 */

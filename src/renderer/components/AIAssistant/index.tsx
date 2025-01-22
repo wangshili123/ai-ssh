@@ -1,6 +1,6 @@
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
 import { Input, Button, Radio, notification, Modal } from 'antd';
-import { SendOutlined, PlusCircleOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { SendOutlined, PlusCircleOutlined, LeftOutlined, RightOutlined, RobotOutlined, RobotFilled } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import { Message } from '../../types';
@@ -314,7 +314,7 @@ const AIAssistant = ({ sessionId, isCollapsed = false, onCollapse }: AIAssistant
     <div className={`ai-assistant ${isCollapsed ? 'collapsed' : ''}`}>
       <Button
         className="collapse-button"
-        icon={isCollapsed ? <RightOutlined /> : <LeftOutlined />}
+        icon={isCollapsed ? <RobotOutlined /> : <RobotFilled />}
         onClick={() => onCollapse?.(!isCollapsed)}
       />
       {!isCollapsed && (
