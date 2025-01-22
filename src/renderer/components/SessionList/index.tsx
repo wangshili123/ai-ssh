@@ -201,23 +201,7 @@ const SessionList: React.FC<SessionListProps> = ({
           size="small"
           onClick={(e) => {
             e.stopPropagation();
-            // 生成唯一的实例ID和标签ID
-            const instanceId = Date.now().toString();
-            const tabId = `tab-${instanceId}`;
-            const shellId = `${session.id}-${instanceId}`;
-
-            // 设置当前的 tabId 和 shellId
-            eventBus.setCurrentTabId(tabId);
-            eventBus.setCurrentShellId(shellId);
-
-            // 触发标签页变化事件
-            eventBus.handleTabChange({
-              shellId,
-              tabId,
-              sessionInfo: session
-            });
-
-            // 触发终端连接
+            // 直接触发选择事件，不创建tabId
             onSelect?.(session);
           }}
         >

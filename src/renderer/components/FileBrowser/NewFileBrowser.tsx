@@ -36,8 +36,8 @@ interface TabState {
 const tabStates = new Map<string, TabState>();
 
 // 生成状态键
-function getStateKey(tabId: string, sessionId: string) {
-  return `${sessionId}:${tabId}`;
+function getStateKey(tabId: string) {
+  return tabId;  // 直接使用 tabId
 }
 
 // 使用 memo 包装子组件，避免不必要的重新渲染
@@ -58,7 +58,7 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
   const getTabState = useCallback(() => {
     if (!sessionInfo) return null;
     
-    const stateKey = getStateKey(tabId, sessionInfo.id);
+    const stateKey = getStateKey(tabId);
     console.log('[FileBrowser] 获取标签页状态:', { stateKey, exists: tabStates.has(stateKey) });
 
     if (!tabStates.has(stateKey)) {
@@ -75,9 +75,7 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
       tabStates.set(stateKey, initialState);
     }
 
-    const state = tabStates.get(stateKey)!;
-    console.log('[FileBrowser] 返回标签页状态:', state);
-    return state;
+    return tabStates.get(stateKey)!;
   }, [tabId, sessionInfo]);
 
   // 使用标签页状态
@@ -90,7 +88,7 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
     setTabState(prev => {
       if (!prev) return null;
       const newState = { ...prev, ...updates };
-      const stateKey = getStateKey(tabId, sessionInfo.id);
+      const stateKey = getStateKey(tabId);
       console.log('[FileBrowser] 更新标签页状态:', { stateKey, updates, newState });
       tabStates.set(stateKey, newState);
       return newState;
@@ -179,12 +177,12 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
 
     // 重新获取状态
     const newState = getTabState();
-    if (newState && (!tabState || tabState.sessionId !== newState.sessionId)) {
+    if (newState) {
       console.log('[FileBrowser] 设置新的标签页状态:', newState);
       setTabState(newState);
       
       // 只在首次连接时初始化
-      if (sessionInfo && !newState.isInitialized) {
+      if (sessionInfo && !newState.isInitialized && !newState.isConnected) {
         console.log('[FileBrowser] 开始初始化连接');
         initConnection();
       }
@@ -192,8 +190,15 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
     
     return () => {
       mountedRef.current = false;
+      // 清理当前标签页的状态
+      if (tabId) {
+        console.log('[FileBrowser] 清理标签页状态:', tabId);
+        tabStates.delete(tabId);
+        // 清理 SFTP 连接
+        sftpConnectionManager.closeConnection(tabId);
+      }
     };
-  }, [sessionInfo, getTabState, initConnection, tabState]);
+  }, [sessionInfo?.id, tabId]); // 只在sessionInfo.id或tabId变化时重新运行
 
   // 处理目录树展开
   const handleExpand = useCallback((keys: Key[]) => {
@@ -240,22 +245,24 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
   // 监听标签页变化
   useEffect(() => {
     const handleTabChange = (data: { tabId: string; sessionInfo?: SessionInfo }) => {
-      if (data.tabId === tabId && data.sessionInfo) {
+      if (data.tabId === tabId && data.sessionInfo && data.sessionInfo.id === sessionInfo?.id) {
         console.log('[FileBrowser] 收到标签页变化事件:', data);
-        // 重新获取状态
-        const newState = getTabState();
-        if (newState) {
-          setTabState(newState);
+        
+        const currentState = tabStates.get(tabId);
+        if (!currentState?.isInitialized && !currentState?.isConnected) {
+          console.log('[FileBrowser] 开始初始化连接');
+          initConnection();
+        } else if (currentState?.currentPath) {
           // 如果已经初始化过，重新加载当前目录
-          if (newState.isInitialized && newState.currentPath) {
-            sftpConnectionManager.readDirectory(tabId, newState.currentPath).then(files => {
+          sftpConnectionManager.readDirectory(tabId, currentState.currentPath)
+            .then(files => {
               if (mountedRef.current) {
                 updateTabState({ fileList: files });
               }
-            }).catch(error => {
+            })
+            .catch(error => {
               console.error('[FileBrowser] 重新加载目录失败:', error);
             });
-          }
         }
       }
     };
@@ -264,7 +271,7 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
     return () => {
       eventBus.off('tab-change', handleTabChange);
     };
-  }, [tabId, getTabState, updateTabState]);
+  }, [tabId, sessionInfo?.id, initConnection, updateTabState]);
 
   if (!sessionInfo || !tabState) {
     return (

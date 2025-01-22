@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tabs, Badge } from 'antd';
 import type { SessionInfo } from '../../../main/services/storage';
 import Terminal from '../Terminal';
@@ -29,6 +29,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
   const [activeKey, setActiveKey] = useState<string>();
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
   const [mounted, setMounted] = useState(false);
+  const tabUpdateRef = useRef(false);
 
   // 初始化默认标签页
   useEffect(() => {
@@ -79,9 +80,21 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
 
   // 监听 triggerNewTab 的变化来创建新标签页
   useEffect(() => {
-    if (mounted && sessionInfo && triggerNewTab) {
+    if (mounted && sessionInfo && triggerNewTab && !tabUpdateRef.current) {
+      console.log('[TerminalTabs] 触发新标签页创建:', { sessionInfo });
+      tabUpdateRef.current = true;
+      
+      // 生成唯一的实例ID和标签ID
       const instanceId = Date.now().toString();
       const tabId = `tab-${instanceId}`;
+      const shellId = `${sessionInfo.id}-${instanceId}`;
+
+      // 先清理可能存在的临时状态
+      const tempTabId = `temp-${sessionInfo.id}`;
+      eventBus.removeTab(tempTabId);
+      sftpConnectionManager.closeConnection(tempTabId);
+
+      // 创建新标签页
       const newTab = {
         key: String(tabs.length + 1),
         title: sessionInfo.name || `终端 ${tabs.length + 1}`,
@@ -95,16 +108,26 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
       setTabs(prev => [...prev, newTab]);
       setActiveKey(newTab.key);
 
-      // 设置 shellId 和触发事件
-      const shellId = `${sessionInfo.id}-${instanceId}`;
       // 先设置 tabId 和 shellId
       eventBus.setCurrentTabId(tabId);
       eventBus.setCurrentShellId(shellId);
-      // 再触发事件
-      eventBus.emit('tab-change', { shellId, tabId });
+      
+      // 再触发事件，确保包含完整的会话信息
+      eventBus.emit('tab-change', { 
+        shellId, 
+        tabId, 
+        sessionInfo 
+      });
+      
+      console.log('[TerminalTabs] 新标签页创建完成:', { tabId, shellId, sessionInfo });
       onTabChange?.(sessionInfo);
+      
+      // 重置标记
+      setTimeout(() => {
+        tabUpdateRef.current = false;
+      }, 0);
     }
-  }, [triggerNewTab, sessionInfo]);
+  }, [triggerNewTab, sessionInfo, mounted, tabs.length, onTabChange]);
 
   // 监听连接状态变化
   useEffect(() => {
@@ -127,7 +150,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
   }, []);
 
   // 处理标签页切换
-  const handleTabChange = (activeKey: string) => {
+  const handleTabChange = useCallback((activeKey: string) => {
     console.log('[TerminalTabs] 切换标签页:', activeKey);
     setActiveKey(activeKey);
 
@@ -146,7 +169,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
     } else {
       console.log('[TerminalTabs] 未找到标签页或会话信息:', activeKey);
     }
-  };
+  }, [tabs, onTabChange]);
 
   // 编辑标签页（添加/删除）
   const onEdit = (targetKey: React.MouseEvent | React.KeyboardEvent | string, action: 'add' | 'remove') => {
@@ -213,13 +236,17 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
   }
 
   return (
-    <div className="terminal-tabs" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div 
+      className="terminal-tabs" 
+      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+    >
       <div className="terminal-tabs-nav">
         <Tabs
           type="editable-card"
           onChange={handleTabChange}
           activeKey={activeKey}
           onEdit={onEdit}
+          animated={false}
           items={tabs.map(tab => ({
             key: tab.key,
             label: (
@@ -239,7 +266,8 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
             key={tab.key} 
             style={{ 
               height: '100%', 
-              display: activeKey === tab.key ? 'block' : 'none' 
+              display: activeKey === tab.key ? 'block' : 'none',
+              position: 'relative'
             }}
           >
             <Terminal 
