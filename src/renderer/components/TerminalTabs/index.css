@@ -64,6 +64,15 @@
   height: 36px !important;
   line-height: 20px !important;
   border-right: 1px solid #e5e5e5 !important;
+  max-width: 200px !important;
+  min-width: 100px !important;
+}
+
+.terminal-tabs-nav .ant-tabs-tab-btn {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .terminal-tabs-nav .ant-tabs-tab-active {
@@ -92,6 +101,8 @@
 .terminal-tabs-header {
   display: flex;
   align-items: center;
+  width: calc(100% - 40px); /* 减去 AI 助手折叠时的宽度 */
+  overflow: hidden;
 }
 
 .session-list-btn {
@@ -119,6 +130,10 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tab-badge .ant-badge-status-dot {
@@ -127,7 +142,12 @@
   margin-right: 8px;
 }
 
-/* 确保Tabs组件占满剩余空间 */
+/* 确保标签页不会超出容器 */
 .terminal-tabs-header .ant-tabs {
   flex: 1;
+  min-width: 0; /* 允许 flex 子项收缩到比内容更小 */
+}
+
+.terminal-tabs-header .ant-tabs-nav {
+  width: 100%;
 } 
