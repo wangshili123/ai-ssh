@@ -21,6 +21,8 @@ import { eventBus } from '../../services/eventBus';
 
 interface AIAssistantProps {
   sessionId?: string;
+  isCollapsed?: boolean;
+  onCollapse?: (collapsed: boolean) => void;
 }
 
 export enum AssistantMode {
@@ -29,7 +31,7 @@ export enum AssistantMode {
   AGENT = 'AGENT'
 }
 
-const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
+const AIAssistant = ({ sessionId, isCollapsed = false, onCollapse }: AIAssistantProps): JSX.Element => {
   // 获取初始模式
   const getInitialMode = (): AssistantMode => {
     const savedMode = localStorage.getItem('ai-assistant-mode');
@@ -52,7 +54,6 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<AssistantMode>(getInitialMode());
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // 为每个模式维护独立的消息记录
   const [commandMessages, setCommandMessages] = useState<Message[]>([]);
@@ -314,7 +315,7 @@ const AIAssistant = ({ sessionId }: AIAssistantProps): JSX.Element => {
       <Button
         className="collapse-button"
         icon={isCollapsed ? <RightOutlined /> : <LeftOutlined />}
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={() => onCollapse?.(!isCollapsed)}
       />
       {!isCollapsed && (
         <>

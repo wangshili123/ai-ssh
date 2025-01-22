@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [fileBrowserHeight, setFileBrowserHeight] = useState(300);
   const [aiSiderWidth, setAiSiderWidth] = useState(400);
   const [currentTabId, setCurrentTabId] = useState<string>('');
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // 监听标签页变化
   useEffect(() => {
@@ -144,21 +145,21 @@ const App: React.FC = () => {
           </Resizable>
         </Content>
         
-        <Resizable
-          size={{ width: aiSiderWidth }}
-          onResizeStop={(e, direction, ref, d) => {
-            setAiSiderWidth(aiSiderWidth + d.width);
-          }}
-          minWidth={300}
-          maxWidth={800}
-          enable={{ left: true }}
+        <Sider 
+          width={aiSiderWidth} 
+          collapsedWidth={40}
+          collapsed={isCollapsed}
+          className="ai-sider"
+          trigger={null}
         >
-          <Sider width={aiSiderWidth} className="ai-sider">
-            <div className="ai-assistant-container">
-              <AIAssistant sessionId={sessionMap[eventBus.getCurrentTabId() || '']?.id} />
-            </div>
-          </Sider>
-        </Resizable>
+          <div className="ai-assistant-container">
+            <AIAssistant 
+              sessionId={sessionMap[eventBus.getCurrentTabId() || '']?.id} 
+              isCollapsed={isCollapsed}
+              onCollapse={setIsCollapsed}
+            />
+          </div>
+        </Sider>
       </Layout>
       <AppStatusBar />
     </Layout>
