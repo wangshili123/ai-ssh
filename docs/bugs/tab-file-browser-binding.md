@@ -132,6 +132,6 @@ class SftpConnectionManager {
 
 ## 修改步骤
 1. 修改 `SessionList/index.tsx`,移除 tabId 创建逻辑
-2. 修改 `TerminalTabs/index.tsx` 中的事件处理,移除 shellId
+2. 修改 `TerminalTabs/index.tsx` 中的事件处理
 3. 更新 `NewFileBrowser.tsx` 中的状态管理逻辑
 4. 修改 `sftpConnectionManager` 的连接管理逻辑 
