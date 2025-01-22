@@ -18,69 +18,97 @@ const App: React.FC = () => {
   const [triggerNewTab, setTriggerNewTab] = useState(0);
   const [fileBrowserHeight, setFileBrowserHeight] = useState(300);
   const [aiAssistantHeight, setAIAssistantHeight] = useState(200);
+  const [currentTabId, setCurrentTabId] = useState<string>('');
 
-  // // 监听标签页变化
-  // useEffect(() => {
-  //   console.log('[App] 监听标签页变化');
-  //   eventBus.debugState();
+  // 监听标签页变化
+  useEffect(() => {
+    const handleTabIdChanged = (tabId: string) => {
+      console.log('[App] 标签页ID变化:', tabId);
+      setCurrentTabId(tabId);
+    };
 
-  //   eventBus.on('tab-change', handleTabChange);
-  //   return () => {
-  //     eventBus.off('tab-change', handleTabChange);
-  //   };
-  // }, []);
+    eventBus.on('tabIdChanged', handleTabIdChanged);
+    return () => {
+      eventBus.off('tabIdChanged', handleTabIdChanged);
+    };
+  }, []);
 
-    // 处理标签页切换
-    const handleTabChange = useCallback((session: SessionInfo) => {
-      // 当从会话列表选择会话时，触发新标签创建
-      setActiveSession(session);
-      setCurrentTabSession(session);
+  // 处理标签页切换
+  const handleTabChange = useCallback((info: TabInfo | SessionInfo) => {
+    console.log('[App] 标签页变化:', info);
+    
+    // 如果是从会话列表选择的会话
+    if ('id' in info && !('tabId' in info)) {
+      // 这是一个新的会话选择
+      setActiveSession(info);
       setTriggerNewTab(prev => prev + 1);
-    }, []);
       
-  // const handleTabChange = (info: TabInfo) => {
-  //   console.log('[App] 标签页变化:', info);
-  //   if (info.sessionInfo) {
-  //     setActiveSession(info.sessionInfo);
-  //     setCurrentTabSession(info.sessionInfo);
-  //     setTriggerNewTab(prev => prev + 1);
-      
-  //     console.log('[App] 更新标签页会话:', info.tabId, info.sessionInfo);
-  //     setSessionMap(prev => {
-  //       const newMap = { ...prev };
-  //       newMap[info.tabId] = info.sessionInfo as SessionInfo;
-  //       return newMap;
-  //     });
-  //   } else {
-  //     console.log('[App] 标签页变化事件中没有sessionInfo');
-  //     const session = eventBus.getTabInfo(info.tabId)?.sessionInfo;
-  //     console.log('[App] 从tabInfo获取会话:', session);
-  //     if (session) {
-  //       setSessionMap(prev => {
-  //         const newMap = { ...prev };
-  //         newMap[info.tabId] = session;
-  //         return newMap;
-  //       });
-  //     }
-  //   }
-  // };
+      // 更新会话映射（使用临时ID）
+      const tempTabId = `temp-${info.id}`;
+      setSessionMap(prev => {
+        const newMap = { ...prev };
+        newMap[tempTabId] = info;
+        return newMap;
+      });
+
+      // 监听一次性的 tab-change 事件，用于更新新标签页的映射
+      const handleNewTab = (tabInfo: TabInfo) => {
+        const sessionInfo = tabInfo.sessionInfo;
+        if (sessionInfo && 'id' in sessionInfo && sessionInfo.id === info.id) {
+          console.log('[App] 新标签页创建完成，更新映射:', tabInfo);
+          setSessionMap(prev => {
+            const newMap = { ...prev };
+            // 删除临时映射
+            delete newMap[tempTabId];
+            // 添加新的映射
+            newMap[tabInfo.tabId] = sessionInfo;
+            return newMap;
+          });
+          // 移除监听器
+          eventBus.off('tab-change', handleNewTab);
+        }
+      };
+      eventBus.on('tab-change', handleNewTab);
+    } 
+    // 如果是标签页切换事件
+    else if ('tabId' in info) {
+      const tabInfo = info as TabInfo;
+      const sessionInfo = tabInfo.sessionInfo;
+      if (sessionInfo && 'id' in sessionInfo) {
+        setActiveSession(sessionInfo);
+        
+        // 更新会话映射
+        setSessionMap(prev => {
+          const newMap = { ...prev };
+          // 确保当前标签页的会话信息存在于映射中
+          newMap[tabInfo.tabId] = sessionInfo;
+          return newMap;
+        });
+      }
+    }
+  }, []);
 
   // 渲染文件浏览器
-  const renderFileBrowser = () => {
-    const currentTabId = eventBus.getCurrentTabId() || '';
+  const renderFileBrowser = useCallback(() => {
+    console.log('[App] 渲染文件浏览器:', { currentTabId, sessionMap });
     
     return (
-      <div className="file-browser-instances">
+      <div className="file-browser-instances" style={{ position: 'relative', height: '100%' }}>
         {Object.entries(sessionMap).map(([tabId, session]) => (
           <div
             key={tabId}
             style={{
               height: '100%',
+              width: '100%',
+              position: 'absolute',
+              top: 0,
+              left: 0,
               display: currentTabId === tabId ? 'block' : 'none',
-              position: 'relative'
+              backgroundColor: '#fff'
             }}
           >
             <NewFileBrowser
+              key={tabId}
               sessionInfo={session}
               tabId={tabId}
             />
@@ -88,7 +116,7 @@ const App: React.FC = () => {
         ))}
       </div>
     );
-  };
+  }, [sessionMap, currentTabId]);
 
   return (
     <Layout className="app-container">

@@ -171,47 +171,29 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
       // 先设置当前标签页和 shell
       eventBus.setCurrentTabId(tab.tabId);
       eventBus.setCurrentShellId(shellId);
+      setActiveKey(activeKey);
       
-      // 再触发标签页切换事件
+      // 触发标签页切换事件，通知文件浏览器更新显示
       eventBus.emit('tab-change', {
         shellId,
         tabId: tab.tabId,
         sessionInfo: tab.sessionInfo
       });
-      
-      setActiveKey(activeKey);
-      onTabChange?.(tab.sessionInfo);
     }
-  }, [tabs, onTabChange]);
+  }, [tabs]);
 
+  // 处理会话选择
+  const handleSessionSelect = useCallback((session: SessionInfo) => {
+    console.log('[TerminalTabs] 选择会话:', session);
+    // 通知父组件创建新标签
+    onTabChange?.(session);
+  }, [onTabChange]);
 
   // 编辑标签页（添加/删除）
   const onEdit = (targetKey: React.MouseEvent | React.KeyboardEvent | string, action: 'add' | 'remove') => {
     if (action === 'add' && sessionInfo) {
-      const instanceId = Date.now().toString();
-      const tabId = `tab-${instanceId}`;
-      const newTab = {
-        key: String(tabs.length + 1),
-        title: sessionInfo.name || `终端 ${tabs.length + 1}`,
-        sessionInfo,
-        instanceId,
-        tabId,
-        connected: false
-      };
-
-      // 先设置状态
-      const newTabs = [...tabs, newTab];
-      setTabs(newTabs);
-      setActiveKey(newTab.key);
-
-      // 设置 shellId 和触发事件
-      const shellId = `${sessionInfo.id}-${instanceId}`;
-      // 先设置 tabId 和 shellId
-      eventBus.setCurrentTabId(tabId);
-      eventBus.setCurrentShellId(shellId);
-      // 再触发事件
-      eventBus.emit('tab-change', { shellId, tabId, sessionInfo });
-      onTabChange?.(sessionInfo);
+      // 打开会话列表
+      setSessionListVisible(true);
     } else if (action === 'remove' && typeof targetKey === 'string') {
       const tabToRemove = tabs.find(tab => tab.key === targetKey);
       if (tabToRemove) {
@@ -234,7 +216,6 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
               tabId: lastTab.tabId,
               sessionInfo: lastTab.sessionInfo 
             });
-            onTabChange?.(lastTab.sessionInfo);
           }
         }
 
@@ -303,13 +284,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
       <SessionListModal
         visible={sessionListVisible}
         onClose={() => setSessionListVisible(false)}
-        onSelect={(session) => {
-          setSessionListVisible(false);
-          // 只需要通知父组件，让父组件触发新标签的创建
-          if (onTabChange) {
-            onTabChange(session);
-          }
-        }}
+        onSelect={handleSessionSelect}
       />
     </div>
   );

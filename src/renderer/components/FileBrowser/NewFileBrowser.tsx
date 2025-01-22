@@ -9,6 +9,7 @@ import type { SessionInfo } from '../../types';
 import type { FileEntry } from '../../../main/types/file';
 import './NewFileBrowser.css';
 import { eventBus } from '../../services/eventBus';
+import type { TabInfo } from '../../services/eventBus';
 
 interface NewFileBrowserProps {
   sessionInfo?: SessionInfo;
@@ -222,6 +223,27 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
       }
     }
   }, [sessionInfo, tabId, updateTabState]);
+
+  // 监听标签页变化
+  useEffect(() => {
+    if (!mountedRef.current) return;
+
+    const handleTabChange = (info: TabInfo) => {
+      console.log('[FileBrowser] 收到标签页变化事件:', info);
+      if (info.tabId === tabId && info.sessionInfo) {
+        const currentState = tabStates.get(tabId);
+        if (!currentState?.isInitialized || !currentState?.isConnected) {
+          console.log('[FileBrowser] 标签页切换，需要初始化连接');
+          initConnection();
+        }
+      }
+    };
+
+    eventBus.on('tab-change', handleTabChange);
+    return () => {
+      eventBus.off('tab-change', handleTabChange);
+    };
+  }, [tabId, initConnection]);
 
   // 监听会话信息变化
   useEffect(() => {
