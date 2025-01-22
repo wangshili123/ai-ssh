@@ -13,32 +13,37 @@
 
 .app-container {
   height: 100vh;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-content {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: #fff;
 }
 
 .terminal-container {
   flex: 1;
   min-height: 0;
-  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .file-browser-container {
-  height: 100%;
+  width: 100%;
   background: #fff;
-  border-top: 1px solid #d9d9d9;
+  border-top: 1px solid #e8e8e8;
+  overflow: hidden;
 }
 
 .ai-assistant-container {
-  height: 100%;
+  width: 100%;
   background: #fff;
-  border-top: 1px solid #d9d9d9;
+  border-top: 1px solid #e8e8e8;
+  overflow: hidden;
 }
 
 /* 调整分割条样式 */
@@ -54,4 +59,9 @@
 
 .app-content .react-resizable-handle:hover {
   background: #444;
+}
+
+/* 确保状态栏在最底部 */
+.app-status-bar {
+  flex: none;
 } 

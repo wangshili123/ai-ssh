@@ -4,6 +4,7 @@ import { Resizable } from 're-resizable';
 import TerminalTabs from './components/TerminalTabs';
 import NewFileBrowser from './components/FileBrowser/NewFileBrowser';
 import AIAssistant from './components/AIAssistant';
+import AppStatusBar from './components/StatusBar/AppStatusBar';
 import type { SessionInfo } from '../main/services/storage';
 import { eventBus } from './services/eventBus';
 import type { TabInfo } from './services/eventBus';
@@ -156,6 +157,7 @@ const App: React.FC = () => {
           </Resizable>
         </Content>
       </Layout>
+      <AppStatusBar />
     </Layout>
   );
 };

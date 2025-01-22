@@ -1,0 +1,17 @@
+.app-status-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 24px;
+  padding: 0 12px;
+  background-color: #f0f2f5;
+  border-top: 1px solid #e8e8e8;
+  font-size: 12px;
+  color: #595959;
+  user-select: none;
+}
+
+.time-display {
+  color: #262626;
+  font-family: Consolas, monospace;
+} 
