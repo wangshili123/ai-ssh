@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { Table, Spin, message } from 'antd';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
@@ -59,6 +59,27 @@ const FileList: React.FC<FileListProps> = ({
 }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [sortedInfo, setSortedInfo] = useState<SorterResult<FileEntry>>({});
+  const [tableHeight, setTableHeight] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // 监听容器高度变化
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const height = entry.contentRect.height;
+        // 减去表头高度(38px)和一些边距
+        setTableHeight(height - 38);
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   // 使用 debounce 防止频繁读取目录
   const loadDirectory = useCallback(
@@ -210,7 +231,7 @@ const FileList: React.FC<FileListProps> = ({
   }
 
   return (
-    <div className="file-list-container">
+    <div className="file-list-container" ref={containerRef}>
       <Table
         dataSource={fileList}
         columns={columns}
@@ -218,7 +239,8 @@ const FileList: React.FC<FileListProps> = ({
         pagination={false}
         size="small"
         onChange={handleTableChange}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: 'max-content', y: tableHeight }}
+        sticky
       />
     </div>
   );

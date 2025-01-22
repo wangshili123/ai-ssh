@@ -14,7 +14,6 @@
   overflow: auto;
   flex-shrink: 0;
   background-color: #fff;
-  transition: all 0.3s ease;
 }
 
 .file-browser-content {
@@ -24,29 +23,76 @@
   flex-direction: column;
   overflow: hidden;
   background-color: #fff;
-  transition: all 0.3s ease;
+}
+
+.file-browser-navigation {
+  flex-shrink: 0;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 8px;
+}
+
+.file-browser-files {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.file-browser-files .file-list-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-browser-files .ant-table-wrapper {
+  flex: 1;
+  min-height: 0;
+}
+
+.file-browser-files .ant-table {
+  height: 100%;
+}
+
+.file-browser-files .ant-table-container {
+  height: 100%;
+}
+
+.file-browser-files .ant-table-header {
+  background: #fafafa;
+}
+
+.file-browser-files .ant-table-body {
+  height: calc(100% - 38px) !important;
+  overflow-y: auto !important;
 }
 
 /* 滚动条样式 */
 .file-browser-sider::-webkit-scrollbar,
-.file-browser-content::-webkit-scrollbar {
+.file-browser-content::-webkit-scrollbar,
+.file-browser-files .ant-table-body::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 .file-browser-sider::-webkit-scrollbar-track,
-.file-browser-content::-webkit-scrollbar-track {
+.file-browser-content::-webkit-scrollbar-track,
+.file-browser-files .ant-table-body::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
 
 .file-browser-sider::-webkit-scrollbar-thumb,
-.file-browser-content::-webkit-scrollbar-thumb {
+.file-browser-content::-webkit-scrollbar-thumb,
+.file-browser-files .ant-table-body::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
 }
 
 .file-browser-sider::-webkit-scrollbar-thumb:hover,
-.file-browser-content::-webkit-scrollbar-thumb:hover {
+.file-browser-content::-webkit-scrollbar-thumb:hover,
+.file-browser-files .ant-table-body::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
 
