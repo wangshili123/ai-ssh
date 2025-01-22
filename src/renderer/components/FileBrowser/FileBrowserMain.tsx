@@ -10,7 +10,7 @@ import {
   FolderOutlined,
   FileOutlined,
 } from '@ant-design/icons';
-import DirectoryTreeComponent from './DirectoryTree/DirectoryTreeComponent';
+import DirectoryTree from './DirectoryTree';
 import { sftpConnectionManager } from '../../services/sftpConnectionManager';
 import type { FileEntry } from '../../../main/types/file';
 import './FileBrowserMain.css';
@@ -374,7 +374,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
   // 渲染目录树
   const renderDirectoryTree = () => {
     return (
-      <DirectoryTreeComponent
+      <DirectoryTree
         sessionInfo={sessionInfo}
         tabId={tabId}
         treeData={treeData}
