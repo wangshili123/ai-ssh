@@ -45,21 +45,21 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
   // 初始化默认标签页
   useEffect(() => {
     if (!mounted) {
-      console.log('[TerminalTabs] 初始化默认标签页');
-      eventBus.debugState();
+      // console.log('[TerminalTabs] 初始化默认标签页');
+      // eventBus.debugState();
 
-      const instanceId = Date.now().toString();
-      const tabId = `tab-${instanceId}`;
+      // const instanceId = Date.now().toString();
+      // const tabId = `tab-${instanceId}`;
       // const defaultTab = {
       //   key: '1',
       //   title: sessionInfo?.name || '终端 1',
       //   sessionInfo,
       //   instanceId,
-        tabId,
+      //  tabId,
       //   connected: false
       // };
 
-      console.log('[TerminalTabs] 创建默认标签页:', defaultTab);
+      // console.log('[TerminalTabs] 创建默认标签页:', defaultTab);
 
       // 先设置状态
       // setTabs([defaultTab]);
@@ -68,25 +68,25 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
       // // 如果有会话信息，设置 shellId 和触发事件
       // if (sessionInfo) {
       //   const shellId = `${sessionInfo.id}-${instanceId}`;
-        console.log('[TerminalTabs] 设置初始状态:', { shellId, tabId });
+        // console.log('[TerminalTabs] 设置初始状态:', { shellId, tabId });
         
         // 清理可能存在的临时状态
-        const tempTabId = `temp-${sessionInfo.id}`;
-        eventBus.removeTab(tempTabId);
-        sftpConnectionManager.closeConnection(tempTabId);
+        // const tempTabId = `temp-${sessionInfo.id}`;
+        // eventBus.removeTab(tempTabId);
+        // sftpConnectionManager.closeConnection(tempTabId);
 
         // 先设置 tabId 和 shellId
-        eventBus.setCurrentTabId(tabId);
+        // eventBus.setCurrentTabId(tabId);
       //   eventBus.setCurrentShellId(shellId);
         // 再触发事件
-        eventBus.emit('tab-change', { shellId, tabId, sessionInfo });
+        // eventBus.emit('tab-change', { shellId, tabId, sessionInfo });
       //   onTabChange?.(sessionInfo);
 
       //   console.log('[TerminalTabs] 初始化完成');
       //   eventBus.debugState();
       // }
-      setMounted(true);
     }
+    setMounted(true);
   }, []);
 
   // 监听 triggerNewTab 的变化来创建新标签页
@@ -132,7 +132,6 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
       
       console.log('[TerminalTabs] 新标签页创建完成:', { tabId, shellId, sessionInfo });
       // 设置当前的shellId
-      const shellId = sessionInfo.id + (newTab.instanceId ? `-${newTab.instanceId}` : '');
       eventBus.setCurrentShellId(shellId);
       
       // 重置标记
@@ -185,42 +184,6 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
     }
   }, [tabs, onTabChange]);
 
-  // 处理新建标签页
-  const handleNewTab = useCallback(() => {
-    if (sessionInfo) {
-      const instanceId = Date.now().toString();
-      const tabId = `tab-${instanceId}`;
-      const newTab = {
-        key: String(tabs.length + 1),
-        title: sessionInfo.name || `终端 ${tabs.length + 1}`,
-        sessionInfo,
-        instanceId,
-        tabId,
-        connected: false
-      };
-
-      // 先设置状态
-      setTabs(prev => [...prev, newTab]);
-      setActiveKey(newTab.key);
-
-      // 设置 shellId 和触发事件
-      const shellId = `${sessionInfo.id}-${instanceId}`;
-      
-      // 先触发新标签页创建事件
-      eventBus.emit('tab-create', {
-        shellId,
-        tabId,
-        sessionInfo,
-        isNew: true
-      });
-
-      // 再设置当前标签页和 shell
-      eventBus.setCurrentTabId(tabId);
-      eventBus.setCurrentShellId(shellId);
-      
-      onTabChange?.(sessionInfo);
-    }
-  }, [sessionInfo, tabs.length, onTabChange]);
 
   // 编辑标签页（添加/删除）
   const onEdit = (targetKey: React.MouseEvent | React.KeyboardEvent | string, action: 'add' | 'remove') => {
