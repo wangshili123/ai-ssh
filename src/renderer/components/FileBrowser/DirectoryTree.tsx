@@ -88,13 +88,6 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
     const checkConnection = () => {
       const connection = sftpConnectionManager.getConnection(tabId);
       const newConnected = !!connection;
-      console.log('[DirectoryTree] 检查连接状态:', { 
-        tabId, 
-        hasConnection: newConnected, 
-        currentConnected: isConnected,
-        treeDataLength: treeData.length
-      });
-
       if (newConnected !== isConnected) {
         setIsConnected(newConnected);
         if (newConnected && treeData.length === 0) {
