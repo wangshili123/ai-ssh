@@ -88,35 +88,10 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // 渲染文件浏览器
-  const renderFileBrowser = useCallback(() => {
-    console.log('[App] 渲染文件浏览器:', { currentTabId, sessionMap });
-    
-    return (
-      <div className="file-browser-instances" style={{ position: 'relative', height: '100%' }}>
-        {Object.entries(sessionMap).map(([tabId, session]) => (
-          <div
-            key={tabId}
-            style={{
-              height: '100%',
-              width: '100%',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              display: currentTabId === tabId ? 'block' : 'none',
-              backgroundColor: '#fff'
-            }}
-          >
-            <NewFileBrowser
-              key={tabId}
-              sessionInfo={session}
-              tabId={tabId}
-            />
-          </div>
-        ))}
-      </div>
-    );
-  }, [sessionMap, currentTabId]);
+  // 处理文件浏览器高度变化
+  const handleFileBrowserResize = useCallback((height: number) => {
+    document.documentElement.style.setProperty('--file-browser-height', `${height}px`);
+  }, []);
 
   return (
     <Layout className="app-container">
@@ -131,6 +106,9 @@ const App: React.FC = () => {
           </div>
           <Resizable
             size={{ height: fileBrowserHeight, width: '100%' }}
+            onResize={(e, direction, ref) => {
+              handleFileBrowserResize(ref.offsetHeight);
+            }}
             onResizeStop={(e, direction, ref, d) => {
               setFileBrowserHeight(fileBrowserHeight + d.height);
             }}
@@ -138,8 +116,29 @@ const App: React.FC = () => {
             maxHeight={800}
             enable={{ top: true }}
           >
-            <div className="file-browser-container">
-              {renderFileBrowser()}
+            <div className="file-browser-container" style={{ height: 'var(--file-browser-height, 300px)' }}>
+              <div className="file-browser-instances" style={{ position: 'relative', height: '100%' }}>
+                {Object.entries(sessionMap).map(([tabId, session]) => (
+                  <div
+                    key={tabId}
+                    style={{
+                      height: '100%',
+                      width: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      display: eventBus.getCurrentTabId() === tabId ? 'block' : 'none',
+                      backgroundColor: '#fff'
+                    }}
+                  >
+                    <NewFileBrowser
+                      key={tabId}
+                      sessionInfo={session}
+                      tabId={tabId}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </Resizable>
           <Resizable
