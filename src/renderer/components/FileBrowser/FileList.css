@@ -7,7 +7,7 @@
 
 .file-list-container .ant-table-wrapper {
   flex: 1;
-  overflow: hidden;
+  height: 100%;
 }
 
 .file-list-container .ant-table {
@@ -25,22 +25,27 @@
 }
 
 .file-list-container .ant-table-body {
-  flex: 1;
+  height: 100%;
+  max-height: unset !important;
   overflow-y: auto !important;
 }
 
 /* 自定义滚动条样式 */
-.file-list-container::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.file-list-container .ant-table-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.file-list-container::-webkit-scrollbar-thumb {
+.file-list-container .ant-table-body::-webkit-scrollbar-thumb {
   background: #ccc;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
-.file-list-container::-webkit-scrollbar-track {
+.file-list-container .ant-table-body::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.file-list-container .ant-table-body::-webkit-scrollbar-corner {
   background: #f0f0f0;
 }
 
@@ -71,6 +76,13 @@
 }
 
 /* 加载状态样式 */
+.file-list-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
 .file-list-loading .ant-spin {
   margin: 20px 0;
 } 

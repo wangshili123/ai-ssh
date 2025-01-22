@@ -6,6 +6,7 @@ import debounce from 'lodash/debounce';
 import dayjs from 'dayjs';
 import { sftpConnectionManager } from '../../services/sftpConnectionManager';
 import { eventBus } from '../../services/eventBus';
+import { getUserName, getGroupName } from '../../utils';
 import type { FileEntry } from '../../../main/types/file';
 import type { SessionInfo } from '../../types';
 import './FileList.css';
@@ -192,8 +193,8 @@ const FileList: React.FC<FileListProps> = ({
       title: '用户/组',
       key: 'ownership',
       render: (_: unknown, record: FileEntry) => {
-        const owner = record.owner?.toString() || '-';
-        const group = record.group?.toString() || '-';
+        const owner = record.owner !== undefined ? getUserName(record.owner) : '-';
+        const group = record.group !== undefined ? getGroupName(record.group) : '-';
         return `${owner}/${group}`;
       },
       width: 120,
