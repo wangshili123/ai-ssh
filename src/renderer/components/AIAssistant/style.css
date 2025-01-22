@@ -168,6 +168,10 @@
   border-color: #d9d9d9;
   resize: none;
   font-size: 13px;
+  height: 60px;
+  min-height: 60px;
+  padding: 8px 12px;
+  line-height: 1.5;
 }
 
 .button-wrapper {

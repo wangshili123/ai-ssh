@@ -162,7 +162,7 @@ const App: React.FC = () => {
                 const handleMouseMove = (moveEvent: MouseEvent) => {
                   if (!isCollapsed) {
                     const deltaX = startX - moveEvent.clientX;
-                    const newWidth = Math.min(Math.max(300, startWidth + deltaX), 800);
+                    const newWidth = Math.min(Math.max(370, startWidth + deltaX), 800);
                     setAiSiderWidth(newWidth);
                   }
                 };
