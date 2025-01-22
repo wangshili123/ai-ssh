@@ -1,0 +1,14 @@
+.session-list-modal .ant-modal-body {
+  overflow: auto;
+}
+
+.session-list-modal .ant-modal-content {
+  height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.session-list-modal .ant-modal-body {
+  flex: 1;
+  overflow: auto;
+} 

@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Layout, Empty } from 'antd';
 import { Resizable } from 're-resizable';
-import SessionList from './components/SessionList';
 import TerminalTabs from './components/TerminalTabs';
 import FileBrowserMain from './components/FileBrowser/FileBrowserMain';
 import AIAssistant from './components/AIAssistant';
@@ -11,12 +10,11 @@ import { eventBus } from './services/eventBus';
 import type { TabInfo } from './services/eventBus';
 import './App.css';
 
-const { Sider, Content } = Layout;
+const { Content } = Layout;
 
 const App: React.FC = () => {
   const [activeSession, setActiveSession] = useState<SessionInfo>();
   const [sessionMap, setSessionMap] = useState<Record<string, SessionInfo>>({});
-  const [siderWidth, setSiderWidth] = useState(300);
   const [triggerNewTab, setTriggerNewTab] = useState(0);
   const [fileBrowserHeight, setFileBrowserHeight] = useState(300);
   const [aiAssistantHeight, setAIAssistantHeight] = useState(200);
@@ -60,6 +58,12 @@ const App: React.FC = () => {
     return () => {
       eventBus.off('tab-change', handleTabChange);
     };
+  // 处理标签页切换
+  const handleTabChange = useCallback((session: SessionInfo) => {
+    // 当从会话列表选择会话时，触发新标签创建
+    setActiveSession(session);
+    setCurrentTabSession(session);
+    setTriggerNewTab(prev => prev + 1);
   }, []);
 
   // 渲染文件浏览器

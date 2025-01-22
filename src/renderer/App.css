@@ -16,61 +16,29 @@
   overflow: hidden;
 }
 
-.app-sider {
-  height: 100%;
-  background: #fff;
-  border-right: 1px solid #e8e8e8;
-}
-
-.toolbar {
-  padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
-  background: #fafafa;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.toolbar .ant-btn {
-  height: 32px;
-  padding: 4px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.toolbar .ant-btn:hover {
-  color: #1890ff;
-  background: rgba(24, 144, 255, 0.1);
-}
-
-.toolbar .anticon {
-  font-size: 16px;
-}
-
 .app-content {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  position: relative;
+  background: #fff;
 }
 
 .terminal-container {
   flex: 1;
   min-height: 0;
-  background: #1e1e1e;
+  position: relative;
 }
 
 .file-browser-container {
   height: 100%;
-  background: #1e1e1e;
-  border-top: 1px solid #333;
+  background: #fff;
+  border-top: 1px solid #d9d9d9;
 }
 
 .ai-assistant-container {
   height: 100%;
-  background: #1e1e1e;
-  border-top: 1px solid #333;
+  background: #fff;
+  border-top: 1px solid #d9d9d9;
 }
 
 /* 调整分割条样式 */

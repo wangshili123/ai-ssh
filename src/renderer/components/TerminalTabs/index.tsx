@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Tabs, Badge } from 'antd';
+import { Tabs, Badge, Button } from 'antd';
+import { FolderOutlined } from '@ant-design/icons';
 import type { SessionInfo } from '../../../main/services/storage';
 import Terminal from '../Terminal';
+import SessionListModal from '../SessionListModal';
 import { eventBus } from '../../services/eventBus';
 import { sftpConnectionManager } from '../../services/sftpConnectionManager';
 import { generateUniqueId } from '../../utils';
@@ -38,6 +40,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
   const tabUpdateRef = useRef(false);
   const [activeTab, setActiveTab] = useState<string>('');
   const [tabState, setTabState] = useState<Record<string, TabState>>({});
+  const [sessionListVisible, setSessionListVisible] = useState(false);
 
   // 初始化默认标签页
   useEffect(() => {
@@ -47,24 +50,24 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
 
       const instanceId = Date.now().toString();
       const tabId = `tab-${instanceId}`;
-      const defaultTab = {
-        key: '1',
-        title: sessionInfo?.name || '终端 1',
-        sessionInfo,
-        instanceId,
+      // const defaultTab = {
+      //   key: '1',
+      //   title: sessionInfo?.name || '终端 1',
+      //   sessionInfo,
+      //   instanceId,
         tabId,
-        connected: false
-      };
+      //   connected: false
+      // };
 
       console.log('[TerminalTabs] 创建默认标签页:', defaultTab);
 
       // 先设置状态
-      setTabs([defaultTab]);
-      setActiveKey(defaultTab.key);
+      // setTabs([defaultTab]);
+      // setActiveKey(defaultTab.key);
 
-      // 如果有会话信息，设置 shellId 和触发事件
-      if (sessionInfo) {
-        const shellId = `${sessionInfo.id}-${instanceId}`;
+      // // 如果有会话信息，设置 shellId 和触发事件
+      // if (sessionInfo) {
+      //   const shellId = `${sessionInfo.id}-${instanceId}`;
         console.log('[TerminalTabs] 设置初始状态:', { shellId, tabId });
         
         // 清理可能存在的临时状态
@@ -74,14 +77,14 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
 
         // 先设置 tabId 和 shellId
         eventBus.setCurrentTabId(tabId);
-        eventBus.setCurrentShellId(shellId);
+      //   eventBus.setCurrentShellId(shellId);
         // 再触发事件
         eventBus.emit('tab-change', { shellId, tabId, sessionInfo });
-        onTabChange?.(sessionInfo);
+      //   onTabChange?.(sessionInfo);
 
-        console.log('[TerminalTabs] 初始化完成');
-        eventBus.debugState();
-      }
+      //   console.log('[TerminalTabs] 初始化完成');
+      //   eventBus.debugState();
+      // }
       setMounted(true);
     }
   }, []);
@@ -104,7 +107,7 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
 
       // 创建新标签页
       const newTab = {
-        key: String(tabs.length + 1),
+        key: String(Date.now()), // 使用时间戳作为唯一key
         title: sessionInfo.name || `终端 ${tabs.length + 1}`,
         sessionInfo,
         instanceId,
@@ -128,7 +131,9 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
       });
       
       console.log('[TerminalTabs] 新标签页创建完成:', { tabId, shellId, sessionInfo });
-      onTabChange?.(sessionInfo);
+      // 设置当前的shellId
+      const shellId = sessionInfo.id + (newTab.instanceId ? `-${newTab.instanceId}` : '');
+      eventBus.setCurrentShellId(shellId);
       
       // 重置标记
       setTimeout(() => {
@@ -287,24 +292,33 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
     >
       <div className="terminal-tabs-nav">
-        <Tabs
-          type="editable-card"
-          onChange={handleTabChange}
-          activeKey={activeKey}
-          onEdit={onEdit}
-          animated={false}
+        <div className="terminal-tabs-header">
+          <Button
+            type="text"
+            icon={<FolderOutlined />}
+            onClick={() => setSessionListVisible(true)}
+            className="session-list-btn"
+          />
+          <Tabs
+            type="editable-card"
+            onChange={handleTabChange}
+            activeKey={activeKey}
+            onEdit={onEdit}
+            hideAdd={true}
+            animated={false}
           items={tabs.map(tab => ({
-            key: tab.key,
-            label: (
-              <Badge 
-                status={tab.connected ? 'success' : 'error'} 
-                text={tab.title} 
-                className="tab-badge"
-              />
-            ),
-            children: null
-          }))}
-        />
+              key: tab.key,
+              label: (
+                <Badge 
+                  status={tab.connected ? 'success' : 'error'} 
+                  text={tab.title} 
+                  className="tab-badge"
+                />
+              ),
+              children: null
+            }))}
+          />
+        </div>
       </div>
       <div className="terminal-tabs-content">
         {tabs.map(tab => (
@@ -323,6 +337,17 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
           </div>
         ))}
       </div>
+      <SessionListModal
+        visible={sessionListVisible}
+        onClose={() => setSessionListVisible(false)}
+        onSelect={(session) => {
+          setSessionListVisible(false);
+          // 只需要通知父组件，让父组件触发新标签的创建
+          if (onTabChange) {
+            onTabChange(session);
+          }
+        }}
+      />
     </div>
   );
 };
