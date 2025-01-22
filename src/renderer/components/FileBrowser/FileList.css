@@ -1,0 +1,56 @@
+.file-list-container {
+  height: 100%;
+  overflow: auto;
+  padding: 8px;
+  background: #fff;
+}
+
+.file-list-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  background: #fff;
+}
+
+/* 自定义滚动条样式 */
+.file-list-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.file-list-container::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.file-list-container::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+/* 表格样式优化 */
+.file-list-container .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 500;
+  padding: 8px 16px;
+}
+
+.file-list-container .ant-table-tbody > tr > td {
+  padding: 8px 16px;
+}
+
+.file-list-container .ant-table-tbody > tr:hover > td {
+  background: #f5f5f5;
+}
+
+/* 文件图标样式 */
+.file-list-container .ant-table-tbody > tr > td span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 加载状态样式 */
+.file-list-loading .ant-spin {
+  margin: 20px 0;
+} 

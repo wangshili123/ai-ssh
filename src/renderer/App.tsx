@@ -1,19 +1,21 @@
-import React, { useState, useCallback } from 'react';
-import { Layout } from 'antd';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Layout, Empty } from 'antd';
 import { Resizable } from 're-resizable';
 import SessionList from './components/SessionList';
 import TerminalTabs from './components/TerminalTabs';
 import FileBrowserMain from './components/FileBrowser/FileBrowserMain';
 import AIAssistant from './components/AIAssistant';
+import NewFileBrowser from './components/FileBrowser/NewFileBrowser';
 import type { SessionInfo } from '../main/services/storage';
 import { eventBus } from './services/eventBus';
+import type { TabInfo } from './services/eventBus';
 import './App.css';
 
 const { Sider, Content } = Layout;
 
 const App: React.FC = () => {
   const [activeSession, setActiveSession] = useState<SessionInfo>();
-  const [currentTabSession, setCurrentTabSession] = useState<SessionInfo>();
+  const [sessionMap, setSessionMap] = useState<Record<string, SessionInfo>>({});
   const [siderWidth, setSiderWidth] = useState(300);
   const [triggerNewTab, setTriggerNewTab] = useState(0);
   const [fileBrowserHeight, setFileBrowserHeight] = useState(300);
@@ -22,15 +24,62 @@ const App: React.FC = () => {
   // 处理会话选择
   const handleSessionSelect = useCallback((session: SessionInfo) => {
     setActiveSession(session);
-    setCurrentTabSession(session);
     // 每次选择会话时增加 triggerNewTab 的值，触发新标签页创建
     setTriggerNewTab(prev => prev + 1);
   }, []);
 
-  // 处理标签页切换
-  const handleTabChange = useCallback((session: SessionInfo) => {
-    setCurrentTabSession(session);
+  // 监听标签页变化
+  useEffect(() => {
+    console.log('[App] 监听标签页变化');
+    eventBus.debugState();
+
+    const handleTabChange = (info: TabInfo) => {
+      console.log('[App] 标签页变化:', info);
+      if (info.sessionInfo) {
+        console.log('[App] 更新标签页会话:', info.tabId, info.sessionInfo);
+        setSessionMap(prev => {
+          const newMap = { ...prev };
+          newMap[info.tabId] = info.sessionInfo as SessionInfo;
+          return newMap;
+        });
+      } else {
+        console.log('[App] 标签页变化事件中没有sessionInfo');
+        const session = eventBus.getTabInfo(info.tabId)?.sessionInfo;
+        console.log('[App] 从tabInfo获取会话:', session);
+        if (session) {
+          setSessionMap(prev => {
+            const newMap = { ...prev };
+            newMap[info.tabId] = session;
+            return newMap;
+          });
+        }
+      }
+    };
+
+    eventBus.on('tab-change', handleTabChange);
+    return () => {
+      eventBus.off('tab-change', handleTabChange);
+    };
   }, []);
+
+  // 渲染文件浏览器
+  const renderFileBrowser = () => {
+    const tabId = eventBus.getCurrentTabId() || '';
+    const session = tabId ? sessionMap[tabId] : undefined;
+
+    console.log('[App] 渲染文件浏览器:', { 
+      tabId, 
+      session: session?.name,
+      tabInfo: tabId ? eventBus.getTabInfo(tabId) : undefined 
+    });
+
+    return (
+      <NewFileBrowser
+        sessionInfo={session}
+        tabId={tabId}
+      />
+    );
+  };
 
   return (
     <Layout className="app-container">
@@ -55,7 +104,6 @@ const App: React.FC = () => {
             <TerminalTabs 
               sessionInfo={activeSession}
               triggerNewTab={triggerNewTab}
-              onTabChange={handleTabChange}
             />
           </div>
           <Resizable
@@ -68,12 +116,7 @@ const App: React.FC = () => {
             enable={{ top: true }}
           >
             <div className="file-browser-container">
-              {currentTabSession && (
-                <FileBrowserMain 
-                  sessionInfo={currentTabSession}
-                  tabId={eventBus.getCurrentShellId() || ''}
-                />
-              )}
+              {renderFileBrowser()}
             </div>
           </Resizable>
           <Resizable
@@ -86,7 +129,7 @@ const App: React.FC = () => {
             enable={{ top: true }}
           >
             <div className="ai-assistant-container">
-              <AIAssistant sessionId={currentTabSession?.id} />
+              <AIAssistant sessionId={sessionMap[eventBus.getCurrentTabId() || '']?.id} />
             </div>
           </Resizable>
         </Content>

@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Tree, Spin, message } from 'antd';
+import React, { useCallback } from 'react';
+import { Tree, Spin, message, Empty } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import type { Key } from 'antd/es/table/interface';
 import { FolderOutlined } from '@ant-design/icons';
@@ -13,26 +13,31 @@ interface DirectoryTreeProps {
   /**
    * 会话信息
    */
-  sessionInfo: SessionInfo;
+  sessionInfo?: SessionInfo;
   /**
    * 标签页ID
    */
   tabId: string;
   /**
+   * 树形数据
+   */
+  treeData: DataNode[];
+  /**
+   * 展开的节点
+   */
+  expandedKeys: string[];
+  /**
+   * 加载状态
+   */
+  loading: boolean;
+  /**
+   * 展开/收起回调
+   */
+  onExpand: (keys: Key[]) => void;
+  /**
    * 选择目录的回调
    */
   onSelect: (path: string) => void;
-}
-
-/**
- * 将FileEntry转换为Tree节点
- */
-function convertToTreeNode(entry: FileEntry): DataNode {
-  return {
-    key: entry.path,
-    title: entry.name,
-    isLeaf: !entry.isDirectory,
-  };
 }
 
 /**
@@ -41,21 +46,18 @@ function convertToTreeNode(entry: FileEntry): DataNode {
 const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
   sessionInfo,
   tabId,
+  treeData,
+  expandedKeys,
+  loading,
+  onExpand,
   onSelect
 }) => {
-  // 目录树数据
-  const [treeData, setTreeData] = useState<DataNode[]>([]);
-  // 加载状态
-  const [loading, setLoading] = useState(false);
-  // 展开的节点
-  const [expandedKeys, setExpandedKeys] = useState<Key[]>([]);
-  // 连接状态
-  const [isConnected, setIsConnected] = useState(false);
-
   // 加载目录内容
   const loadDirectories = useCallback(async (path: string): Promise<DataNode[]> => {
+    console.log(`[DirectoryTree] 加载目录 - tabId: ${tabId}, path: ${path}`);
     const conn = sftpConnectionManager.getConnection(tabId);
     if (!conn) {
+      console.log(`[DirectoryTree] 未找到连接 - tabId: ${tabId}`);
       return [];
     }
 
@@ -74,61 +76,9 @@ const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
         isLeaf: false,
       }));
 
+    console.log(`[DirectoryTree] 目录加载完成 - tabId: ${tabId}, path: ${path}, count: ${directories.length}`);
     return directories;
   }, [tabId]);
-
-  // 监听连接状态
-  useEffect(() => {
-    let mounted = true;
-    const checkConnection = async () => {
-      while (mounted && !isConnected) {
-        const conn = sftpConnectionManager.getConnection(tabId);
-        if (conn) {
-          setIsConnected(true);
-          break;
-        }
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    };
-
-    checkConnection();
-    return () => {
-      mounted = false;
-    };
-  }, [tabId, isConnected]);
-
-  // 初始化根目录
-  useEffect(() => {
-    if (!isConnected) {
-      return;
-    }
-
-    const initRoot = async () => {
-      setLoading(true);
-      try {
-        const rootNodes = await loadDirectories('/');
-        setTreeData([{
-          title: '/',
-          key: '/',
-          icon: <FolderOutlined />,
-          children: rootNodes,
-        }]);
-        setExpandedKeys(['/']);
-      } catch (error) {
-        console.error('加载根目录失败:', error);
-        message.error('加载目录失败: ' + (error as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initRoot();
-  }, [loadDirectories, isConnected]);
-
-  // 处理展开/收起
-  const onExpand = useCallback((keys: Key[]) => {
-    setExpandedKeys(keys);
-  }, []);
 
   // 处理加载数据
   const onLoadData = useCallback(async (node: DataNode) => {
@@ -137,14 +87,16 @@ const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
       return;
     }
 
+    console.log(`[DirectoryTree] 加载节点数据 - tabId: ${tabId}, key: ${key}`);
     try {
       const newNodes = await loadDirectories(key as string);
-      setTreeData(prev => updateTreeData(prev, key as string, newNodes));
+      const updated = updateTreeData(treeData, key as string, newNodes);
+      onExpand([...expandedKeys, key as string]);
     } catch (error) {
-      console.error('加载目录失败:', error);
+      console.error(`[DirectoryTree] 加载节点失败 - tabId: ${tabId}, key: ${key}:`, error);
       message.error('加载目录失败: ' + (error as Error).message);
     }
-  }, [loadDirectories]);
+  }, [loadDirectories, tabId, treeData, expandedKeys, onExpand]);
 
   // 更新树数据的辅助函数
   const updateTreeData = (list: DataNode[], key: string, children: DataNode[]): DataNode[] => {
@@ -167,8 +119,21 @@ const DirectoryTreeComponent: React.FC<DirectoryTreeProps> = ({
 
   // 处理选择
   const handleSelect = useCallback((_: Key[], { node }: { node: DataNode }) => {
+    console.log(`[DirectoryTree] 选择节点 - tabId: ${tabId}, key: ${node.key}`);
     onSelect(node.key as string);
-  }, [onSelect]);
+  }, [onSelect, tabId]);
+
+  // 渲染未连接状态
+  if (!sessionInfo) {
+    return (
+      <div className="directory-tree">
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="请先选择一个会话连接"
+        />
+      </div>
+    );
+  }
 
   return (
     <Spin spinning={loading} tip="加载中...">

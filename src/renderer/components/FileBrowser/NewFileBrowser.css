@@ -1,0 +1,57 @@
+.file-browser-main {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  overflow: hidden;
+  background-color: #fff;
+  position: relative;
+}
+
+.file-browser-sider {
+  width: 300px;
+  height: 100%;
+  border-right: 1px solid #e8e8e8;
+  overflow: auto;
+  flex-shrink: 0;
+  background-color: #fff;
+  transition: all 0.3s ease;
+}
+
+.file-browser-content {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #fff;
+  transition: all 0.3s ease;
+}
+
+/* 滚动条样式 */
+.file-browser-sider::-webkit-scrollbar,
+.file-browser-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.file-browser-sider::-webkit-scrollbar-track,
+.file-browser-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.file-browser-sider::-webkit-scrollbar-thumb,
+.file-browser-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.file-browser-sider::-webkit-scrollbar-thumb:hover,
+.file-browser-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 加载状态和空状态的样式 */
+.file-browser-main .ant-spin,
+.file-browser-main .ant-empty {
+  margin: auto;
+} 

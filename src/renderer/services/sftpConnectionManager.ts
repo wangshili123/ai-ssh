@@ -1,5 +1,6 @@
 import { ipcRenderer } from 'electron';
 import type { SessionInfo } from '../types';
+import type { FileEntry } from '../../main/types/file';
 
 /**
  * SFTP连接信息接口
@@ -8,17 +9,27 @@ export interface SFTPConnection {
   id: string;  // 唯一连接ID
   sessionInfo: SessionInfo;  // 会话信息
   tabId: string;  // 标签页ID
+}
+
+/**
+ * 标签页数据缓存接口
+ */
+interface TabCache {
   currentPath: string;  // 当前路径
   history: string[];  // 浏览历史
+  directoryCache: Map<string, FileEntry[]>;  // 目录路径 -> 文件列表的缓存
+  treeCache: Map<string, FileEntry[]>;  // 目录树缓存，用于保存每个路径的子目录列表
 }
 
 /**
  * SFTP连接管理器
- * 负责管理所有标签页的SFTP连接
+ * 负责管理所有标签页的SFTP连接和数据缓存
  */
 class SFTPConnectionManager {
-  // 存储所有SFTP连接
+  // 存储所有SFTP连接，key 为 tabId
   private connections: Map<string, SFTPConnection> = new Map();
+  // 存储所有标签页的数据缓存，key 为 tabId
+  private tabCaches: Map<string, TabCache> = new Map();
   
   /**
    * 创建新的SFTP连接
@@ -27,10 +38,19 @@ class SFTPConnectionManager {
    * @returns 连接ID
    */
   async createConnection(sessionInfo: SessionInfo, tabId: string): Promise<string> {
-    const connectionId = `sftp-${sessionInfo.id}-${tabId}`;
-    
+    if (!tabId) {
+      throw new Error('tabId 不能为空');
+    }
+
     // 如果已存在相同标签页的连接，先关闭它
-    await this.closeConnection(tabId);
+    const existingConn = this.getConnection(tabId);
+    if (existingConn) {
+      console.log(`[SFTPManager] 关闭已存在的连接 - tabId: ${tabId}`);
+      await this.closeConnection(tabId);
+    }
+
+    console.log(`[SFTPManager] 创建新连接 - tabId: ${tabId}, sessionId: ${sessionInfo.id}`);
+    const connectionId = `sftp-${tabId}`;
     
     // 调用主进程创建SFTP客户端
     const result = await ipcRenderer.invoke('sftp:create-client', connectionId, sessionInfo);
@@ -39,24 +59,94 @@ class SFTPConnectionManager {
     }
     
     // 保存连接信息
-    this.connections.set(connectionId, {
+    const connection: SFTPConnection = {
       id: connectionId,
       sessionInfo,
-      tabId,
+      tabId
+    };
+    
+    // 初始化标签页缓存
+    const cache: TabCache = {
       currentPath: '/',
-      history: ['/']
-    });
+      history: ['/'],
+      directoryCache: new Map(),
+      treeCache: new Map()
+    };
+    
+    this.connections.set(tabId, connection);
+    this.tabCaches.set(tabId, cache);
+    
+    console.log(`[SFTPManager] 连接创建成功 - tabId: ${tabId}, total connections: ${this.connections.size}`);
+    this.debugConnections();
     
     return connectionId;
   }
   
   /**
-   * 获取指定标签页的连接信息
+   * 获取指定标签页的连接
    * @param tabId 标签页ID
+   * @returns 连接信息
    */
   getConnection(tabId: string): SFTPConnection | undefined {
-    return Array.from(this.connections.values())
-      .find(conn => conn.tabId === tabId);
+    return this.connections.get(tabId);
+  }
+
+  /**
+   * 获取标签页的缓存数据
+   * @param tabId 标签页ID
+   */
+  private getTabCache(tabId: string): TabCache {
+    let cache = this.tabCaches.get(tabId);
+    if (!cache) {
+      cache = {
+        currentPath: '/',
+        history: ['/'],
+        directoryCache: new Map(),
+        treeCache: new Map()
+      };
+      this.tabCaches.set(tabId, cache);
+    }
+    return cache;
+  }
+  
+  /**
+   * 读取目录内容
+   * @param tabId 标签页ID
+   * @param path 目录路径
+   * @param forceRefresh 是否强制刷新（不使用缓存）
+   */
+  async readDirectory(tabId: string, path: string, forceRefresh: boolean = false): Promise<FileEntry[]> {
+    const conn = this.getConnection(tabId);
+    if (!conn) {
+      throw new Error('SFTP连接不存在');
+    }
+
+    const cache = this.getTabCache(tabId);
+
+    // 如果不是强制刷新且缓存中有数据，直接返回缓存数据
+    if (!forceRefresh && cache.directoryCache.has(path)) {
+      console.log(`[SFTPManager] 使用缓存数据 - tabId: ${tabId}, path: ${path}`);
+      return cache.directoryCache.get(path)!;
+    }
+
+    // 从服务器读取数据
+    console.log(`[SFTPManager] 从服务器读取数据 - tabId: ${tabId}, path: ${path}`);
+    const result = await ipcRenderer.invoke('sftp:read-directory', conn.id, path);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    // 更新缓存
+    cache.currentPath = path;
+    if (!cache.history.includes(path)) {
+      cache.history.push(path);
+    }
+
+    // 分别缓存完整目录内容和仅包含子目录的树结构
+    cache.directoryCache.set(path, result.data);
+    cache.treeCache.set(path, result.data.filter((entry: FileEntry) => entry.isDirectory));
+
+    return result.data;
   }
   
   /**
@@ -64,40 +154,85 @@ class SFTPConnectionManager {
    * @param tabId 标签页ID
    * @param path 新路径
    */
-  updateCurrentPath(tabId: string, path: string): void {
-    const conn = this.getConnection(tabId);
-    if (conn) {
-      conn.currentPath = path;
-      conn.history.push(path);
-      // 限制历史记录最大数量
-      if (conn.history.length > 50) {
-        conn.history.shift();
-      }
+  updateCurrentPath(tabId: string, path: string) {
+    const cache = this.getTabCache(tabId);
+    cache.currentPath = path;
+    if (!cache.history.includes(path)) {
+      cache.history.push(path);
     }
   }
-  
+
   /**
-   * 关闭SFTP连接
+   * 获取当前路径
    * @param tabId 标签页ID
    */
-  async closeConnection(tabId: string): Promise<void> {
-    const conn = this.getConnection(tabId);
-    if (conn) {
-      const result = await ipcRenderer.invoke('sftp:close-client', conn.id);
-      if (!result.success) {
-        console.error('关闭SFTP连接失败:', result.error);
-      }
-      this.connections.delete(conn.id);
-    }
+  getCurrentPath(tabId: string): string {
+    const cache = this.getTabCache(tabId);
+    return cache.currentPath;
   }
-  
+
   /**
-   * 获取连接的浏览历史
+   * 获取浏览历史
    * @param tabId 标签页ID
    */
   getHistory(tabId: string): string[] {
-    const conn = this.getConnection(tabId);
-    return conn ? [...conn.history] : [];
+    const cache = this.getTabCache(tabId);
+    return [...cache.history];
+  }
+
+  /**
+   * 获取目录树缓存数据
+   * @param tabId 标签页ID
+   * @param path 目录路径
+   */
+  getTreeCache(tabId: string, path: string): FileEntry[] | undefined {
+    const cache = this.getTabCache(tabId);
+    return cache.treeCache.get(path);
+  }
+
+  /**
+   * 清除标签页的缓存数据
+   * @param tabId 标签页ID
+   * @param path 如果指定，只清除特定路径的缓存
+   */
+  clearCache(tabId: string, path?: string) {
+    const cache = this.getTabCache(tabId);
+    if (path) {
+      cache.directoryCache.delete(path);
+      cache.treeCache.delete(path);
+    } else {
+      cache.directoryCache.clear();
+      cache.treeCache.clear();
+    }
+  }
+  
+  /**
+   * 关闭指定标签页的连接
+   * @param tabId 标签页ID
+   */
+  async closeConnection(tabId: string) {
+    const conn = this.connections.get(tabId);
+    if (conn) {
+      console.log(`[SFTPManager] 关闭连接 - tabId: ${tabId}`);
+      await ipcRenderer.invoke('sftp:close-client', conn.id);
+      this.connections.delete(tabId);
+      this.tabCaches.delete(tabId);
+      console.log(`[SFTPManager] 连接已关闭 - tabId: ${tabId}, remaining connections: ${this.connections.size}`);
+    }
+  }
+
+  /**
+   * 调试用：打印当前所有连接
+   */
+  debugConnections() {
+    console.log('[SFTPManager] 当前所有连接:');
+    this.connections.forEach((conn, tabId) => {
+      const cache = this.tabCaches.get(tabId);
+      console.log(`- tabId: ${tabId}`);
+      console.log(`  sessionId: ${conn.sessionInfo.id}`);
+      console.log(`  currentPath: ${cache?.currentPath}`);
+      console.log(`  cached paths: ${Array.from(cache?.directoryCache.keys() || []).join(', ')}`);
+    });
   }
 }
 
