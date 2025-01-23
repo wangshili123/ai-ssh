@@ -19,7 +19,7 @@ const TerminalTabContent: React.FC<TerminalTabContentProps> = ({
   
   return (
     <div className="terminal-tab-content">
-      {/* 终端区域 - 保持现有逻辑不变 */}
+      {/* 终端区域 */}
       <div className="terminal-area">
         <Terminal 
           sessionInfo={sessionInfo} 
@@ -37,7 +37,7 @@ const TerminalTabContent: React.FC<TerminalTabContentProps> = ({
         maxHeight={800}
         enable={{ top: true }}
       >
-        {/* 文件浏览器区域 - 保持现有props不变 */}
+        {/* 文件浏览器区域 */}
         <div className="file-browser-area">
           <FileBrowserMain
             sessionInfo={sessionInfo}

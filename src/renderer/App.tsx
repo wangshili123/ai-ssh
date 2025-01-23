@@ -53,41 +53,6 @@ const App: React.FC = () => {
             triggerNewTab={triggerNewTab}
             onTabChange={handleTabChange}
           />
-          <Resizable
-            size={{ height: fileBrowserHeight, width: '100%' }}
-            onResize={(e, direction, ref) => {
-              handleFileBrowserResize(ref.offsetHeight);
-            }}
-            onResizeStop={(e, direction, ref, d) => {
-              setFileBrowserHeight(fileBrowserHeight + d.height);
-            }}
-            minHeight={100}
-            maxHeight={800}
-            enable={{ top: true }}
-          >
-            <div className="file-browser-container" style={{ height: 'var(--file-browser-height, 300px)' }}>
-              <div className="file-browser-instances" style={{ position: 'relative', height: '100%' }}>
-                <div
-                  style={{
-                    height: '100%',
-                    width: '100%',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    backgroundColor: '#fff'
-                  }}
-                >
-                  {currentTabId && activeSession && (
-                    <FileBrowserMain
-                      key={currentTabId}
-                      sessionInfo={activeSession}
-                      tabId={currentTabId}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          </Resizable>
         </Content>
         
         <Sider 
