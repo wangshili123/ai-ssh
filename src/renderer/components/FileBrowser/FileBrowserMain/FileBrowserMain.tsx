@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Spin } from 'antd';
 import DirectoryTree from '../DirectoryTree/DirectoryTree';
 import FileList from '../FileList/FileList';
+import Navigation from '../Navigation/Navigation';
 import { FileBrowserMainProps, FileBrowserTabState } from './FileBrowserTypes';
 import { FileBrowserStateManager } from './FileBrowserStateManager';
 import { FileBrowserEventHandlers } from './FileBrowserEventHandlers';

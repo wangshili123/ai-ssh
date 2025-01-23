@@ -8,8 +8,26 @@ const fileBrowserTabStates = new Map<string, FileBrowserTabState>();
  */
 export class FileBrowserStateManager {
   /**
+   * 初始化标签页状态
+   */
+  static initTabState(tabId: string, sessionId: string): void {
+    console.log('[FileBrowserState] 初始化状态:', { tabId, sessionId });
+    
+    fileBrowserTabStates.set(tabId, {
+      currentPath: '/',
+      treeData: [],
+      expandedKeys: [],
+      fileList: [],
+      isInitialized: false,
+      isConnected: false,
+      sessionId,
+      history: ['/'],
+      historyIndex: 0
+    });
+  }
+
+  /**
    * 获取标签页状态
-   * @param tabId 标签页ID
    */
   static getTabState(tabId: string): FileBrowserTabState | undefined {
     const state = fileBrowserTabStates.get(tabId);
@@ -23,8 +41,6 @@ export class FileBrowserStateManager {
 
   /**
    * 设置标签页状态
-   * @param tabId 标签页ID
-   * @param state 状态对象
    */
   static setTabState(tabId: string, state: FileBrowserTabState): void {
     console.log('[FileBrowserState] 设置状态:', { 
@@ -37,16 +53,20 @@ export class FileBrowserStateManager {
 
   /**
    * 更新标签页状态
-   * @param tabId 标签页ID
-   * @param updates 部分更新的状态
    */
   static updateTabState(tabId: string, updates: Partial<FileBrowserTabState>): void {
-    const currentState = fileBrowserTabStates.get(tabId);
     console.log('[FileBrowserState] 更新前状态:', { 
       tabId, 
-      currentState,
+      currentState: fileBrowserTabStates.get(tabId),
       updates
     });
+
+    // 如果状态不存在，先初始化
+    if (!fileBrowserTabStates.has(tabId) && updates.sessionId) {
+      this.initTabState(tabId, updates.sessionId);
+    }
+
+    const currentState = fileBrowserTabStates.get(tabId);
     if (currentState) {
       const newState = { ...currentState, ...updates };
       fileBrowserTabStates.set(tabId, newState);
@@ -54,12 +74,13 @@ export class FileBrowserStateManager {
         tabId, 
         newState
       });
+    } else {
+      console.error('[FileBrowserState] 无法更新状态，状态不存在:', tabId);
     }
   }
 
   /**
    * 删除标签页状态
-   * @param tabId 标签页ID
    */
   static removeTabState(tabId: string): void {
     console.log('[FileBrowserState] 删除状态:', { 
@@ -71,7 +92,6 @@ export class FileBrowserStateManager {
 
   /**
    * 检查标签页状态是否存在
-   * @param tabId 标签页ID
    */
   static hasTabState(tabId: string): boolean {
     const hasState = fileBrowserTabStates.has(tabId);

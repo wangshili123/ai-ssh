@@ -27,6 +27,13 @@ export class FileBrowserEventHandlers {
    */
   static async handleSelect(tabId: string, path: string): Promise<void> {
     try {
+      const currentState = FileBrowserStateManager.getTabState(tabId);
+      if (!currentState) return;
+
+      // 更新历史记录
+      const newHistory = [...currentState.history.slice(0, currentState.historyIndex + 1), path];
+      const newHistoryIndex = newHistory.length - 1;
+
       const files = await sftpConnectionManager.readDirectory(tabId, path);
       // 按目录优先，名称排序
       const sortedFiles = [...files].sort((a: FileEntry, b: FileEntry) => {
@@ -38,7 +45,9 @@ export class FileBrowserEventHandlers {
 
       FileBrowserStateManager.updateTabState(tabId, {
         currentPath: path,
-        fileList: sortedFiles
+        fileList: sortedFiles,
+        history: newHistory,
+        historyIndex: newHistoryIndex
       });
     } catch (error) {
       console.error('[FileBrowser] 读取目录失败:', error);

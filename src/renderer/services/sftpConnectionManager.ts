@@ -181,6 +181,13 @@ class SFTPConnectionManager {
     return [...cache.history];
   }
 
+  /**
+   * 获取指定标签页的会话ID
+   */
+  getSessionId(tabId: string): string | undefined {
+    const connection = this.connections.get(tabId);
+    return connection?.sessionInfo.id;
+  }
 
   /**
    * 关闭指定标签页的连接

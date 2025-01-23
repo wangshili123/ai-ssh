@@ -23,6 +23,9 @@ export interface FileBrowserTabState {
   isInitialized: boolean;
   isConnected: boolean;
   sessionId: string;
+  // 导航历史相关字段
+  history: string[];
+  historyIndex: number;
 }
 
 // 导出其他需要的类型
