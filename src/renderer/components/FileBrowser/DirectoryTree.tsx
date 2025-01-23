@@ -39,13 +39,6 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
       return;
     }
 
-    const now = Date.now();
-    // 如果距离上次更新不足500ms，则跳过
-    if (now - lastUpdateTimeRef.current < 500) {
-      return;
-    }
-    lastUpdateTimeRef.current = now;
-
     const path = node.key as string;
     console.log('[DirectoryTree] 开始加载目录:', { path, node });
 
@@ -95,8 +88,9 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
       }
 
       // 确保当前路径保持展开状态
-      const newExpandedKeys = Array.from(new Set([...expandedKeys, path]));
-      onExpand(newExpandedKeys);
+      if (!expandedKeys.includes(path)) {
+        onExpand([...expandedKeys, path]);
+      }
       
       return children;
     } catch (error: any) {
@@ -174,7 +168,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
         console.log('[DirectoryTree] 展开节点:', keys);
         onExpand(keys);
       }
-    }, 300, { leading: true, trailing: true }),
+    }, 100, { leading: true, trailing: false }),
     [onExpand, isConnected]
   );
 
@@ -185,7 +179,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
         console.log('[DirectoryTree] 选择节点:', node.key);
         onSelect(node.key);
       }
-    }, 300, { leading: true, trailing: true }),
+    }, 100, { leading: true, trailing: false }),
     [onSelect, isConnected]
   );
 
