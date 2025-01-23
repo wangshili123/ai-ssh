@@ -117,30 +117,28 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
   }
 
   return (
-    <div className="file-browser-main" style={{ display: 'flex', height: '100%' }}>
-      <div className="file-browser-content" style={{ display: 'flex', flex: 1 }}>
-        <div className="file-browser-tree" style={{ width: 250, overflow: 'auto' }}>
-          <DirectoryTree
-            sessionInfo={sessionInfo}
-            tabId={tabId}
-            treeData={tabState.treeData}
-            expandedKeys={tabState.expandedKeys}
-            loading={loading}
-            onExpand={(keys) => FileBrowserEventHandlers.handleExpand(tabId, keys)}
-            onSelect={handleSelect}
-            onTreeDataUpdate={handleTreeDataUpdate}
-          />
-        </div>
-        <div className="file-browser-files" style={{ flex: 1, overflow: 'auto' }}>
-          <FileList
-            sessionInfo={sessionInfo}
-            tabId={tabId}
-            currentPath={tabState.currentPath}
-            fileList={tabState.fileList}
-            loading={loading}
-            onFileListChange={handleFileListChange}
-          />
-        </div>
+    <div className="file-browser-main">
+      <div className="file-browser-tree">
+        <DirectoryTree
+          sessionInfo={sessionInfo}
+          tabId={tabId}
+          treeData={tabState.treeData}
+          expandedKeys={tabState.expandedKeys}
+          loading={loading}
+          onExpand={(keys) => FileBrowserEventHandlers.handleExpand(tabId, keys)}
+          onSelect={handleSelect}
+          onTreeDataUpdate={handleTreeDataUpdate}
+        />
+      </div>
+      <div className="file-browser-files">
+        <FileList
+          sessionInfo={sessionInfo}
+          tabId={tabId}
+          currentPath={tabState.currentPath}
+          fileList={tabState.fileList}
+          loading={loading}
+          onFileListChange={handleFileListChange}
+        />
       </div>
     </div>
   );
