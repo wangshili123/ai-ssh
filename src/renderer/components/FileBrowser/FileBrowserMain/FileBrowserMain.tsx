@@ -119,40 +119,42 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
 
   return (
     <div className="file-browser-main">
-      <div className="file-browser-tree">
-        <DirectoryTree
-          sessionInfo={sessionInfo}
-          tabId={tabId}
-          treeData={tabState.treeData}
-          expandedKeys={tabState.expandedKeys}
-          loading={loading}
-          onExpand={(keys) => {
-            const newState = FileBrowserEventHandlers.handleExpand(tabId, keys);
-            if (newState) {
-              setTabState(newState);
-            }
-          }}
-          onSelect={handleSelect}
-          onTreeDataUpdate={handleTreeDataUpdate}
+      <div className="file-browser-navigation">
+        <Navigation
+          currentPath={tabState.currentPath}
+          history={tabState.history}
+          historyIndex={tabState.historyIndex}
+          onPathChange={handleSelect}
         />
       </div>
-      <div className="file-browser-files">
-        <div className="file-browser-navigation">
-          <Navigation
-            currentPath={tabState.currentPath}
-            history={tabState.history}
-            historyIndex={tabState.historyIndex}
-            onPathChange={handleSelect}
+      <div className="file-browser-content">
+        <div className="file-browser-tree">
+          <DirectoryTree
+            sessionInfo={sessionInfo}
+            tabId={tabId}
+            treeData={tabState.treeData}
+            expandedKeys={tabState.expandedKeys}
+            loading={loading}
+            onExpand={(keys) => {
+              const newState = FileBrowserEventHandlers.handleExpand(tabId, keys);
+              if (newState) {
+                setTabState(newState);
+              }
+            }}
+            onSelect={handleSelect}
+            onTreeDataUpdate={handleTreeDataUpdate}
           />
         </div>
-        <FileList
-          sessionInfo={sessionInfo}
-          tabId={tabId}
-          currentPath={tabState.currentPath}
-          fileList={tabState.fileList}
-          loading={loading}
-          onFileListChange={handleFileListChange}
-        />
+        <div className="file-browser-files">
+          <FileList
+            sessionInfo={sessionInfo}
+            tabId={tabId}
+            currentPath={tabState.currentPath}
+            fileList={tabState.fileList}
+            loading={loading}
+            onFileListChange={handleFileListChange}
+          />
+        </div>
       </div>
     </div>
   );
