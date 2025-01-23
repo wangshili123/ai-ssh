@@ -89,7 +89,7 @@ const FileList: React.FC<FileListProps> = ({
       }
 
       try {
-        const files = await sftpConnectionManager.readDirectory(tabId, currentPath);
+        const files = await sftpConnectionManager.readAllFiles(tabId, currentPath);
         onFileListChange(files);
       } catch (error: any) {
         console.error('[FileList] 读取目录失败:', error);
