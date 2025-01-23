@@ -1,0 +1,26 @@
+.terminal-tabs-manager {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal-tabs-manager .ant-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal-tabs-manager .ant-tabs-content {
+  height: 100%;
+  flex: 1;
+}
+
+.terminal-tabs-manager .ant-tabs-tabpane {
+  height: 100%;
+}
+
+.terminal-tabs-manager .tab-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+} 

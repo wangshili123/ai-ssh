@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Layout } from 'antd';
 import { Resizable } from 're-resizable';
-import TerminalTabs from './components/TerminalTabs';
+import TerminalTabsManager from './components/Terminal/TerminalTabsManager/TerminalTabsManager';
 import FileBrowserMain from './components/FileBrowser/FileBrowserMain/FileBrowserMain';
 import AIAssistant from './components/AIAssistant';
 import AppStatusBar from './components/StatusBar/AppStatusBar';
@@ -48,13 +48,11 @@ const App: React.FC = () => {
     <Layout className="app-container">
       <Layout>
         <Content className="main-content">
-          <div className="terminal-container">
-            <TerminalTabs 
-              sessionInfo={activeSession}
-              triggerNewTab={triggerNewTab}
-              onTabChange={handleTabChange}
-            />
-          </div>
+          <TerminalTabsManager 
+            sessionInfo={activeSession}
+            triggerNewTab={triggerNewTab}
+            onTabChange={handleTabChange}
+          />
           <Resizable
             size={{ height: fileBrowserHeight, width: '100%' }}
             onResize={(e, direction, ref) => {
