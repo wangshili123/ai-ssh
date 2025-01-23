@@ -53,38 +53,59 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
       const files = await sftpConnectionManager.readDirectory(tabId, path);
       console.log('[DirectoryTree] 读取到文件列表:', files);
 
+      // 只保留目录并按名称排序
       const children = files
-        .filter((entry: any) => entry.isDirectory)
-            .sort((a: FileEntry, b: FileEntry) => {
-              return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-        })
-        .map((file: FileEntry) => ({
-          title: file.name,
-          key: `${path === '/' ? '' : path}/${file.name}`.replace(/\/+/g, '/'),
+        .filter((entry: FileEntry) => entry.isDirectory)
+        .sort((a: FileEntry, b: FileEntry) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+        .map((dir: FileEntry) => ({
+          title: dir.name,
+          key: `${path === '/' ? '' : path}/${dir.name}`.replace(/\/+/g, '/'),
           isLeaf: false,
         }));
 
       console.log('[DirectoryTree] 处理后的目录列表:', children);
 
+      // 更新树数据
       if (path === '/') {
         // 如果是根目录，直接更新整个树数据
-        onExpand([]);
         onTreeDataUpdate?.(children);
-        return children;
       } else {
-        // 如果是子目录，更新节点的子节点
-        node.children = children;
-        loadedKeysRef.current.add(path);
-        // 强制更新树节点
-        onExpand([...expandedKeys]);
+        // 如果是子目录，递归更新树数据
+        const updateTreeData = (data: DataNode[]): DataNode[] => {
+          return data.map(item => {
+            if (item.key === path) {
+              return {
+                ...item,
+                children,
+              };
+            }
+            if (item.children) {
+              return {
+                ...item,
+                children: updateTreeData(item.children),
+              };
+            }
+            return item;
+          });
+        };
+        
+        const newTreeData = updateTreeData(treeData);
+        console.log('[DirectoryTree] 更新后的树数据:', newTreeData);
+        onTreeDataUpdate?.(newTreeData);
       }
+
+      // 确保当前路径保持展开状态
+      const newExpandedKeys = Array.from(new Set([...expandedKeys, path]));
+      onExpand(newExpandedKeys);
+      
+      return children;
     } catch (error: any) {
       console.error('[DirectoryTree] 加载目录失败:', error);
       if (error?.message?.includes('SFTP连接不存在')) {
         setIsConnected(false);
       }
     }
-  }, [tabId, expandedKeys, onExpand, isConnected, onTreeDataUpdate]);
+  }, [tabId, expandedKeys, onExpand, isConnected, onTreeDataUpdate, treeData]);
 
   // 监听连接状态
   useEffect(() => {
@@ -98,14 +119,13 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
           // 直接加载根目录
           sftpConnectionManager.readDirectory(tabId, '/').then(files => {
             console.log('[DirectoryTree] 读取到根目录文件:', files);
+            // 只保留目录并按名称排序
             const rootDirs = files
-              .filter((entry: any) => entry.isDirectory)
-              .sort((a: FileEntry, b: FileEntry) => {
-                return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-              })
-              .map((file: FileEntry) => ({
-                title: file.name,
-                key: `/${file.name}`.replace(/\/+/g, '/'),
+              .filter((entry: FileEntry) => entry.isDirectory)
+              .sort((a: FileEntry, b: FileEntry) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+              .map((dir: FileEntry) => ({
+                title: dir.name,
+                key: `/${dir.name}`.replace(/\/+/g, '/'),
                 isLeaf: false,
               }));
             console.log('[DirectoryTree] 生成的树节点:', rootDirs);
