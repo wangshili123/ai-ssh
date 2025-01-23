@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef, memo } from 'react';
 import { Spin } from 'antd';
 import type { Key } from 'rc-tree/lib/interface';
+import type { DataNode } from 'antd/es/tree';
 import { sftpConnectionManager } from '../../services/sftpConnectionManager';
 import DirectoryTree from './DirectoryTree';
 import FileList from './FileList';
@@ -9,7 +10,7 @@ import type { SessionInfo } from '../../types';
 import type { FileEntry } from '../../../main/types/file';
 import './NewFileBrowser.css';
 import { eventBus } from '../../services/eventBus';
-import type { TabInfo } from '../../services/eventBus';
+import type { TabInfo, ConnectionInfo } from '../../services/eventBus';
 
 interface NewFileBrowserProps {
   sessionInfo?: SessionInfo;
@@ -25,7 +26,7 @@ interface SFTPError extends Error {
 // 定义标签页状态接口
 interface TabState {
   currentPath: string;
-  treeData: any[];
+  treeData: DataNode[];
   expandedKeys: string[];
   fileList: FileEntry[];
   isInitialized: boolean;
@@ -123,7 +124,9 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
   }, [tabId, sessionInfo]);
 
   // 更新标签页状态
-  const updateTabState = useCallback((updates: Partial<TabState>) => {
+  const updateTabState = useCallback((
+    updates: Partial<TabState> | ((prev: TabState) => TabState)
+  ) => {
     console.log('[FileBrowser] 更新状态:', {
       tabId,
       updates,
@@ -134,7 +137,9 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
     
     setTabState(prev => {
       if (!prev) return null;
-      const newState = { ...prev, ...updates };
+      const newState = typeof updates === 'function'
+        ? updates(prev)
+        : { ...prev, ...updates };
       tabStates.set(tabId, newState);
       return newState;
     });
@@ -164,7 +169,97 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
     return tabStates.get(stateKey)!;
   }, [tabId, sessionInfo]);
 
-  // 初始化SFTP连接
+  // 处理目录树展开
+  const handleExpand = useCallback((keys: Key[]) => {
+    if (!mountedRef.current) return;
+    console.log('[FileBrowser] 处理目录树展开:', keys);
+    updateTabState({ expandedKeys: keys as string[] });
+  }, [updateTabState]);
+
+  // 处理目录选择
+  const handleSelect = useCallback((path: string) => {
+    if (!mountedRef.current) return;
+    console.log('[FileBrowser] 选择目录:', path);
+    
+    // 更新当前路径
+    updateTabState({ currentPath: path });
+
+    // 加载目录内容
+    if (sessionInfo) {
+      sftpConnectionManager.readDirectory(tabId, path).then(files => {
+        if (mountedRef.current) {
+          // 按类型和名称排序（文件夹优先）
+          const sortedFiles = [...files].sort((a: FileEntry, b: FileEntry) => {
+            if (a.isDirectory !== b.isDirectory) {
+              return a.isDirectory ? -1 : 1;
+            }
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+          });
+
+          // 更新文件列表
+          updateTabState({ fileList: sortedFiles });
+
+          // 如果是根目录，更新目录树数据
+          if (path === '/') {
+            const rootDirs = sortedFiles
+              .filter((file: FileEntry) => file.isDirectory)
+              .map(file => ({
+                title: file.name,
+                key: `/${file.name}`.replace(/\/+/g, '/'),
+                isLeaf: false,
+              }));
+            updateTabState({ treeData: rootDirs });
+          } else {
+            // 如果是子目录，递归更新树节点
+            const updateTreeData = (data: DataNode[]): DataNode[] => {
+              return data.map(item => {
+                if (item.key === path) {
+                  const children = sortedFiles
+                    .filter((file: FileEntry) => file.isDirectory)
+                    .map(file => ({
+                      title: file.name,
+                      key: `${path === '/' ? '' : path}/${file.name}`.replace(/\/+/g, '/'),
+                      isLeaf: false,
+                    }));
+                  return { ...item, children };
+                }
+                if (item.children) {
+                  return { ...item, children: updateTreeData(item.children) };
+                }
+                return item;
+              });
+            };
+            
+            updateTabState((prev: TabState) => ({
+              ...prev,
+              treeData: updateTreeData(prev.treeData)
+            }));
+          }
+        }
+      }).catch(error => {
+        console.error('[FileBrowser] 加载目录内容失败:', error);
+      });
+    }
+  }, [updateTabState, tabId, sessionInfo]);
+
+  // 移除handleTreeDataUpdate，因为现在目录树数据在handleSelect中更新
+  const handleTreeDataUpdate = useCallback((newTreeData: any[]) => {
+    if (!mountedRef.current) return;
+    console.log('[FileBrowser] 更新目录树数据:', newTreeData);
+    updateTabState({ 
+      treeData: newTreeData,
+      isInitialized: true
+    });
+  }, [updateTabState]);
+
+  // 移除handleFileListChange，因为现在文件列表数据在handleSelect中更新
+  const handleFileListChange = useCallback((files: FileEntry[]) => {
+    if (!mountedRef.current) return;
+    console.log('[FileBrowser] 更新文件列表:', files.length);
+    updateTabState({ fileList: files });
+  }, [updateTabState]);
+
+  // 初始化SFTP连接时也使用同样的逻辑
   const initConnection = useCallback(async () => {
     if (!sessionInfo || !mountedRef.current) return;
     if (connectionAttemptRef.current >= maxConnectionAttempts) {
@@ -187,11 +282,17 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
       const rootFiles = await sftpConnectionManager.readDirectory(tabId, '/');
       
       if (mountedRef.current) {
-        const rootDirs = rootFiles
+        // 按类型和名称排序（文件夹优先）
+        const sortedFiles = [...rootFiles].sort((a: FileEntry, b: FileEntry) => {
+          if (a.isDirectory !== b.isDirectory) {
+            return a.isDirectory ? -1 : 1;
+          }
+          return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        });
+
+        // 更新文件列表
+        const rootDirs = sortedFiles
           .filter((file: FileEntry) => file.isDirectory)
-          .sort((a: FileEntry, b: FileEntry) => {
-            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-          })
           .map(file => ({
             title: file.name,
             key: `/${file.name}`.replace(/\/+/g, '/'),
@@ -201,7 +302,7 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
         console.log('[FileBrowser] 根目录初始化完成:', rootDirs);
         updateTabState({
           currentPath: '/',
-          fileList: rootFiles,
+          fileList: sortedFiles,
           treeData: rootDirs,
           isInitialized: true,
           isConnected: true
@@ -259,53 +360,35 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
     }
   }, [sessionInfo, tabId, initConnection]);
 
-  // 处理目录树展开
-  const handleExpand = useCallback((keys: Key[]) => {
-    if (!mountedRef.current) return;
-    console.log('[FileBrowser] 处理目录树展开:', keys);
-    updateTabState({ expandedKeys: keys as string[] });
-  }, [updateTabState]);
+  // 监听连接状态变化
+  useEffect(() => {
+    if (!sessionInfo || !mountedRef.current) return;
 
-  // 处理目录选择
-  const handleSelect = useCallback((path: string) => {
-    if (!mountedRef.current) return;
-    console.log('[FileBrowser] 选择目录:', path);
-    updateTabState({ currentPath: path });
-
-    // 加载选中目录的内容
-    if (sessionInfo) {
-      sftpConnectionManager.readDirectory(tabId, path).then(files => {
-        if (mountedRef.current) {
-          updateTabState({ fileList: files });
+    const handleConnectionChange = (info: ConnectionInfo) => {
+      console.log('[FileBrowser] 连接状态变化:', info);
+      if (info.shellId === sessionInfo.id) {
+        console.log('[FileBrowser] 连接状态变化:', info);
+        if (info.connected) {
+          const currentState = tabStates.get(tabId);
+          if (!currentState?.isInitialized || !currentState?.isConnected) {
+            console.log('[FileBrowser] 连接已建立，初始化数据');
+            initConnection();
+          }
         }
-      }).catch(error => {
-        console.error('[FileBrowser] 加载目录内容失败:', error);
-      });
-    }
-  }, [updateTabState, tabId, sessionInfo]);
+      }
+    };
 
-  // 处理文件列表更新
-  const handleFileListChange = useCallback((files: FileEntry[]) => {
-    if (!mountedRef.current) return;
-    console.log('[FileBrowser] 更新文件列表:', files.length);
-    updateTabState({ fileList: files });
-  }, [updateTabState]);
+    eventBus.on('terminal-connection-change', handleConnectionChange);
+    return () => {
+      eventBus.off('terminal-connection-change', handleConnectionChange);
+    };
+  }, [sessionInfo, tabId, initConnection]);
 
-  // 处理目录树数据更新
-  const handleTreeDataUpdate = useCallback((newTreeData: any[]) => {
-    if (!mountedRef.current) return;
-    console.log('[FileBrowser] 更新目录树数据:', newTreeData);
-    updateTabState({ 
-      treeData: newTreeData,
-      isInitialized: true
-    });
-  }, [updateTabState]);
-
-  // 监听标签页变化
+  // 监听标签页创建
   useEffect(() => {
     // 处理新标签页创建
     const handleTabCreate = (data: { tabId: string; sessionInfo?: SessionInfo; isNew?: boolean }) => {
-      if (data.tabId === tabId && data.sessionInfo && data.sessionInfo.id === sessionInfo?.id && data.isNew) {
+      if (data.tabId === tabId && data.sessionInfo && data.sessionInfo.id === sessionInfo?.id) {
         console.log('[FileBrowser] 收到新标签页创建事件:', data);
         
         // 新标签页总是需要初始化
@@ -348,7 +431,12 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
     } else if (currentState) {
       console.log('[FileBrowser] 使用现有状态:', currentState);
       setTabState(currentState);
-      setLoading(false);
+      if (!currentState.isInitialized || !currentState.isConnected) {
+        console.log('[FileBrowser] 现有状态未初始化，开始初始化');
+        initConnection();
+      } else {
+        setLoading(false);
+      }
     }
 
     return () => {
