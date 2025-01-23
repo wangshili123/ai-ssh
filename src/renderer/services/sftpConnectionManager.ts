@@ -18,6 +18,8 @@ export interface SFTPConnection {
 interface TabCache {
   currentPath: string;  // 当前路径
   history: string[];  // 浏览历史
+  directoryCache: Map<string, FileEntry[]>;  // 目录路径 -> 文件列表的缓存
+  treeCache: Map<string, FileEntry[]>;  // 目录路径 -> 文件列表的缓存
 }
 
 /**
@@ -67,7 +69,10 @@ class SFTPConnectionManager {
     // 初始化标签页缓存
     const cache: TabCache = {
       currentPath: '/',
-      history: ['/']
+      history: ['/'],
+      directoryCache: new Map(),
+      treeCache: new Map()
+
     };
     
     this.connections.set(tabId, connection);
@@ -97,7 +102,9 @@ class SFTPConnectionManager {
     if (!cache) {
       cache = {
         currentPath: '/',
-        history: ['/']
+        history: ['/'],
+        directoryCache: new Map(),
+        treeCache: new Map()
       };
       this.tabCaches.set(tabId, cache);
     }
@@ -117,22 +124,29 @@ class SFTPConnectionManager {
     }
 
     const cache = this.getTabCache(tabId);
-
-
-    // 从服务器读取数据
-    console.log(`[SFTPManager] 从服务器读取数据 - tabId: ${tabId}, path: ${path}`);
-    const result = await ipcRenderer.invoke('sftp:read-directory', conn.id, path);
-    console.log(`[SFTPManager] 读取结果 - tabId: ${tabId}, path: ${path}, result: `,result);
-    if (!result.success) {
-      throw new Error(result.error);
+    let result: FileEntry[] = [];
+    // 如果不是强制刷新且缓存中有数据，直接返回缓存数据
+    if (!forceRefresh && cache.directoryCache.has(path)) {
+      console.log(`[SFTPManager] 使用缓存数据 - tabId: ${tabId}, path: ${path}`);
+      result =  cache.directoryCache.get(path)!;
+    }else{
+      // 从服务器读取数据
+      console.log(`[SFTPManager] 从服务器读取数据 - tabId: ${tabId}, path: ${path}`);
+      let directoryResult = await ipcRenderer.invoke('sftp:read-directory', conn.id, path);
+      console.log(`[SFTPManager] 读取结果 - tabId: ${tabId}, path: ${path}, result: `,result);
+      if (!directoryResult.success) {
+        throw new Error(directoryResult.error);
+      }
+      result = directoryResult.data;
+      // 更新缓存
+      cache.currentPath = path;
+      if (!cache.history.includes(path)) {
+        cache.history.push(path);
+      }
+      cache.directoryCache.set(path, result);
+      cache.treeCache.set(path, result.filter((entry: FileEntry) => entry.isDirectory));
     }
-
-    // 更新缓存
-    cache.currentPath = path;
-    if (!cache.history.includes(path)) {
-      cache.history.push(path);
-    }
-    return result.data;
+    return result;
   }
   
   /**
@@ -192,7 +206,7 @@ class SFTPConnectionManager {
       console.log(`- tabId: ${tabId}`);
       console.log(`  sessionId: ${conn.sessionInfo.id}`);
       console.log(`  currentPath: ${cache?.currentPath}`);
-    
+      console.log(`  cached paths: ${Array.from(cache?.directoryCache.keys() || []).join(', ')}`);
     });
   }
 }

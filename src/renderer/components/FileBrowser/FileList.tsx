@@ -22,17 +22,43 @@ interface FileListProps {
 
 // 将权限数字转换为字符串表示
 const formatPermissions = (permissions: number): string => {
-  const type = (permissions & 0o170000) === 0o040000 ? 'd' : '-';
-  const user = ((permissions & 0o400) ? 'r' : '-') +
-               ((permissions & 0o200) ? 'w' : '-') +
-               ((permissions & 0o100) ? 'x' : '-');
-  const group = ((permissions & 0o040) ? 'r' : '-') +
-                ((permissions & 0o020) ? 'w' : '-') +
-                ((permissions & 0o010) ? 'x' : '-');
-  const other = ((permissions & 0o004) ? 'r' : '-') +
-                ((permissions & 0o002) ? 'w' : '-') +
-                ((permissions & 0o001) ? 'x' : '-');
-  return `${type}${user}${group}${other}`;
+  // 将权限转换为 4 位八进制字符串
+  const modeStr = permissions.toString(8).padStart(5, '0');
+
+  // 文件类型映射
+  const fileType: { [key: string]: string } = {
+    '0': '-', // 普通文件
+    '1': 'p', // 命名管道
+    '2': 'c', // 字符设备
+    '4': 'd', // 目录
+    '6': 'b', // 块设备
+    '10': '-', // 普通文件
+    '12': 'l', // 符号链接
+    '14': 's'  // 套接字
+  };
+
+  // 权限位映射
+  const permissionBits: { [key: string]: string } = {
+    '0': '---',
+    '1': '--x',
+    '2': '-w-',
+    '3': '-wx',
+    '4': 'r--',
+    '5': 'r-x',
+    '6': 'rw-',
+    '7': 'rwx'
+  };
+
+  // 解析文件类型
+  const type = fileType[modeStr[0]] || '-';
+
+  // 解析所有者、组和其他用户的权限
+  const owner = permissionBits[modeStr[2]] || '---';
+  const group = permissionBits[modeStr[3]] || '---';
+  const others = permissionBits[modeStr[4]] || '---';
+
+  // 组合成完整的权限字符串
+  return `${type}${owner}${group}${others}`;
 };
 
 // 格式化文件大小

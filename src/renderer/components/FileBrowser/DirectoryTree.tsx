@@ -54,6 +54,10 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
       console.log('[DirectoryTree] 读取到文件列表:', files);
 
       const children = files
+        .filter((entry: any) => entry.isDirectory)
+            .sort((a: FileEntry, b: FileEntry) => {
+              return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        })
         .map((file: FileEntry) => ({
           title: file.name,
           key: `${path === '/' ? '' : path}/${file.name}`.replace(/\/+/g, '/'),

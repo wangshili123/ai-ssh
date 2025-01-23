@@ -188,6 +188,10 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
       
       if (mountedRef.current) {
         const rootDirs = rootFiles
+          .filter((file: FileEntry) => file.isDirectory)
+          .sort((a: FileEntry, b: FileEntry) => {
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+          })
           .map(file => ({
             title: file.name,
             key: `/${file.name}`.replace(/\/+/g, '/'),
