@@ -41,6 +41,15 @@ export class FileBrowserConnectionManager {
       const fileList = files;
       const treeData = fileList
         .filter((file: FileEntry) => file.isDirectory)
+        //排序文件夹优先,再按名字
+        .sort((a: FileEntry, b: FileEntry) => {
+          // 如果都是文件夹或都不是文件夹,按名字排序
+          if (a.isDirectory === b.isDirectory) {
+            return a.name.localeCompare(b.name);
+          }
+          // 文件夹优先
+          return a.isDirectory ? -1 : 1;
+        })
         .map((dir: FileEntry) => ({
           title: dir.name,
           key: `${path}/${dir.name}`.replace(/\/+/g, '/'),

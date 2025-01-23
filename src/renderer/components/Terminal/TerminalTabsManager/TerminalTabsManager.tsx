@@ -83,11 +83,7 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
     eventBus.setCurrentTabId(tabId);
     eventBus.setCurrentShellId(shellId);
 
-    // 同步初始化文件浏览器连接
-    FileBrowserConnectionManager.initConnection(tabId, sessionInfo)
-      .catch(error => {
-        console.error('[TerminalTabsManager] 初始化文件浏览器失败:', error);
-      });
+   
     
     console.log('[TerminalTabsManager] 新标签页创建完成:', { tabId, shellId, sessionInfo });
     

@@ -132,6 +132,14 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
         />
       </div>
       <div className="file-browser-files">
+        <div className="file-browser-navigation">
+          <Navigation
+            currentPath={tabState.currentPath}
+            history={tabState.history}
+            historyIndex={tabState.historyIndex}
+            onPathChange={handleSelect}
+          />
+        </div>
         <FileList
           sessionInfo={sessionInfo}
           tabId={tabId}
