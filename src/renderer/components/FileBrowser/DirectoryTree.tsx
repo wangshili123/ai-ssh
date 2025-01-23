@@ -95,6 +95,10 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
           sftpConnectionManager.readDirectory(tabId, '/').then(files => {
             console.log('[DirectoryTree] 读取到根目录文件:', files);
             const rootDirs = files
+              .filter((entry: any) => entry.isDirectory)
+              .sort((a: FileEntry, b: FileEntry) => {
+                return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+              })
               .map((file: FileEntry) => ({
                 title: file.name,
                 key: `/${file.name}`.replace(/\/+/g, '/'),

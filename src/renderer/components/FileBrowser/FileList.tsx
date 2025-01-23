@@ -89,7 +89,14 @@ const FileList: React.FC<FileListProps> = ({
       }
 
       try {
-        const files = await sftpConnectionManager.readAllFiles(tabId, currentPath);
+        const files = await sftpConnectionManager.readDirectory(tabId, currentPath);
+        console.log('[FileList] 读取到的文件:', files);
+        //排序
+        files.sort((a: FileEntry, b: FileEntry) => {
+          if (a.isDirectory && !b.isDirectory) return -1;
+          if (!a.isDirectory && b.isDirectory) return 1;
+          return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        });
         onFileListChange(files);
       } catch (error: any) {
         console.error('[FileList] 读取目录失败:', error);

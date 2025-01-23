@@ -132,14 +132,7 @@ class SFTPConnectionManager {
     if (!cache.history.includes(path)) {
       cache.history.push(path);
     }
-
-    // 过滤掉普通文件，保留目录和链接文件，并按目录名排序
-    const entries = result.data
-      .filter((entry: any) => !shouldFilterRegularFile(entry.permissions))
-      .sort((a: FileEntry, b: FileEntry) => {
-        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-      });
-    return entries;
+    return result.data;
   }
   
   /**
@@ -173,41 +166,6 @@ class SFTPConnectionManager {
     return [...cache.history];
   }
 
-  /**
-   * 读取目录下的所有文件（包括普通文件、目录和链接文件）
-   * @param tabId 标签页ID
-   * @param path 目录路径
-   * @param forceRefresh 是否强制刷新（不使用缓存）
-   */
-  async readAllFiles(tabId: string, path: string, forceRefresh: boolean = false): Promise<FileEntry[]> {
-    const conn = this.getConnection(tabId);
-    if (!conn) {
-      throw new Error('SFTP连接不存在');
-    }
-
-    const cache = this.getTabCache(tabId);
-
-    // 从服务器读取数据
-    console.log(`[SFTPManager] 读取所有文件 - tabId: ${tabId}, path: ${path}`);
-    const result = await ipcRenderer.invoke('sftp:read-directory', conn.id, path);
-    console.log(`[SFTPManager] 读取结果 - tabId: ${tabId}, path: ${path}, result: `,result);
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-
-    // 更新缓存
-    cache.currentPath = path;
-    if (!cache.history.includes(path)) {
-      cache.history.push(path);
-    }
-
-    // 对所有文件进行排序：目录在前，其他文件按名称排序
-    const entries = result.data.sort((a: FileEntry, b: FileEntry) => {
-      return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-    });
-    
-    return entries;
-  }
 
   /**
    * 关闭指定标签页的连接

@@ -1,6 +1,8 @@
 import { Client } from 'ssh2';
 import type { SessionInfo } from '../types/storage';
 import type { FileEntry } from '../types/file';
+import { convertPermissionsToOctal, isDirectory, isSymlink, shouldFilterRegularFile } from '../../renderer/utils/fileUtils';
+
 
 /**
  * SFTP连接的数据缓存
@@ -99,7 +101,7 @@ class SFTPClient {
         const entries: FileEntry[] = list.map(item => ({
           name: item.filename,
           path: `${path}/${item.filename}`.replace(/\/+/g, '/'),
-          isDirectory: item.attrs.isDirectory(),
+          isDirectory: !shouldFilterRegularFile(item.attrs.mode),
           size: item.attrs.size,
           modifyTime: item.attrs.mtime * 1000,
           permissions: item.attrs.mode,
