@@ -13,8 +13,8 @@ export interface DialogueHistory {
  */
 export class DialogueManager {
   private readonly MAX_HISTORY_LENGTH = 10;    // 最多保存10条对话历史
-  private readonly MAX_OUTPUT_LENGTH = 500;    // 每条输出最多500字符
-  private readonly MAX_OUTPUT_LINES = 50;      // 每条输出最多50行
+  private readonly MAX_OUTPUT_LENGTH = 5000;    // 每条输出最多500字符
+  private readonly MAX_OUTPUT_LINES = 100;      // 每条输出最多50行
 
   private dialogueHistory: DialogueHistory[] = [];
   private currentUserContent: string = '';     // 当前用户问题的累积内容

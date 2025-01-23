@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
 import type { SessionInfo } from '../types';
 import type { FileEntry } from '../../main/types/file';
+import { convertPermissionsToOctal, isDirectory, isSymlink, shouldFilterRegularFile } from '../utils/fileUtils';
 
 /**
  * SFTP连接信息接口
@@ -17,8 +18,6 @@ export interface SFTPConnection {
 interface TabCache {
   currentPath: string;  // 当前路径
   history: string[];  // 浏览历史
-  directoryCache: Map<string, FileEntry[]>;  // 目录路径 -> 文件列表的缓存
-  treeCache: Map<string, FileEntry[]>;  // 目录树缓存，用于保存每个路径的子目录列表
 }
 
 /**
@@ -68,9 +67,7 @@ class SFTPConnectionManager {
     // 初始化标签页缓存
     const cache: TabCache = {
       currentPath: '/',
-      history: ['/'],
-      directoryCache: new Map(),
-      treeCache: new Map()
+      history: ['/']
     };
     
     this.connections.set(tabId, connection);
@@ -100,9 +97,7 @@ class SFTPConnectionManager {
     if (!cache) {
       cache = {
         currentPath: '/',
-        history: ['/'],
-        directoryCache: new Map(),
-        treeCache: new Map()
+        history: ['/']
       };
       this.tabCaches.set(tabId, cache);
     }
@@ -123,15 +118,11 @@ class SFTPConnectionManager {
 
     const cache = this.getTabCache(tabId);
 
-    // 如果不是强制刷新且缓存中有数据，直接返回缓存数据
-    if (!forceRefresh && cache.directoryCache.has(path)) {
-      console.log(`[SFTPManager] 使用缓存数据 - tabId: ${tabId}, path: ${path}`);
-      return cache.directoryCache.get(path)!;
-    }
 
     // 从服务器读取数据
     console.log(`[SFTPManager] 从服务器读取数据 - tabId: ${tabId}, path: ${path}`);
     const result = await ipcRenderer.invoke('sftp:read-directory', conn.id, path);
+    console.log(`[SFTPManager] 读取结果 - tabId: ${tabId}, path: ${path}, result: `,result);
     if (!result.success) {
       throw new Error(result.error);
     }
@@ -142,11 +133,9 @@ class SFTPConnectionManager {
       cache.history.push(path);
     }
 
-    // 分别缓存完整目录内容和仅包含子目录的树结构
-    cache.directoryCache.set(path, result.data);
-    cache.treeCache.set(path, result.data.filter((entry: FileEntry) => entry.isDirectory));
-
-    return result.data;
+    // 过滤掉普通文件，保留目录和链接文件
+    const entries = result.data.filter((entry: any) => !shouldFilterRegularFile(entry.permissions));
+    return entries;
   }
   
   /**
@@ -180,31 +169,8 @@ class SFTPConnectionManager {
     return [...cache.history];
   }
 
-  /**
-   * 获取目录树缓存数据
-   * @param tabId 标签页ID
-   * @param path 目录路径
-   */
-  getTreeCache(tabId: string, path: string): FileEntry[] | undefined {
-    const cache = this.getTabCache(tabId);
-    return cache.treeCache.get(path);
-  }
 
-  /**
-   * 清除标签页的缓存数据
-   * @param tabId 标签页ID
-   * @param path 如果指定，只清除特定路径的缓存
-   */
-  clearCache(tabId: string, path?: string) {
-    const cache = this.getTabCache(tabId);
-    if (path) {
-      cache.directoryCache.delete(path);
-      cache.treeCache.delete(path);
-    } else {
-      cache.directoryCache.clear();
-      cache.treeCache.clear();
-    }
-  }
+
   
   /**
    * 关闭指定标签页的连接
@@ -231,7 +197,7 @@ class SFTPConnectionManager {
       console.log(`- tabId: ${tabId}`);
       console.log(`  sessionId: ${conn.sessionInfo.id}`);
       console.log(`  currentPath: ${cache?.currentPath}`);
-      console.log(`  cached paths: ${Array.from(cache?.directoryCache.keys() || []).join(', ')}`);
+    
     });
   }
 }

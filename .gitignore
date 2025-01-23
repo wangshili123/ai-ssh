@@ -37,3 +37,9 @@ node_modules/*
 
 # 本地配置文件
 src/config/local.config.ts
+
+# requirements.txt
+requirements.txt
+.venv/*
+tests/*
+tools/*

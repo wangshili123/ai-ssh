@@ -54,7 +54,6 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
       console.log('[DirectoryTree] 读取到文件列表:', files);
 
       const children = files
-        .filter((file: FileEntry) => file.isDirectory)
         .map((file: FileEntry) => ({
           title: file.name,
           key: `${path === '/' ? '' : path}/${file.name}`.replace(/\/+/g, '/'),
@@ -96,7 +95,6 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
           sftpConnectionManager.readDirectory(tabId, '/').then(files => {
             console.log('[DirectoryTree] 读取到根目录文件:', files);
             const rootDirs = files
-              .filter((file: FileEntry) => file.isDirectory)
               .map((file: FileEntry) => ({
                 title: file.name,
                 key: `/${file.name}`.replace(/\/+/g, '/'),
