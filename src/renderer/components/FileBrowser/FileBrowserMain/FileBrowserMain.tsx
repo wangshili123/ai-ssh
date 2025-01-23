@@ -2,17 +2,17 @@ import React, { useEffect, useState, useCallback, useRef, memo } from 'react';
 import { Spin } from 'antd';
 import type { Key } from 'rc-tree/lib/interface';
 import type { DataNode } from 'antd/es/tree';
-import { sftpConnectionManager } from '../../services/sftpConnectionManager';
-import DirectoryTree from './DirectoryTree/DirectoryTree';
-import FileList from './FileList/FileList';
-import Navigation from './Navigation';
-import type { SessionInfo } from '../../types';
-import type { FileEntry } from '../../../main/types/file';
-import './NewFileBrowser.css';
-import { eventBus } from '../../services/eventBus';
-import type { TabInfo, ConnectionInfo } from '../../services/eventBus';
+import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
+import DirectoryTree from '../DirectoryTree/DirectoryTree';
+import FileList from '../FileList/FileList';
+import Navigation from '../Navigation';
+import type { SessionInfo } from '../../../types';
+import type { FileEntry } from '../../../../main/types/file';
+import './FileBrowserMain.css';
+import { eventBus } from '../../../services/eventBus';
+import type { TabInfo, ConnectionInfo } from '../../../services/eventBus';
 
-interface NewFileBrowserProps {
+interface FileBrowserMainProps {
   sessionInfo?: SessionInfo;
   tabId: string;
 }
@@ -47,7 +47,7 @@ const MemoizedDirectoryTree = memo(DirectoryTree);
 const MemoizedFileList = memo(FileList);
 const MemoizedNavigation = memo(Navigation);
 
-const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
+const FileBrowserMain: React.FC<FileBrowserMainProps> = ({
   sessionInfo,
   tabId
 }) => {
@@ -532,4 +532,4 @@ const NewFileBrowser: React.FC<NewFileBrowserProps> = ({
   );
 };
 
-export default memo(NewFileBrowser); 
+export default memo(FileBrowserMain); 

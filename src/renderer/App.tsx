@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Layout } from 'antd';
 import { Resizable } from 're-resizable';
 import TerminalTabs from './components/TerminalTabs';
-import NewFileBrowser from './components/FileBrowser/NewFileBrowser';
+import FileBrowserMain from './components/FileBrowser/FileBrowserMain/FileBrowserMain';
 import AIAssistant from './components/AIAssistant';
 import AppStatusBar from './components/StatusBar/AppStatusBar';
 import type { SessionInfo } from '../main/services/storage';
@@ -133,7 +133,7 @@ const App: React.FC = () => {
                       backgroundColor: '#fff'
                     }}
                   >
-                    <NewFileBrowser
+                    <FileBrowserMain
                       key={tabId}
                       sessionInfo={session}
                       tabId={tabId}

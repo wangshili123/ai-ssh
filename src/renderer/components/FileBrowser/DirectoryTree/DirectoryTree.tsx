@@ -44,7 +44,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
     console.log('[DirectoryTree] 开始加载目录:', { path, node });
 
     try {
-      const files = await sftpConnectionManager.readDirectory(tabId, path);
+      const files: FileEntry[] = await sftpConnectionManager.readDirectory(tabId, path);
       console.log('[DirectoryTree] 读取到文件列表:', files);
 
       // 只保留目录并按名称排序
@@ -94,9 +94,9 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
       }
       
       return children;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[DirectoryTree] 加载目录失败:', error);
-      if (error?.message?.includes('SFTP连接不存在')) {
+      if ((error as Error)?.message?.includes('SFTP连接不存在')) {
         setIsConnected(false);
       }
     }
@@ -112,7 +112,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
         if (newConnected && treeData.length === 0) {
           console.log('[DirectoryTree] 尝试加载根目录');
           // 直接加载根目录
-          sftpConnectionManager.readDirectory(tabId, '/').then(files => {
+          sftpConnectionManager.readDirectory(tabId, '/').then((files: FileEntry[]) => {
             console.log('[DirectoryTree] 读取到根目录文件:', files);
             // 只保留目录并按名称排序
             const rootDirs = files
@@ -125,7 +125,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
               }));
             console.log('[DirectoryTree] 生成的树节点:', rootDirs);
             onTreeDataUpdate?.(rootDirs);
-          }).catch(error => {
+          }).catch((error: unknown) => {
             console.error('[DirectoryTree] 加载根目录失败:', error);
           });
         }
