@@ -4,11 +4,11 @@ import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import debounce from 'lodash/debounce';
 import dayjs from 'dayjs';
-import { sftpConnectionManager } from '../../services/sftpConnectionManager';
-import { eventBus } from '../../services/eventBus';
-import { getUserName, getGroupName } from '../../utils';
-import type { FileEntry } from '../../../main/types/file';
-import type { SessionInfo } from '../../types';
+import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
+import { eventBus } from '../../../services/eventBus';
+import { getUserName, getGroupName } from '../../../utils';
+import type { FileEntry } from '../../../../main/types/file';
+import type { SessionInfo } from '../../../types';
 import './FileList.css';
 
 interface FileListProps {
