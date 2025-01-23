@@ -126,7 +126,12 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
           treeData={tabState.treeData}
           expandedKeys={tabState.expandedKeys}
           loading={loading}
-          onExpand={(keys) => FileBrowserEventHandlers.handleExpand(tabId, keys)}
+          onExpand={(keys) => {
+            const newState = FileBrowserEventHandlers.handleExpand(tabId, keys);
+            if (newState) {
+              setTabState(newState);
+            }
+          }}
           onSelect={handleSelect}
           onTreeDataUpdate={handleTreeDataUpdate}
         />

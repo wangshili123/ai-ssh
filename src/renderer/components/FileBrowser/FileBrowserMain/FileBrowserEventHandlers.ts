@@ -13,11 +13,17 @@ export class FileBrowserEventHandlers {
    * 处理目录树展开事件
    * @param tabId 标签页ID
    * @param expandedKeys 展开的节点key列表
+   * @returns 更新后的状态
    */
-  static handleExpand(tabId: string, expandedKeys: Key[]): void {
+  static handleExpand(tabId: string, expandedKeys: Key[]): FileBrowserTabState | undefined {
+    console.log('[FileBrowserEventHandlers] 处理展开/收起:', { tabId, expandedKeys });
+    
     FileBrowserStateManager.updateTabState(tabId, {
       expandedKeys: expandedKeys as string[]
     });
+
+    // 返回更新后的状态
+    return FileBrowserStateManager.getTabState(tabId);
   }
 
   /**
