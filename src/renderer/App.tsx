@@ -7,22 +7,19 @@ import AIAssistant from './components/AIAssistant';
 import AppStatusBar from './components/StatusBar/AppStatusBar';
 import type { SessionInfo } from '../main/services/storage';
 import { eventBus } from './services/eventBus';
-import type { TabInfo } from './services/eventBus';
 import './App.css';
 
 const { Content, Sider } = Layout;
 
 const App: React.FC = () => {
-  const [activeSession, setActiveSession] = useState<SessionInfo>();
-  const [sessionMap, setSessionMap] = useState<Record<string, SessionInfo>>({});
-  const [currentTabSession, setCurrentTabSession] = useState<SessionInfo>();
+  const [activeSession, setActiveSession] = useState<SessionInfo | undefined>();
   const [triggerNewTab, setTriggerNewTab] = useState(0);
   const [fileBrowserHeight, setFileBrowserHeight] = useState(300);
   const [aiSiderWidth, setAiSiderWidth] = useState(400);
   const [currentTabId, setCurrentTabId] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // 监听标签页变化
+  // 监听标签页ID变化
   useEffect(() => {
     const handleTabIdChanged = (tabId: string) => {
       console.log('[App] 标签页ID变化:', tabId);
@@ -35,59 +32,11 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // 处理标签页切换
-  const handleTabChange = useCallback((info: TabInfo | SessionInfo) => {
-    console.log('[App] 标签页变化:', info);
-    
-    // 如果是从会话列表选择的会话
-    if ('id' in info && !('tabId' in info)) {
-      // 这是一个新的会话选择
-      setActiveSession(info);
-      setTriggerNewTab(prev => prev + 1);
-      
-      // 更新会话映射（使用临时ID）
-      const tempTabId = `temp-${info.id}`;
-      setSessionMap(prev => {
-        const newMap = { ...prev };
-        newMap[tempTabId] = info;
-        return newMap;
-      });
-
-      // 监听一次性的 tab-change 事件，用于更新新标签页的映射
-      const handleNewTab = (tabInfo: TabInfo) => {
-        const sessionInfo = tabInfo.sessionInfo;
-        if (sessionInfo && 'id' in sessionInfo && sessionInfo.id === info.id) {
-          console.log('[App] 新标签页创建完成，更新映射:', tabInfo);
-          setSessionMap(prev => {
-            const newMap = { ...prev };
-            // 删除临时映射
-            delete newMap[tempTabId];
-            // 添加新的映射
-            newMap[tabInfo.tabId] = sessionInfo;
-            return newMap;
-          });
-          // 移除监听器
-          eventBus.off('tab-change', handleNewTab);
-        }
-      };
-      eventBus.on('tab-change', handleNewTab);
-    } 
-    // 如果是标签页切换事件
-    else if ('tabId' in info) {
-      const tabInfo = info as TabInfo;
-      const sessionInfo = tabInfo.sessionInfo;
-      if (sessionInfo && 'id' in sessionInfo) {
-        setActiveSession(sessionInfo);
-        
-        // 更新会话映射
-        setSessionMap(prev => {
-          const newMap = { ...prev };
-          // 确保当前标签页的会话信息存在于映射中
-          newMap[tabInfo.tabId] = sessionInfo;
-          return newMap;
-        });
-      }
-    }
+  // 处理会话选择
+  const handleTabChange = useCallback((session: SessionInfo) => {
+    console.log('[App] 会话选择:', session);
+    setActiveSession(session);
+    setTriggerNewTab(prev => prev + 1);
   }, []);
 
   // 处理文件浏览器高度变化
@@ -120,26 +69,24 @@ const App: React.FC = () => {
           >
             <div className="file-browser-container" style={{ height: 'var(--file-browser-height, 300px)' }}>
               <div className="file-browser-instances" style={{ position: 'relative', height: '100%' }}>
-                {Object.entries(sessionMap).map(([tabId, session]) => (
-                  <div
-                    key={tabId}
-                    style={{
-                      height: '100%',
-                      width: '100%',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      display: eventBus.getCurrentTabId() === tabId ? 'block' : 'none',
-                      backgroundColor: '#fff'
-                    }}
-                  >
+                <div
+                  style={{
+                    height: '100%',
+                    width: '100%',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    backgroundColor: '#fff'
+                  }}
+                >
+                  {currentTabId && activeSession && (
                     <FileBrowserMain
-                      key={tabId}
-                      sessionInfo={session}
-                      tabId={tabId}
+                      key={currentTabId}
+                      sessionInfo={activeSession}
+                      tabId={currentTabId}
                     />
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
             </div>
           </Resizable>
@@ -179,7 +126,7 @@ const App: React.FC = () => {
           >
             <div className="resize-handle" />
             <AIAssistant 
-              sessionId={sessionMap[eventBus.getCurrentTabId() || '']?.id} 
+              sessionId={activeSession?.id} 
               isCollapsed={isCollapsed}
               onCollapse={setIsCollapsed}
             />

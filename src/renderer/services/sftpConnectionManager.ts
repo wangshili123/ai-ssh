@@ -38,7 +38,7 @@ class SFTPConnectionManager {
    * @param tabId 标签页ID
    * @returns 连接ID
    */
-  async createConnection(sessionInfo: SessionInfo, tabId: string): Promise<string> {
+  async createConnection(tabId: string,sessionInfo: SessionInfo): Promise<string> {
     if (!tabId) {
       throw new Error('tabId 不能为空');
     }
@@ -133,11 +133,12 @@ class SFTPConnectionManager {
       // 从服务器读取数据
       console.log(`[SFTPManager] 从服务器读取数据 - tabId: ${tabId}, path: ${path}`);
       let directoryResult = await ipcRenderer.invoke('sftp:read-directory', conn.id, path);
-      console.log(`[SFTPManager] 读取结果 - tabId: ${tabId}, path: ${path}, result: `,result);
+      console.log(`[SFTPManager] 读取结果 - tabId: ${tabId}, path: ${path}, result:`, directoryResult);
       if (!directoryResult.success) {
         throw new Error(directoryResult.error);
       }
       result = directoryResult.data;
+      console.log(`[SFTPManager] 处理后的结果 - tabId: ${tabId}, path: ${path}, files:`, result);
       // 更新缓存
       cache.currentPath = path;
       if (!cache.history.includes(path)) {

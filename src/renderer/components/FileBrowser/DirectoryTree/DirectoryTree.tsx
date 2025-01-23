@@ -1,10 +1,8 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { Tree, Spin } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import type { Key } from 'rc-tree/lib/interface';
-import debounce from 'lodash/debounce';
 import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
-import { eventBus } from '../../../services/eventBus';
 import type { SessionInfo } from '../../../types';
 import type { FileEntry } from '../../../../main/types/file';
 import './DirectoryTree.css';
@@ -30,16 +28,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
   onSelect,
   onTreeDataUpdate,
 }) => {
-  const loadedKeysRef = useRef<Set<string>>(new Set());
-  const lastUpdateTimeRef = useRef<number>(0);
-  const [isConnected, setIsConnected] = useState(false);
-
   const loadData = useCallback(async (node: any) => {
-    if (!isConnected) {
-      console.log('[DirectoryTree] 等待SFTP连接建立...');
-      return;
-    }
-
     const path = node.key as string;
     console.log('[DirectoryTree] 开始加载目录:', { path, node });
 
@@ -88,101 +77,11 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
         onTreeDataUpdate?.(newTreeData);
       }
 
-      // 确保当前路径保持展开状态
-      if (!expandedKeys.includes(path)) {
-        onExpand([...expandedKeys, path]);
-      }
-      
       return children;
     } catch (error: unknown) {
       console.error('[DirectoryTree] 加载目录失败:', error);
-      if ((error as Error)?.message?.includes('SFTP连接不存在')) {
-        setIsConnected(false);
-      }
     }
-  }, [tabId, expandedKeys, onExpand, isConnected, onTreeDataUpdate, treeData]);
-
-  // 监听连接状态
-  useEffect(() => {
-    const checkConnection = () => {
-      const connection = sftpConnectionManager.getConnection(tabId);
-      const newConnected = !!connection;
-      if (newConnected !== isConnected) {
-        setIsConnected(newConnected);
-        if (newConnected && treeData.length === 0) {
-          console.log('[DirectoryTree] 尝试加载根目录');
-          // 直接加载根目录
-          sftpConnectionManager.readDirectory(tabId, '/').then((files: FileEntry[]) => {
-            console.log('[DirectoryTree] 读取到根目录文件:', files);
-            // 只保留目录并按名称排序
-            const rootDirs = files
-              .filter((entry: FileEntry) => entry.isDirectory)
-              .sort((a: FileEntry, b: FileEntry) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
-              .map((dir: FileEntry) => ({
-                title: dir.name,
-                key: `/${dir.name}`.replace(/\/+/g, '/'),
-                isLeaf: false,
-              }));
-            console.log('[DirectoryTree] 生成的树节点:', rootDirs);
-            onTreeDataUpdate?.(rootDirs);
-          }).catch((error: unknown) => {
-            console.error('[DirectoryTree] 加载根目录失败:', error);
-          });
-        }
-      }
-    };
-
-    // 初始检查
-    checkConnection();
-
-    // 监听标签页变化事件
-    const handleTabChange = (data: { tabId: string }) => {
-      if (data.tabId === tabId) {
-        console.log('[DirectoryTree] 收到标签页变化事件');
-        checkConnection();
-      }
-    };
-
-    eventBus.on('tab-change', handleTabChange);
-    
-    // 定期检查连接状态
-    const timer = setInterval(checkConnection, 1000);
-
-    return () => {
-      eventBus.off('tab-change', handleTabChange);
-      clearInterval(timer);
-    };
-  }, [tabId, isConnected, treeData, onTreeDataUpdate]);
-
-  useEffect(() => {
-    console.log('[DirectoryTree] 树数据更新:', { 
-      treeDataLength: treeData.length,
-      expandedKeys,
-      isConnected
-    });
-  }, [treeData, expandedKeys, isConnected]);
-
-  // 使用防抖包装的展开处理函数
-  const handleExpand = useCallback(
-    debounce((keys: Key[]) => {
-      if (isConnected) {
-        console.log('[DirectoryTree] 展开节点:', keys);
-        onExpand(keys);
-      }
-    }, 100, { leading: true, trailing: false }),
-    [onExpand, isConnected]
-  );
-
-  // 使用防抖包装的选择处理函数
-  const handleSelect = useCallback(
-    debounce((_: any, { node }: any) => {
-      if (isConnected) {
-        console.log('[DirectoryTree] 选择节点:', node.key);
-        onSelect(node.key);
-      }
-    }, 100, { leading: true, trailing: false }),
-    [onSelect, isConnected]
-  );
+  }, [tabId, onTreeDataUpdate, treeData]);
 
   if (loading) {
     return <Spin />;
@@ -195,8 +94,8 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
       expandedKeys={expandedKeys}
       selectedKeys={[]}
       loadData={loadData}
-      onExpand={handleExpand}
-      onSelect={handleSelect}
+      onExpand={onExpand}
+      onSelect={(_, { node }) => onSelect(node.key as string)}
       blockNode
     />
   );

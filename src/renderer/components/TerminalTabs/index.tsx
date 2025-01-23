@@ -6,7 +6,7 @@ import Terminal from '../Terminal';
 import SessionListModal from '../SessionListModal';
 import { eventBus } from '../../services/eventBus';
 import { sftpConnectionManager } from '../../services/sftpConnectionManager';
-import { generateUniqueId } from '../../utils';
+import { FileBrowserConnectionManager } from '../FileBrowser/FileBrowserMain/FileBrowserConnectionManager';
 import './index.css';
 
 interface TerminalTab {
@@ -64,11 +64,6 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
     const tabId = `tab-${instanceId}`;
     const shellId = `${sessionInfo.id}-${instanceId}`;
 
-    // 先清理可能存在的临时状态
-    const tempTabId = `temp-${sessionInfo.id}`;
-    eventBus.removeTab(tempTabId);
-    sftpConnectionManager.closeConnection(tempTabId);
-
     // 创建新标签页
     const newTab = {
       key: String(Date.now()),
@@ -86,13 +81,12 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
     // 设置当前标签页和shell
     eventBus.setCurrentTabId(tabId);
     eventBus.setCurrentShellId(shellId);
-    
-    // 触发事件
-    eventBus.emit('tab-change', { 
-      shellId, 
-      tabId, 
-      sessionInfo 
-    });
+
+    // 同步初始化文件浏览器连接
+    FileBrowserConnectionManager.initConnection(tabId, sessionInfo)
+      .catch(error => {
+        console.error('[TerminalTabs] 初始化文件浏览器失败:', error);
+      });
     
     console.log('[TerminalTabs] 新标签页创建完成:', { tabId, shellId, sessionInfo });
     
@@ -125,17 +119,10 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
       console.log('[TerminalTabs] 切换标签页:', tab);
       const shellId = `${tab.sessionInfo.id}-${tab.instanceId}`;
       
-      // 先设置当前标签页和 shell
+      // 设置当前标签页和shell
       eventBus.setCurrentTabId(tab.tabId);
       eventBus.setCurrentShellId(shellId);
       setActiveKey(activeKey);
-      
-      // 触发标签页切换事件，通知文件浏览器更新显示
-      eventBus.emit('tab-change', {
-        shellId,
-        tabId: tab.tabId,
-        sessionInfo: tab.sessionInfo
-      });
     }
   }, [tabs]);
 
@@ -164,15 +151,9 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
           setActiveKey(lastTab.key);
           if (lastTab.sessionInfo) {
             const shellId = `${lastTab.sessionInfo.id}-${lastTab.instanceId}`;
-            // 先设置 tabId 和 shellId
+            // 设置当前标签页和shell
             eventBus.setCurrentTabId(lastTab.tabId);
             eventBus.setCurrentShellId(shellId);
-            // 再触发事件
-            eventBus.emit('tab-change', { 
-              shellId, 
-              tabId: lastTab.tabId,
-              sessionInfo: lastTab.sessionInfo 
-            });
           }
         }
 
@@ -181,6 +162,28 @@ const TerminalTabs: React.FC<TerminalTabsProps> = ({
         sftpConnectionManager.closeConnection(tabToRemove.tabId);
       }
     }
+  };
+
+  // 创建新标签页
+  const handleCreateTab = async (sessionInfo: SessionInfo) => {
+    console.log('[TerminalTabs] 触发新标签页创建:', { sessionInfo });
+    
+    // 生成新标签页ID
+    const tabId = `tab-${Date.now()}`;
+    const shellId = `${sessionInfo.id}-${Date.now()}`;
+    
+    // 设置当前标签页和shell ID
+    eventBus.setCurrentTabId(tabId);
+    eventBus.setCurrentShellId(shellId);
+    
+    // 触发标签页变化事件
+    eventBus.emit('tab-change', {
+      shellId,
+      tabId,
+      sessionInfo
+    });
+    
+    console.log('[TerminalTabs] 新标签页创建完成:', { tabId, shellId, sessionInfo });
   };
 
   if (!mounted) {
