@@ -7,8 +7,10 @@
 
 .terminal-area {
   flex: 1;
-  min-height: 200px;
+  min-height: 100px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .file-browser-area {
@@ -17,4 +19,6 @@
   overflow: hidden;
   background: var(--background-color);
   border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
 } 

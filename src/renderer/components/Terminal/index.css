@@ -1,17 +1,28 @@
-.terminal-container {
+.terminal-wrapper {
   height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal-container {
+  flex: 1;
+  position: relative;
+  min-height: 0;
   background-color: #1e1e1e;
   padding: 8px;
 }
 
-.terminal {
+.terminal-content {
   height: 100%;
   width: 100%;
+  overflow: hidden;
 }
 
 .terminal .xterm {
   height: 100%;
-  padding: 8px;
+  width: 100%;
+  padding: 0;
 }
 
 /* 自定义滚动条样式 */

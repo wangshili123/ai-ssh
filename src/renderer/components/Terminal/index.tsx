@@ -85,21 +85,40 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     
     // 处理终端大小调整
     const handleResize = () => {
-      if (fitAddon && terminal && shellIdRef.current && isConnected) {
-        const currentCols = terminal.cols;
-        const currentRows = terminal.rows;
-        
-        // 执行自适应
+      console.log('Terminal handleResize called');
+      if (!fitAddon || !terminal || !containerRef.current) {
+        console.log('Terminal or fitAddon not ready');
+        return;
+      }
+
+      const currentCols = terminal.cols;
+      const currentRows = terminal.rows;
+      
+      // 获取容器大小
+      const { clientHeight, clientWidth } = containerRef.current;
+      console.log('Container size:', { clientHeight, clientWidth });
+      
+      // 执行自适应
+      try {
         fitAddon.fit();
-        
-        // 获取自适应后的大小
-        const newCols = terminal.cols;
-        const newRows = terminal.rows;
-        
-        // 如果大小有变化，通知服务器
-        if (newCols !== currentCols || newRows !== currentRows) {
-          sshService.resize(shellIdRef.current, newRows, newCols).catch(console.error);
-        }
+        console.log('FitAddon.fit() executed');
+      } catch (error) {
+        console.error('FitAddon.fit() failed:', error);
+        return;
+      }
+      
+      // 获取自适应后的大小
+      const newCols = terminal.cols;
+      const newRows = terminal.rows;
+      
+      console.log('New terminal size:', { newCols, newRows });
+      
+      // 如果大小有变化且已连接，通知服务器
+      if ((newCols !== currentCols || newRows !== currentRows) && shellIdRef.current && isConnected) {
+        console.log('Sending resize to server:', { shellId: shellIdRef.current, newCols, newRows });
+        sshService.resize(shellIdRef.current, newRows, newCols).catch(error => {
+          console.error('Failed to resize terminal:', error);
+        });
       }
     };
 
