@@ -15,6 +15,7 @@ interface FileListProps {
   fileList: FileEntry[];
   loading: boolean;
   onFileListChange: (files: FileEntry[]) => void;
+  onDirectorySelect?: (path: string) => void;
 }
 
 // 将权限数字转换为字符串表示
@@ -79,6 +80,7 @@ const FileList: React.FC<FileListProps> = ({
   fileList,
   loading,
   onFileListChange,
+  onDirectorySelect,
 }) => {
   const [sortedInfo, setSortedInfo] = useState<SorterResult<FileEntry>>({});
   const [tableHeight, setTableHeight] = useState<number>(0);
@@ -102,6 +104,18 @@ const FileList: React.FC<FileListProps> = ({
       resizeObserver.disconnect();
     };
   }, []);
+
+  // 处理双击事件
+  const handleRowDoubleClick = (record: FileEntry) => {
+    if (!record.isDirectory) return;
+    
+    // 构建新路径
+    const newPath = `${currentPath === '/' ? '' : currentPath}/${record.name}`.replace(/\/+/g, '/');
+    console.log('[FileList] 双击目录:', { name: record.name, newPath });
+    
+    // 调用目录选择回调
+    onDirectorySelect?.(newPath);
+  };
 
   const handleTableChange = (
     _pagination: TablePaginationConfig,
@@ -197,6 +211,9 @@ const FileList: React.FC<FileListProps> = ({
         onChange={handleTableChange}
         scroll={{ x: 'max-content', y: tableHeight }}
         sticky
+        onRow={(record) => ({
+          onDoubleClick: () => handleRowDoubleClick(record),
+        })}
       />
     </div>
   );

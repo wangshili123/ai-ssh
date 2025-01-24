@@ -5,6 +5,32 @@
   position: relative;
 }
 
+/* 调整树节点的基础样式 */
+.directory-tree .ant-tree-node-content-wrapper {
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+/* 悬停状态 */
+.directory-tree .ant-tree-node-content-wrapper:hover {
+  background-color: #e6f7ff !important;
+}
+
+/* 选中状态 */
+.directory-tree .ant-tree-node-selected,
+.directory-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+  background-color: #bae7ff !important;
+  color: #1890ff;
+  font-weight: 500;
+}
+
+/* 选中状态悬停 */
+.directory-tree .ant-tree-node-selected:hover,
+.directory-tree .ant-tree-node-content-wrapper.ant-tree-node-selected:hover {
+  background-color: #91d5ff !important;
+}
+
 .directory-tree-content {
   height: 100%;
 }

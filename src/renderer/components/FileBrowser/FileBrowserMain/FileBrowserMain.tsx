@@ -79,6 +79,46 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
     }
   };
 
+  // 处理目录树展开
+  const handleExpand = (keys: React.Key[]) => {
+    if (!mountedRef.current) return;
+    
+    const newState = FileBrowserEventHandlers.handleExpand(tabId, keys.map(key => key.toString()));
+    if (newState) {
+      setTabState(newState);
+    }
+  };
+
+  // 处理文件列表中的目录双击
+  const handleDirectorySelect = async (path: string) => {
+    if (!mountedRef.current) return;
+
+    try {
+      setFileListLoading(true);
+      
+      // 1. 获取从根目录到目标目录的路径数组
+      const pathParts = path.split('/').filter(Boolean);
+      const expandKeys = pathParts.reduce((acc: string[], part: string, index: number) => {
+        const currentPath = '/' + pathParts.slice(0, index + 1).join('/');
+        acc.push(currentPath);
+        return acc;
+      }, ['/']);
+      
+      console.log('[FileBrowser] 处理目录双击:', { path, expandKeys });
+
+      // 2. 展开目录树
+      handleExpand(expandKeys);
+      
+      // 3. 加载目录内容
+      await handleSelect(path);
+      
+    } finally {
+      if (mountedRef.current) {
+        setFileListLoading(false);
+      }
+    }
+  };
+
   // 处理树数据更新
   const handleTreeDataUpdate = (newTreeData: any[]) => {
     if (!mountedRef.current) return;
@@ -137,14 +177,10 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
             treeData={tabState.treeData}
             expandedKeys={tabState.expandedKeys}
             loading={false}
-            onExpand={(keys) => {
-              const newState = FileBrowserEventHandlers.handleExpand(tabId, keys);
-              if (newState) {
-                setTabState(newState);
-              }
-            }}
+            onExpand={handleExpand}
             onSelect={handleSelect}
             onTreeDataUpdate={handleTreeDataUpdate}
+            currentPath={tabState.currentPath}
           />
         </div>
         <div className="file-browser-files">
@@ -155,6 +191,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
             fileList={tabState.fileList}
             loading={fileListLoading}
             onFileListChange={handleFileListChange}
+            onDirectorySelect={handleDirectorySelect}
           />
         </div>
       </div>

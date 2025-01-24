@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Tree, Spin } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import type { Key } from 'rc-tree/lib/interface';
@@ -16,6 +16,7 @@ interface DirectoryTreeProps {
   onExpand: (keys: Key[]) => void;
   onSelect: (path: string) => void;
   onTreeDataUpdate?: (newTreeData: DataNode[]) => void;
+  currentPath?: string;
 }
 
 const DirectoryTree: React.FC<DirectoryTreeProps> = ({
@@ -27,6 +28,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
   onExpand,
   onSelect,
   onTreeDataUpdate,
+  currentPath,
 }) => {
   const loadData = useCallback(async (node: any) => {
     const path = node.key as string;
@@ -49,33 +51,27 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
       console.log('[DirectoryTree] 处理后的目录列表:', children);
 
       // 更新树数据
-      if (path === '/') {
-        // 如果是根目录，直接更新整个树数据
-        onTreeDataUpdate?.(children);
-      } else {
-        // 如果是子目录，递归更新树数据
-        const updateTreeData = (data: DataNode[]): DataNode[] => {
-          return data.map(item => {
-            if (item.key === path) {
-              return {
-                ...item,
-                children,
-              };
-            }
-            if (item.children) {
-              return {
-                ...item,
-                children: updateTreeData(item.children),
-              };
-            }
-            return item;
-          });
-        };
-        
-        const newTreeData = updateTreeData(treeData);
-        console.log('[DirectoryTree] 更新后的树数据:', newTreeData);
-        onTreeDataUpdate?.(newTreeData);
-      }
+      const updateTreeData = (data: DataNode[]): DataNode[] => {
+        return data.map(item => {
+          if (item.key === path) {
+            return {
+              ...item,
+              children,
+            };
+          }
+          if (item.children) {
+            return {
+              ...item,
+              children: updateTreeData(item.children),
+            };
+          }
+          return item;
+        });
+      };
+      
+      const newTreeData = updateTreeData(treeData);
+      console.log('[DirectoryTree] 更新后的树数据:', newTreeData);
+      onTreeDataUpdate?.(newTreeData);
 
       return children;
     } catch (error: unknown) {
@@ -92,7 +88,7 @@ const DirectoryTree: React.FC<DirectoryTreeProps> = ({
       className="directory-tree"
       treeData={treeData}
       expandedKeys={expandedKeys}
-      selectedKeys={[]}
+      selectedKeys={currentPath ? [currentPath] : []}
       loadData={loadData}
       onExpand={onExpand}
       onSelect={(_, { node }) => onSelect(node.key as string)}
