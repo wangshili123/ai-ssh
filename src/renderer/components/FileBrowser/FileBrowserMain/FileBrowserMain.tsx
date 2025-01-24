@@ -13,7 +13,8 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
   console.log('[FileBrowser] 组件渲染:', { sessionInfo, tabId });
   
   const [tabState, setTabState] = useState<FileBrowserTabState>();
-  const [loading, setLoading] = useState(true);
+  const [fileListLoading, setFileListLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
   const mountedRef = useRef(false);
 
   // 初始化连接和加载数据
@@ -27,7 +28,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
       }
       
       try {
-        setLoading(true);
+        setInitializing(true);
         await FileBrowserConnectionManager.initConnection(tabId, sessionInfo);
         if (mountedRef.current) {
           const state = FileBrowserStateManager.getTabState(tabId);
@@ -42,7 +43,8 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
         console.error('[FileBrowser] 初始化失败:', error);
       } finally {
         if (mountedRef.current) {
-          setLoading(false);
+          setInitializing(false);
+          setFileListLoading(false);
         }
       }
     };
@@ -61,7 +63,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
     if (!mountedRef.current) return;
     
     try {
-      setLoading(true);
+      setFileListLoading(true);
       await FileBrowserEventHandlers.handleSelect(tabId, path);
       if (mountedRef.current) {
         const state = FileBrowserStateManager.getTabState(tabId);
@@ -72,7 +74,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
       }
     } finally {
       if (mountedRef.current) {
-        setLoading(false);
+        setFileListLoading(false);
       }
     }
   };
@@ -104,7 +106,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
   console.log('[FileBrowser] 当前状态:', { 
     tabId, 
     hasState: !!tabState, 
-    loading,
+    fileListLoading,
     fileCount: tabState?.fileList?.length,
     treeCount: tabState?.treeData?.length
   });
@@ -134,7 +136,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
             tabId={tabId}
             treeData={tabState.treeData}
             expandedKeys={tabState.expandedKeys}
-            loading={loading}
+            loading={false}
             onExpand={(keys) => {
               const newState = FileBrowserEventHandlers.handleExpand(tabId, keys);
               if (newState) {
@@ -151,7 +153,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
             tabId={tabId}
             currentPath={tabState.currentPath}
             fileList={tabState.fileList}
-            loading={loading}
+            loading={fileListLoading}
             onFileListChange={handleFileListChange}
           />
         </div>
