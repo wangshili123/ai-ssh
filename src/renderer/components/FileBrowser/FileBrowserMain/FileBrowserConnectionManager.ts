@@ -39,26 +39,29 @@ export class FileBrowserConnectionManager {
 
       // 处理文件列表数据
       const fileList = files;
-      const treeData = fileList
+      
+      // 构建目录树数据
+      const directories = fileList
         .filter((file: FileEntry) => file.isDirectory)
-        //排序文件夹优先,再按名字
-        .sort((a: FileEntry, b: FileEntry) => {
-          // 如果都是文件夹或都不是文件夹,按名字排序
-          if (a.isDirectory === b.isDirectory) {
-            return a.name.localeCompare(b.name);
-          }
-          // 文件夹优先
-          return a.isDirectory ? -1 : 1;
-        })
+        .sort((a: FileEntry, b: FileEntry) => a.name.localeCompare(b.name))
         .map((dir: FileEntry) => ({
           title: dir.name,
-          key: `${path}/${dir.name}`.replace(/\/+/g, '/'),
+          key: `${path === '/' ? '' : path}/${dir.name}`.replace(/\/+/g, '/'),
           isLeaf: false
         }));
 
+      // 创建根节点
+      const treeData: DataNode[] = [{
+        title: '/',
+        key: '/',
+        children: directories,
+        isLeaf: false
+      }];
+
       console.log('[FileBrowser] 处理后的数据:', {
         totalFiles: fileList.length,
-        directories: treeData.length
+        directories: directories.length,
+        treeData
       });
 
       // 获取当前会话ID
@@ -71,7 +74,7 @@ export class FileBrowserConnectionManager {
       FileBrowserStateManager.updateTabState(tabId, {
         currentPath: path,
         treeData,
-        expandedKeys: [],
+        expandedKeys: ['/'],  // 默认展开根节点
         fileList,
         isInitialized: true,
         isConnected: true,
@@ -86,4 +89,4 @@ export class FileBrowserConnectionManager {
       throw error;
     }
   }
-} 
+}
