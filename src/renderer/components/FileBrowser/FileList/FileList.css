@@ -66,12 +66,37 @@
 .file-list-container .ant-table-tbody > tr > td {
   padding: 4px 8px;
   font-size: 12px;
+  cursor: default !important;  /* 强制使用默认鼠标样式 */
+}
+
+/* 设置表格行的鼠标样式 */
+.file-list-container .ant-table-tbody > tr {
+  cursor: default;  /* 使用默认鼠标样式 */
+}
+
+/* 设置单元格内容的鼠标样式 */
+.file-list-container .ant-table-tbody > tr > td .ant-table-cell-content {
+  cursor: default;  /* 使用默认鼠标样式 */
+}
+
+/* 文件名单元格样式 */
+.file-name-cell {
+  display: flex;
+  align-items: center;
+  cursor: default;
+}
+
+.file-name {
+  cursor: default;
+  user-select: none;
 }
 
 /* 文件图标样式 */
 .file-icon {
   margin-right: 6px;
   font-size: 14px;
+  cursor: default;
+  user-select: none;
 }
 
 /* 加载状态样式 */

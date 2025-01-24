@@ -139,9 +139,9 @@ const FileList: React.FC<FileListProps> = ({
       },
       sortOrder: sortedInfo.columnKey === 'name' ? sortedInfo.order : null,
       render: (text: string, record: FileEntry) => (
-        <span>
-          <span className="file-icon">{record.isDirectory ? '📁' : '📄'}</span>
-          {text}
+        <span className="file-name-cell">
+          <span className="file-icon">{record.isDirectory ? '📁' : '��'}</span>
+          <span className="file-name">{text}</span>
         </span>
       ),
       width: '35%',
