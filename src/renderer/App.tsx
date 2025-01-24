@@ -17,7 +17,7 @@ const App: React.FC = () => {
   const [fileBrowserHeight, setFileBrowserHeight] = useState(300);
   const [aiSiderWidth, setAiSiderWidth] = useState(400);
   const [currentTabId, setCurrentTabId] = useState<string>('');
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   // 监听标签页ID变化
   useEffect(() => {
