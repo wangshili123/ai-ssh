@@ -2,12 +2,20 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.terminal-tabs-header {
+  height: 100%;  /* 确保 header 占满高度 */
+  display: flex;
+  flex-direction: column;
 }
 
 .terminal-tabs-manager .ant-tabs {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;  /* 防止内容溢出 */
 }
 
 .terminal-tabs-manager .ant-tabs-content {
@@ -19,7 +27,16 @@
   height: 100%;
 }
 
-.terminal-tabs-manager .tab-badge {
+.terminal-tabs-manager .ant-tabs-nav {
+  margin: 0 !important;
+  flex-shrink: 0;  /* 防止标签栏被压缩 */
+}
+
+.session-list-btn {
+  margin-right: 8px;
+}
+
+.tab-badge {
   display: flex;
   align-items: center;
   gap: 8px;
