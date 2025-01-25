@@ -140,7 +140,7 @@ const FileList: React.FC<FileListProps> = ({
       sortOrder: sortedInfo.columnKey === 'name' ? sortedInfo.order : null,
       render: (text: string, record: FileEntry) => (
         <span className="file-name-cell">
-          <span className="file-icon">{record.isDirectory ? '📁' : '��'}</span>
+          <span className="file-icon">{record.isDirectory ? '📁' : '📄'}</span>
           <span className="file-name">{text}</span>
         </span>
       ),
@@ -211,6 +211,7 @@ const FileList: React.FC<FileListProps> = ({
         onChange={handleTableChange}
         scroll={{ x: 'max-content', y: tableHeight }}
         sticky
+        showSorterTooltip={false}
         onRow={(record) => ({
           onDoubleClick: () => handleRowDoubleClick(record),
         })}
