@@ -7,6 +7,7 @@ import { FileBrowserMainProps, FileBrowserTabState } from './FileBrowserTypes';
 import { FileBrowserStateManager } from './FileBrowserStateManager';
 import { FileBrowserEventHandlers } from './FileBrowserEventHandlers';
 import { FileBrowserConnectionManager } from './FileBrowserConnectionManager';
+import { clearHistory } from '../Navigation/History/HistoryStorageService';
 import './FileBrowserMain.css';
 
 const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId }) => {
@@ -143,6 +144,24 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
     }
   };
 
+  // 处理清除历史记录
+  const handleClearHistory = () => {
+    if (!mountedRef.current) return;
+    
+    // 清除历史记录
+    clearHistory();
+    
+    // 更新状态
+    const newState = {
+      ...tabState!,
+      history: [tabState!.currentPath],
+      historyIndex: 0
+    };
+    
+    FileBrowserStateManager.setTabState(tabId, newState);
+    setTabState(newState);
+  };
+
   console.log('[FileBrowser] 当前状态:', { 
     tabId, 
     hasState: !!tabState, 
@@ -167,6 +186,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
           history={tabState.history}
           historyIndex={tabState.historyIndex}
           onPathChange={handleSelect}
+          onClearHistory={handleClearHistory}
         />
       </div>
       <div className="file-browser-content">
