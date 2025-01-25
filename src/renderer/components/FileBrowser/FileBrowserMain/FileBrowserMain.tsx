@@ -65,6 +65,21 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
     
     try {
       setFileListLoading(true);
+
+      // 获取从根目录到目标目录的路径数组
+      const pathParts = path.split('/').filter(Boolean);
+      const expandKeys = pathParts.reduce((acc: string[], part: string, index: number) => {
+        const currentPath = '/' + pathParts.slice(0, index + 1).join('/');
+        acc.push(currentPath);
+        return acc;
+      }, ['/']);
+      
+      console.log('[FileBrowser] 处理目录选择:', { path, expandKeys });
+
+      // 展开目录树
+      handleExpand(expandKeys);
+
+      // 加载目录内容
       await FileBrowserEventHandlers.handleSelect(tabId, path);
       if (mountedRef.current) {
         const state = FileBrowserStateManager.getTabState(tabId);
@@ -187,6 +202,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
           historyIndex={tabState.historyIndex}
           onPathChange={handleSelect}
           onClearHistory={handleClearHistory}
+          tabId={tabId}
         />
       </div>
       <div className="file-browser-content">
