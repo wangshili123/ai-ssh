@@ -1,0 +1,51 @@
+/* 历史记录菜单样式 */
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 8px;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-item-active {
+  background-color: #e6f7ff !important;
+  font-weight: 500;
+}
+
+.current-indicator {
+  color: #1890ff;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.clear-history {
+  color: #ff4d4f;
+}
+
+.clear-history:hover {
+  background-color: #fff1f0 !important;
+}
+
+/* 下拉菜单最大高度 */
+.ant-dropdown-menu {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* 自定义滚动条 */
+.ant-dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.ant-dropdown-menu::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.ant-dropdown-menu::-webkit-scrollbar-track {
+  background: #f0f0f0;
+} 

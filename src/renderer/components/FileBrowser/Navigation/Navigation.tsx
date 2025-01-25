@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, Input, Space } from 'antd';
 import { ArrowLeftOutlined, ArrowRightOutlined, ReloadOutlined } from '@ant-design/icons';
+import { HistoryButton } from './History/HistoryIndex';
 import './Navigation.css';
 
 interface NavigationProps {
@@ -8,13 +9,15 @@ interface NavigationProps {
   history: string[];
   historyIndex: number;
   onPathChange: (path: string) => void;
+  onClearHistory?: () => void;
 }
 
 const Navigation: React.FC<NavigationProps> = ({
   currentPath,
   history,
   historyIndex,
-  onPathChange
+  onPathChange,
+  onClearHistory
 }) => {
   // 处理后退
   const handleBack = () => {
@@ -56,6 +59,12 @@ const Navigation: React.FC<NavigationProps> = ({
           value={currentPath}
           onChange={handlePathChange}
           style={{ width: 400 }}
+        />
+        <HistoryButton
+          history={history}
+          historyIndex={historyIndex}
+          onSelect={onPathChange}
+          onClearHistory={onClearHistory}
         />
       </Space>
     </div>
