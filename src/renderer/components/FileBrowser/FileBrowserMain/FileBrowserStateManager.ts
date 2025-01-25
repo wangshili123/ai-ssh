@@ -1,3 +1,4 @@
+import { loadHistory, saveHistory, addToHistory, clearHistory, type HistoryState } from '../Navigation/History/HistoryStorageService';
 import { FileBrowserTabState } from './FileBrowserTypes';
 
 // 用于存储所有标签页的状态
@@ -7,22 +8,29 @@ const fileBrowserTabStates = new Map<string, FileBrowserTabState>();
  * 文件浏览器状态管理类
  */
 export class FileBrowserStateManager {
+  private static getStorageKey(tabId: string): string {
+    return `file-browser-history-${tabId}`;
+  }
+
   /**
    * 初始化标签页状态
    */
   static initTabState(tabId: string, sessionId: string): void {
     console.log('[FileBrowserState] 初始化状态:', { tabId, sessionId });
     
+    // 从本地存储加载历史记录
+    const historyState = loadHistory();
+    
     fileBrowserTabStates.set(tabId, {
-      currentPath: '/',
+      currentPath: historyState.items[historyState.currentIndex]?.path || '/',
       treeData: [],
       expandedKeys: [],
       fileList: [],
       isInitialized: false,
       isConnected: false,
       sessionId,
-      history: ['/'],
-      historyIndex: 0
+      history: historyState.items.length > 0 ? historyState.items.map(item => item.path) : ['/'],
+      historyIndex: historyState.currentIndex >= 0 ? historyState.currentIndex : 0
     });
   }
 
@@ -48,6 +56,17 @@ export class FileBrowserStateManager {
       state,
       allTabIds: Array.from(fileBrowserTabStates.keys())
     });
+    
+    // 保存历史记录到本地存储
+    saveHistory({
+      items: state.history.map((path, index) => ({
+        id: `${path}-${Date.now()}-${index}`,
+        path,
+        timestamp: Date.now()
+      })),
+      currentIndex: state.historyIndex
+    });
+    
     fileBrowserTabStates.set(tabId, state);
   }
 
@@ -69,6 +88,19 @@ export class FileBrowserStateManager {
     const currentState = fileBrowserTabStates.get(tabId);
     if (currentState) {
       const newState = { ...currentState, ...updates };
+      
+      // 如果更新包含历史相关的字段，同步到本地存储
+      if (updates.history || updates.historyIndex !== undefined) {
+        saveHistory({
+          items: newState.history.map((path, index) => ({
+            id: `${path}-${Date.now()}-${index}`,
+            path,
+            timestamp: Date.now()
+          })),
+          currentIndex: newState.historyIndex
+        });
+      }
+      
       fileBrowserTabStates.set(tabId, newState);
       console.log('[FileBrowserState] 更新后状态:', { 
         tabId, 

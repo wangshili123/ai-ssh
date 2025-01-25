@@ -15,16 +15,19 @@ const HistoryMenu: React.FC<HistoryProps> = ({
     if (key === 'clear') {
       onClearHistory?.();
     } else {
-      onSelect(key);
+      const item = history.items.find(item => item.id === key);
+      if (item) {
+        onSelect(item.path);
+      }
     }
   };
 
   const menuItems = [
-    ...history.map((path, index) => ({
-      key: path,
+    ...history.items.map((item, index) => ({
+      key: item.id,
       label: (
         <div className="history-item">
-          <span>{path}</span>
+          <span>{item.path}</span>
           {index === historyIndex && (
             <span className="current-indicator">(当前)</span>
           )}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, Input, Space } from 'antd';
 import { ArrowLeftOutlined, ArrowRightOutlined, ReloadOutlined } from '@ant-design/icons';
 import { HistoryButton } from './History/HistoryIndex';
+import { HistoryState } from './History/HistoryStorageService';
 import './Navigation.css';
 
 interface NavigationProps {
@@ -14,22 +15,32 @@ interface NavigationProps {
 
 const Navigation: React.FC<NavigationProps> = ({
   currentPath,
-  history,
+  history: pathHistory,
   historyIndex,
   onPathChange,
   onClearHistory
 }) => {
+  // 将旧的历史记录格式转换为新格式
+  const historyState: HistoryState = {
+    items: pathHistory.map((path, index) => ({
+      id: `${path}-${index}`,
+      path,
+      timestamp: Date.now() - (pathHistory.length - index) * 1000 // 模拟时间戳
+    })),
+    currentIndex: historyIndex
+  };
+
   // 处理后退
   const handleBack = () => {
     if (historyIndex > 0) {
-      onPathChange(history[historyIndex - 1]);
+      onPathChange(pathHistory[historyIndex - 1]);
     }
   };
 
   // 处理前进
   const handleForward = () => {
-    if (historyIndex < history.length - 1) {
-      onPathChange(history[historyIndex + 1]);
+    if (historyIndex < pathHistory.length - 1) {
+      onPathChange(pathHistory[historyIndex + 1]);
     }
   };
 
@@ -49,7 +60,7 @@ const Navigation: React.FC<NavigationProps> = ({
         <Button
           icon={<ArrowRightOutlined />}
           onClick={handleForward}
-          disabled={historyIndex >= history.length - 1}
+          disabled={historyIndex >= pathHistory.length - 1}
         />
         <Button
           icon={<ReloadOutlined />}
@@ -61,7 +72,7 @@ const Navigation: React.FC<NavigationProps> = ({
           style={{ width: 400 }}
         />
         <HistoryButton
-          history={history}
+          history={historyState}
           historyIndex={historyIndex}
           onSelect={onPathChange}
           onClearHistory={onClearHistory}

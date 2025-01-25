@@ -4,6 +4,7 @@ import { FileEntry } from '../../../../main/types/file';
 import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
 import { FileBrowserStateManager } from './FileBrowserStateManager';
 import { FileBrowserTabState } from './FileBrowserTypes';
+import { addToHistory, type HistoryState } from '../Navigation/History/HistoryStorageService';
 
 /**
  * 文件浏览器事件处理类
@@ -36,9 +37,15 @@ export class FileBrowserEventHandlers {
       const currentState = FileBrowserStateManager.getTabState(tabId);
       if (!currentState) return;
 
-      // 更新历史记录
-      const newHistory = [...currentState.history.slice(0, currentState.historyIndex + 1), path];
-      const newHistoryIndex = newHistory.length - 1;
+      // 使用本地存储服务添加新路径到历史记录
+      const historyState = addToHistory(path, {
+        items: currentState.history.map((path, index) => ({
+          id: `${path}-${Date.now()}-${index}`,
+          path,
+          timestamp: Date.now()
+        })),
+        currentIndex: currentState.historyIndex
+      });
 
       const files = await sftpConnectionManager.readDirectory(tabId, path);
       // 按目录优先，名称排序
@@ -52,8 +59,8 @@ export class FileBrowserEventHandlers {
       FileBrowserStateManager.updateTabState(tabId, {
         currentPath: path,
         fileList: sortedFiles,
-        history: newHistory,
-        historyIndex: newHistoryIndex
+        history: historyState.items.map(item => item.path),
+        historyIndex: historyState.currentIndex
       });
     } catch (error) {
       console.error('[FileBrowser] 读取目录失败:', error);
@@ -63,22 +70,22 @@ export class FileBrowserEventHandlers {
   /**
    * 处理树数据更新事件
    * @param tabId 标签页ID
-   * @param newTreeData 新的树数据
+   * @param treeData 新的树数据
    */
-  static handleTreeDataUpdate(tabId: string, newTreeData: DataNode[]): void {
+  static handleTreeDataUpdate(tabId: string, treeData: DataNode[]): void {
     FileBrowserStateManager.updateTabState(tabId, {
-      treeData: newTreeData
+      treeData
     });
   }
 
   /**
-   * 处理文件列表变化事件
+   * 处理文件列表更新事件
    * @param tabId 标签页ID
-   * @param newFileList 新的文件列表
+   * @param fileList 新的文件列表
    */
-  static handleFileListChange(tabId: string, newFileList: FileEntry[]): void {
+  static handleFileListChange(tabId: string, fileList: FileEntry[]): void {
     FileBrowserStateManager.updateTabState(tabId, {
-      fileList: newFileList
+      fileList
     });
   }
 } 
