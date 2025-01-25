@@ -37,7 +37,6 @@ const Navigation: React.FC<NavigationProps> = ({
 
   // 添加搜索选项状态
   const [options, setOptions] = useState<{ value: string; label: string }[]>([]);
-  const [searchValue, setSearchValue] = useState(currentPath);
 
   // 处理后退
   const handleBack = () => {
@@ -55,7 +54,6 @@ const Navigation: React.FC<NavigationProps> = ({
 
   // 处理路径搜索
   const handleSearch = async (value: string) => {
-    setSearchValue(value);
     if (!value) {
       setOptions([]);
       return;
@@ -76,8 +74,6 @@ const Navigation: React.FC<NavigationProps> = ({
 
   // 处理路径选择
   const handleSelect = (value: string) => {
-    setSearchValue(value);
-
     // 获取从根目录到目标目录的路径数组
     const pathParts = value.split('/').filter(Boolean);
     const expandKeys = pathParts.reduce((acc: string[], part: string, index: number) => {
@@ -121,7 +117,7 @@ const Navigation: React.FC<NavigationProps> = ({
           onClick={() => onPathChange(currentPath)}
         />
         <AutoComplete
-          value={searchValue}
+          value={currentPath}
           options={options}
           style={{ width: 400 }}
           onSearch={handleSearch}
