@@ -8,6 +8,8 @@ import { FileBrowserStateManager } from './FileBrowserStateManager';
 import { FileBrowserEventHandlers } from './FileBrowserEventHandlers';
 import { FileBrowserConnectionManager } from './FileBrowserConnectionManager';
 import { clearHistory } from '../Navigation/History/HistoryStorageService';
+import { sshService } from '../../../services/ssh';
+import { eventBus } from '../../../services/eventBus';
 import './FileBrowserMain.css';
 
 const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId }) => {
@@ -177,6 +179,29 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
     setTabState(newState);
   };
 
+  // 处理同步到终端
+  const handleSyncToTerminal = (path: string) => {
+    try {
+      const shellId = eventBus.getCurrentShellId();
+      if (!shellId) {
+        console.error('[FileBrowser] 无法同步到终端: 未找到活动的终端会话');
+        return;
+      }
+
+      // 构建cd命令
+      const command = `cd "${path}"\n`;
+      
+      // 使用 sshService 发送命令
+      sshService.write(shellId, command).catch((error: Error) => {
+        console.error('[FileBrowser] 向终端写入命令失败:', error);
+      });
+      
+      console.log('[FileBrowser] 同步路径到终端:', { path, command, shellId });
+    } catch (error) {
+      console.error('[FileBrowser] 同步到终端失败:', error);
+    }
+  };
+
   console.log('[FileBrowser] 当前状态:', { 
     tabId, 
     hasState: !!tabState, 
@@ -203,6 +228,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
           onPathChange={handleSelect}
           onClearHistory={handleClearHistory}
           tabId={tabId}
+          onSyncToTerminal={handleSyncToTerminal}
         />
       </div>
       <div className="file-browser-content">

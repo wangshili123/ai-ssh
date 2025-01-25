@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Space, AutoComplete } from 'antd';
-import { ArrowLeftOutlined, ArrowRightOutlined, ReloadOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, ArrowRightOutlined, ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { HistoryButton } from './History/HistoryIndex';
 import { HistoryState } from './History/HistoryStorageService';
 import { searchPaths } from '../../../services/pathSearchService';
@@ -13,6 +13,7 @@ interface NavigationProps {
   onPathChange: (path: string) => void;
   onClearHistory?: () => void;
   tabId: string;  // 添加 tabId 参数
+  onSyncToTerminal?: (path: string) => void;
 }
 
 const Navigation: React.FC<NavigationProps> = ({
@@ -21,7 +22,8 @@ const Navigation: React.FC<NavigationProps> = ({
   historyIndex,
   onPathChange,
   onClearHistory,
-  tabId
+  tabId,
+  onSyncToTerminal
 }) => {
   // 将旧的历史记录格式转换为新格式
   const historyState: HistoryState = {
@@ -94,6 +96,13 @@ const Navigation: React.FC<NavigationProps> = ({
     onPathChange(value);
   };
 
+  // 处理同步到终端
+  const handleSync = () => {
+    if (onSyncToTerminal) {
+      onSyncToTerminal(currentPath);
+    }
+  };
+
   return (
     <div className="navigation">
       <Space>
@@ -125,6 +134,11 @@ const Navigation: React.FC<NavigationProps> = ({
           historyIndex={historyIndex}
           onSelect={onPathChange}
           onClearHistory={onClearHistory}
+        />
+        <Button
+          icon={<SyncOutlined />}
+          onClick={handleSync}
+          title="同步到终端"
         />
       </Space>
     </div>
