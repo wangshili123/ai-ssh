@@ -155,6 +155,7 @@
           * [x] 在输出开头添加截断说明
           * [x] 显示实际输出行数信息
   * [x] Agent模式 [设计文档: docs/agent-mode-ui-design.md]
+  * [ ] 文件管理器 [设计文档: docs/linux-file-brower/ui-design.md],产品文档: docs/linux-file-brower/product-spec.md - 进行中
 
 
 
