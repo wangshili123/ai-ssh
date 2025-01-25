@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Space, AutoComplete } from 'antd';
 import { ArrowLeftOutlined, ArrowRightOutlined, ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { HistoryButton } from './History/HistoryIndex';
@@ -37,6 +37,12 @@ const Navigation: React.FC<NavigationProps> = ({
 
   // 添加搜索选项状态
   const [options, setOptions] = useState<{ value: string; label: string }[]>([]);
+  const [inputValue, setInputValue] = useState(currentPath);
+
+  // 监听 currentPath 的变化
+  useEffect(() => {
+    setInputValue(currentPath);
+  }, [currentPath]);
 
   // 处理后退
   const handleBack = () => {
@@ -117,11 +123,12 @@ const Navigation: React.FC<NavigationProps> = ({
           onClick={() => onPathChange(currentPath)}
         />
         <AutoComplete
-          value={currentPath}
+          value={inputValue}
           options={options}
           style={{ width: 400 }}
           onSearch={handleSearch}
           onSelect={handleSelect}
+          onChange={setInputValue}
           placeholder="输入路径搜索"
           allowClear
         />
