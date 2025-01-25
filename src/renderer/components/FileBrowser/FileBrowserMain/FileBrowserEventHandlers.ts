@@ -37,14 +37,30 @@ export class FileBrowserEventHandlers {
       const currentState = FileBrowserStateManager.getTabState(tabId);
       if (!currentState) return;
 
-      // 使用本地存储服务添加新路径到历史记录
-      const historyState = addToHistory(path, {
-        items: currentState.history.map((path, index) => ({
-          id: `${path}-${Date.now()}-${index}`,
-          path,
-          timestamp: Date.now()
-        })),
-        currentIndex: currentState.historyIndex
+      let newHistory = [...currentState.history];
+      let newHistoryIndex = currentState.historyIndex;
+
+      // 检查是否是后退/前进操作
+      const isNavigationAction = currentState.history.includes(path);
+      
+      if (isNavigationAction) {
+        // 如果是后退/前进操作，只更新索引
+        newHistoryIndex = currentState.history.indexOf(path);
+      } else {
+        // 如果是新路径，添加到历史记录
+        // 移除当前位置之后的所有记录
+        newHistory = currentState.history.slice(0, currentState.historyIndex + 1);
+        newHistory.push(path);
+        newHistoryIndex = newHistory.length - 1;
+      }
+
+      console.log('[FileBrowser] 历史记录更新:', {
+        path,
+        isNavigationAction,
+        oldIndex: currentState.historyIndex,
+        newIndex: newHistoryIndex,
+        oldHistory: currentState.history,
+        newHistory
       });
 
       const files = await sftpConnectionManager.readDirectory(tabId, path);
@@ -59,8 +75,8 @@ export class FileBrowserEventHandlers {
       FileBrowserStateManager.updateTabState(tabId, {
         currentPath: path,
         fileList: sortedFiles,
-        history: historyState.items.map(item => item.path),
-        historyIndex: historyState.currentIndex
+        history: newHistory,
+        historyIndex: newHistoryIndex
       });
     } catch (error) {
       console.error('[FileBrowser] 读取目录失败:', error);
