@@ -3,7 +3,7 @@ import { Menu } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { HistoryProps } from './HistoryTypes';
-import './styles.css';
+import './HistoryStyles.css';
 
 const HistoryMenu: React.FC<HistoryProps> = ({
   history,
