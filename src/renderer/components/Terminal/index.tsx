@@ -10,51 +10,20 @@ import { eventBus } from '../../services/eventBus';
 import { terminalOutputService } from '../../services/terminalOutput';
 import { CompletionService } from '../../../services/completion/CompletionService';
 import type { SessionInfo } from '../../../main/services/storage';
+import { TerminalProps } from './types/terminal.types';
+import { useTerminalInit } from './hooks/useTerminalInit';
+import { waitForConnection } from './utils/terminal.utils';
 import 'xterm/css/xterm.css';
 import './index.css';
 
-interface TerminalProps {
-  sessionInfo?: SessionInfo;
-  config?: {
-    fontSize?: number;
-    fontFamily?: string;
-    theme?: {
-      background?: string;
-      foreground?: string;
-      cursor?: string;
-      selectionBackground?: string;
-    };
-  };
-  instanceId?: string;
-}
-
 const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const terminalRef = useRef<XTerm>();
-  const fitAddonRef = useRef<FitAddon>();
-  const searchAddonRef = useRef<SearchAddon>();
   const [isReady, setIsReady] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const shellIdRef = useRef<string>('');
   const [currentInput, setCurrentInput] = useState('');
   const [suggestionTimeout, setSuggestionTimeout] = useState<NodeJS.Timeout | null>(null);
   const [completionService, setCompletionService] = useState<CompletionService | null>(null);
   const pendingCommandRef = useRef('');
-
-  // 等待 SSH 连接就绪
-  const waitForConnection = async (sessionInfo: SessionInfo): Promise<void> => {
-    let retries = 5;
-    while (retries > 0) {
-      try {
-        await sshService.connect(sessionInfo);
-        return;
-      } catch (error) {
-        retries--;
-        if (retries === 0) throw error;
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
-  };
 
   // 开始补全计时器
   const startSuggestionTimer = (input: string) => {
@@ -260,156 +229,22 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     }
   }, [completionService, suggestionTimeout, updatePendingCommand]);
 
-  // 初始化终端
-  const initTerminal = useCallback(async () => {
-    if (!containerRef.current || !isReady) {
-      return;
-    }
-
-    // 创建终端实例
-    const terminal = new XTerm({
-      cursorBlink: true,
-      fontSize: config?.fontSize || 14,
-      fontFamily: config?.fontFamily || 'Consolas, "Courier New", monospace',
-      theme: {
-        background: config?.theme?.background || '#000000',
-        foreground: config?.theme?.foreground || '#ffffff'
-      },
-      convertEol: true,
-      rightClickSelectsWord: true,
-      cols: 80,
-      rows: 24
-    });
-
-    // 添加插件
-    const fitAddon = new FitAddon();
-    const searchAddon = new SearchAddon();
-    terminal.loadAddon(fitAddon);
-    terminal.loadAddon(searchAddon);
-    searchAddonRef.current = searchAddon;
-    fitAddonRef.current = fitAddon;
-
-    // 打开终端
-    terminal.open(containerRef.current);
-    
-    // 处理终端大小调整
-    const handleResize = () => {
-      console.log('Terminal handleResize called');
-      if (!fitAddon || !terminal || !containerRef.current) {
-        console.log('Terminal or fitAddon not ready');
-        return;
-      }
-
-      const currentCols = terminal.cols;
-      const currentRows = terminal.rows;
-      
-      // 获取容器大小
-      const { clientHeight, clientWidth } = containerRef.current;
-      console.log('Container size:', { clientHeight, clientWidth });
-      
-      // 执行自适应
-      try {
-        fitAddon.fit();
-        console.log('FitAddon.fit() executed');
-      } catch (error) {
-        console.error('FitAddon.fit() failed:', error);
-        return;
-      }
-      
-      // 获取自适应后的大小
-      const newCols = terminal.cols;
-      const newRows = terminal.rows;
-      
-      console.log('New terminal size:', { newCols, newRows });
-      
-      // 如果大小有变化且已连接，通知服务器
-      if ((newCols !== currentCols || newRows !== currentRows) && shellIdRef.current && isConnected) {
-        console.log('Sending resize to server:', { shellId: shellIdRef.current, newCols, newRows });
-        sshService.resize(shellIdRef.current, newRows, newCols).catch(error => {
-          console.error('Failed to resize terminal:', error);
-        });
-      }
-    };
-
-    // 初始化大小
-    handleResize();
-    terminalRef.current = terminal;
-
-    // 连接 SSH
-    if (sessionInfo) {
-      try {
-        // 等待连接就绪
-        await waitForConnection(sessionInfo);
-        
-        const shellId = sessionInfo.id + (instanceId ? `-${instanceId}` : '');
-        shellIdRef.current = shellId;
-
-        // 创建 shell
-        await sshService.createShell(
-          shellId,
-          (data) => {
-            terminal.write(data);
-            // 收集终端输出
-            terminalOutputService.addOutput(shellId, data);
-          },
-          () => {
-            setIsConnected(false);
-            shellIdRef.current = '';
-            eventBus.setCurrentShellId('');
-            terminal.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
-            // 清除终端输出缓存
-            terminalOutputService.clearOutput(shellId);
-            // 发送连接状态变化事件
-            eventBus.emit('terminal-connection-change', { shellId, connected: false });
-          }
-        );
-
-        setIsConnected(true);
-        eventBus.setCurrentShellId(shellId);
-        // 发送连接状态变化事件
-        eventBus.emit('terminal-connection-change', { shellId, connected: true });
-
-        // 自动聚焦终端
-        terminal.focus();
-
-        // 设置终端事件处理
-        terminal.onData(handleInput);
-        
-        // 添加键盘事件监听器
-        terminal.onKey(({ key, domEvent }) => {
-          // 如果是回车键
-          if (domEvent.key === 'Enter') {
-            handleEnterKey();
-          }
-        });
-
-        // 监听窗口大小变化
-        window.addEventListener('resize', handleResize);
-
-        // 清理函数
-        return () => {
-          window.removeEventListener('resize', handleResize);
-          if (shellIdRef.current) {
-            sshService.disconnect(shellIdRef.current).catch(console.error);
-            shellIdRef.current = '';
-          }
-          setIsConnected(false);
-          terminal.dispose();
-        };
-      } catch (error) {
-        console.error('Failed to connect:', error);
-        terminal.write(`\r\n\x1b[31m连接失败: ${error}\x1b[0m\r\n`);
-        return () => {
-          terminal.dispose();
-        };
-      }
-    } else {
-      terminal.write('请选择一个会话连接...\r\n');
-      return () => {
-        terminal.dispose();
-      };
-    }
-  }, [sessionInfo, config, isReady, instanceId]);
+  // 使用 useTerminalInit hook
+  const {
+    terminalRef,
+    searchAddonRef,
+    fitAddonRef,
+    shellIdRef
+  } = useTerminalInit({
+    sessionInfo,
+    config,
+    instanceId,
+    isReady,
+    containerRef,
+    setIsConnected,
+    handleInput,
+    handleEnterKey
+  });
 
   // 在组件挂载后设置 isReady
   useEffect(() => {
@@ -421,11 +256,8 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
 
   // 初始化终端
   useEffect(() => {
-    const cleanup = initTerminal();
-    return () => {
-      cleanup?.then((fn) => fn?.());
-    };
-  }, [initTerminal]);
+    // 移除不必要的 cleanup 逻辑，因为清理工作已经在 useTerminalInit 中处理
+  }, []);
 
   // 监听标签切换，自动聚焦当前终端
   useEffect(() => {
@@ -472,7 +304,10 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
           shellIdRef.current = '';
         }
         setIsConnected(false);
-        eventBus.emit('terminal-connection-change', { shellId: shellIdRef.current, connected: false });
+        eventBus.emit('terminal-connection-change', { 
+          shellId: shellIdRef.current || '', 
+          connected: false 
+        });
 
         // 等待连接就绪
         await waitForConnection(sessionInfo);
@@ -495,14 +330,20 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
             // 清除终端输出缓存
             terminalOutputService.clearOutput(shellId);
             // 发送连接状态变化事件
-            eventBus.emit('terminal-connection-change', { shellId, connected: false });
+            eventBus.emit('terminal-connection-change', { 
+              shellId: shellIdRef.current || '', 
+              connected: false 
+            });
           }
         );
 
         setIsConnected(true);
         eventBus.setCurrentShellId(shellId);
         // 发送连接状态变化事件
-        eventBus.emit('terminal-connection-change', { shellId, connected: true });
+        eventBus.emit('terminal-connection-change', { 
+          shellId: shellIdRef.current || '', 
+          connected: true 
+        });
       } catch (error) {
         console.error('Failed to reload terminal:', error);
         terminalRef.current.write(`\r\n\x1b[31m重新连接失败: ${error}\x1b[0m\r\n`);
