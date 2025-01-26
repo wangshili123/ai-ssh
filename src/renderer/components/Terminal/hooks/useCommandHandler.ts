@@ -39,23 +39,42 @@ export const useCommandHandler = ({
 
     // 如果是Tab键,接受当前建议
     if (data === '\t') {
+      console.log('[useCommandHandler] Tab key pressed, current pendingCommand:', pendingCommandRef.current);
       const suggestion = completionService?.acceptSuggestion();
-      if (suggestion) {
-        // 清除当前输入
-        const linesToClear = pendingCommandRef.current.length;
-        for (let i = 0; i < linesToClear; i++) {
-          terminal.write('\b \b');
-        }
-        // 写入完整命令
-        terminal.write(suggestion);
-        updatePendingCommand(suggestion);
-        
-        // 发送到SSH
-        if (shellIdRef.current) {
-          sshService.write(shellIdRef.current, suggestion).catch((error) => {
-            console.error('[useCommandHandler] Failed to write to shell:', error);
-            terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
-          });
+      console.log('[useCommandHandler] Got suggestion:', suggestion);
+      
+      if (suggestion && suggestion !== pendingCommandRef.current) {
+        console.log('[useCommandHandler] Suggestion differs from current input');
+        // 确保建议不是当前输入的一部分
+        if (suggestion.startsWith(pendingCommandRef.current)) {
+          // 只写入补全的部分
+          const completionPart = suggestion.slice(pendingCommandRef.current.length);
+          console.log('[useCommandHandler] Completion part:', completionPart);
+          
+          if (completionPart) {
+            // 先清除当前建议
+            onSuggestionClear();
+            
+            // 更新状态
+            console.log('[useCommandHandler] Updating pendingCommand from', pendingCommandRef.current, 'to', suggestion);
+
+            updatePendingCommand(suggestion);
+            
+            // 清除补全提示（空格和暗色字符）
+            terminal.write(' '.repeat(completionPart.length + 1)); // 用空格覆盖补全提示和分隔空格
+            terminal.write('\b'.repeat(completionPart.length + 1)); // 移回光标位置
+
+            
+            // 发送到SSH
+            if (shellIdRef.current) {
+              // 写入补全部分
+              console.log('[useCommandHandler] Writing completion part to SSH');
+              sshService.write(shellIdRef.current, completionPart).catch((error) => {
+                console.error('[useCommandHandler] Failed to write to shell:', error);
+                terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
+              });
+            }
+          }
         }
         return;
       }

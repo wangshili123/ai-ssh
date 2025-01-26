@@ -23,6 +23,7 @@ export const useCompletion = ({
   const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastInputRef = useRef<string>('');
   const pendingCommandRef = useRef<string>('');
+  const suggestionDisplayedRef = useRef<string | null>(null);
 
   // 初始化补全服务
   useEffect(() => {
@@ -82,10 +83,15 @@ export const useCompletion = ({
       // 使用完整的输入进行查询
       const suggestion = await completionService?.getSuggestion(currentInput);
       if (suggestion) {
+        // 记录当前建议
+        suggestionDisplayedRef.current = suggestion.suggestion;
+        
+        // 先写入一个空格作为分隔
+        terminalRef.current.write(' ');
         // 显示建议(使用暗淡的颜色)
         terminalRef.current.write('\x1b[2m' + suggestion.suggestion + '\x1b[0m');
-        // 将光标移回原位
-        for (let i = 0; i < suggestion.suggestion.length; i++) {
+        // 将光标移回到输入位置（多移一格，因为我们加了空格）
+        for (let i = 0; i < suggestion.suggestion.length + 1; i++) {
           terminalRef.current.write('\b');
         }
       }
@@ -96,6 +102,7 @@ export const useCompletion = ({
 
   // 清除建议
   const clearSuggestion = useCallback(() => {
+    suggestionDisplayedRef.current = null;
     if (suggestionTimeoutRef.current) {
       clearTimeout(suggestionTimeoutRef.current);
       suggestionTimeoutRef.current = null;
