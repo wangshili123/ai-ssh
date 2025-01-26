@@ -10,7 +10,10 @@
     "build": "npm run build:main && npm run build:renderer",
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "webpack --config webpack.prod.js",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps && npm run rebuild",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@electron/node-gyp": "^10.2.0-electron.2",
@@ -45,7 +48,9 @@
     "xterm-addon-web-links": "^0.9.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
     "@types/better-sqlite3": "^7.6.12",
+    "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.14",
     "@types/node": "^20.4.2",
     "@types/react": "^18.2.15",
@@ -55,13 +60,18 @@
     "cross-env": "^7.0.3",
     "css-loader": "^6.8.1",
     "electron-builder": "^24.4.0",
+    "electron-is-dev": "^3.0.1",
     "html-webpack-plugin": "^5.5.3",
+    "jest": "^29.7.0",
+    "path-browserify": "^1.0.1",
     "style-loader": "^3.3.3",
+    "ts-jest": "^29.2.5",
     "ts-loader": "^9.4.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.1.6",
     "webpack": "^5.88.1",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.2"
+    "webpack-dev-server": "^4.15.2",
+    "webpack-merge": "^6.0.1"
   }
 }

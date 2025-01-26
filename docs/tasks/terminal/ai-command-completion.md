@@ -2,7 +2,7 @@
 
 ## 1. 方案概述
 
-本方案旨在为终端提供智能的命令补全功能，采用多层次补全策略，结合本地快速补全和 AI 智能补全，在保证响应速度的同时提供高质量的补全建议。
+本方案旨在为终端提供智能的命令补全功能，采用多层次补全策略，结合本地快速补全和 AI 智能补全，在保证响应速度的同时提供高质量的补全建议。补全采用实时智能提示的方式，在用户停止输入后自动显示建议，提供流畅的输入体验。
 
 ## 2. 技术选型
 
@@ -35,56 +35,87 @@
     ```
 
 ### 2.2 命令补全框架
-- **omelette**
+- **实时补全引擎**
   - 用途：
-    - 提供基础的补全框架
-    - 处理补全事件
-    - 管理补全生命周期
+    - 提供实时命令补全
+    - 管理补全状态
+    - 处理用户交互
   - 实现方式：
     ```typescript
-    // 补全框架初始化
-    const completion = omelette('myapp');
+    class CompletionService {
+      // 获取实时补全建议
+      async getSuggestion(input: string): Promise<ICompletionSuggestion | null> {
+        // 1. 获取本地补全结果
+        const localSuggestions = await getLocalSuggestions(input);
+        
+        // 2. 异步获取 AI 补全结果
+        getAISuggestions(input).then(aiSuggestions => {
+          // 更新补全建议
+          this.updateSuggestion(aiSuggestions);
+        });
 
-    // 注册补全处理器
-    completion.on('command', async ({ before, fragment, reply }) => {
-      // 1. 获取本地补全结果
-      const localSuggestions = await getLocalSuggestions(fragment);
-      
-      // 2. 异步获取 AI 补全结果
-      getAISuggestions(fragment).then(aiSuggestions => {
-        // 更新补全列表
-        updateSuggestions(aiSuggestions);
-      });
+        // 3. 立即返回最佳建议
+        return this.getBestSuggestion(localSuggestions);
+      }
 
-      // 3. 立即返回本地结果
-      reply(localSuggestions);
-    });
-    ```
-
-### 2.3 命令解析引擎
-- **Tree-sitter**
-  - 用途：
-    - 解析命令语法结构
-    - 识别命令参数和选项
-    - 提供语法级补全
-  - 实现方式：
-    ```typescript
-    // 初始化 Tree-sitter
-    const Parser = require('tree-sitter');
-    const Bash = require('tree-sitter-bash');
-
-    const parser = new Parser();
-    parser.setLanguage(Bash);
-
-    // 解析命令
-    function parseCommand(command: string) {
-      const tree = parser.parse(command);
-      return {
-        command: tree.rootNode.child(0),
-        args: tree.rootNode.children.slice(1)
-      };
+      // 更新补全建议
+      private updateSuggestion(suggestion: ICompletionSuggestion) {
+        if (this.shouldUpdateSuggestion(suggestion)) {
+          // 使用ANSI转义序列更新显示
+          this.terminal.updateSuggestion(suggestion);
+        }
+      }
     }
     ```
+
+### 2.3 交互设计
+- **实时补全交互**
+  - 用户输入时清除当前建议
+  - 停止输入1秒后显示建议
+  - 使用暗淡颜色显示建议内容
+  - 按Tab键接受建议
+  - 继续输入时清除建议
+
+- **终端集成**
+  ```typescript
+  class TerminalIntegration {
+    // 处理用户输入
+    handleInput(data: string) {
+      if (isTabKey(data)) {
+        // 接受当前建议
+        this.acceptSuggestion();
+      } else if (isBackspace(data)) {
+        // 清除建议并更新输入
+        this.clearSuggestionAndUpdateInput();
+      } else if (isEnter(data)) {
+        // 执行命令并记录
+        this.executeAndRecordCommand();
+      } else {
+        // 普通字符输入
+        this.handleCharacterInput(data);
+      }
+    }
+
+    // 开始补全计时器
+    startSuggestionTimer(input: string) {
+      // 清除之前的计时器
+      this.clearSuggestionTimer();
+      
+      // 设置新的计时器
+      this.suggestionTimer = setTimeout(() => {
+        this.showSuggestion(input);
+      }, 1000);
+    }
+
+    // 显示建议
+    private showSuggestion(suggestion: string) {
+      // 使用暗淡颜色显示
+      this.terminal.write('\x1b[2m' + suggestion + '\x1b[0m');
+      // 将光标移回原位
+      this.terminal.write('\b'.repeat(suggestion.length));
+    }
+  }
+  ```
 
 ### 2.4 AI 补全服务
 - **分层补全策略**
@@ -194,15 +225,15 @@ async function getSuggestions(input: string): Promise<Suggestion[]> {
    - 实现命令历史记录功能
    - 添加命令关系分析
 
-2. **omelette 集成**
-   - 配置补全框架
-   - 实现基础补全逻辑
-   - 添加事件处理
+2. **补全引擎开发**
+   - 实现实时补全逻辑
+   - 集成终端交互
+   - 实现建议显示
 
-3. **UI 组件开发**
-   - 设计补全弹窗界面
-   - 实现补全列表交互
-   - 添加键盘导航支持
+3. **交互实现**
+   - 实现输入处理
+   - 实现补全计时器
+   - 实现建议显示
 
 ### 3.2 第二阶段：本地能力
 1. **Tree-sitter 集成**
@@ -380,12 +411,12 @@ class CompletionManager {
 
 ### 6.1 性能指标
 - 本地补全响应 < 50ms
-- AI 补全响应 < 800ms
+- 建议显示延迟 = 1000ms
 - 缓存命中率 > 60%
 - 内存占用 < 50MB
 
 ### 6.2 质量指标
-- 本地补全准确率 > 85%
-- AI 补全准确率 > 90%
-- 用户采纳率 > 60%
-- 系统稳定性 99.9% 
+- 补全准确率 > 90%
+- 建议采纳率 > 60%
+- 系统稳定性 99.9%
+- 用户满意度 > 85% 

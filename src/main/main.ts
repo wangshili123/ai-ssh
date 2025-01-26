@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain } from 'electron';
 import * as path from 'path';
 import { registerAllHandlers } from './ipc';
 import { localConfig } from '../config/local.config';
@@ -71,6 +71,11 @@ function createWindow(): BrowserWindow {
 
   return mainWindow;
 }
+
+// 添加IPC处理程序
+ipcMain.on('get-user-data-path', (event) => {
+  event.returnValue = app.getPath('userData');
+});
 
 async function main() {
   try {

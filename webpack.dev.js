@@ -7,34 +7,32 @@ require('ts-node').register({
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { localConfig } = require('./src/config/local.config');
+const { merge } = require('webpack-merge');
+const common = require('./webpack.common.js');
 
-module.exports = {
+module.exports = merge(common, {
   mode: 'development',
-  entry: './src/renderer/index.tsx',
+  devtool: 'inline-source-map',
   target: 'electron-renderer',
-  devtool: 'source-map',
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.jsx']
+  },
   module: {
     rules: [
       {
         test: /\.tsx?$/,
         use: 'ts-loader',
-        exclude: /node_modules/,
+        exclude: /node_modules/
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+        use: ['style-loader', 'css-loader']
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
         type: 'asset/resource',
       },
-    ],
-  },
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-    },
+    ]
   },
   output: {
     filename: 'renderer.js',
@@ -42,8 +40,8 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: './src/renderer/index.html',
-    }),
+      template: './src/renderer/index.html'
+    })
   ],
   devServer: {
     static: {
@@ -52,4 +50,14 @@ module.exports = {
     port: localConfig.devPort,
     hot: true,
   },
-}; 
+  resolve: {
+    fallback: {
+      "path": require.resolve("path-browserify"),
+      "fs": false,
+      "crypto": false
+    }
+  },
+  externals: {
+    'better-sqlite3': 'commonjs better-sqlite3'
+  }
+}); 

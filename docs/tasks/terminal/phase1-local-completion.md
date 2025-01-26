@@ -65,143 +65,102 @@
 
 ## 2. 基础补全框架搭建（4天）
 
-### 2.1 omelette 框架集成
-- [ ] 安装和配置 omelette
-  ```bash
-  npm install omelette
-  ```
-
-- [ ] 实现基础补全框架
+### 2.1 补全核心功能
+- [ ] 实现实时补全逻辑
   ```typescript
-  import omelette from 'omelette';
-
-  export class CompletionService {
-    private completion: any;
-
-    constructor() {
-      this.completion = omelette('myapp');
-      this.setupCompletions();
+  class CompletionService {
+    // 获取实时补全建议
+    async getSuggestion(input: string): Promise<ICompletionSuggestion | null> {
+      // 1. 从历史记录中查找匹配的命令
+      // 2. 计算最佳建议
+      // 3. 返回建议的补全部分
     }
 
-    private setupCompletions() {
-      this.completion.on('command', async ({ before, fragment, reply }) => {
-        const suggestions = await this.getSuggestions(fragment);
-        reply(suggestions);
-      });
+    // 接受当前建议
+    acceptSuggestion(): string | null {
+      // 返回完整的命令
     }
   }
   ```
 
-### 2.2 补全逻辑实现
-- [ ] 实现基础补全算法
-  - 前缀匹配
-  - 模糊匹配
-  - 频率排序
+### 2.2 交互设计
+- [ ] 实现智能补全交互
+  - 用户输入时清除当前建议
+  - 停止输入1秒后显示建议
+  - 使用暗淡颜色显示建议内容
+  - 按Tab键接受建议
+  - 继续输入时清除建议
 
-- [ ] 集成历史记录查询
-  - 查询最近使用的命令
-  - 分析使用频率
-  - 优化查询性能
-
-### 2.3 事件处理系统
-- [ ] 实现命令执行监听
-  - 捕获命令输入
-  - 记录执行结果
-  - 更新使用频率
-
-- [ ] 实现补全触发处理
-  - 处理 Tab 键事件
-  - 管理补全状态
-  - 优化响应速度
-
-## 3. UI 组件开发（4天）
-
-### 3.1 补全弹窗设计
-- [ ] 创建补全弹窗组件
+### 2.3 终端集成
+- [ ] 实现终端输入处理
   ```typescript
-  interface CompletionProps {
-    suggestions: Suggestion[];
-    onSelect: (suggestion: Suggestion) => void;
-    visible: boolean;
+  // 处理用户输入
+  const handleInput = async (data: string) => {
+    // 1. 处理特殊键(Tab, 退格, 回车)
+    // 2. 更新当前输入
+    // 3. 管理补全状态
   }
 
-  const CompletionPopup: React.FC<CompletionProps> = ({
-    suggestions,
-    onSelect,
-    visible
-  }) => {
-    // 实现补全弹窗UI
-  };
+  // 补全计时器
+  const startSuggestionTimer = (input: string) => {
+    // 1. 延迟1秒后获取建议
+    // 2. 使用暗淡颜色显示
+    // 3. 保持光标位置
+  }
   ```
 
-### 3.2 交互功能实现
-- [ ] 实现键盘导航
-  - 上下键选择
-  - Tab 键确认
-  - Esc 键取消
+## 3. 补全显示实现（4天）
 
-- [ ] 实现鼠标交互
-  - 点击选择
-  - 悬停预览
-  - 滚动支持
+### 3.1 终端渲染
+- [ ] 实现建议显示
+  - 使用ANSI转义序列控制颜色
+  - 处理光标位置
+  - 管理显示状态
 
-### 3.3 样式优化
-- [ ] 设计补全列表样式
-  - 高亮匹配文本
-  - 显示补全来源
-  - 添加使用频率指示
+### 3.2 交互处理
+- [ ] 实现键盘事件
+  - Tab键接受建议
+  - 退格键清除建议
+  - 回车键执行命令
 
-- [ ] 实现动画效果
-  - 弹窗显示/隐藏动画
-  - 选择项切换动画
-  - 加载状态指示
+### 3.3 状态管理
+- [ ] 实现补全状态
+  - 跟踪当前输入
+  - 管理建议缓存
+  - 处理命令历史
 
 ## 4. 集成测试（3天）
 
-### 4.1 单元测试
-- [ ] 数据库操作测试
-  - 增删改查测试
-  - 并发操作测试
-  - 错误处理测试
+### 4.1 功能测试
+- [ ] 测试补全功能
+  - 实时补全响应
+  - 建议显示效果
+  - 键盘交互
 
-- [ ] 补全逻辑测试
-  - 匹配算法测试
-  - 排序逻辑测试
-  - 性能测试
+### 4.2 性能测试
+- [ ] 测试系统性能
+  - 补全响应时间
+  - 内存占用
+  - 渲染性能
 
-### 4.2 集成测试
-- [ ] UI 交互测试
-  - 键盘操作测试
-  - 鼠标操作测试
-  - 边界情况测试
-
-- [ ] 系统集成测试
-  - 数据流测试
-  - 性能压力测试
-  - 内存泄漏测试
-
-### 4.3 性能优化
-- [ ] 数据库性能优化
-  - 索引优化
-  - 查询优化
-  - 缓存策略
-
-- [ ] UI 渲染优化
-  - 虚拟列表
-  - 延迟加载
-  - 防抖节流
+### 4.3 稳定性测试
+- [ ] 测试系统稳定性
+  - 异常处理
+  - 边界情况
+  - 并发操作
 
 ## 5. 验收标准
 
 ### 5.1 功能验收
-- [ ] 基础补全功能完整
-- [ ] 历史记录正确存储
-- [ ] UI 交互流畅自然
+- [ ] 实时补全
+  - 停止输入1秒后显示建议
+  - 建议使用暗淡颜色显示
+  - Tab键可快速接受建议
 
 ### 5.2 性能验收
 - [ ] 补全响应时间 < 50ms
+- [ ] 显示延迟稳定在1秒
 - [ ] 内存占用合理
-- [ ] 数据库操作高效
 
 ### 5.3 代码质量
 - [ ] 代码结构清晰
