@@ -28,26 +28,25 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
   // 使用 useCompletion hook
   const {
     completionService,
-    startSuggestionTimer,
     clearSuggestion,
     acceptSuggestion,
-    recordCommand
+    recordCommand,
+    pendingCommandRef,
+    updatePendingCommand,
   } = useCompletion({
-    terminalRef
+    terminalRef,
   });
 
-  // 使用 useCommandHandler hook
   const {
     handleInput,
     handleEnterKey,
-    pendingCommandRef,
-    updatePendingCommand
   } = useCommandHandler({
     terminalRef,
     shellIdRef,
     completionService,
-    onSuggestionStart: startSuggestionTimer,
-    onSuggestionClear: clearSuggestion
+    onSuggestionClear: clearSuggestion,
+    updatePendingCommand,
+    pendingCommandRef,
   });
 
   // 使用 useContextMenu hook

@@ -7,32 +7,24 @@ interface UseCommandHandlerProps {
   terminalRef: React.MutableRefObject<XTerm | null>;
   shellIdRef: React.MutableRefObject<string | null>;
   completionService: CompletionService | null;
-  onSuggestionStart: (input: string) => void;
   onSuggestionClear: () => void;
+  updatePendingCommand: (newCommand: string) => void;
+  pendingCommandRef: React.MutableRefObject<string>;
 }
 
 interface UseCommandHandlerReturn {
   handleInput: (data: string) => Promise<void>;
   handleEnterKey: () => Promise<void>;
-  pendingCommandRef: React.MutableRefObject<string>;
-  updatePendingCommand: (newCommand: string) => void;
 }
 
 export const useCommandHandler = ({
   terminalRef,
   shellIdRef,
   completionService,
-  onSuggestionStart,
   onSuggestionClear,
+  updatePendingCommand,
+  pendingCommandRef,
 }: UseCommandHandlerProps): UseCommandHandlerReturn => {
-  const pendingCommandRef = useRef('');
-
-  // 更新命令的函数
-  const updatePendingCommand = useCallback((newCommand: string) => {
-    console.log('[useCommandHandler] Updating pending command from:', pendingCommandRef.current, 'to:', newCommand);
-    pendingCommandRef.current = newCommand;
-  }, []);
-
   // 处理命令输入
   const handleInput = useCallback(async (data: string) => {
     console.log('[useCommandHandler] handleInput called with data:', data);
@@ -87,10 +79,6 @@ export const useCommandHandler = ({
         
         // 清除当前建议
         onSuggestionClear();
-        // 重新开始补全计时
-        if (newInput) {
-          onSuggestionStart(newInput);
-        }
       }
       return;
     }
@@ -100,9 +88,8 @@ export const useCommandHandler = ({
     const newInput = pendingCommandRef.current + data;
     updatePendingCommand(newInput);
     
-    // 清除当前建议并重新开始补全计时器
+    // 清除当前建议
     onSuggestionClear();
-    onSuggestionStart(newInput);
     
     // 然后发送到SSH
     if (shellIdRef.current) {
@@ -111,7 +98,7 @@ export const useCommandHandler = ({
         terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
       });
     }
-  }, [terminalRef, shellIdRef, completionService, onSuggestionStart, onSuggestionClear, updatePendingCommand]);
+  }, [terminalRef, shellIdRef, completionService, onSuggestionClear, updatePendingCommand, pendingCommandRef]);
 
   // 处理回车键
   const handleEnterKey = useCallback(async () => {
@@ -145,12 +132,10 @@ export const useCommandHandler = ({
         }
       }
     }
-  }, [terminalRef, shellIdRef, completionService, onSuggestionClear, updatePendingCommand]);
+  }, [terminalRef, shellIdRef, completionService, onSuggestionClear, updatePendingCommand, pendingCommandRef]);
 
   return {
     handleInput,
     handleEnterKey,
-    pendingCommandRef,
-    updatePendingCommand,
   };
 }; 
