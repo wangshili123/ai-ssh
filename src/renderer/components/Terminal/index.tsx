@@ -3,17 +3,14 @@ import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { SearchAddon } from 'xterm-addon-search';
-import { Button, Dropdown } from 'antd';
-import type { MenuProps } from 'antd';
-import { sshService } from '../../services/ssh';
+import { Dropdown } from 'antd';
 import { eventBus } from '../../services/eventBus';
-import { terminalOutputService } from '../../services/terminalOutput';
 import type { SessionInfo } from '../../../main/services/storage';
 import { TerminalProps } from './types/terminal.types';
 import { useTerminalInit } from './hooks/useTerminalInit';
 import { useCommandHandler } from './hooks/useCommandHandler';
 import { useCompletion } from './hooks/useCompletion';
-import { waitForConnection } from './utils/terminal.utils';
+import { useContextMenu } from './hooks/useContextMenu';
 import 'xterm/css/xterm.css';
 import './index.css';
 
@@ -51,6 +48,16 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     completionService,
     onSuggestionStart: startSuggestionTimer,
     onSuggestionClear: clearSuggestion
+  });
+
+  // 使用 useContextMenu hook
+  const { menuItems } = useContextMenu({
+    terminalRef,
+    searchAddonRef,
+    shellIdRef,
+    sessionInfo,
+    instanceId,
+    setIsConnected
   });
 
   // 使用 useTerminalInit hook
@@ -93,100 +100,6 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
       eventBus.off('tab-change', handleTabChange);
     };
   }, []);
-
-  // 复制选中的文本
-  const copySelectedText = () => {
-    const selection = terminalRef.current?.getSelection();
-    if (selection) {
-      navigator.clipboard.writeText(selection);
-    }
-  };
-
-  // 搜索文本
-  const searchText = () => {
-    const text = prompt('请输入要搜索的文本:');
-    if (text && searchAddonRef.current) {
-      searchAddonRef.current.findNext(text);
-    }
-  };
-
-  // 重新加载终端
-  const reloadTerminal = async () => {
-    if (terminalRef.current && sessionInfo) {
-      terminalRef.current.clear();
-      try {
-        if (shellIdRef.current) {
-          // 清除终端输出缓存
-          terminalOutputService.clearOutput(shellIdRef.current);
-          await sshService.disconnect(shellIdRef.current);
-          shellIdRef.current = '';
-        }
-        setIsConnected(false);
-        eventBus.emit('terminal-connection-change', { 
-          shellId: shellIdRef.current || '', 
-          connected: false 
-        });
-
-        // 等待连接就绪
-        await waitForConnection(sessionInfo);
-        
-        const shellId = sessionInfo.id + (instanceId ? `-${instanceId}` : '');
-        shellIdRef.current = shellId;
-
-        await sshService.createShell(
-          shellId,
-          (data) => {
-            terminalRef.current?.write(data);
-            // 收集终端输出
-            terminalOutputService.addOutput(shellId, data);
-          },
-          () => {
-            setIsConnected(false);
-            shellIdRef.current = '';
-            eventBus.setCurrentShellId('');
-            terminalRef.current?.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
-            // 清除终端输出缓存
-            terminalOutputService.clearOutput(shellId);
-            // 发送连接状态变化事件
-            eventBus.emit('terminal-connection-change', { 
-              shellId: shellIdRef.current || '', 
-              connected: false 
-            });
-          }
-        );
-
-        setIsConnected(true);
-        eventBus.setCurrentShellId(shellId);
-        // 发送连接状态变化事件
-        eventBus.emit('terminal-connection-change', { 
-          shellId: shellIdRef.current || '', 
-          connected: true 
-        });
-      } catch (error: any) {
-        console.error('Failed to reload terminal:', error);
-        terminalRef.current.write(`\r\n\x1b[31m重新连接失败: ${error}\x1b[0m\r\n`);
-      }
-    }
-  };
-
-  // 右键菜单项
-  const menuItems: MenuProps['items'] = [
-    {
-      key: 'copy',
-      label: '复制',
-      onClick: copySelectedText
-    },
-    {
-      key: 'search',
-      label: '搜索',
-      onClick: searchText
-    },
-    {
-      key: 'reload',
-      label: '重新加载',
-      onClick: reloadTerminal
-    }
-  ];
 
   return (
     <div className="terminal-wrapper">
