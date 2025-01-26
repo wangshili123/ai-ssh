@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
@@ -12,6 +12,7 @@ import { CompletionService } from '../../../services/completion/CompletionServic
 import type { SessionInfo } from '../../../main/services/storage';
 import { TerminalProps } from './types/terminal.types';
 import { useTerminalInit } from './hooks/useTerminalInit';
+import { useCommandHandler } from './hooks/useCommandHandler';
 import { waitForConnection } from './utils/terminal.utils';
 import 'xterm/css/xterm.css';
 import './index.css';
@@ -20,10 +21,8 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
   const containerRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [currentInput, setCurrentInput] = useState('');
   const [suggestionTimeout, setSuggestionTimeout] = useState<NodeJS.Timeout | null>(null);
   const [completionService, setCompletionService] = useState<CompletionService | null>(null);
-  const pendingCommandRef = useRef('');
 
   // 开始补全计时器
   const startSuggestionTimer = (input: string) => {
@@ -52,190 +51,33 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     setSuggestionTimeout(timeout);
   };
 
-  // 更新命令的函数
-  const updatePendingCommand = useCallback((newCommand: string) => {
-    console.log('Updating pending command from:', pendingCommandRef.current, 'to:', newCommand);
-    pendingCommandRef.current = newCommand;
-  }, []);
+  // 创建终端引用
+  const terminalRef = useRef<XTerm | null>(null);
+  const searchAddonRef = useRef<SearchAddon | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
+  const shellIdRef = useRef<string | null>(null);
 
-  // 处理命令输入
-  const handleInput = async (data: string) => {
-    console.log('handleInput called with data:', data);
-    if (!terminalRef.current) return;
-    console.log('terminalRef.current:', terminalRef.current);
-    const terminal = terminalRef.current;
-
-    // 如果是回车键，直接返回（现在由 onKey 事件处理）
-    if (data === '\r' || data === '\n' || data === '') {
-      return;
-    }
-
-    // 如果是Tab键,接受当前建议
-    if (data === '\t') {
-      const suggestion = completionService?.acceptSuggestion();
-      if (suggestion) {
-        // 清除当前输入
-        const linesToClear = pendingCommandRef.current.length;
-        for (let i = 0; i < linesToClear; i++) {
-          terminal.write('\b \b');
-        }
-        // 写入完整命令
-        terminal.write(suggestion);
-        updatePendingCommand(suggestion);
-        
-        // 发送到SSH
-        if (shellIdRef.current) {
-          sshService.write(shellIdRef.current, suggestion).catch((error) => {
-            console.error('Failed to write to shell:', error);
-            terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
-          });
-        }
-        return;
+  // 使用 useCommandHandler hook
+  const {
+    handleInput,
+    handleEnterKey,
+    pendingCommandRef,
+    updatePendingCommand
+  } = useCommandHandler({
+    terminalRef,
+    shellIdRef,
+    completionService,
+    onSuggestionStart: startSuggestionTimer,
+    onSuggestionClear: () => {
+      if (suggestionTimeout) {
+        clearTimeout(suggestionTimeout);
+        setSuggestionTimeout(null);
       }
     }
-
-    // 如果是退格键
-    if (data === '\b' || data === '\x7f') {
-      if (pendingCommandRef.current.length > 0) {
-        // 发送到SSH
-        if (shellIdRef.current) {
-          sshService.write(shellIdRef.current, data).catch((error) => {
-            console.error('Failed to write to shell:', error);
-            terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
-          });
-        }
-        
-        // 更新待处理的命令
-        const newInput = pendingCommandRef.current.slice(0, -1);
-        console.log('Updated pending command (backspace):', newInput);
-        updatePendingCommand(newInput);
-        
-        // 清除当前建议
-        completionService?.clearSuggestion();
-        // 重新开始补全计时
-        if (newInput) {
-          startSuggestionTimer(newInput);
-        }
-      }
-      return;
-    }
-
-    // 普通字符输入
-    // 先更新待处理的命令
-    const newInput = pendingCommandRef.current + data;
-    updatePendingCommand(newInput);
-    
-    // 清除当前建议并重新开始补全计时器
-    completionService?.clearSuggestion();
-    startSuggestionTimer(newInput);
-    
-    // 然后发送到SSH
-    if (shellIdRef.current) {
-      await sshService.write(shellIdRef.current, data).catch((error) => {
-        console.error('Failed to write to shell:', error);
-        terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
-      });
-    }
-  };
-
-  // 计算补全弹窗位置
-  const calculatePopupPosition = () => {
-    if (!terminalRef.current || !containerRef.current) {
-      return { left: 0, top: 0 };
-    }
-
-    const terminal = terminalRef.current;
-    const container = containerRef.current;
-    const rect = container.getBoundingClientRect();
-    
-    // 获取当前光标位置
-    const cursorElement = container.querySelector('.xterm-cursor');
-    if (!cursorElement) {
-      return { left: rect.left, top: rect.bottom };
-    }
-
-    const cursorRect = cursorElement.getBoundingClientRect();
-    return {
-      left: cursorRect.left,
-      top: cursorRect.bottom + 5
-    };
-  };
-
-  // 处理补全选择
-  const handleCompletionSelect = (suggestion: string) => {
-    if (!terminalRef.current) return;
-
-    // 清除当前输入
-    const terminal = terminalRef.current;
-    const linesToClear = currentInput.length;
-    for (let i = 0; i < linesToClear; i++) {
-      terminal.write('\b \b');
-    }
-
-    // 写入选中的补全
-    terminal.write(suggestion);
-    setCurrentInput(suggestion);
-  };
-
-  // 处理补全取消
-  const handleCompletionCancel = () => {
-    // No need to handle completion cancel as it's removed from the component
-  };
-
-  // 处理命令执行
-  const handleCommandExecution = async (command: string) => {
-    if (!command.trim()) return;
-
-    // 记录命令
-    await completionService?.recordCommand(command);
-    setCurrentInput('');
-  };
-
-  // 处理回车键
-  const handleEnterKey = useCallback(async () => {
-    console.log('Enter key handler called, current pendingCommand:', pendingCommandRef.current);
-    const commandToRecord = pendingCommandRef.current.trim();
-    
-    if (shellIdRef.current) {
-      console.log('Processing Enter key, command to record:', commandToRecord);
-      // 发送回车到SSH
-      try {
-        await sshService.write(shellIdRef.current, '\r');
-        
-        // 如果有命令要记录
-        if (commandToRecord) {
-          console.log('Recording command:', commandToRecord);
-          try {
-            await completionService?.recordCommand(commandToRecord);
-            console.log('Command recorded successfully');
-          } catch (error: any) {
-            console.error('Failed to record command:', error);
-          }
-        }
-        
-        // 清除状态
-        updatePendingCommand('');
-        completionService?.clearSuggestion();
-        if (suggestionTimeout) {
-          clearTimeout(suggestionTimeout);
-          setSuggestionTimeout(null);
-        }
-      } catch (error: any) {
-        console.error('Failed to write to shell:', error);
-        if (terminalRef.current) {
-          terminalRef.current.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
-        }
-      }
-    }
-  }, [completionService, suggestionTimeout, updatePendingCommand]);
+  });
 
   // 使用 useTerminalInit hook
-  const {
-    terminalRef,
-    searchAddonRef,
-    fitAddonRef,
-    shellIdRef
-  } = useTerminalInit({
+  useTerminalInit({
     sessionInfo,
     config,
     instanceId,
@@ -243,7 +85,11 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     containerRef,
     setIsConnected,
     handleInput,
-    handleEnterKey
+    handleEnterKey,
+    terminalRef,
+    searchAddonRef,
+    fitAddonRef,
+    shellIdRef
   });
 
   // 在组件挂载后设置 isReady
@@ -252,11 +98,6 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
       setIsReady(true);
     }, 0);
     return () => clearTimeout(timer);
-  }, []);
-
-  // 初始化终端
-  useEffect(() => {
-    // 移除不必要的 cleanup 逻辑，因为清理工作已经在 useTerminalInit 中处理
   }, []);
 
   // 监听标签切换，自动聚焦当前终端
@@ -344,7 +185,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
           shellId: shellIdRef.current || '', 
           connected: true 
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to reload terminal:', error);
         terminalRef.current.write(`\r\n\x1b[31m重新连接失败: ${error}\x1b[0m\r\n`);
       }
