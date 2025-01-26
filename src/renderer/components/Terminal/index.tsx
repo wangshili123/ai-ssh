@@ -8,11 +8,11 @@ import type { MenuProps } from 'antd';
 import { sshService } from '../../services/ssh';
 import { eventBus } from '../../services/eventBus';
 import { terminalOutputService } from '../../services/terminalOutput';
-import { CompletionService } from '../../../services/completion/CompletionService';
 import type { SessionInfo } from '../../../main/services/storage';
 import { TerminalProps } from './types/terminal.types';
 import { useTerminalInit } from './hooks/useTerminalInit';
 import { useCommandHandler } from './hooks/useCommandHandler';
+import { useCompletion } from './hooks/useCompletion';
 import { waitForConnection } from './utils/terminal.utils';
 import 'xterm/css/xterm.css';
 import './index.css';
@@ -21,41 +21,23 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
   const containerRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [suggestionTimeout, setSuggestionTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [completionService, setCompletionService] = useState<CompletionService | null>(null);
-
-  // 开始补全计时器
-  const startSuggestionTimer = (input: string) => {
-    // 清除之前的计时器
-    if (suggestionTimeout) {
-      clearTimeout(suggestionTimeout);
-    }
-
-    // 设置新的计时器，1秒后使用完整的输入进行查询
-    const timeout = setTimeout(async () => {
-      if (!terminalRef.current) return;
-
-      console.log('Suggestion timer triggered for input:', input);
-      // 使用完整的输入进行查询
-      const suggestion = await completionService?.getSuggestion(input);
-      if (suggestion) {
-        // 显示建议(使用暗淡的颜色)
-        terminalRef.current.write('\x1b[2m' + suggestion.suggestion + '\x1b[0m');
-        // 将光标移回原位
-        for (let i = 0; i < suggestion.suggestion.length; i++) {
-          terminalRef.current.write('\b');
-        }
-      }
-    }, 1000);
-
-    setSuggestionTimeout(timeout);
-  };
 
   // 创建终端引用
   const terminalRef = useRef<XTerm | null>(null);
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const shellIdRef = useRef<string | null>(null);
+
+  // 使用 useCompletion hook
+  const {
+    completionService,
+    startSuggestionTimer,
+    clearSuggestion,
+    acceptSuggestion,
+    recordCommand
+  } = useCompletion({
+    terminalRef
+  });
 
   // 使用 useCommandHandler hook
   const {
@@ -68,12 +50,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     shellIdRef,
     completionService,
     onSuggestionStart: startSuggestionTimer,
-    onSuggestionClear: () => {
-      if (suggestionTimeout) {
-        clearTimeout(suggestionTimeout);
-        setSuggestionTimeout(null);
-      }
-    }
+    onSuggestionClear: clearSuggestion
   });
 
   // 使用 useTerminalInit hook
@@ -210,19 +187,6 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
       onClick: reloadTerminal
     }
   ];
-
-  useEffect(() => {
-    const initializeServices = async () => {
-      try {
-        const service = await CompletionService.getInstance();
-        setCompletionService(service);
-      } catch (error) {
-        console.error('初始化补全服务失败:', error);
-      }
-    };
-
-    initializeServices();
-  }, []);
 
   return (
     <div className="terminal-wrapper">
