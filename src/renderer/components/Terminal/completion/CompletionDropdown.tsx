@@ -34,13 +34,27 @@ const CompletionDropdown: React.FC<CompletionDropdownProps> = ({
       // 获取终端元素相对于视口的位置
       const rect = element.getBoundingClientRect();
       
-      // 计算下拉框的绝对位置
-      const absoluteLeft = rect.left + position.left;
-      const absoluteTop = rect.top + position.top;
+      // 计算下拉框的位置（相对于视口）
+      let absoluteLeft = rect.left + position.left;
+      let absoluteTop = rect.top + position.top;
+
+      // 确保下拉框不会超出视口
+      const dropdownWidth = 400; // max-width from CSS
+      const dropdownHeight = 300; // max-height from CSS
+      
+      // 检查右边界
+      if (absoluteLeft + dropdownWidth > window.innerWidth) {
+        absoluteLeft = window.innerWidth - dropdownWidth - 10;
+      }
+      
+      // 检查下边界
+      if (absoluteTop + dropdownHeight > window.innerHeight) {
+        absoluteTop = absoluteTop - dropdownHeight - 10;
+      }
 
       setFixedPosition({
-        left: absoluteLeft,
-        top: absoluteTop
+        left: Math.max(0, absoluteLeft),
+        top: Math.max(0, absoluteTop)
       });
     }
   }, [visible, position, terminalRef]);
