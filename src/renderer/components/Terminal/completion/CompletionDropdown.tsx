@@ -1,4 +1,4 @@
-import React, { MutableRefObject } from 'react';
+import React, { MutableRefObject, useEffect, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { ICompletionSuggestion } from '../hooks/useCompletion';
 import './CompletionDropdown.css';
@@ -23,20 +23,38 @@ const CompletionDropdown: React.FC<CompletionDropdownProps> = ({
   onSelect,
   terminalRef,
 }) => {
+  const [fixedPosition, setFixedPosition] = useState({ left: 0, top: 0 });
+
+  useEffect(() => {
+    if (visible && terminalRef.current) {
+      const terminal = terminalRef.current;
+      const element = terminal.element;
+      if (!element) return;
+
+      // 获取终端元素相对于视口的位置
+      const rect = element.getBoundingClientRect();
+      
+      // 计算下拉框的绝对位置
+      const absoluteLeft = rect.left + position.left;
+      const absoluteTop = rect.top + position.top;
+
+      setFixedPosition({
+        left: absoluteLeft,
+        top: absoluteTop
+      });
+    }
+  }, [visible, position, terminalRef]);
+
   if (!visible || suggestions.length === 0) {
     return null;
   }
 
-  // 创建下拉框内容
-  const dropdownContent = (
+  return (
     <div 
       className="completion-dropdown"
       style={{
-        position: 'absolute',
-        left: `${position.left}px`,
-        top: `${position.top}px`,
-        zIndex: 99999,
-        pointerEvents: 'auto'
+        left: `${fixedPosition.left}px`,
+        top: `${fixedPosition.top}px`
       }}
     >
       {suggestions.map((suggestion, index) => (
@@ -51,8 +69,6 @@ const CompletionDropdown: React.FC<CompletionDropdownProps> = ({
       ))}
     </div>
   );
-
-  return dropdownContent;
 };
 
 export default CompletionDropdown; 

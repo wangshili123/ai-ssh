@@ -1,7 +1,7 @@
 .terminal-wrapper {
   width: 100%;
   height: 100%;
-  background-color: #1e1e1e;
+  position: relative;
   display: flex;
   flex-direction: column;
 }
@@ -9,20 +9,27 @@
 .terminal-container {
   flex: 1;
   position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+  min-height: 0;
+  background-color: var(--terminal-background);
 }
 
 .terminal-content {
   width: 100%;
   height: 100%;
-  padding: 4px;
+  padding: 2px;
 }
 
-/* 确保下拉框容器不会影响终端布局 */
-.terminal-container .completion-dropdown {
-  z-index: 1000;
+/* 补全下拉框容器 */
+.completion-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  /* 创建新的堆叠上下文 */
+  isolation: isolate;
+  z-index: 100;
 }
 
 .terminal .xterm {
@@ -48,4 +55,13 @@
 
 .terminal ::-webkit-scrollbar-thumb:hover {
   background: #888;
+}
+
+/* 确保 xterm.js 的容器正确定位 */
+.xterm {
+  height: 100%;
+}
+
+.xterm-viewport {
+  overflow-y: auto !important;
 } 

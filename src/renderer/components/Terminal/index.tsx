@@ -127,29 +127,21 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
   };
 
   return (
-    <div className="terminal-wrapper" style={{ position: 'relative' }}>
-      <div className="terminal-container" style={{ position: 'relative' }}>
+    <div className="terminal-wrapper">
+      <div className="terminal-container">
         <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
           <div ref={containerRef} className="terminal-content" />
         </Dropdown>
-      </div>
-      <div className="completion-dropdown-container" style={{ 
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        pointerEvents: 'none',
-        zIndex: 99999
-      }}>
-        <CompletionDropdown
-          visible={dropdownVisible}
-          suggestions={suggestions}
-          selectedIndex={selectedIndex}
-          position={dropdownPosition}
-          onSelect={handleSuggestionSelect}
-          terminalRef={terminalRef}
-        />
+        <div className="completion-container">
+          <CompletionDropdown
+            visible={dropdownVisible}
+            suggestions={suggestions}
+            selectedIndex={selectedIndex}
+            position={dropdownPosition}
+            onSelect={handleSuggestionSelect}
+            terminalRef={terminalRef}
+          />
+        </div>
       </div>
     </div>
   );
