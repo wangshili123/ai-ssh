@@ -11,6 +11,7 @@ import { useTerminalInit } from './hooks/useTerminalInit';
 import { useCommandHandler } from './hooks/useCommandHandler';
 import { useCompletion } from './hooks/useCompletion';
 import { useContextMenu } from './hooks/useContextMenu';
+import CompletionDropdown from './completion/CompletionDropdown';
 import 'xterm/css/xterm.css';
 import './index.css';
 
@@ -33,6 +34,12 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     recordCommand,
     pendingCommandRef,
     updatePendingCommand,
+    dropdownVisible,
+    suggestions,
+    selectedIndex,
+    dropdownPosition,
+    navigateSuggestions,
+    updateDropdownPosition,
   } = useCompletion({
     terminalRef,
   });
@@ -100,12 +107,49 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     };
   }, []);
 
+  // 处理补全建议选择
+  const handleSuggestionSelect = (suggestion: any) => {
+    if (terminalRef.current) {
+      const terminal = terminalRef.current;
+      const completionPart = suggestion.fullCommand.slice(pendingCommandRef.current.length);
+      
+      // 清除当前建议
+      clearSuggestion();
+      
+      // 更新命令状态
+      updatePendingCommand(suggestion.fullCommand);
+      
+      // 写入补全部分
+      if (shellIdRef.current) {
+        terminal.write(completionPart);
+      }
+    }
+  };
+
   return (
-    <div className="terminal-wrapper">
-      <div className="terminal-container">
+    <div className="terminal-wrapper" style={{ position: 'relative' }}>
+      <div className="terminal-container" style={{ position: 'relative' }}>
         <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
           <div ref={containerRef} className="terminal-content" />
         </Dropdown>
+      </div>
+      <div className="completion-dropdown-container" style={{ 
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        pointerEvents: 'none',
+        zIndex: 99999
+      }}>
+        <CompletionDropdown
+          visible={dropdownVisible}
+          suggestions={suggestions}
+          selectedIndex={selectedIndex}
+          position={dropdownPosition}
+          onSelect={handleSuggestionSelect}
+          terminalRef={terminalRef}
+        />
       </div>
     </div>
   );

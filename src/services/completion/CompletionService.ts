@@ -28,7 +28,7 @@ export class CompletionService {
   private commandHistory!: CommandHistory;
   private commandRelation!: CommandRelation;
   private lastInput: string = '';
-  private lastSuggestion: ICompletionSuggestion | null = null;
+  private lastSuggestions: ICompletionSuggestion[] = [];
   private initialized: boolean = false;
 
   private constructor() {
@@ -70,15 +70,15 @@ export class CompletionService {
   /**
    * 获取实时补全建议
    * @param input 当前输入的命令
-   * @returns 补全建议,如果没有合适的建议则返回null
+   * @returns 补全建议列表,按得分排序,最多返回3个建议
    */
-  public async getSuggestion(input: string): Promise<ICompletionSuggestion | null> {
-    console.log('Getting suggestion for input:', input);
+  public async getSuggestions(input: string): Promise<ICompletionSuggestion[]> {
+    console.log('Getting suggestions for input:', input);
     
-    // 如果输入为空或者与上次输入相同,返回null
+    // 如果输入为空或者与上次输入相同,返回空数组
     if (!input || input === this.lastInput) {
-      console.log('Empty input or same as last input, returning null');
-      return null;
+      console.log('Empty input or same as last input, returning empty array');
+      return [];
     }
 
     this.lastInput = input;
@@ -87,28 +87,28 @@ export class CompletionService {
     const suggestions = await this.getAllSuggestions(input);
     console.log('Got suggestions:', suggestions);
     
-    // 按得分排序并获取最佳建议
-    const bestSuggestion = suggestions.sort((a, b) => b.score - a.score)[0];
+    // 按得分排序并获取前3个最佳建议
+    const bestSuggestions = suggestions
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .filter(s => s.fullCommand !== input); // 过滤掉与输入完全相同的建议
     
-    // 如果没有建议或建议就是当前输入,返回null
-    if (!bestSuggestion || bestSuggestion.fullCommand === input) {
-      console.log('No valid suggestion found, returning null');
-      this.lastSuggestion = null;
-      return null;
+    // 如果没有有效建议,返回空数组
+    if (bestSuggestions.length === 0) {
+      console.log('No valid suggestions found, returning empty array');
+      this.lastSuggestions = [];
+      return [];
     }
 
-    // 计算建议的补全部分
-    const suggestion = bestSuggestion.fullCommand.slice(input.length);
+    // 为每个建议计算补全部分
+    const processedSuggestions = bestSuggestions.map(suggestion => ({
+      ...suggestion,
+      suggestion: suggestion.fullCommand.slice(input.length)
+    }));
     
-    this.lastSuggestion = {
-      fullCommand: bestSuggestion.fullCommand,
-      suggestion,
-      source: bestSuggestion.source,
-      score: bestSuggestion.score
-    };
-
-    console.log('Returning suggestion:', this.lastSuggestion);
-    return this.lastSuggestion;
+    this.lastSuggestions = processedSuggestions;
+    console.log('Returning suggestions:', processedSuggestions);
+    return processedSuggestions;
   }
 
   /**
@@ -249,7 +249,7 @@ export class CompletionService {
 
       // 重置补全状态
       this.lastInput = '';
-      this.lastSuggestion = null;
+      this.lastSuggestions = [];
     } catch (error) {
       console.error('Error in recordCommand:', error);
       throw error;
@@ -258,11 +258,12 @@ export class CompletionService {
 
   /**
    * 接受当前的补全建议
+   * @param index 要接受的建议索引,默认为0(第一个建议)
    */
-  public acceptSuggestion(): string | null {
-    if (this.lastSuggestion) {
-      const suggestion = this.lastSuggestion.fullCommand;
-      this.lastSuggestion = null;
+  public acceptSuggestion(index: number = 0): string | null {
+    if (this.lastSuggestions.length > index) {
+      const suggestion = this.lastSuggestions[index].fullCommand;
+      this.lastSuggestions = [];
       this.lastInput = suggestion;
       return suggestion;
     }
@@ -273,6 +274,6 @@ export class CompletionService {
    * 清除当前的补全建议
    */
   public clearSuggestion(): void {
-    this.lastSuggestion = null;
+    this.lastSuggestions = [];
   }
 } 

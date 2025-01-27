@@ -68,16 +68,23 @@
 ### 2.1 补全核心功能
 - [ ] 实现实时补全逻辑
   ```typescript
+  interface ICompletionSuggestion {
+    fullCommand: string;    // 完整的命令
+    suggestion: string;     // 建议补全的部分
+    source: CompletionSource;
+    score: number;         // 建议的相关度得分
+  }
+
   class CompletionService {
-    // 获取实时补全建议
-    async getSuggestion(input: string): Promise<ICompletionSuggestion | null> {
+    // 获取实时补全建议（返回前3个最佳匹配）
+    async getSuggestions(input: string): Promise<ICompletionSuggestion[]> {
       // 1. 从历史记录中查找匹配的命令
-      // 2. 计算最佳建议
-      // 3. 返回建议的补全部分
+      // 2. 按得分排序
+      // 3. 返回前3个建议
     }
 
     // 接受当前建议
-    acceptSuggestion(): string | null {
+    acceptSuggestion(suggestion: ICompletionSuggestion): string {
       // 返回完整的命令
     }
   }
@@ -85,81 +92,126 @@
 
 ### 2.2 交互设计
 - [ ] 实现智能补全交互
-  - 用户输入时清除当前建议
-  - 停止输入1秒后显示建议
-  - 使用暗淡颜色显示建议内容
-  - 按Tab键接受建议
-  - 继续输入时清除建议
+  ```typescript
+  interface ICompletionDropdown {
+    visible: boolean;
+    suggestions: ICompletionSuggestion[];
+    selectedIndex: number;
+    position: {
+      left: number;
+      top: number;
+    };
+  }
+
+  // 补全下拉框组件
+  const CompletionDropdown: React.FC<ICompletionDropdownProps> = ({
+    suggestions,
+    selectedIndex,
+    position,
+    onSelect
+  }) => {
+    // 渲染补全建议列表
+    // 处理选项高亮
+    // 跟随光标定位
+  }
+  ```
+
+- [ ] 补全交互流程
+  - 用户输入时隐藏下拉框
+  - 停止输入1秒后显示下拉框，展示前3个最佳匹配建议
+  - 下拉框跟随光标位置显示
+  - 默认选中第一个建议
+  - Alt+上/下键切换选中项
+  - Tab键接受当前选中的建议
+  - 继续输入时隐藏下拉框
 
 ### 2.3 终端集成
 - [ ] 实现终端输入处理
   ```typescript
   // 处理用户输入
   const handleInput = async (data: string) => {
-    // 1. 处理特殊键(Tab, 退格, 回车)
+    // 1. 处理特殊键(Tab, Alt+方向键)
     // 2. 更新当前输入
-    // 3. 管理补全状态
+    // 3. 管理补全状态和下拉框显示
   }
 
   // 补全计时器
   const startSuggestionTimer = (input: string) => {
     // 1. 延迟1秒后获取建议
-    // 2. 使用暗淡颜色显示
-    // 3. 保持光标位置
+    // 2. 计算下拉框位置
+    // 3. 显示下拉框
+  }
+
+  // 处理方向键
+  const handleAltArrowKeys = (event: KeyboardEvent) => {
+    // 1. 检查Alt+方向键
+    // 2. 更新选中项索引
+    // 3. 更新下拉框显示
   }
   ```
 
 ## 3. 补全显示实现（4天）
 
-### 3.1 终端渲染
-- [ ] 实现建议显示
-  - 使用ANSI转义序列控制颜色
-  - 处理光标位置
-  - 管理显示状态
+### 3.1 下拉框渲染
+- [ ] 实现补全下拉框
+  - 使用绝对定位跟随光标
+  - 半透明背景保持终端风格
+  - 高亮显示当前选中项
+  - 最多显示3个建议
+  - 实现平滑的显示/隐藏动画
 
 ### 3.2 交互处理
 - [ ] 实现键盘事件
-  - Tab键接受建议
-  - 退格键清除建议
-  - 回车键执行命令
+  - Tab键接受当前选中建议
+  - Alt+上/下键切换选中项
+  - 其他按键隐藏下拉框
+  - ESC键关闭下拉框
 
 ### 3.3 状态管理
 - [ ] 实现补全状态
   - 跟踪当前输入
-  - 管理建议缓存
-  - 处理命令历史
+  - 管理建议列表
+  - 跟踪选中项索引
+  - 管理下拉框显示状态
+  - 计算和更新下拉框位置
 
 ## 4. 集成测试（3天）
 
 ### 4.1 功能测试
 - [ ] 测试补全功能
-  - 实时补全响应
-  - 建议显示效果
-  - 键盘交互
+  - 建议获取和排序
+  - 下拉框显示和定位
+  - 键盘交互响应
+  - 建议选择和补全
 
 ### 4.2 性能测试
 - [ ] 测试系统性能
   - 补全响应时间
+  - 下拉框渲染性能
+  - 位置计算性能
   - 内存占用
-  - 渲染性能
 
 ### 4.3 稳定性测试
 - [ ] 测试系统稳定性
   - 异常处理
   - 边界情况
   - 并发操作
+  - 快速输入处理
 
 ## 5. 验收标准
 
 ### 5.1 功能验收
-- [ ] 实时补全
-  - 停止输入1秒后显示建议
-  - 建议使用暗淡颜色显示
-  - Tab键可快速接受建议
+- [ ] 补全功能
+  - 停止输入1秒后显示下拉框
+  - 显示前3个最佳匹配建议
+  - 下拉框正确跟随光标
+  - Alt+方向键正确切换选项
+  - Tab键正确补全选中项
 
 ### 5.2 性能验收
 - [ ] 补全响应时间 < 50ms
 - [ ] 显示延迟稳定在1秒
+- [ ] 下拉框位置计算延迟 < 16ms
 - [ ] 内存占用合理
 
 ### 5.3 代码质量

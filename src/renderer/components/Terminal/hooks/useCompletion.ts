@@ -13,6 +13,19 @@ interface UseCompletionReturn {
   recordCommand: (command: string) => Promise<void>;
   pendingCommandRef: React.MutableRefObject<string>;
   updatePendingCommand: (newCommand: string) => void;
+  dropdownVisible: boolean;
+  suggestions: ICompletionSuggestion[];
+  selectedIndex: number;
+  dropdownPosition: { left: number; top: number };
+  navigateSuggestions: (direction: 'up' | 'down') => void;
+  updateDropdownPosition: (left: number, top: number) => void;
+}
+
+export interface ICompletionSuggestion {
+  fullCommand: string;
+  suggestion: string;
+  source: 'history' | 'relation' | 'local';
+  score: number;
 }
 
 export const useCompletion = ({
@@ -23,9 +36,151 @@ export const useCompletion = ({
   const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastInputRef = useRef<string>('');
   const pendingCommandRef = useRef<string>('');
-  const suggestionDisplayedRef = useRef<string | null>(null);
+  
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [suggestions, setSuggestions] = useState<ICompletionSuggestion[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [dropdownPosition, setDropdownPosition] = useState({ left: 0, top: 0 });
+  const cursorPositionRef = useRef({ x: 0, y: 0 });
 
-  // 初始化补全服务
+  // 计算光标位置
+  const calculateCursorPosition = useCallback(() => {
+    if (!terminalRef.current) {
+      console.log('[useCompletion] calculateCursorPosition: terminalRef.current is null');
+      return { left: 0, top: 0 };
+    }
+
+    const terminal = terminalRef.current;
+    
+    try {
+      // 获取终端元素的位置
+      const rect = terminal.element?.getBoundingClientRect();
+      if (!rect) {
+        console.log('[useCompletion] Terminal element rect is null');
+        return { left: 0, top: 0 };
+      }
+
+      // 使用 xterm.js 的 buffer 属性获取光标位置
+      const cursorRow = terminal.buffer.active.cursorY;
+      const cursorCol = terminal.buffer.active.cursorX;
+
+      // 获取字符单元格尺寸
+      const core = (terminal as any)._core;
+      if (!core || !core._renderService || !core._renderService.dimensions) {
+        console.log('[useCompletion] Render service not found');
+        return { left: 0, top: 0 };
+      }
+
+      const dims = core._renderService.dimensions;
+      const cellWidth = dims.actualCellWidth || 9;
+      const cellHeight = dims.actualCellHeight || 17;
+
+      // 计算下拉框位置（在光标下方）
+      const left = rect.left + (cursorCol * cellWidth);
+      const top = rect.top + ((cursorRow + 1.2) * cellHeight);
+
+      console.log('[useCompletion] Terminal rect:', rect);
+      console.log('[useCompletion] Current cursor:', { row: cursorRow, col: cursorCol });
+      console.log('[useCompletion] Cell dimensions:', { cellWidth, cellHeight });
+      console.log('[useCompletion] Calculated position:', { left, top });
+
+      return { left, top };
+    } catch (error) {
+      console.error('[useCompletion] Error calculating cursor position:', error);
+      return { left: 0, top: 0 };
+    }
+  }, [terminalRef]);
+
+  // 更新下拉框位置
+  const updatePosition = useCallback(() => {
+    if (!dropdownVisible) return;
+    
+    console.log('[useCompletion] Updating dropdown position');
+    const position = calculateCursorPosition();
+    console.log('[useCompletion] Setting dropdown position to:', position);
+    setDropdownPosition(position);
+  }, [calculateCursorPosition, dropdownVisible]);
+
+  const updateDropdownPosition = useCallback((left: number, top: number) => {
+    setDropdownPosition({ left, top });
+  }, []);
+
+  const navigateSuggestions = useCallback((direction: 'up' | 'down') => {
+    setSelectedIndex(prev => {
+      const total = suggestions.length;
+      if (total === 0) return 0;
+      
+      if (direction === 'up') {
+        return prev > 0 ? prev - 1 : total - 1;
+      } else {
+        return prev < total - 1 ? prev + 1 : 0;
+      }
+    });
+  }, [suggestions.length]);
+
+  const clearSuggestion = useCallback(() => {
+    setDropdownVisible(false);
+    setSuggestions([]);
+    setSelectedIndex(0);
+    if (suggestionTimeoutRef.current) {
+      clearTimeout(suggestionTimeoutRef.current);
+      suggestionTimeoutRef.current = null;
+    }
+  }, []);
+
+  const acceptSuggestion = useCallback(() => {
+    if (!dropdownVisible || suggestions.length === 0) return null;
+    
+    const suggestion = suggestions[selectedIndex];
+    if (!suggestion) return null;
+
+    setDropdownVisible(false);
+    setSuggestions([]);
+    return suggestion.fullCommand;
+  }, [dropdownVisible, suggestions, selectedIndex]);
+
+  const recordCommand = useCallback(async (command: string) => {
+    if (!command.trim()) return;
+    try {
+      await completionService?.recordCommand(command);
+      console.log('[useCompletion] Command recorded successfully:', command);
+    } catch (error) {
+      console.error('[useCompletion] Failed to record command:', error);
+    }
+  }, [completionService]);
+
+  const updatePendingCommand = useCallback((newCommand: string) => {
+    console.log('[useCompletion] Updating pending command to:', newCommand);
+    pendingCommandRef.current = newCommand;
+    setCurrentInput(newCommand);
+  }, []);
+
+  // 监听光标移动
+  useEffect(() => {
+    const terminal = terminalRef.current;
+    if (!terminal) return;
+
+    const disposable = terminal.onCursorMove(() => {
+      try {
+        const cursorX = terminal.buffer.active.cursorX;
+        const cursorY = terminal.buffer.active.cursorY;
+
+        cursorPositionRef.current = { x: cursorX, y: cursorY };
+        
+        // 如果下拉框可见，则立即更新位置
+        if (dropdownVisible) {
+          updatePosition();
+        }
+      } catch (error) {
+        console.error('[useCompletion] Error in cursor move handler:', error);
+      }
+    });
+
+    return () => {
+      disposable.dispose();
+    };
+  }, [terminalRef, dropdownVisible, updatePosition]);
+
   useEffect(() => {
     const initializeServices = async () => {
       try {
@@ -39,16 +194,16 @@ export const useCompletion = ({
     initializeServices();
   }, []);
 
-  // 更新pendingCommand的方法
-  const updatePendingCommand = useCallback((newCommand: string) => {
-    console.log('[useCompletion] Updating pending command to:', newCommand);
-    pendingCommandRef.current = newCommand;
-    setCurrentInput(newCommand);
-  }, []);
-
-  // 监听输入变化，处理补全
+  // 在显示建议时更新位置
   useEffect(() => {
-    // 如果输入没有变化，直接返回
+    console.log('[useCompletion] dropdownVisible changed:', dropdownVisible);
+    if (dropdownVisible) {
+      console.log('[useCompletion] Dropdown is visible, updating position');
+      updatePosition();
+    }
+  }, [dropdownVisible, updatePosition]);
+
+  useEffect(() => {
     if (currentInput === lastInputRef.current) {
       return;
     }
@@ -56,74 +211,65 @@ export const useCompletion = ({
     console.log('[useCompletion] Input changed from:', lastInputRef.current, 'to:', currentInput);
     lastInputRef.current = currentInput;
 
-    // 清除之前的计时器
     if (suggestionTimeoutRef.current) {
       clearTimeout(suggestionTimeoutRef.current);
       suggestionTimeoutRef.current = null;
     }
 
-    // 如果输入为空，不需要补全
     if (!currentInput) {
+      setDropdownVisible(false);
+      setSuggestions([]);
       return;
     }
 
     console.log('[useCompletion] Setting up suggestion timer for input:', currentInput);
 
-    // 设置新的计时器，1秒后使用完整的输入进行查询
     const timeout = setTimeout(async () => {
-      if (!terminalRef.current) return;
+      if (!terminalRef.current) {
+        console.log('[useCompletion] Terminal ref is null, skipping suggestions');
+        return;
+      }
 
-      // 再次检查输入是否已经改变
       if (currentInput !== pendingCommandRef.current) {
         console.log('[useCompletion] Input changed during timeout, skipping suggestion');
         return;
       }
 
       console.log('[useCompletion] Suggestion timer triggered for input:', currentInput);
-      // 使用完整的输入进行查询
-      const suggestion = await completionService?.getSuggestion(currentInput);
-      if (suggestion) {
-        // 记录当前建议
-        suggestionDisplayedRef.current = suggestion.suggestion;
+      
+      try {
+        console.log('[useCompletion] Getting suggestions from service');
+        const newSuggestions = await completionService?.getSuggestions(currentInput);
+        console.log('[useCompletion] Got suggestions:', newSuggestions);
         
-        // 先写入一个空格作为分隔
-        terminalRef.current.write(' ');
-        // 显示建议(使用暗淡的颜色)
-        terminalRef.current.write('\x1b[2m' + suggestion.suggestion + '\x1b[0m');
-        // 将光标移回到输入位置（多移一格，因为我们加了空格）
-        for (let i = 0; i < suggestion.suggestion.length + 1; i++) {
-          terminalRef.current.write('\b');
+        if (newSuggestions && newSuggestions.length > 0) {
+          console.log('[useCompletion] Setting suggestions and showing dropdown');
+          setSuggestions(newSuggestions);
+          setSelectedIndex(0);
+          setDropdownVisible(true);
+          // 更新下拉框位置
+          console.log('[useCompletion] Updating dropdown position after showing');
+          updatePosition();
+        } else {
+          console.log('[useCompletion] No suggestions found, hiding dropdown');
+          setDropdownVisible(false);
+          setSuggestions([]);
         }
+      } catch (error) {
+        console.error('[useCompletion] Failed to get suggestions:', error);
+        setDropdownVisible(false);
+        setSuggestions([]);
       }
     }, 1000);
 
     suggestionTimeoutRef.current = timeout;
-  }, [terminalRef, completionService, currentInput]);
 
-  // 清除建议
-  const clearSuggestion = useCallback(() => {
-    suggestionDisplayedRef.current = null;
-    if (suggestionTimeoutRef.current) {
-      clearTimeout(suggestionTimeoutRef.current);
-      suggestionTimeoutRef.current = null;
-    }
-  }, []);
-
-  // 接受建议
-  const acceptSuggestion = useCallback(() => {
-    return completionService?.acceptSuggestion();
-  }, [completionService]);
-
-  // 记录命令
-  const recordCommand = useCallback(async (command: string) => {
-    if (!command.trim()) return;
-    try {
-      await completionService?.recordCommand(command);
-      console.log('[useCompletion] Command recorded successfully:', command);
-    } catch (error) {
-      console.error('[useCompletion] Failed to record command:', error);
-    }
-  }, [completionService]);
+    return () => {
+      if (suggestionTimeoutRef.current) {
+        clearTimeout(suggestionTimeoutRef.current);
+      }
+    };
+  }, [currentInput, terminalRef, completionService, updatePosition]);
 
   return {
     completionService,
@@ -132,5 +278,13 @@ export const useCompletion = ({
     recordCommand,
     pendingCommandRef,
     updatePendingCommand,
+    dropdownVisible,
+    suggestions,
+    selectedIndex,
+    dropdownPosition,
+    navigateSuggestions,
+    updateDropdownPosition,
   };
-}; 
+}
+
+export default useCompletion; 
