@@ -37,31 +37,6 @@ export const useCommandHandler = ({
       return;
     }
 
-    // 如果是控制字符（箭头键等），直接发送到 SSH
-    if (data.charCodeAt(0) < 32 || data.charCodeAt(0) === 127) {
-      // 如果是退格键，需要更新命令状态
-      if (data === '\b' || data === '\x7f') {
-        if (pendingCommandRef.current.length > 0) {
-          // 更新待处理的命令
-          const newInput = pendingCommandRef.current.slice(0, -1);
-          console.log('[useCommandHandler] Updated pending command (backspace):', newInput);
-          updatePendingCommand(newInput);
-          
-          // 清除当前建议
-          onSuggestionClear();
-        }
-      }
-      
-      // 发送到SSH
-      if (shellIdRef.current) {
-        await sshService.write(shellIdRef.current, data).catch((error) => {
-          console.error('[useCommandHandler] Failed to write to shell:', error);
-          terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
-        });
-      }
-      return;
-    }
-
     // 如果是Tab键,接受当前建议
     if (data === '\t') {
       console.log('[useCommandHandler] Tab key pressed, current pendingCommand:', pendingCommandRef.current);
@@ -103,6 +78,32 @@ export const useCommandHandler = ({
         }
         return;
       }
+    }
+
+    // 如果是控制字符（箭头键等），直接发送到 SSH
+    // 排除 Tab 键 (ASCII 9)
+    if ((data.charCodeAt(0) < 32 && data.charCodeAt(0) !== 9) || data.charCodeAt(0) === 127) {
+      // 如果是退格键，需要更新命令状态
+      if (data === '\b' || data === '\x7f') {
+        if (pendingCommandRef.current.length > 0) {
+          // 更新待处理的命令
+          const newInput = pendingCommandRef.current.slice(0, -1);
+          console.log('[useCommandHandler] Updated pending command (backspace):', newInput);
+          updatePendingCommand(newInput);
+          
+          // 清除当前建议
+          onSuggestionClear();
+        }
+      }
+      
+      // 发送到SSH
+      if (shellIdRef.current) {
+        await sshService.write(shellIdRef.current, data).catch((error) => {
+          console.error('[useCommandHandler] Failed to write to shell:', error);
+          terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
+        });
+      }
+      return;
     }
 
     // 普通字符输入
