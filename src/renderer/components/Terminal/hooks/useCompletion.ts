@@ -105,7 +105,7 @@ export const useCompletion = ({
       const bottomPosition = ((cursorRow+1) * cellHeight)+5;
       console.log('[useCompletion] bottomPosition:', {bottomPosition,rowInView,cellHeight});
       // 检查是否会超出终端底部,用终端可视行数的高度来判断
-      const terminalBottom = terminal.buffer.active.length * cellHeight;
+      const terminalBottom = terminal.rows * cellHeight;
       const wouldExceedBottom = (bottomPosition + dropdownHeight) > terminalBottom;
 
       console.log('[useCompletion] Scroll info:', { 
@@ -120,7 +120,7 @@ export const useCompletion = ({
       
       // 如果会超出底部，则显示在光标上方
       const top = wouldExceedBottom
-        ? bottomPosition - dropdownHeight - cellHeight // 上移一行高度
+        ? bottomPosition - dropdownHeight // 上移一行高度
         : bottomPosition;
 
       console.log('[useCompletion] Terminal rect:', rect);
