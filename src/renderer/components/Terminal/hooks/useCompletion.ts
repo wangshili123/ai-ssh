@@ -82,7 +82,7 @@ export const useCompletion = ({
       const left = ((cursorCol+1) * cellWidth);
       
       // 计算下拉框的预期高度（包括内边距和边框）
-      const dropdownHeight = Math.min(suggestions.length * 28, 300); // 每个选项约28px，最大高度300px
+      const dropdownHeight = Math.min(suggestions.length * 44, 300); // 每个选项约28px，最大高度300px
       
       // 获取终端的实际滚动位置和可见行数
       let viewportY = 0;
@@ -104,8 +104,8 @@ export const useCompletion = ({
       // 计算在光标下方显示时的位置（考虑滚动位置）+1是因为cursorRow从0开始。+5是因为拉开一点，看情况
       const bottomPosition = ((cursorRow+1) * cellHeight)+5;
       console.log('[useCompletion] bottomPosition:', {bottomPosition,rowInView,cellHeight});
-      // 检查是否会超出终端底部
-      const terminalBottom = rect.bottom;
+      // 检查是否会超出终端底部,用终端可视行数的高度来判断
+      const terminalBottom = terminal.buffer.active.length * cellHeight;
       const wouldExceedBottom = (bottomPosition + dropdownHeight) > terminalBottom;
 
       console.log('[useCompletion] Scroll info:', { 
