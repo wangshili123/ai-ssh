@@ -292,6 +292,8 @@ export const useCompletion = ({
           console.log('[useCompletion] Setting suggestions and showing dropdown');
           setSuggestions(newSuggestions);
           setSelectedIndex(0);
+          // 重置 CompletionService 的 selectedIndex
+          completionService?.setSelectedIndex(0);
           setDropdownVisible(true);
           // 更新下拉框位置
           console.log('[useCompletion] Updating dropdown position after showing');

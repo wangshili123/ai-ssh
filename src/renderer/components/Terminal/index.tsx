@@ -141,6 +141,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
             onSelect={handleSuggestionSelect}
             terminalRef={terminalRef}
             navigateSuggestions={navigateSuggestions}
+            completionService={completionService}
           />
         </div>
       </div>

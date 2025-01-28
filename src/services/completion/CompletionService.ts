@@ -29,6 +29,7 @@ export class CompletionService {
   private commandRelation!: CommandRelation;
   private lastInput: string = '';
   private lastSuggestions: ICompletionSuggestion[] = [];
+  private selectedIndex: number = 0;
   private initialized: boolean = false;
 
   private constructor() {
@@ -257,12 +258,21 @@ export class CompletionService {
   }
 
   /**
-   * 接受当前的补全建议
-   * @param index 要接受的建议索引,默认为0(第一个建议)
+   * 设置当前选中的建议索引
+   * @param index 要设置的索引
    */
-  public acceptSuggestion(index: number = 0): string | null {
-    if (this.lastSuggestions.length > index) {
-      const suggestion = this.lastSuggestions[index].fullCommand;
+  public setSelectedIndex(index: number): void {
+    console.log('[CompletionService] Setting selected index to:', index);
+    this.selectedIndex = index;
+  }
+
+  /**
+   * 接受当前的补全建议
+   */
+  public acceptSuggestion(): string | null {
+    console.log('[CompletionService] Accepting suggestion with index:', this.selectedIndex);
+    if (this.lastSuggestions.length > this.selectedIndex) {
+      const suggestion = this.lastSuggestions[this.selectedIndex].fullCommand;
       this.lastSuggestions = [];
       this.lastInput = suggestion;
       return suggestion;

@@ -1,6 +1,7 @@
 import React, { MutableRefObject, useEffect, useState } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { ICompletionSuggestion } from '../hooks/useCompletion';
+import { CompletionService } from '../../../../services/completion/CompletionService';
 import './CompletionDropdown.css';
 
 interface CompletionDropdownProps {
@@ -14,6 +15,7 @@ interface CompletionDropdownProps {
   onSelect: (suggestion: ICompletionSuggestion) => void;
   terminalRef: MutableRefObject<XTerm | null>;
   navigateSuggestions: (direction: 'up' | 'down') => void;
+  completionService: CompletionService | null;
 }
 
 const CompletionDropdown: React.FC<CompletionDropdownProps> = ({
@@ -24,6 +26,7 @@ const CompletionDropdown: React.FC<CompletionDropdownProps> = ({
   onSelect,
   terminalRef,
   navigateSuggestions,
+  completionService,
 }) => {
   const [fixedPosition, setFixedPosition] = useState({ left: 0, top: 0 });
 
@@ -64,11 +67,19 @@ const CompletionDropdown: React.FC<CompletionDropdownProps> = ({
             e.preventDefault();
             e.stopPropagation();
             navigateSuggestions('up');
+            if (completionService) {
+              const newIndex = selectedIndex > 0 ? selectedIndex - 1 : suggestions.length - 1;
+              completionService.setSelectedIndex(newIndex);
+            }
             break;
           case 'ArrowDown':
             e.preventDefault();
             e.stopPropagation();
             navigateSuggestions('down');
+            if (completionService) {
+              const newIndex = selectedIndex < suggestions.length - 1 ? selectedIndex + 1 : 0;
+              completionService.setSelectedIndex(newIndex);
+            }
             break;
         }
       }
@@ -80,7 +91,7 @@ const CompletionDropdown: React.FC<CompletionDropdownProps> = ({
     return () => {
       terminal.element?.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [visible, terminalRef, navigateSuggestions]);
+  }, [visible, terminalRef, navigateSuggestions, completionService, selectedIndex, suggestions.length]);
 
   if (!visible || suggestions.length === 0) {
     return null;
