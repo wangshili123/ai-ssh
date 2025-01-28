@@ -75,8 +75,8 @@ export class CompletionService {
   public async getSuggestions(input: string): Promise<ICompletionSuggestion[]> {
     console.log('Getting suggestions for input:', input);
     
-    // 如果输入为空或者与上次输入相同,返回空数组
-    if (!input || input === this.lastInput) {
+    // 如果输入为空,返回空数组
+    if (!input) {
       console.log('Empty input or same as last input, returning empty array');
       return [];
     }
