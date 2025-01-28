@@ -13,6 +13,7 @@ interface CompletionDropdownProps {
   };
   onSelect: (suggestion: ICompletionSuggestion) => void;
   terminalRef: MutableRefObject<XTerm | null>;
+  navigateSuggestions: (direction: 'up' | 'down') => void;
 }
 
 const CompletionDropdown: React.FC<CompletionDropdownProps> = ({
@@ -22,6 +23,7 @@ const CompletionDropdown: React.FC<CompletionDropdownProps> = ({
   position,
   onSelect,
   terminalRef,
+  navigateSuggestions,
 }) => {
   const [fixedPosition, setFixedPosition] = useState({ left: 0, top: 0 });
 
@@ -35,29 +37,50 @@ const CompletionDropdown: React.FC<CompletionDropdownProps> = ({
       const rect = element.getBoundingClientRect();
       
       // 计算下拉框的位置（相对于视口）
-      let absoluteLeft =position.left;
+      let absoluteLeft = position.left;
       let absoluteTop = position.top;
 
       // 确保下拉框不会超出视口
       const dropdownWidth = 400; // max-width from CSS
       const dropdownHeight = 300; // max-height from CSS
-      
-      // // 检查右边界
-      // if (absoluteLeft + dropdownWidth > window.innerWidth) {
-      //   absoluteLeft = window.innerWidth - dropdownWidth - 10;
-      // }
-      
-      // // 检查下边界
-      // if (absoluteTop + dropdownHeight > window.innerHeight) {
-      //   absoluteTop = absoluteTop - dropdownHeight - 10;
-      // }
+
       console.log('[CompletionDropdown] absoluteLeft,absoluteTop:', {absoluteLeft,absoluteTop});
+
       setFixedPosition({
         left: Math.max(0, absoluteLeft),
         top: Math.max(0, absoluteTop)
       });
     }
   }, [visible, position, terminalRef]);
+
+  // 添加键盘事件处理
+  useEffect(() => {
+    if (!visible || !terminalRef.current) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey) {
+        switch (e.key) {
+          case 'ArrowUp':
+            e.preventDefault();
+            e.stopPropagation();
+            navigateSuggestions('up');
+            break;
+          case 'ArrowDown':
+            e.preventDefault();
+            e.stopPropagation();
+            navigateSuggestions('down');
+            break;
+        }
+      }
+    };
+
+    const terminal = terminalRef.current;
+    terminal.element?.addEventListener('keydown', handleKeyDown, true);
+
+    return () => {
+      terminal.element?.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [visible, terminalRef, navigateSuggestions]);
 
   if (!visible || suggestions.length === 0) {
     return null;

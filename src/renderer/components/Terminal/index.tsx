@@ -140,6 +140,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
             position={dropdownPosition}
             onSelect={handleSuggestionSelect}
             terminalRef={terminalRef}
+            navigateSuggestions={navigateSuggestions}
           />
         </div>
       </div>
