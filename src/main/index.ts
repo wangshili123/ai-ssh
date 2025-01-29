@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import * as isDev from 'electron-is-dev';
+import { registerAllHandlers } from './ipc';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -10,6 +11,14 @@ ipcMain.on('get-user-data-path', (event) => {
   const userDataPath = app.getPath('userData');
   console.log('Returning user data path:', userDataPath);
   event.returnValue = userDataPath;
+});
+
+// 注册 get-app-path 处理程序
+ipcMain.handle('get-app-path', () => {
+  console.log('Received get-app-path request');
+  const appPath = app.getAppPath();
+  console.log('Returning app path:', appPath);
+  return appPath;
 });
 
 function createWindow() {
@@ -40,7 +49,12 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  // 注册所有 IPC 处理程序
+  registerAllHandlers();
+  // 创建窗口
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

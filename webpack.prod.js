@@ -1,66 +1,39 @@
+const { merge } = require('webpack-merge');
+const common = require('./webpack.common.js');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
 
-module.exports = {
+module.exports = merge(common, {
   mode: 'production',
-  entry: './src/renderer/index.tsx',
   target: 'electron-renderer',
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.wasm']
+  },
   module: {
     rules: [
       {
         test: /\.tsx?$/,
         use: 'ts-loader',
-        exclude: /node_modules/,
+        exclude: /node_modules/
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+        use: ['style-loader', 'css-loader']
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
         type: 'asset/resource',
       },
-    ],
-  },
-  resolve: {
-    extensions: ['.tsx', '.ts', '.js'],
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-    },
+    ]
   },
   output: {
     filename: 'renderer.js',
     path: path.resolve(__dirname, 'dist/renderer'),
-    clean: true,
+    publicPath: './'
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: './src/renderer/index.html',
-      minify: {
-        removeComments: true,
-        collapseWhitespace: true,
-        removeRedundantAttributes: true,
-        useShortDoctype: true,
-        removeEmptyAttributes: true,
-        removeStyleLinkTypeAttributes: true,
-        keepClosingSlash: true,
-        minifyJS: true,
-        minifyCSS: true,
-        minifyURLs: true,
-      },
-    }),
-  ],
-  optimization: {
-    minimize: true,
-    minimizer: [
-      new TerserPlugin({
-        terserOptions: {
-          compress: {
-            drop_console: true,
-          },
-        },
-      }),
-    ],
-  },
-}; 
+      template: './src/renderer/index.html'
+    })
+  ]
+}); 

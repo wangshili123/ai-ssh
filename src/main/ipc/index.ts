@@ -2,6 +2,7 @@ import { registerStorageHandlers } from './storage';
 import { initSSHHandlers } from './ssh';
 import { registerAIConfigHandlers } from './ai-config';
 import { registerSFTPHandlers } from './sftp';
+import { ipcMain, app } from 'electron';
 
 /**
  * 注册所有IPC处理器
@@ -25,6 +26,12 @@ export function registerAllHandlers(): void {
     // 注册 SFTP 处理程序
     console.log('注册 SFTP 处理程序...');
     registerSFTPHandlers();
+    
+    // 添加获取应用路径的处理程序
+    console.log('注册获取应用路径的处理程序...');
+    ipcMain.handle('get-app-path', () => {
+      return app.getAppPath();
+    });
     
     console.log('所有 IPC 处理程序注册完成');
   } catch (error) {

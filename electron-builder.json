@@ -1,0 +1,8 @@
+{
+  "extraResources": [
+    {
+      "from": "node_modules/tree-sitter-bash/tree-sitter-bash.wasm",
+      "to": "resources"
+    }
+  ]
+} 

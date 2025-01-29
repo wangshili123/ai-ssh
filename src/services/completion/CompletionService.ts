@@ -1,6 +1,10 @@
 import { CommandHistory, ICommandHistory } from '../database/models/CommandHistory';
 import { CommandRelation, CommandRelationType } from '../database/models/CommandRelation';
 import { DatabaseService } from '../database/DatabaseService';
+import { ShellParser } from '../parser/ShellParser';
+import { ShellParserTypes } from '../parser/ShellParserTypes';
+import { FishStyleCompletion } from './FishStyleCompletion';
+import { CompletionContext } from './CompletionContext';
 import debounce from 'lodash/debounce';
 
 export interface ICompletionSuggestion {
@@ -27,12 +31,16 @@ export class CompletionService {
   private static instance: CompletionService;
   private commandHistory!: CommandHistory;
   private commandRelation!: CommandRelation;
+  private shellParser: ShellParser;
+  private fishCompletion: FishStyleCompletion;
   private lastInput: string = '';
   private lastSuggestions: ICompletionSuggestion[] = [];
   private selectedIndex: number = 0;
   private initialized: boolean = false;
 
   private constructor() {
+    this.shellParser = ShellParser.getInstance();
+    this.fishCompletion = FishStyleCompletion.getInstance();
     this.initializeAsync();
   }
 
@@ -71,168 +79,150 @@ export class CompletionService {
   /**
    * 获取实时补全建议
    * @param input 当前输入的命令
-   * @returns 补全建议列表,按得分排序,最多返回3个建议
+   * @param sshSession 当前SSH会话
+   * @returns 补全建议列表
    */
-  public async getSuggestions(input: string): Promise<ICompletionSuggestion[]> {
-    console.log('Getting suggestions for input:', input);
+  public async getSuggestions(
+    input: string,
+    sshSession?: CompletionContext['sshSession']
+  ): Promise<ICompletionSuggestion[]> {
+    console.log('[CompletionService] 开始获取补全建议, 输入:', input);
+    this.checkInitialized();
     
-    // 如果输入为空,返回空数组
-    if (!input) {
-      console.log('Empty input or same as last input, returning empty array');
+    // 如果输入为空或与上次相同，返回空数组
+    if (!input || input === this.lastInput) {
+      console.log('[CompletionService] 输入为空或与上次相同，返回空数组');
       return [];
     }
 
     this.lastInput = input;
     
-    // 获取所有可能的补全
-    const suggestions = await this.getAllSuggestions(input);
-    console.log('Got suggestions:', suggestions);
+    // 解析命令
+    console.log('[CompletionService] 开始解析命令...');
+    const parseResult = await this.shellParser.parse(input);
+    console.log('[CompletionService] 命令解析结果:', parseResult);
     
-    // 按得分排序并获取前3个最佳建议
-    const bestSuggestions = suggestions
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3)
-      .filter(s => s.fullCommand !== input); // 过滤掉与输入完全相同的建议
-    
-    // 如果没有有效建议,返回空数组
-    if (bestSuggestions.length === 0) {
-      console.log('No valid suggestions found, returning empty array');
-      this.lastSuggestions = [];
+    if (parseResult.type === 'error' || parseResult.type === 'unknown') {
+      console.log('[CompletionService] 命令解析失败或未知类型，返回空数组');
       return [];
     }
 
-    // 为每个建议计算补全部分
-    const processedSuggestions = bestSuggestions.map(suggestion => ({
-      ...suggestion,
-      suggestion: suggestion.fullCommand.slice(input.length)
-    }));
-    
-    this.lastSuggestions = processedSuggestions;
-    console.log('Returning suggestions:', processedSuggestions);
-    return processedSuggestions;
-  }
+    // 准备补全上下文
+    console.log('[CompletionService] 准备补全上下文...');
+    const context: CompletionContext = {
+      sshSession,
+      recentCommands: await this.getRecentCommands(),
+      commandHistory: await this.getCommandHistory(input),
+      currentCommand: {
+        name: '',
+        args: [],
+        options: [],
+        isIncomplete: true
+      }
+    };
+    console.log('[CompletionService] 补全上下文:', context);
 
-  /**
-   * 获取所有可能的补全建议
-   */
-  private async getAllSuggestions(input: string): Promise<ICompletionSuggestion[]> {
-    const suggestions: ICompletionSuggestion[] = [];
-
-    // 1. 从历史记录中查找
-    const historyResults = await this.getHistoryCompletions(input);
-    suggestions.push(...historyResults);
-
-    // 2. 从关联命令中查找
-    const relationResults = await this.getRelationCompletions(input);
-    suggestions.push(...relationResults);
-
-    // 3. 从本地补全中查找
-    const localResults = await this.getLocalCompletions(input);
-    suggestions.push(...localResults);
-
-    return suggestions;
-  }
-
-  /**
-   * 从历史记录中获取补全建议
-   */
-  private async getHistoryCompletions(input: string): Promise<ICompletionSuggestion[]> {
-    const results = await this.commandHistory.search(input);
-    return results.map(item => ({
-      fullCommand: item.command,
-      suggestion: item.command.slice(input.length),
-      source: CompletionSource.HISTORY,
-      score: this.calculateHistoryScore(item)
-    }));
-  }
-
-  /**
-   * 计算历史记录的得分
-   * 基于使用频率和最后使用时间
-   */
-  private calculateHistoryScore(item: ICommandHistory): number {
-    const frequencyScore = Math.min(item.frequency / 10, 1); // 最高1分
-    const timeScore = Math.max(0, 1 - this.getDaysDifference(item.last_used) / 30); // 最近30天内,最高1分
-    return frequencyScore * 0.7 + timeScore * 0.3; // 频率权重0.7,时间权重0.3
-  }
-
-  /**
-   * 获取与当前日期的天数差
-   */
-  private getDaysDifference(date: Date): number {
-    const diffTime = Math.abs(new Date().getTime() - date.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }
-
-  /**
-   * 从关联命令中获取补全建议
-   */
-  private async getRelationCompletions(input: string): Promise<ICompletionSuggestion[]> {
-    const historyResults = await this.commandHistory.search(input, 1);
-    if (historyResults.length === 0 || !historyResults[0].id) {
-      return [];
-    }
-
-    const relations = await this.commandRelation.getRelated(
-      historyResults[0].id,
-      CommandRelationType.SIMILAR
-    );
-
-    const suggestions: ICompletionSuggestion[] = [];
-    for (const relation of relations) {
-      const commandId = relation.command1_id === historyResults[0].id
-        ? relation.command2_id
-        : relation.command1_id;
-
-      const results = await this.commandHistory.search(`id = ${commandId}`);
-      if (results.length > 0) {
-        suggestions.push({
-          fullCommand: results[0].command,
-          suggestion: results[0].command.slice(input.length),
-          source: CompletionSource.RELATION,
-          score: 0.5 + (relation.frequency / 20) // 基础分0.5,最高加0.5
-        });
+    // 根据解析结果类型处理
+    let suggestions: ICompletionSuggestion[] = [];
+    if (parseResult.type === 'command') {
+      console.log('[CompletionService] 处理单个命令补全...');
+      suggestions = await this.fishCompletion.getSuggestions(parseResult, context);
+    } else if (parseResult.type === 'pipeline') {
+      console.log('[CompletionService] 处理管道命令补全...');
+      const lastCommand = parseResult.commands[parseResult.commands.length - 1];
+      if (lastCommand) {
+        suggestions = await this.fishCompletion.getSuggestions(lastCommand, context);
+      }
+    } else if (parseResult.type === 'program') {
+      console.log('[CompletionService] 处理程序命令补全...');
+      if (parseResult.commands.length > 0) {
+        const lastCommand = parseResult.commands[parseResult.commands.length - 1];
+        console.log('[CompletionService] 使用最后一个命令进行补全:', lastCommand);
+        suggestions = await this.fishCompletion.getSuggestions(lastCommand, context);
+      } else {
+        // 如果是空程序，创建一个空命令对象用于补全
+        console.log('[CompletionService] 使用空命令进行补全');
+        const emptyCommand: ShellParserTypes.Command = {
+          name: input,
+          args: [],
+          options: [],
+          redirects: []
+        };
+        suggestions = await this.fishCompletion.getSuggestions(emptyCommand, context);
       }
     }
+    console.log('[CompletionService] 原始补全建议:', suggestions);
 
-    return suggestions;
+    // 过滤、排序并限制结果数量
+    this.lastSuggestions = suggestions
+      .filter(s => s.fullCommand !== input)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    console.log('[CompletionService] 最终补全建议:', this.lastSuggestions);
+    return this.lastSuggestions;
   }
 
   /**
-   * 获取本地补全建议
-   * 这里先返回空数组,后续实现具体的本地补全逻辑
+   * 获取最近使用的命令
    */
-  private async getLocalCompletions(input: string): Promise<ICompletionSuggestion[]> {
-    return [];
+  private async getRecentCommands(): Promise<string[]> {
+    console.log('[CompletionService] 获取最近使用的命令...');
+    try {
+      const history = await this.commandHistory.search('', 10);
+      const commands = history.map(item => item.command);
+      console.log('[CompletionService] 获取到的最近命令:', commands);
+      return commands;
+    } catch (error) {
+      console.error('[CompletionService] 获取历史命令失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取命令历史信息
+   */
+  private async getCommandHistory(command: string): Promise<CompletionContext['commandHistory']> {
+    console.log('[CompletionService] 获取命令历史信息, 命令:', command);
+    try {
+      const results = await this.commandHistory.search(command, 1);
+      console.log('[CompletionService] 命令历史搜索结果:', results);
+      if (results.length > 0) {
+        return {
+          frequency: results[0].frequency,
+          lastUsed: results[0].last_used
+        };
+      }
+      return {
+        frequency: 0,
+        lastUsed: new Date(0)
+      };
+    } catch (error) {
+      console.error('[CompletionService] 获取命令历史失败:', error);
+      return {
+        frequency: 0,
+        lastUsed: new Date(0)
+      };
+    }
   }
 
   /**
    * 记录命令执行
-   * @param command 执行的命令
-   * @param context 执行上下文
-   * @param success 是否执行成功
    */
   public async recordCommand(
     command: string,
     context?: string,
     success: boolean = true
   ): Promise<void> {
-    console.log('CompletionService.recordCommand called:', { command, context, success });
-    
     try {
       this.checkInitialized();
-      console.log('Service initialized check passed');
 
       // 记录到历史
       await this.commandHistory.addOrUpdate(command, context, success);
-      console.log('Command recorded to history successfully');
 
       // 获取最近执行的命令
       const recentCommands = await this.commandHistory.search('', 2);
-      console.log('Recent commands:', recentCommands);
-
       if (recentCommands.length < 2) {
-        console.log('Not enough recent commands to record relation');
         return;
       }
 
@@ -245,32 +235,28 @@ export class CompletionService {
           currentId,
           CommandRelationType.SEQUENCE
         );
-        console.log('Command relation recorded successfully');
       }
 
       // 重置补全状态
       this.lastInput = '';
       this.lastSuggestions = [];
     } catch (error) {
-      console.error('Error in recordCommand:', error);
+      console.error('记录命令失败:', error);
       throw error;
     }
   }
 
   /**
    * 设置当前选中的建议索引
-   * @param index 要设置的索引
    */
   public setSelectedIndex(index: number): void {
-    console.log('[CompletionService] Setting selected index to:', index);
-    this.selectedIndex = index;
+    this.selectedIndex = Math.min(index, this.lastSuggestions.length - 1);
   }
 
   /**
    * 接受当前的补全建议
    */
   public acceptSuggestion(): string | null {
-    console.log('[CompletionService] Accepting suggestion with index:', this.selectedIndex);
     if (this.lastSuggestions.length > this.selectedIndex) {
       const suggestion = this.lastSuggestions[this.selectedIndex].fullCommand;
       this.lastSuggestions = [];
@@ -285,5 +271,6 @@ export class CompletionService {
    */
   public clearSuggestion(): void {
     this.lastSuggestions = [];
+    this.selectedIndex = 0;
   }
 } 
