@@ -121,7 +121,7 @@
 - **分层补全策略**
   1. **本地快速补全**
      - 基于 SQLite 的历史记录
-     - 使用 omelette 的补全框架
+     - 使用 Tree-sitter 解析命令
      - 参考 fish-shell 的补全算法
      ```typescript
      async function getLocalSuggestions(input: string) {
