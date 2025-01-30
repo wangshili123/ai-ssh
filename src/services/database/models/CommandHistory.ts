@@ -97,30 +97,65 @@ export class CommandHistory {
    */
   public async search(prefix: string, limit: number = 10): Promise<ICommandHistory[]> {
     console.log('CommandHistory.search called:', { prefix, limit });
-    const sql = `
-      SELECT id, command, context, frequency, last_used, success, outputs
-      FROM command_history
-      WHERE command LIKE ?
-      ORDER BY frequency DESC, last_used DESC
-      LIMIT ?
-    `;
-    console.log('Executing search query:', sql, { prefix: `${prefix}%`, limit });
+    
+    try {
+      let sql: string;
+      let params: any[];
 
-    const stmt = this.db.prepare(sql);
-    const rows = stmt.all(`${prefix}%`, limit) as ICommandHistoryRow[];
-    console.log('Search results:', rows);
+      if (!prefix) {
+        // 如果前缀为空，返回最近使用的命令
+        sql = `
+          SELECT id, command, context, frequency, last_used, success, outputs
+          FROM command_history
+          ORDER BY last_used DESC, frequency DESC
+          LIMIT ?
+        `;
+        params = [limit];
+      } else {
+        // 如果有前缀，进行多级匹配
+        sql = `
+          SELECT id, command, context, frequency, last_used, success, outputs
+          FROM command_history
+          WHERE command LIKE ?
+          ORDER BY
+            CASE 
+              WHEN command = ? THEN 3        -- 完全匹配最高优先级
+              WHEN command LIKE ? THEN 2     -- 前缀匹配次优先级 
+              ELSE 1                         -- 包含匹配最低优先级
+            END DESC,
+            frequency DESC,
+            last_used DESC
+          LIMIT ?
+        `;
+        params = [
+          `%${prefix}%`,  // LIKE 模式匹配
+          prefix,         // 完全匹配
+          `${prefix}%`,   // 前缀匹配
+          limit
+        ];
+      }
 
-    const results = rows.map(row => ({
-      id: row.id,
-      command: row.command,
-      context: row.context || undefined,
-      frequency: row.frequency,
-      last_used: new Date(row.last_used),
-      success: Boolean(row.success),
-      outputs: row.outputs ? JSON.parse(row.outputs) : []
-    }));
-    console.log('Mapped results:', results);
-    return results;
+      console.log('Executing search query:', sql, { params });
+      const stmt = this.db.prepare(sql);
+      const rows = stmt.all(...params) as ICommandHistoryRow[];
+      console.log('Search results:', rows);
+
+      const results = rows.map(row => ({
+        id: row.id,
+        command: row.command,
+        context: row.context || undefined,
+        frequency: row.frequency,
+        last_used: new Date(row.last_used),
+        success: Boolean(row.success),
+        outputs: row.outputs ? JSON.parse(row.outputs) : []
+      }));
+
+      console.log('Mapped results:', results);
+      return results;
+    } catch (error) {
+      console.error('Error in search:', error);
+      throw error;
+    }
   }
 
   /**

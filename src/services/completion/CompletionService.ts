@@ -134,14 +134,30 @@ export class CompletionService {
       );
       console.log('[CompletionService] 获取到的增强上下文:', enhancedContext);
 
-      // 2. 获取基础补全建议
+      // 2. 先从历史记录中查找匹配的命令
+      console.log('[CompletionService] 从历史记录中查找匹配的命令...');
+      const historyResults = await this.commandHistory.search(input, 10);
+      const historySuggestions = historyResults.map(item => ({
+        fullCommand: item.command,
+        suggestion: item.command.slice(input.length),
+        source: CompletionSource.HISTORY,
+        score: 0.8,
+        details: {
+          frequency: item.frequency,
+          lastUsed: item.last_used,
+          success: item.success
+        }
+      }));
+      console.log('[CompletionService] 历史记录匹配结果:', historySuggestions);
+
+      // 3. 获取基础补全建议
       const command = enhancedContext.currentCommand.type === 'command' 
         ? enhancedContext.currentCommand 
         : { name: '', args: [], options: [], redirects: [] };
       console.log('[CompletionService] 处理的命令对象:', command);
 
       console.log('[CompletionService] 正在获取Fish风格补全建议...');
-      const suggestions = await this.fishCompletion.getSuggestions(
+      const syntaxSuggestions = await this.fishCompletion.getSuggestions(
         command,
         {
           sshSession: undefined,
@@ -158,14 +174,19 @@ export class CompletionService {
           }
         }
       );
-      console.log('[CompletionService] 获取到的基础补全建议:', suggestions);
+      console.log('[CompletionService] 获取到的基础补全建议:', syntaxSuggestions);
 
-      // 3. 根据增强上下文调整建议的排序和得分
+      // 4. 合并历史记录和基础补全建议
+      const allSuggestions = [...historySuggestions, ...syntaxSuggestions];
+
+      // 5. 根据增强上下文调整建议的排序和得分
       console.log('[CompletionService] 正在调整建议排序和得分...');
-      const adjustedSuggestions = this.adjustSuggestions(suggestions, enhancedContext);
+      const adjustedSuggestions = await this.adjustSuggestionScores(allSuggestions, input, enhancedContext);
       console.log('[CompletionService] 最终的补全建议:', adjustedSuggestions);
 
-      return adjustedSuggestions;
+      // 6. 去重并限制数量
+      return this.deduplicateAndLimit(adjustedSuggestions, 10);
+
     } catch (error) {
       console.error('[CompletionService] 获取补全建议失败:', error);
       return [];
@@ -173,157 +194,242 @@ export class CompletionService {
   }
 
   /**
-   * 根据增强上下文调整建议
+   * 去重并限制建议数量
    */
-  private adjustSuggestions(
-    suggestions: ICompletionSuggestion[],
-    context: EnhancedCompletionContext
-  ): ICompletionSuggestion[] {
-    console.log('[CompletionService] 开始调整建议得分...');
-    const adjustedSuggestions = suggestions.map(suggestion => {
-      const adjustedScore = this.calculateContextualScore(suggestion, context);
-      console.log('[CompletionService] 建议得分调整:', {
-        suggestion: suggestion.fullCommand,
-        originalScore: suggestion.score,
-        adjustedScore
-      });
-      return {
-        ...suggestion,
-        score: adjustedScore
-      };
-    });
-
-    const sortedSuggestions = adjustedSuggestions.sort((a, b) => b.score - a.score);
-    console.log('[CompletionService] 排序后的建议:', sortedSuggestions);
-    return sortedSuggestions;
+  private deduplicateAndLimit(suggestions: ICompletionSuggestion[], limit: number): ICompletionSuggestion[] {
+    // 使用 Map 来去重，保留得分最高的
+    const uniqueMap = new Map<string, ICompletionSuggestion>();
+    
+    for (const suggestion of suggestions) {
+      const existing = uniqueMap.get(suggestion.fullCommand);
+      if (!existing || existing.score < suggestion.score) {
+        uniqueMap.set(suggestion.fullCommand, suggestion);
+      }
+    }
+    
+    // 转换回数组并按得分排序
+    return Array.from(uniqueMap.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
   }
 
   /**
-   * 计算上下文相关的得分
+   * 调整建议得分
    */
-  private calculateContextualScore(
-    suggestion: ICompletionSuggestion,
+  private async adjustSuggestionScores(
+    suggestions: ICompletionSuggestion[],
+    input: string,
     context: EnhancedCompletionContext
-  ): number {
-    console.log('[CompletionService] 计算上下文得分, 建议:', suggestion.fullCommand);
-
-    // 1. 基于命令链的得分
-    const chainScore = this.getCommandChainScore(suggestion, context);
-    console.log('[CompletionService] 命令链得分:', chainScore);
+  ): Promise<ICompletionSuggestion[]> {
+    console.log('[CompletionService] 开始调整建议得分...');
     
-    // 2. 基于时间模式的得分
-    const timeScore = this.getTimePatternScore(suggestion, context);
-    console.log('[CompletionService] 时间模式得分:', timeScore);
-    
-    // 3. 基于上下文模式的得分
-    const contextScore = this.getContextPatternScore(suggestion, context);
-    console.log('[CompletionService] 上下文模式得分:', contextScore);
+    const adjustedSuggestions = await Promise.all(
+      suggestions.map(async (suggestion) => {
+        // 1. 计算基础得分
+        let finalScore = suggestion.score;
 
-    // 4. 基于环境状态的得分
-    const environmentScore = this.getEnvironmentScore(suggestion, context);
-    console.log('[CompletionService] 环境状态得分:', environmentScore);
+        // 2. 获取命令历史信息
+        const historyInfo = await this.getCommandHistory(suggestion.suggestion);
+        
+        // 3. 计算上下文得分
+        const contextScore = this.calculateContextScore(suggestion, context);
+        
+        // 4. 计算命令链得分
+        const chainScore = this.calculateChainScore(suggestion, context);
+        
+        // 5. 计算时间模式得分
+        const timeScore = this.calculateTimeScore(suggestion, context);
 
-    // 综合得分
-    const finalScore = (
-      suggestion.score * 0.4 +
-      chainScore * 0.3 +
-      timeScore * 0.1 +
-      contextScore * 0.1 +
-      environmentScore * 0.1
+        // 6. 计算环境状态得分
+        const envScore = this.calculateEnvironmentScore(suggestion, context);
+
+        console.log('[CompletionService] 最终得分计算:', {
+          suggestion: suggestion.suggestion,
+          baseScore: suggestion.score,
+          chainScore,
+          timeScore,
+          contextScore,
+          envScore,
+          historyInfo
+        });
+
+        // 7. 根据不同来源调整权重
+        const weights = {
+          base: 0.4,      // 基础得分权重
+          history: 0.2,   // 历史使用权重
+          context: 0.15,  // 上下文相关度权重
+          chain: 0.1,     // 命令链权重
+          time: 0.1,      // 时间模式权重
+          env: 0.05       // 环境状态权重
+        };
+
+        // 8. 计算最终得分
+        finalScore = (
+          suggestion.score * weights.base +
+          (historyInfo.frequency / 10) * weights.history +
+          contextScore * weights.context +
+          chainScore * weights.chain +
+          timeScore * weights.time +
+          envScore * weights.env
+        );
+
+        console.log('[CompletionService] 建议得分调整:', {
+          suggestion: suggestion.suggestion,
+          originalScore: suggestion.score,
+          adjustedScore: finalScore
+        });
+
+        return {
+          ...suggestion,
+          score: finalScore,
+          details: {
+            frequency: historyInfo.frequency,
+            lastUsed: historyInfo.lastUsed,
+            contextScore,
+            chainScore,
+            timeScore,
+            envScore
+          }
+        };
+      })
     );
 
-    console.log('[CompletionService] 最终得分计算:', {
-      suggestion: suggestion.fullCommand,
-      baseScore: suggestion.score,
-      chainScore,
-      timeScore,
-      contextScore,
-      environmentScore,
-      finalScore
-    });
-
-    return finalScore;
+    // 9. 按最终得分排序
+    return adjustedSuggestions.sort((a, b) => b.score - a.score);
   }
 
   /**
-   * 获取命令链得分
+   * 计算上下文得分
    */
-  private getCommandChainScore(
+  private calculateContextScore(
     suggestion: ICompletionSuggestion,
     context: EnhancedCompletionContext
   ): number {
-    const lastCommand = context.commandHistory.recent[context.commandHistory.recent.length - 1]?.command;
-    if (!lastCommand) return 0;
-
-    const chainStats = context.userPatterns.commandChains[lastCommand];
-    if (!chainStats) return 0;
-
-    const nextCommandCount = chainStats.nextCommands[suggestion.fullCommand] || 0;
-    return nextCommandCount / (chainStats.frequency || 1);
-  }
-
-  /**
-   * 获取时间模式得分
-   */
-  private getTimePatternScore(
-    suggestion: ICompletionSuggestion,
-    context: EnhancedCompletionContext
-  ): number {
-    const currentHour = new Date().getHours();
-    const hourPattern = context.userPatterns.timePatterns[currentHour] || {};
-    const commandCount = hourPattern[suggestion.fullCommand] || 0;
-    
-    const totalCommands = Object.values(hourPattern).reduce((sum: number, count: number) => sum + count, 0);
-    return totalCommands > 0 ? commandCount / totalCommands : 0;
-  }
-
-  /**
-   * 获取上下文模式得分
-   */
-  private getContextPatternScore(
-    suggestion: ICompletionSuggestion,
-    context: EnhancedCompletionContext
-  ): number {
-    // TODO: 实现更复杂的上下文识别
-    const currentContext = 'default';
-    const contextPattern = context.userPatterns.contextPatterns[currentContext] || {};
-    const commandCount = contextPattern[suggestion.fullCommand] || 0;
-    
-    const totalCommands = Object.values(contextPattern).reduce((sum: number, count: number) => sum + count, 0);
-    return totalCommands > 0 ? commandCount / totalCommands : 0;
-  }
-
-  /**
-   * 获取环境相关得分
-   */
-  private getEnvironmentScore(
-    suggestion: ICompletionSuggestion,
-    context: EnhancedCompletionContext
-  ): number {
+    // 根据当前目录、最近文件等计算上下文相关度
     let score = 0;
-
-    // 1. Git相关命令在Git仓库中得分更高
-    if (context.environment.isGitRepository && suggestion.fullCommand.startsWith('git')) {
-      score += 0.3;
+    
+    // 检查建议是否与当前目录相关
+    if (context.environment.currentDirectory) {
+      if (suggestion.suggestion.includes(context.environment.currentDirectory)) {
+        score += 0.3;
+      }
     }
 
-    // 2. 文件操作命令与最近修改的文件相关性
-    if (
-      ['cat', 'vim', 'nano', 'less'].some(cmd => suggestion.fullCommand.startsWith(cmd)) &&
-      context.environment.lastModifiedFiles.some((file: string) => suggestion.fullCommand.includes(file))
-    ) {
-      score += 0.3;
-    }
-
-    // 3. 进程相关命令与运行进程的相关性
-    if (
-      ['kill', 'pkill'].some(cmd => suggestion.fullCommand.startsWith(cmd)) &&
-      context.environment.runningProcesses.some((proc: string) => suggestion.fullCommand.includes(proc))
-    ) {
-      score += 0.3;
+    // 检查建议是否与最近文件相关
+    if (context.environment.recentFiles) {
+      const hasRecentFileMatch = context.environment.recentFiles.some(
+        file => suggestion.suggestion.includes(file)
+      );
+      if (hasRecentFileMatch) {
+        score += 0.2;
+      }
     }
 
     return score;
+  }
+
+  /**
+   * 计算命令链得分
+   */
+  private calculateChainScore(
+    suggestion: ICompletionSuggestion,
+    context: EnhancedCompletionContext
+  ): number {
+    // 根据命令使用顺序计算得分
+    let score = 0;
+    
+    if (context.commandHistory.recent && context.commandHistory.recent.length > 0) {
+      const lastCommand = context.commandHistory.recent[0];
+      // 如果建议的命令经常在最后一个命令之后使用，增加得分
+      if (lastCommand && this.areCommandsRelated(lastCommand, suggestion.suggestion)) {
+        score += 0.3;
+      }
+    }
+
+    return score;
+  }
+
+  /**
+   * 计算时间模式得分
+   */
+  private calculateTimeScore(
+    suggestion: ICompletionSuggestion,
+    context: EnhancedCompletionContext
+  ): number {
+    // 根据命令使用的时间模式计算得分
+    let score = 0;
+
+    // 获取当前小时
+    const currentHour = new Date().getHours();
+    
+    // 如果建议在当前时间段经常使用，增加得分
+    if (this.isCommandFrequentInTimeRange(suggestion.suggestion, currentHour)) {
+      score += 0.2;
+    }
+
+    return score;
+  }
+
+  /**
+   * 计算环境状态得分
+   */
+  private calculateEnvironmentScore(
+    suggestion: ICompletionSuggestion,
+    context: EnhancedCompletionContext
+  ): number {
+    // 根据当前环境状态计算得分
+    let score = 0;
+
+    // 检查是否在 Git 仓库中
+    if (context.environment.isGitRepository) {
+      if (suggestion.suggestion.startsWith('git')) {
+        score += 0.2;
+      }
+    }
+
+    // 检查正在运行的进程
+    if (context.environment.runningProcesses) {
+      const hasRelatedProcess = context.environment.runningProcesses.some(
+        process => suggestion.suggestion.includes(process)
+      );
+      if (hasRelatedProcess) {
+        score += 0.2;
+      }
+    }
+
+    return score;
+  }
+
+  /**
+   * 检查两个命令是否相关
+   */
+  private areCommandsRelated(cmd1: CommandExecutionResult | string, cmd2: string): boolean {
+    // 这里可以实现更复杂的命令关联性检查逻辑
+    // 当前简单实现：检查命令是否属于同一类别
+    const getCommandCategory = (cmd: CommandExecutionResult | string) => {
+      const cmdStr = typeof cmd === 'string' ? cmd : cmd.command;
+      if (cmdStr.startsWith('git')) return 'git';
+      if (cmdStr.startsWith('docker')) return 'docker';
+      if (cmdStr.match(/^(ls|cd|pwd|mkdir|rm|cp|mv)/)) return 'file';
+      return 'other';
+    };
+
+    return getCommandCategory(cmd1) === getCommandCategory(cmd2);
+  }
+
+  /**
+   * 检查命令在指定时间范围内是否经常使用
+   */
+  private isCommandFrequentInTimeRange(command: string, hour: number): boolean {
+    // 这里可以实现更复杂的时间模式检查逻辑
+    // 当前简单实现：根据命令类型判断是否适合当前时间
+    if (hour >= 9 && hour <= 18) {
+      // 工作时间
+      return command.match(/^(git|docker|npm|yarn)/) !== null;
+    } else {
+      // 非工作时间
+      return command.match(/^(ls|cd|cat)/) !== null;
+    }
   }
 
   /**
