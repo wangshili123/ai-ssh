@@ -1,6 +1,5 @@
 import { ShellParserTypes } from '../parser/ShellParserTypes';
-import { CompletionContext } from './CompletionContext';
-import { ICompletionSuggestion, CompletionSource } from './CompletionService';
+import { CompletionContext, CompletionSource, CompletionSuggestion } from './types/completion.types';
 import { SSHCompletion } from './SSHCompletion';
 
 /**
@@ -14,7 +13,7 @@ export class FishStyleCompletion {
    * 补全建议缓存
    */
   private suggestionCache: Map<string, {
-    suggestions: ICompletionSuggestion[];
+    suggestions: CompletionSuggestion[];
     timestamp: number;
   }> = new Map();
 
@@ -40,7 +39,7 @@ export class FishStyleCompletion {
   private getCachedSuggestions(
     command: ShellParserTypes.Command,
     context: CompletionContext
-  ): ICompletionSuggestion[] | null {
+  ): CompletionSuggestion[] | null {
     const cacheKey = this.getCacheKey(command, context);
     const cached = this.suggestionCache.get(cacheKey);
     
@@ -63,7 +62,7 @@ export class FishStyleCompletion {
   private cacheSuggestions(
     command: ShellParserTypes.Command,
     context: CompletionContext,
-    suggestions: ICompletionSuggestion[]
+    suggestions: CompletionSuggestion[]
   ): void {
     const cacheKey = this.getCacheKey(command, context);
     this.suggestionCache.set(cacheKey, {
@@ -108,7 +107,7 @@ export class FishStyleCompletion {
   public async getSuggestions(
     command: ShellParserTypes.Command,
     context: CompletionContext
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 开始获取补全建议');
     console.log('[FishStyleCompletion] 命令信息:', {
       name: command.name,
@@ -130,7 +129,7 @@ export class FishStyleCompletion {
       return cachedSuggestions;
     }
 
-    const suggestions: ICompletionSuggestion[] = [];
+    const suggestions: CompletionSuggestion[] = [];
 
     // 2. 基于命令语法的智能补全
     console.log('[FishStyleCompletion] 获取语法补全...');
@@ -174,14 +173,14 @@ export class FishStyleCompletion {
   private async getIntelligentSyntaxCompletions(
     command: ShellParserTypes.Command,
     context: CompletionContext
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 开始获取智能语法补全');
     console.log('[FishStyleCompletion] 命令类型检查:', {
       isGitCommand: this.isGitCommand(command),
       isDockerCommand: this.isDockerCommand(command)
     });
 
-    const suggestions: ICompletionSuggestion[] = [];
+    const suggestions: CompletionSuggestion[] = [];
     
     // 1. 基本命令补全
     const basicSuggestions = await this.getSyntaxCompletions(command, context);
@@ -290,7 +289,7 @@ export class FishStyleCompletion {
    */
   private async getGitCompletions(
     command: ShellParserTypes.Command
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 获取git命令补全');
     const lastArg = command.args[command.args.length - 1] || '';
     
@@ -315,7 +314,7 @@ export class FishStyleCompletion {
    */
   private async getDockerCompletions(
     command: ShellParserTypes.Command
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 获取docker命令补全');
     const lastArg = command.args[command.args.length - 1] || '';
     
@@ -341,9 +340,9 @@ export class FishStyleCompletion {
   private async getSSHCompletions(
     command: ShellParserTypes.Command,
     context: CompletionContext
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 开始获取SSH补全, 命令:', command);
-    const suggestions: ICompletionSuggestion[] = [];
+    const suggestions: CompletionSuggestion[] = [];
     const session = context.sshSession!;
 
     try {
@@ -398,11 +397,11 @@ export class FishStyleCompletion {
   private async getHistoryCompletions(
     command: ShellParserTypes.Command,
     context: CompletionContext
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 开始获取历史补全, 命令:', command);
     console.log('[FishStyleCompletion] 补全上下文:', context);
     
-    const suggestions: ICompletionSuggestion[] = [];
+    const suggestions: CompletionSuggestion[] = [];
     const { recentCommands, commandHistory } = context;
 
     // 1. 从最近命令中查找匹配
@@ -433,7 +432,7 @@ export class FishStyleCompletion {
   private async getSyntaxCompletions(
     command: ShellParserTypes.Command,
     context: CompletionContext
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 开始获取语法补全, 命令:', command);
 
     // 获取命令参数信息
@@ -481,7 +480,7 @@ export class FishStyleCompletion {
   /**
    * 获取ls命令的补全
    */
-  private getLsCompletions(command: ShellParserTypes.Command): ICompletionSuggestion[] {
+  private getLsCompletions(command: ShellParserTypes.Command): CompletionSuggestion[] {
     console.log('[FishStyleCompletion] 获取ls命令补全');
     
     // 如果最后一个参数以-开头，提供选项补全
@@ -519,14 +518,14 @@ export class FishStyleCompletion {
   /**
    * 对补全建议进行排序
    */
-  private rankSuggestions(suggestions: ICompletionSuggestion[]): ICompletionSuggestion[] {
+  private rankSuggestions(suggestions: CompletionSuggestion[]): CompletionSuggestion[] {
     console.log('[FishStyleCompletion] 开始对补全建议排序');
     
     // 1. 按分数降序排序
     const sortedSuggestions = [...suggestions].sort((a, b) => b.score - a.score);
     
     // 2. 去重,保留分数最高的建议
-    const uniqueSuggestions = new Map<string, ICompletionSuggestion>();
+    const uniqueSuggestions = new Map<string, CompletionSuggestion>();
     for (const suggestion of sortedSuggestions) {
       if (!uniqueSuggestions.has(suggestion.suggestion)) {
         uniqueSuggestions.set(suggestion.suggestion, suggestion);
@@ -546,7 +545,7 @@ export class FishStyleCompletion {
    */
   private async getFileNameCompletions(
     partialPath: string
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 获取文件名补全, 路径:', partialPath);
     try {
       // 这里应该根据当前目录和部分路径获取匹配的文件列表
@@ -576,7 +575,7 @@ export class FishStyleCompletion {
    */
   private async getVariableCompletions(
     partialVar: string
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 获取变量补全, 变量:', partialVar);
     try {
       // 常见的环境变量
@@ -602,7 +601,7 @@ export class FishStyleCompletion {
   /**
    * 获取命令名补全
    */
-  private getBasicCommandSuggestions(input: string): ICompletionSuggestion[] {
+  private getBasicCommandSuggestions(input: string): CompletionSuggestion[] {
     console.log('[FishStyleCompletion] 获取命令名补全');
     
     // 基础命令列表
@@ -629,7 +628,7 @@ export class FishStyleCompletion {
   /**
    * 获取默认命令的补全
    */
-  private getDefaultCompletions(command: ShellParserTypes.Command): ICompletionSuggestion[] {
+  private getDefaultCompletions(command: ShellParserTypes.Command): CompletionSuggestion[] {
     console.log('[FishStyleCompletion] 获取默认命令补全');
     const lastArg = command.args[command.args.length - 1] || '';
     
@@ -652,9 +651,9 @@ export class FishStyleCompletion {
   private async getFileTypeCompletions(
     command: ShellParserTypes.Command,
     context: CompletionContext
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 获取文件类型补全');
-    const suggestions: ICompletionSuggestion[] = [];
+    const suggestions: CompletionSuggestion[] = [];
 
     // 常见的文件类型关联
     const fileTypeAssociations: Record<string, string[]> = {
@@ -707,9 +706,9 @@ export class FishStyleCompletion {
   private async getDirectoryPatternCompletions(
     command: ShellParserTypes.Command,
     context: CompletionContext
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 获取目录操作模式补全');
-    const suggestions: ICompletionSuggestion[] = [];
+    const suggestions: CompletionSuggestion[] = [];
 
     // 常见的目录操作命令
     const directoryCommands = ['cd', 'ls', 'mkdir', 'rmdir', 'cp', 'mv'];
@@ -747,9 +746,9 @@ export class FishStyleCompletion {
   private async getErrorCorrectionCompletions(
     command: ShellParserTypes.Command,
     context: CompletionContext
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 获取错误修正补全');
-    const suggestions: ICompletionSuggestion[] = [];
+    const suggestions: CompletionSuggestion[] = [];
 
     // 常见的命令拼写错误修正
     const commonMistakes: Record<string, string> = {

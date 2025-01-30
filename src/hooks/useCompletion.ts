@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { CompletionService, ICompletionSuggestion } from '../services/completion/CompletionService';
+import { CompletionService } from '../services/completion/CompletionService';
+import { CompletionSuggestion } from '../services/completion/types/completion.types';
 
 let completionService: CompletionService;
 
@@ -21,7 +22,7 @@ const initializeServices = async () => {
  */
 export const useCompletion = () => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [suggestions, setSuggestions] = useState<ICompletionSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<CompletionSuggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [pendingCommand, setPendingCommand] = useState('');
   const suggestionTimer = useRef<NodeJS.Timeout>();

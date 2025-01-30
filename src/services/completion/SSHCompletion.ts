@@ -1,4 +1,5 @@
-import { ICompletionSuggestion, CompletionSource } from './CompletionService';
+import { CompletionSource, CompletionSuggestion } from './types/completion.types';
+import { ShellParserTypes } from '../parser/ShellParserTypes';
 
 /**
  * SSH会话接口
@@ -31,7 +32,7 @@ export class SSHCompletion {
     session: SSHSession,
     currentPath: string,
     prefix: string
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[SSHCompletion] 开始获取路径补全:', {
       currentPath,
       prefix
@@ -67,7 +68,7 @@ export class SSHCompletion {
   public async getCommandCompletions(
     session: SSHSession,
     prefix: string
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[SSHCompletion] 开始获取命令补全, 前缀:', prefix);
     try {
       // 使用compgen获取所有可用命令
@@ -98,7 +99,7 @@ export class SSHCompletion {
   public async getEnvCompletions(
     session: SSHSession,
     prefix: string
-  ): Promise<ICompletionSuggestion[]> {
+  ): Promise<CompletionSuggestion[]> {
     console.log('[SSHCompletion] 开始获取环境变量补全, 前缀:', prefix);
     try {
       const vars = await session.getEnvironmentVars();
