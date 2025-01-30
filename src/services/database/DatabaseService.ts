@@ -42,30 +42,27 @@ export class DatabaseService {
    * 创建必要的表和索引
    */
   public async init(): Promise<void> {
-    if (this.initialized) {
-      return;
-    }
-
     try {
-      // 获取数据库路径
-      const dbPath = this.getDatabasePath();
+      console.log('[DatabaseService] 开始初始化数据库...');
+      const dbPath = await this.getDatabasePath();
+      console.log('[DatabaseService] 数据库路径:', dbPath);
       
       // 确保数据库目录存在
       const dbDir = path.dirname(dbPath);
       if (!fs.existsSync(dbDir)) {
         fs.mkdirSync(dbDir, { recursive: true });
       }
-
-      // 连接数据库
-      this.db = new Database(dbPath);
       
-      // 运行迁移
-      await this.runMigrations();
-
+      // 使用 better-sqlite3 初始化数据库
+      this.db = new Database(dbPath, { verbose: console.log });
+      
+      // 创建必要的数据表
+      await this.createTables();
+      
       this.initialized = true;
-      console.log('Database initialized successfully');
+      console.log('[DatabaseService] 数据库初始化完成');
     } catch (error) {
-      console.error('Failed to initialize database:', error);
+      console.error('[DatabaseService] 数据库初始化失败:', error);
       throw error;
     }
   }
@@ -156,6 +153,54 @@ export class DatabaseService {
       this.db.close();
       this.db = null;
       this.initialized = false;
+    }
+  }
+
+  private async createTables(): Promise<void> {
+    console.log('[DatabaseService] 开始创建数据表...');
+    try {
+      if (!this.db) {
+        throw new Error('数据库未初始化');
+      }
+      
+      await this.db.exec(`
+        -- 命令历史表
+        CREATE TABLE IF NOT EXISTS command_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          command TEXT NOT NULL,
+          context TEXT,
+          frequency INTEGER DEFAULT 1,
+          last_used DATETIME DEFAULT CURRENT_TIMESTAMP,
+          success BOOLEAN DEFAULT 1,
+          outputs TEXT
+        );
+
+        -- 命令关系表
+        CREATE TABLE IF NOT EXISTS command_relations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          prev_command_id INTEGER NOT NULL,
+          next_command_id INTEGER NOT NULL,
+          relation_type TEXT NOT NULL,
+          frequency INTEGER DEFAULT 1,
+          last_used DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (prev_command_id) REFERENCES command_history(id),
+          FOREIGN KEY (next_command_id) REFERENCES command_history(id)
+        );
+
+        -- 命令历史索引
+        CREATE INDEX IF NOT EXISTS idx_command_history_command ON command_history(command);
+        CREATE INDEX IF NOT EXISTS idx_command_history_last_used ON command_history(last_used);
+        CREATE INDEX IF NOT EXISTS idx_command_history_frequency ON command_history(frequency);
+
+        -- 命令关系索引
+        CREATE INDEX IF NOT EXISTS idx_command_relations_prev ON command_relations(prev_command_id);
+        CREATE INDEX IF NOT EXISTS idx_command_relations_next ON command_relations(next_command_id);
+        CREATE INDEX IF NOT EXISTS idx_command_relations_type ON command_relations(relation_type);
+      `);
+      console.log('[DatabaseService] 数据表创建完成');
+    } catch (error) {
+      console.error('[DatabaseService] 创建数据表失败:', error);
+      throw error;
     }
   }
 } 
