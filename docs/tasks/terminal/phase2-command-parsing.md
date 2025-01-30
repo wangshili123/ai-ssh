@@ -163,22 +163,192 @@
 
 ### 3.1 多级缓存实现
 - [ ] 实现内存缓存
-  - 补全结果缓存
-  - 命令解析结果缓存
-  - 文件系统缓存
-  - 智能缓存失效策略
+  ```typescript
+  interface CacheEntry<T> {
+    data: T;
+    timestamp: number;
+    hits: number;
+  }
+
+  class MultiLevelCache {
+    private memoryCache: Map<string, CacheEntry<any>>;
+    private readonly CACHE_DURATION = {
+      COMPLETION: 2000,    // 补全结果缓存 2s
+      PARSE: 5000,        // 解析结果缓存 5s
+      FILESYSTEM: 10000,  // 文件系统缓存 10s
+    };
+    
+    // 智能缓存策略
+    private shouldCache(key: string, type: CacheType): boolean {
+      const entry = this.memoryCache.get(key);
+      if (!entry) return true;
+      
+      // 基于访问频率和时间的智能缓存决策
+      const age = Date.now() - entry.timestamp;
+      const frequency = entry.hits / (age / 1000);
+      return frequency > 0.1; // 每秒至少0.1次访问才值得缓存
+    }
+    
+    // 缓存清理策略
+    private cleanup(): void {
+      const now = Date.now();
+      for (const [key, entry] of this.memoryCache.entries()) {
+        const age = now - entry.timestamp;
+        if (age > this.CACHE_DURATION.FILESYSTEM) {
+          this.memoryCache.delete(key);
+        }
+      }
+    }
+  }
+  ```
 
 ### 3.2 查询性能优化
 - [ ] 实现增量更新
-  - 增量解析
-  - 增量补全
-  - 结果复用
+  ```typescript
+  class IncrementalParser {
+    private lastParse: {
+      command: string;
+      tree: Parser.Tree;
+      timestamp: number;
+    };
+    
+    // 增量解析
+    public parse(command: string): Parser.Tree {
+      if (this.canReuseLastParse(command)) {
+        return this.incrementalUpdate(command);
+      }
+      return this.fullParse(command);
+    }
+    
+    // 判断是否可以复用上次解析结果
+    private canReuseLastParse(command: string): boolean {
+      if (!this.lastParse) return false;
+      
+      const timeDiff = Date.now() - this.lastParse.timestamp;
+      const similarity = this.calculateSimilarity(command, this.lastParse.command);
+      return timeDiff < 1000 && similarity > 0.8;
+    }
+  }
+
+  class IncrementalCompletion {
+    private lastCompletion: {
+      input: string;
+      suggestions: CompletionSuggestion[];
+      context: CompletionContext;
+      timestamp: number;
+    };
+    
+    // 增量补全
+    public async getSuggestions(
+      input: string, 
+      context: CompletionContext
+    ): Promise<CompletionSuggestion[]> {
+      if (this.canReuseLastCompletion(input, context)) {
+        return this.incrementalUpdate(input, context);
+      }
+      return this.fullCompletion(input, context);
+    }
+    
+    // 结果复用策略
+    private canReuseLastCompletion(
+      input: string, 
+      context: CompletionContext
+    ): boolean {
+      if (!this.lastCompletion) return false;
+      
+      const timeDiff = Date.now() - this.lastCompletion.timestamp;
+      const inputSimilarity = this.calculateSimilarity(
+        input, 
+        this.lastCompletion.input
+      );
+      const contextSimilarity = this.compareContext(
+        context, 
+        this.lastCompletion.context
+      );
+      
+      return timeDiff < 500 && 
+             inputSimilarity > 0.9 && 
+             contextSimilarity > 0.95;
+    }
+  }
+  ```
 
 ### 3.3 预加载机制
 - [ ] 实现智能预加载
-  - 常用命令预加载
-  - 上下文相关预加载
-  - 用户模式预测
+  ```typescript
+  class PreloadManager {
+    private preloadedCommands: Map<string, CommandData>;
+    private userPatterns: UserPatternAnalyzer;
+    private contextAnalyzer: ContextAnalyzer;
+    
+    // 常用命令预加载
+    public async preloadCommonCommands(): Promise<void> {
+      const commonCommands = await this.userPatterns.getTopCommands(10);
+      for (const cmd of commonCommands) {
+        await this.preloadCommand(cmd);
+      }
+    }
+    
+    // 上下文相关预加载
+    public async preloadContextual(
+      currentContext: CompletionContext
+    ): Promise<void> {
+      const relatedCommands = 
+        await this.contextAnalyzer.getPredictedCommands(currentContext);
+      for (const cmd of relatedCommands) {
+        await this.preloadCommand(cmd);
+      }
+    }
+    
+    // 用户模式预测
+    private async predictNextCommands(
+      currentCommand: string
+    ): Promise<string[]> {
+      const userPattern = await this.userPatterns.analyze(currentCommand);
+      const timeContext = this.getTimeContext();
+      const workspaceContext = await this.getWorkspaceContext();
+      
+      return this.userPatterns.predictNext({
+        pattern: userPattern,
+        time: timeContext,
+        workspace: workspaceContext
+      });
+    }
+    
+    // 智能预加载调度
+    private async schedulePreload(): Promise<void> {
+      // 1. 系统空闲时预加载
+      if (this.isSystemIdle()) {
+        await this.preloadCommonCommands();
+      }
+      
+      // 2. 用户输入停顿时预加载
+      this.onUserInputPause(async () => {
+        const predictions = await this.predictNextCommands(
+          this.getCurrentCommand()
+        );
+        await this.preloadPredicted(predictions);
+      });
+      
+      // 3. 定期更新预加载数据
+      setInterval(async () => {
+        await this.updatePreloadedData();
+      }, 60000); // 每分钟更新
+    }
+  }
+  ```
+
+这些优化实现将显著提升系统性能：
+
+1. 多级缓存可以减少重复计算，特别是对于频繁访问的数据
+2. 增量更新避免了完整重新计算的开销
+3. 智能预加载可以提前准备可能需要的数据
+
+预期性能提升：
+- 补全响应时间从 300ms 降至 50ms 以内
+- 缓存命中率提升至 80% 以上
+- 内存占用控制在 50MB 以内
+- CPU使用率降低 30%
 
 ## 4. 测试与调优（2天）
 
