@@ -255,22 +255,33 @@ export class CompletionService {
 
         // 7. 根据不同来源调整权重
         const weights = {
-          base: 0.4,      // 基础得分权重
-          history: 0.2,   // 历史使用权重
+          base: 0.2,      // 基础得分权重降低
+          history: 0.4,   // 历史使用权重提高
           context: 0.15,  // 上下文相关度权重
-          chain: 0.1,     // 命令链权重
-          time: 0.1,      // 时间模式权重
+          chain: 0.15,    // 命令链权重提高
+          time: 0.05,     // 时间模式权重降低
           env: 0.05       // 环境状态权重
         };
 
         // 8. 计算最终得分
+        const timeSinceLastUse = historyInfo.lastUsed ? 
+          (Date.now() - new Date(historyInfo.lastUsed).getTime()) / (1000 * 60) : // 转换为分钟
+          Number.MAX_VALUE;
+
+        // 最近使用的命令获得额外加分
+        const recentBonus = timeSinceLastUse < 5 ? 0.3 : // 5分钟内使用过
+                           timeSinceLastUse < 30 ? 0.2 : // 30分钟内使用过
+                           timeSinceLastUse < 60 ? 0.1 : // 1小时内使用过
+                           0;
+
         finalScore = (
           suggestion.score * weights.base +
           (historyInfo.frequency / 10) * weights.history +
           contextScore * weights.context +
           chainScore * weights.chain +
           timeScore * weights.time +
-          envScore * weights.env
+          envScore * weights.env +
+          recentBonus  // 加入最近使用的额外得分
         );
 
         console.log('[CompletionService] 建议得分调整:', {
