@@ -32,6 +32,15 @@ export function registerAllHandlers(): void {
     ipcMain.handle('get-app-path', () => {
       return app.getAppPath();
     });
+
+    // 添加获取用户数据路径的处理程序
+    console.log('注册获取用户数据路径的处理程序...');
+    ipcMain.on('get-user-data-path', (event) => {
+      console.log('收到获取用户数据路径请求');
+      const userDataPath = app.getPath('userData');
+      console.log('返回用户数据路径:', userDataPath);
+      event.returnValue = userDataPath;
+    });
     
     console.log('所有 IPC 处理程序注册完成');
   } catch (error) {

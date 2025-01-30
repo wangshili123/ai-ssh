@@ -14,6 +14,8 @@ import { ShellParserTypes } from '../../parser/ShellParserTypes';
 import { ShellParser } from '../../parser/ShellParser';
 import { sshService } from '@/main/services/ssh';
 import { eventBus } from '@/renderer/services/eventBus';
+import { CommandHistory } from '../../database/models/CommandHistory';
+import { DatabaseService } from '../../database/DatabaseService';
 
 /**
  * 增强的上下文分析器
@@ -21,6 +23,8 @@ import { eventBus } from '@/renderer/services/eventBus';
 export class EnhancedContextAnalyzer {
   private static instance: EnhancedContextAnalyzer;
   private shellParser: ShellParser;
+  private commandHistory!: CommandHistory;  // 使用!断言，因为我们会在initializeAsync中初始化它
+  private initialized: boolean = false;
   
   // 记录最近的命令执行结果
   private recentCommands: CommandExecutionResult[] = [];
@@ -41,13 +45,95 @@ export class EnhancedContextAnalyzer {
 
   private constructor() {
     this.shellParser = ShellParser.getInstance();
+    this.initializeAsync();
   }
 
-  public static getInstance(): EnhancedContextAnalyzer {
+  private async initializeAsync() {
+    try {
+      // 先初始化数据库服务
+      await DatabaseService.getInstance().init();
+      
+      // 然后再创建CommandHistory实例
+      this.commandHistory = new CommandHistory();
+      
+      this.initialized = true;
+
+      // 从数据库加载历史记录
+      await this.loadHistoryFromDatabase();
+    } catch (error) {
+      console.error('初始化上下文分析器失败:', error);
+      throw error;
+    }
+  }
+
+  private async loadHistoryFromDatabase() {
+    try {
+      // 获取最近的命令历史
+      const history = await this.commandHistory.search('', 100);
+      
+      // 更新命令统计
+      history.forEach(record => {
+        this.commandStats.set(record.command, {
+          frequency: record.frequency,
+          lastUsed: record.last_used,
+          outputs: record.outputs || []
+        });
+
+        // 添加到最近命令列表
+        this.recentCommands.push({
+          command: record.command,
+          output: record.outputs || [],
+          exitCode: record.success ? 0 : 1,
+          timestamp: record.last_used
+        });
+      });
+
+      console.log('[EnhancedContextAnalyzer] 从数据库加载了历史记录:', {
+        historyCount: history.length,
+        statsCount: this.commandStats.size
+      });
+    } catch (error) {
+      console.error('加载历史记录失败:', error);
+    }
+  }
+
+  private checkInitialized() {
+    if (!this.initialized) {
+      throw new Error('上下文分析器未初始化');
+    }
+  }
+
+  public static async getInstance(): Promise<EnhancedContextAnalyzer> {
     if (!EnhancedContextAnalyzer.instance) {
       EnhancedContextAnalyzer.instance = new EnhancedContextAnalyzer();
+      // 等待初始化完成
+      await EnhancedContextAnalyzer.instance.waitForInitialization();
     }
     return EnhancedContextAnalyzer.instance;
+  }
+
+  private async waitForInitialization(): Promise<void> {
+    if (!this.initialized) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const checkInterval = setInterval(() => {
+            if (this.initialized) {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 100);
+
+          // 设置超时
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            reject(new Error('初始化超时'));
+          }, 10000); // 10秒超时
+        });
+      } catch (error) {
+        console.error('等待初始化完成失败:', error);
+        throw error;
+      }
+    }
   }
 
   /**
@@ -58,23 +144,52 @@ export class EnhancedContextAnalyzer {
     cursorPosition: number,
     sessionState: SessionState
   ): Promise<EnhancedCompletionContext> {
+    this.checkInitialized();
+    
+    console.log('[EnhancedContextAnalyzer] 开始获取补全上下文:', {
+      input,
+      cursorPosition,
+      sessionState
+    });
+
     // 1. 解析当前命令
     const currentCommand = await this.shellParser.parse(input);
+    console.log('[EnhancedContextAnalyzer] 命令解析结果:', currentCommand);
     
     // 2. 获取环境状态
     const environment = await this.getEnvironmentState(sessionState.currentWorkingDirectory);
+    console.log('[EnhancedContextAnalyzer] 环境状态:', environment);
 
-    // 3. 获取最近的命令历史
+    // 3. 实时从数据库获取最近的命令历史
+    const recentHistory = await this.commandHistory.search('', 100);
+    console.log('[EnhancedContextAnalyzer] 从数据库获取的历史记录:', recentHistory);
+
+    // 更新内存中的统计信息
+    recentHistory.forEach(record => {
+      this.commandStats.set(record.command, {
+        frequency: record.frequency,
+        lastUsed: record.last_used,
+        outputs: []  // 初始化为空数组
+      });
+    });
+
+    // 构建命令历史上下文
     const commandHistory = {
-      recent: this.recentCommands.slice(-10),
+      recent: recentHistory.map(record => ({
+        command: record.command,
+        output: [],  // 初始化为空数组
+        exitCode: record.success ? 0 : 1,
+        timestamp: record.last_used
+      })).slice(-10),
       statistics: Array.from(this.commandStats.entries()).map(([cmd, stats]) => ({
         command: cmd,
         frequency: stats.frequency,
         lastUsed: stats.lastUsed,
-        avgExitCode: 0, // 需要实际统计
-        outputs: stats.outputs
+        avgExitCode: 0,
+        outputs: []  // 初始化为空数组
       }))
     };
+    console.log('[EnhancedContextAnalyzer] 命令历史:', commandHistory);
 
     // 4. 获取相关的模式
     const patterns = await this.getRelevantPatterns(
@@ -82,8 +197,9 @@ export class EnhancedContextAnalyzer {
       sessionState.currentWorkingDirectory,
       currentCommand
     );
+    console.log('[EnhancedContextAnalyzer] 相关模式:', patterns);
 
-    return {
+    const context = {
       currentCommand,
       commandHistory,
       environment,
@@ -92,6 +208,9 @@ export class EnhancedContextAnalyzer {
       cursorPosition,
       sessionState
     };
+
+    console.log('[EnhancedContextAnalyzer] 最终生成的上下文:', context);
+    return context;
   }
 
   /**
@@ -125,34 +244,57 @@ export class EnhancedContextAnalyzer {
   /**
    * 更新命令执行结果
    */
-  public updateCommandExecution(result: CommandExecutionResult): void {
-    // 1. 更新最近命令列表
-    this.recentCommands.push(result);
-    if (this.recentCommands.length > 100) {
-      this.recentCommands.shift();
+  public async updateCommandExecution(result: CommandExecutionResult): Promise<void> {
+    this.checkInitialized();
+
+    try {
+      // 1. 更新数据库
+      await this.commandHistory.addOrUpdate(
+        result.command,
+        '',  // context
+        result.exitCode === 0,  // success
+        result.output  // outputs
+      );
+
+      // 2. 更新内存中的状态
+      // 更新最近命令列表
+      this.recentCommands.push(result);
+      if (this.recentCommands.length > 100) {
+        this.recentCommands.shift();
+      }
+
+      // 更新命令统计
+      const stats = this.commandStats.get(result.command) || {
+        frequency: 0,
+        lastUsed: new Date(),
+        outputs: []
+      };
+      stats.frequency++;
+      stats.lastUsed = result.timestamp;
+      stats.outputs = [...stats.outputs, ...result.output].slice(-5);  // 只保留最近5条输出
+      this.commandStats.set(result.command, stats);
+
+      // 3. 更新新增的模式分析
+      await this.updateArgumentPatterns(result);
+      await this.updateDirectoryPatterns(result);
+      await this.updateFileTypePatterns(result);
+      this.updateErrorCorrectionPatterns(result);
+
+      // 4. 更新其他模式
+      this.updateCommandChainPattern(result);
+      this.updateTimePattern(result);
+      await this.updateContextPattern(result);
+
+      console.log('[EnhancedContextAnalyzer] 命令执行结果更新完成:', {
+        command: result.command,
+        exitCode: result.exitCode,
+        timestamp: result.timestamp,
+        outputLength: result.output.length
+      });
+    } catch (error) {
+      console.error('更新命令执行结果失败:', error);
+      throw error;
     }
-
-    // 2. 更新命令统计
-    const stats = this.commandStats.get(result.command) || {
-      frequency: 0,
-      lastUsed: new Date(),
-      outputs: []
-    };
-    stats.frequency++;
-    stats.lastUsed = result.timestamp;
-    stats.outputs = [...stats.outputs, ...result.output].slice(-5);
-    this.commandStats.set(result.command, stats);
-
-    // 3. 更新新增的模式分析
-    this.updateArgumentPatterns(result);
-    this.updateDirectoryPatterns(result);
-    this.updateFileTypePatterns(result);
-    this.updateErrorCorrectionPatterns(result);
-
-    // 4. 更新其他模式
-    this.updateCommandChainPattern(result);
-    this.updateTimePattern(result);
-    this.updateContextPattern(result);
   }
 
   /**
@@ -435,7 +577,8 @@ export class EnhancedContextAnalyzer {
    */
   private async getLastModifiedFiles(cwd: string): Promise<string[]> {
     try {
-      const result = await this.executeCommand('find . -type f -printf "%T@ %p\n" 2>/dev/null | sort -nr | head -n 10 | cut -f2- -d" "');
+      // 使用ls命令按修改时间排序，更快速高效
+      const result = await this.executeCommand('ls -t | head -n 10');
       return result.split('\n')
         .map(file => file.trim())
         .filter(file => file && !file.startsWith('.'));

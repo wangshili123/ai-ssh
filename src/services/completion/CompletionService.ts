@@ -39,16 +39,15 @@ export class CompletionService {
   private commandRelation!: CommandRelation;
   private shellParser: ShellParser;
   private fishCompletion: FishStyleCompletion;
+  private contextAnalyzer!: EnhancedContextAnalyzer;
+  private initialized: boolean = false;
   private lastInput: string = '';
   private lastSuggestions: ICompletionSuggestion[] = [];
   private selectedIndex: number = 0;
-  private initialized: boolean = false;
-  private contextAnalyzer: EnhancedContextAnalyzer;
 
   private constructor() {
     this.shellParser = ShellParser.getInstance();
     this.fishCompletion = FishStyleCompletion.getInstance();
-    this.contextAnalyzer = EnhancedContextAnalyzer.getInstance();
     this.initializeAsync();
   }
 
@@ -57,9 +56,11 @@ export class CompletionService {
       await DatabaseService.getInstance().init();
       this.commandHistory = new CommandHistory();
       this.commandRelation = new CommandRelation();
+      this.contextAnalyzer = await EnhancedContextAnalyzer.getInstance();
       this.initialized = true;
+      console.log('[CompletionService] 初始化完成');
     } catch (error) {
-      console.error('数据库初始化失败:', error);
+      console.error('[CompletionService] 初始化失败:', error);
       throw error;
     }
   }
@@ -70,9 +71,34 @@ export class CompletionService {
   public static async getInstance(): Promise<CompletionService> {
     if (!CompletionService.instance) {
       CompletionService.instance = new CompletionService();
-      await CompletionService.instance.initializeAsync();
+      // 等待初始化完成
+      await CompletionService.instance.waitForInitialization();
     }
     return CompletionService.instance;
+  }
+
+  private async waitForInitialization(): Promise<void> {
+    if (!this.initialized) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const checkInterval = setInterval(() => {
+            if (this.initialized) {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 100);
+
+          // 设置超时
+          setTimeout(() => {
+            clearInterval(checkInterval);
+            reject(new Error('初始化超时'));
+          }, 10000); // 10秒超时
+        });
+      } catch (error) {
+        console.error('等待初始化完成失败:', error);
+        throw error;
+      }
+    }
   }
 
   /**
@@ -80,7 +106,7 @@ export class CompletionService {
    */
   private checkInitialized() {
     if (!this.initialized) {
-      throw new Error('补全服务未初始化');
+      throw new Error('CompletionService not initialized');
     }
   }
 
@@ -92,25 +118,33 @@ export class CompletionService {
     cursorPosition: number,
     sessionState: SessionState
   ): Promise<ICompletionSuggestion[]> {
-    console.log('[CompletionService] 开始获取补全建议, 输入:', input);
+    console.log('[CompletionService] 开始获取补全建议:', {
+      input,
+      cursorPosition,
+      sessionState
+    });
 
     try {
       // 1. 获取增强的上下文
+      console.log('[CompletionService] 正在获取增强上下文...');
       const enhancedContext = await this.contextAnalyzer.getEnhancedContext(
         input,
         cursorPosition,
         sessionState
       );
+      console.log('[CompletionService] 获取到的增强上下文:', enhancedContext);
 
       // 2. 获取基础补全建议
       const command = enhancedContext.currentCommand.type === 'command' 
         ? enhancedContext.currentCommand 
         : { name: '', args: [], options: [], redirects: [] };
+      console.log('[CompletionService] 处理的命令对象:', command);
 
+      console.log('[CompletionService] 正在获取Fish风格补全建议...');
       const suggestions = await this.fishCompletion.getSuggestions(
         command,
         {
-          sshSession: undefined, // 如果需要SSH补全，在这里添加
+          sshSession: undefined,
           recentCommands: enhancedContext.commandHistory.recent.map(r => r.command),
           commandHistory: {
             frequency: enhancedContext.commandHistory.statistics[0]?.frequency || 0,
@@ -124,9 +158,14 @@ export class CompletionService {
           }
         }
       );
+      console.log('[CompletionService] 获取到的基础补全建议:', suggestions);
 
       // 3. 根据增强上下文调整建议的排序和得分
-      return this.adjustSuggestions(suggestions, enhancedContext);
+      console.log('[CompletionService] 正在调整建议排序和得分...');
+      const adjustedSuggestions = this.adjustSuggestions(suggestions, enhancedContext);
+      console.log('[CompletionService] 最终的补全建议:', adjustedSuggestions);
+
+      return adjustedSuggestions;
     } catch (error) {
       console.error('[CompletionService] 获取补全建议失败:', error);
       return [];
@@ -140,13 +179,23 @@ export class CompletionService {
     suggestions: ICompletionSuggestion[],
     context: EnhancedCompletionContext
   ): ICompletionSuggestion[] {
-    return suggestions.map(suggestion => {
+    console.log('[CompletionService] 开始调整建议得分...');
+    const adjustedSuggestions = suggestions.map(suggestion => {
       const adjustedScore = this.calculateContextualScore(suggestion, context);
+      console.log('[CompletionService] 建议得分调整:', {
+        suggestion: suggestion.fullCommand,
+        originalScore: suggestion.score,
+        adjustedScore
+      });
       return {
         ...suggestion,
         score: adjustedScore
       };
-    }).sort((a, b) => b.score - a.score);
+    });
+
+    const sortedSuggestions = adjustedSuggestions.sort((a, b) => b.score - a.score);
+    console.log('[CompletionService] 排序后的建议:', sortedSuggestions);
+    return sortedSuggestions;
   }
 
   /**
@@ -156,28 +205,44 @@ export class CompletionService {
     suggestion: ICompletionSuggestion,
     context: EnhancedCompletionContext
   ): number {
-    let score = suggestion.score;
+    console.log('[CompletionService] 计算上下文得分, 建议:', suggestion.fullCommand);
 
     // 1. 基于命令链的得分
     const chainScore = this.getCommandChainScore(suggestion, context);
+    console.log('[CompletionService] 命令链得分:', chainScore);
     
     // 2. 基于时间模式的得分
     const timeScore = this.getTimePatternScore(suggestion, context);
+    console.log('[CompletionService] 时间模式得分:', timeScore);
     
     // 3. 基于上下文模式的得分
     const contextScore = this.getContextPatternScore(suggestion, context);
+    console.log('[CompletionService] 上下文模式得分:', contextScore);
 
     // 4. 基于环境状态的得分
     const environmentScore = this.getEnvironmentScore(suggestion, context);
+    console.log('[CompletionService] 环境状态得分:', environmentScore);
 
     // 综合得分
-    return (
-      score * 0.4 +
+    const finalScore = (
+      suggestion.score * 0.4 +
       chainScore * 0.3 +
       timeScore * 0.1 +
       contextScore * 0.1 +
       environmentScore * 0.1
     );
+
+    console.log('[CompletionService] 最终得分计算:', {
+      suggestion: suggestion.fullCommand,
+      baseScore: suggestion.score,
+      chainScore,
+      timeScore,
+      contextScore,
+      environmentScore,
+      finalScore
+    });
+
+    return finalScore;
   }
 
   /**
@@ -442,13 +507,29 @@ export class CompletionService {
    * 接受当前的补全建议
    */
   public acceptSuggestion(): string | null {
-    if (this.lastSuggestions.length > this.selectedIndex) {
-      const suggestion = this.lastSuggestions[this.selectedIndex].fullCommand;
-      this.lastSuggestions = [];
-      this.lastInput = suggestion;
-      return suggestion;
+    console.log('[CompletionService] 接受补全建议, 当前索引:', this.selectedIndex);
+    console.log('[CompletionService] 当前建议列表:', this.lastSuggestions);
+
+    if (!this.lastSuggestions || this.lastSuggestions.length === 0) {
+      console.log('[CompletionService] 没有可用的建议');
+      return null;
     }
-    return null;
+
+    if (this.selectedIndex < 0 || this.selectedIndex >= this.lastSuggestions.length) {
+      console.log('[CompletionService] 选中索引超出范围');
+      this.selectedIndex = 0;
+    }
+
+    const suggestion = this.lastSuggestions[this.selectedIndex];
+    if (!suggestion) {
+      console.log('[CompletionService] 未找到选中的建议');
+      return null;
+    }
+
+    console.log('[CompletionService] 接受建议:', suggestion.fullCommand);
+    this.lastSuggestions = [];
+    this.lastInput = suggestion.fullCommand;
+    return suggestion.fullCommand;
   }
 
   /**

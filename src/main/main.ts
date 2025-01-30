@@ -72,11 +72,6 @@ function createWindow(): BrowserWindow {
   return mainWindow;
 }
 
-// 添加IPC处理程序
-ipcMain.on('get-user-data-path', (event) => {
-  event.returnValue = app.getPath('userData');
-});
-
 async function main() {
   try {
     // 等待应用程序就绪

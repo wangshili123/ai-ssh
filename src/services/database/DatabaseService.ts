@@ -2,6 +2,8 @@ import Database from 'better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ipcRenderer } from 'electron';
+import * as migration001 from '../../services/database/migrations/001_initial_schema';
+import * as migration002 from '../../services/database/migrations/002_add_outputs_column';
 
 /**
  * 数据库服务
@@ -10,36 +12,27 @@ import { ipcRenderer } from 'electron';
 export class DatabaseService {
   private static instance: DatabaseService;
   private db: Database.Database | null = null;
-  private readonly dbPath: string;
-  private readonly dbDir: string;
-  private initialized = false;
+  private initialized: boolean = false;
 
-  private constructor() {
-    try {
-      console.log('DatabaseService constructor called');
-      // 从主进程获取用户数据目录
-      console.log('Getting user data path from main process...');
-      const userDataPath = ipcRenderer.sendSync('get-user-data-path');
-      console.log('Received user data path:', userDataPath);
-      
-      this.dbDir = path.join(userDataPath, 'db');
-      this.dbPath = path.join(this.dbDir, 'command-history.db');
-      console.log('Database paths initialized:', { dbDir: this.dbDir, dbPath: this.dbPath });
-    } catch (error) {
-      console.error('Error in DatabaseService constructor:', error);
-      throw error;
+  private migrations = {
+    migration001: {
+      up: migration001.up,
+      down: migration001.down
+    },
+    migration002: {
+      up: migration002.up,
+      down: migration002.down
     }
-  }
+  };
+
+  private constructor() {}
 
   /**
    * 获取数据库服务单例
    */
   public static getInstance(): DatabaseService {
-    console.log('DatabaseService.getInstance called');
     if (!DatabaseService.instance) {
-      console.log('Creating new DatabaseService instance');
       DatabaseService.instance = new DatabaseService();
-      console.log('DatabaseService instance created');
     }
     return DatabaseService.instance;
   }
@@ -49,57 +42,98 @@ export class DatabaseService {
    * 创建必要的表和索引
    */
   public async init(): Promise<void> {
-    console.log('DatabaseService.init called');
-    
+    if (this.initialized) {
+      return;
+    }
+
     try {
+      // 获取数据库路径
+      const dbPath = this.getDatabasePath();
+      
       // 确保数据库目录存在
-      if (!fs.existsSync(this.dbDir)) {
-        console.log('Creating database directory:', this.dbDir);
-        fs.mkdirSync(this.dbDir, { recursive: true });
+      const dbDir = path.dirname(dbPath);
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
       }
 
-      console.log('Opening database at:', this.dbPath);
-      this.db = new Database(this.dbPath);
-      console.log('Database opened successfully');
-
-      if (!this.db) {
-        throw new Error('Failed to create database instance');
-      }
-
-      // 创建命令历史表
-      console.log('Creating command_history table');
-      this.db.exec(`
-        CREATE TABLE IF NOT EXISTS command_history (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          command TEXT UNIQUE NOT NULL,
-          context TEXT,
-          frequency INTEGER DEFAULT 1,
-          last_used DATETIME DEFAULT CURRENT_TIMESTAMP,
-          success INTEGER DEFAULT 1
-        )
-      `);
-      console.log('command_history table created successfully');
-
-      // 创建命令关系表
-      console.log('Creating command_relation table');
-      this.db.exec(`
-        CREATE TABLE IF NOT EXISTS command_relation (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          command1_id INTEGER NOT NULL,
-          command2_id INTEGER NOT NULL,
-          relation_type TEXT NOT NULL,
-          frequency INTEGER DEFAULT 1,
-          FOREIGN KEY (command1_id) REFERENCES command_history(id),
-          FOREIGN KEY (command2_id) REFERENCES command_history(id),
-          UNIQUE(command1_id, command2_id, relation_type)
-        )
-      `);
-      console.log('command_relation table created successfully');
+      // 连接数据库
+      this.db = new Database(dbPath);
+      
+      // 运行迁移
+      await this.runMigrations();
 
       this.initialized = true;
-      console.log('Database initialization completed successfully');
+      console.log('Database initialized successfully');
     } catch (error) {
-      console.error('Error in database initialization:', error);
+      console.error('Failed to initialize database:', error);
+      throw error;
+    }
+  }
+
+  private getDatabasePath(): string {
+    try {
+      const userDataPath = ipcRenderer.sendSync('get-user-data-path');
+      return path.join(userDataPath, 'ai-ssh.db');
+    } catch (error) {
+      console.error('Failed to get database path:', error);
+      throw error;
+    }
+  }
+
+  private async runMigrations(): Promise<void> {
+    if (!this.db) {
+      throw new Error('Database not connected');
+    }
+
+    try {
+      // 创建迁移表
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS migrations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // 获取已执行的迁移
+      const executedMigrations = this.db.prepare('SELECT name FROM migrations').all() as { name: string }[];
+      const executedNames = new Set(executedMigrations.map(m => m.name));
+
+      // 迁移文件名映射
+      const migrationNames = {
+        migration001: '001_initial_schema',
+        migration002: '002_add_outputs_column'
+      };
+
+      // 执行未运行的迁移
+      for (const [key, migration] of Object.entries(this.migrations)) {
+        const migrationName = migrationNames[key as keyof typeof migrationNames];
+        if (!executedNames.has(migrationName)) {
+          console.log(`Running migration: ${migrationName}`);
+          
+          // 开始事务
+          this.db.exec('BEGIN TRANSACTION;');
+          
+          try {
+            // 执行迁移
+            await migration.up(this.db);
+            
+            // 记录迁移
+            this.db.prepare('INSERT INTO migrations (name) VALUES (?)').run(migrationName);
+            
+            // 提交事务
+            this.db.exec('COMMIT;');
+            console.log(`Migration completed: ${migrationName}`);
+          } catch (error) {
+            // 回滚事务
+            this.db.exec('ROLLBACK;');
+            console.error(`Migration failed: ${migrationName}`, error);
+            throw error;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to run migrations:', error);
       throw error;
     }
   }
@@ -121,6 +155,7 @@ export class DatabaseService {
     if (this.db) {
       this.db.close();
       this.db = null;
+      this.initialized = false;
     }
   }
 } 

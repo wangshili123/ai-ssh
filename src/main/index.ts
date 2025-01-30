@@ -5,14 +5,6 @@ import { registerAllHandlers } from './ipc';
 
 let mainWindow: BrowserWindow | null = null;
 
-// 添加 IPC 处理程序
-ipcMain.on('get-user-data-path', (event) => {
-  console.log('Received get-user-data-path request');
-  const userDataPath = app.getPath('userData');
-  console.log('Returning user data path:', userDataPath);
-  event.returnValue = userDataPath;
-});
-
 // 注册 get-app-path 处理程序
 ipcMain.handle('get-app-path', () => {
   console.log('Received get-app-path request');

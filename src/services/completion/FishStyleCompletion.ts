@@ -10,6 +10,19 @@ export class FishStyleCompletion {
   private static instance: FishStyleCompletion;
   private sshCompletion: SSHCompletion;
 
+  /**
+   * 补全建议缓存
+   */
+  private suggestionCache: Map<string, {
+    suggestions: ICompletionSuggestion[];
+    timestamp: number;
+  }> = new Map();
+
+  /**
+   * 缓存过期时间(毫秒)
+   */
+  private readonly CACHE_EXPIRY = 5000;
+
   private constructor() {
     this.sshCompletion = SSHCompletion.getInstance();
   }
@@ -22,20 +35,110 @@ export class FishStyleCompletion {
   }
 
   /**
+   * 从缓存中获取建议
+   */
+  private getCachedSuggestions(
+    command: ShellParserTypes.Command,
+    context: CompletionContext
+  ): ICompletionSuggestion[] | null {
+    const cacheKey = this.getCacheKey(command, context);
+    const cached = this.suggestionCache.get(cacheKey);
+    
+    if (!cached) {
+      return null;
+    }
+
+    // 检查缓存是否过期
+    if (Date.now() - cached.timestamp > this.CACHE_EXPIRY) {
+      this.suggestionCache.delete(cacheKey);
+      return null;
+    }
+
+    return cached.suggestions;
+  }
+
+  /**
+   * 将建议存入缓存
+   */
+  private cacheSuggestions(
+    command: ShellParserTypes.Command,
+    context: CompletionContext,
+    suggestions: ICompletionSuggestion[]
+  ): void {
+    const cacheKey = this.getCacheKey(command, context);
+    this.suggestionCache.set(cacheKey, {
+      suggestions,
+      timestamp: Date.now()
+    });
+
+    // 清理过期缓存
+    this.cleanExpiredCache();
+  }
+
+  /**
+   * 生成缓存键
+   */
+  private getCacheKey(
+    command: ShellParserTypes.Command,
+    context: CompletionContext
+  ): string {
+    return JSON.stringify({
+      name: command.name,
+      args: command.args,
+      options: command.options,
+      hasSSH: !!context.sshSession
+    });
+  }
+
+  /**
+   * 清理过期缓存
+   */
+  private cleanExpiredCache(): void {
+    const now = Date.now();
+    for (const [key, value] of this.suggestionCache.entries()) {
+      if (now - value.timestamp > this.CACHE_EXPIRY) {
+        this.suggestionCache.delete(key);
+      }
+    }
+  }
+
+  /**
    * 获取补全建议
    */
   public async getSuggestions(
     command: ShellParserTypes.Command,
     context: CompletionContext
   ): Promise<ICompletionSuggestion[]> {
-    console.log('[FishStyleCompletion] 开始获取补全建议, 命令:', command);
+    console.log('[FishStyleCompletion] 开始获取补全建议');
+    console.log('[FishStyleCompletion] 命令信息:', {
+      name: command.name,
+      args: command.args
+    });
+    console.log('[FishStyleCompletion] 上下文信息:', {
+      hasSSHSession: !!context.sshSession,
+      recentCommandsCount: context.recentCommands.length,
+      commandHistoryInfo: {
+        frequency: context.commandHistory.frequency,
+        lastUsed: context.commandHistory.lastUsed
+      }
+    });
+
+    // 1. 尝试从缓存获取
+    const cachedSuggestions = this.getCachedSuggestions(command, context);
+    if (cachedSuggestions) {
+      console.log('[FishStyleCompletion] 使用缓存的建议');
+      return cachedSuggestions;
+    }
+
     const suggestions: ICompletionSuggestion[] = [];
 
-    // 1. 基于命令语法的智能补全
-    const syntaxSuggestions = await this.getIntelligentSyntaxCompletions(command);
+    // 2. 基于命令语法的智能补全
+    console.log('[FishStyleCompletion] 获取语法补全...');
+    const syntaxSuggestions = await this.getIntelligentSyntaxCompletions(command, context);
+    console.log('[FishStyleCompletion] 语法补全结果:', syntaxSuggestions);
     suggestions.push(...syntaxSuggestions);
 
-    // 2. 基于SSH会话的补全
+    // 3. 基于SSH会话的补全
     if (context.sshSession) {
       console.log('[FishStyleCompletion] 获取SSH补全建议...');
       const sshSuggestions = await this.getSSHCompletions(command, context);
@@ -43,14 +146,25 @@ export class FishStyleCompletion {
       suggestions.push(...sshSuggestions);
     }
 
-    // 3. 基于命令历史的补全
+    // 4. 基于命令历史的补全
     console.log('[FishStyleCompletion] 获取历史补全建议...');
     const historySuggestions = await this.getHistoryCompletions(command, context);
     console.log('[FishStyleCompletion] 历史补全建议:', historySuggestions);
     suggestions.push(...historySuggestions);
 
+    // 5. 对所有建议进行排序和去重
+    console.log('[FishStyleCompletion] 原始建议数量:', suggestions.length);
     const rankedSuggestions = this.rankSuggestions(suggestions);
-    console.log('[FishStyleCompletion] 最终排序后的建议:', rankedSuggestions);
+    console.log('[FishStyleCompletion] 排序后建议数量:', rankedSuggestions.length);
+    console.log('[FishStyleCompletion] 最终建议列表:', rankedSuggestions.map(s => ({
+      suggestion: s.suggestion,
+      score: s.score,
+      source: s.source
+    })));
+
+    // 6. 缓存结果
+    this.cacheSuggestions(command, context, rankedSuggestions);
+
     return rankedSuggestions;
   }
 
@@ -58,34 +172,72 @@ export class FishStyleCompletion {
    * 获取基于语法的智能补全
    */
   private async getIntelligentSyntaxCompletions(
-    command: ShellParserTypes.Command
+    command: ShellParserTypes.Command,
+    context: CompletionContext
   ): Promise<ICompletionSuggestion[]> {
+    console.log('[FishStyleCompletion] 开始获取智能语法补全');
+    console.log('[FishStyleCompletion] 命令类型检查:', {
+      isGitCommand: this.isGitCommand(command),
+      isDockerCommand: this.isDockerCommand(command)
+    });
+
     const suggestions: ICompletionSuggestion[] = [];
     
     // 1. 基本命令补全
-    const basicSuggestions = await this.getSyntaxCompletions(command);
+    const basicSuggestions = await this.getSyntaxCompletions(command, context);
+    console.log('[FishStyleCompletion] 基本语法补全结果:', basicSuggestions);
     suggestions.push(...basicSuggestions);
 
     // 2. 根据命令类型提供特定补全
     if (this.isGitCommand(command)) {
-      suggestions.push(...await this.getGitCompletions(command));
+      const gitSuggestions = await this.getGitCompletions(command);
+      console.log('[FishStyleCompletion] Git命令补全结果:', gitSuggestions);
+      suggestions.push(...gitSuggestions);
     } else if (this.isDockerCommand(command)) {
-      suggestions.push(...await this.getDockerCompletions(command));
+      const dockerSuggestions = await this.getDockerCompletions(command);
+      console.log('[FishStyleCompletion] Docker命令补全结果:', dockerSuggestions);
+      suggestions.push(...dockerSuggestions);
     }
 
-    // 3. 根据参数位置提供特定补全
+    // 3. 基于文件类型的补全
+    const fileTypeSuggestions = await this.getFileTypeCompletions(command, context);
+    console.log('[FishStyleCompletion] 文件类型补全结果:', fileTypeSuggestions);
+    suggestions.push(...fileTypeSuggestions);
+
+    // 4. 基于目录操作模式的补全
+    const directoryPatternSuggestions = await this.getDirectoryPatternCompletions(command, context);
+    console.log('[FishStyleCompletion] 目录操作模式补全结果:', directoryPatternSuggestions);
+    suggestions.push(...directoryPatternSuggestions);
+
+    // 5. 基于错误修正的补全
+    const errorCorrectionSuggestions = await this.getErrorCorrectionCompletions(command, context);
+    console.log('[FishStyleCompletion] 错误修正补全结果:', errorCorrectionSuggestions);
+    suggestions.push(...errorCorrectionSuggestions);
+
+    // 6. 根据参数位置提供特定补全
     const lastArg = command.args[command.args.length - 1] || '';
+    console.log('[FishStyleCompletion] 参数分析:', {
+      lastArg,
+      isInQuotes: this.isInQuotes(lastArg),
+      isVariableExpansion: this.isVariableExpansion(lastArg),
+      isRedirectionTarget: this.isRedirectionTarget(command, command.args.length - 1)
+    });
+
     if (this.isInQuotes(lastArg)) {
-      // 在引号内提供文件名补全
-      suggestions.push(...await this.getFileNameCompletions(this.stripQuotes(lastArg)));
+      const fileNameSuggestions = await this.getFileNameCompletions(this.stripQuotes(lastArg));
+      console.log('[FishStyleCompletion] 文件名补全结果:', fileNameSuggestions);
+      suggestions.push(...fileNameSuggestions);
     } else if (this.isVariableExpansion(lastArg)) {
-      // 在变量展开中提供变量名补全
-      suggestions.push(...await this.getVariableCompletions(lastArg));
+      const varSuggestions = await this.getVariableCompletions(lastArg);
+      console.log('[FishStyleCompletion] 变量补全结果:', varSuggestions);
+      suggestions.push(...varSuggestions);
     } else if (this.isRedirectionTarget(command, command.args.length - 1)) {
-      // 在重定向后提供文件名补全
-      suggestions.push(...await this.getFileNameCompletions(lastArg));
+      const redirectionSuggestions = await this.getFileNameCompletions(lastArg);
+      console.log('[FishStyleCompletion] 重定向补全结果:', redirectionSuggestions);
+      suggestions.push(...redirectionSuggestions);
     }
 
+    console.log('[FishStyleCompletion] 智能语法补全完成, 总建议数:', suggestions.length);
     return suggestions;
   }
 
@@ -139,21 +291,23 @@ export class FishStyleCompletion {
   private async getGitCompletions(
     command: ShellParserTypes.Command
   ): Promise<ICompletionSuggestion[]> {
-    const suggestions: ICompletionSuggestion[] = [];
-    const subCommand = command.args[0];
+    console.log('[FishStyleCompletion] 获取git命令补全');
+    const lastArg = command.args[command.args.length - 1] || '';
+    
+    const gitCommands = [
+      'status', 'add', 'commit', 'push', 'pull',
+      'checkout', 'branch', 'merge', 'rebase',
+      'log', 'fetch', 'clone', 'stash'
+    ];
 
-    if (!subCommand) {
-      // 提供 git 子命令补全
-      return this.getGitSubcommands();
-    } else if (subCommand === 'checkout') {
-      // 提供分支名补全
-      return this.getGitBranches();
-    } else if (subCommand === 'add') {
-      // 提供未暂存文件补全
-      return this.getGitUnstagedFiles();
-    }
-
-    return suggestions;
+    return gitCommands
+      .filter(cmd => cmd.startsWith(lastArg))
+      .map(cmd => ({
+        fullCommand: `git ${cmd}`,
+        suggestion: cmd.slice(lastArg.length),
+        source: CompletionSource.LOCAL,
+        score: 0.9
+      }));
   }
 
   /**
@@ -162,21 +316,23 @@ export class FishStyleCompletion {
   private async getDockerCompletions(
     command: ShellParserTypes.Command
   ): Promise<ICompletionSuggestion[]> {
-    const suggestions: ICompletionSuggestion[] = [];
-    const subCommand = command.args[0];
+    console.log('[FishStyleCompletion] 获取docker命令补全');
+    const lastArg = command.args[command.args.length - 1] || '';
+    
+    const dockerCommands = [
+      'ps', 'images', 'run', 'build', 'stop',
+      'rm', 'rmi', 'exec', 'logs', 'pull',
+      'push', 'compose', 'network', 'volume'
+    ];
 
-    if (!subCommand) {
-      // 提供 docker 子命令补全
-      return this.getDockerSubcommands();
-    } else if (subCommand === 'exec' || subCommand === 'logs') {
-      // 提供容器ID/名称补全
-      return this.getDockerContainers();
-    } else if (subCommand === 'run' || subCommand === 'pull') {
-      // 提供镜像名补全
-      return this.getDockerImages();
-    }
-
-    return suggestions;
+    return dockerCommands
+      .filter(cmd => cmd.startsWith(lastArg))
+      .map(cmd => ({
+        fullCommand: `docker ${cmd}`,
+        suggestion: cmd.slice(lastArg.length),
+        source: CompletionSource.LOCAL,
+        score: 0.9
+      }));
   }
 
   /**
@@ -272,83 +428,60 @@ export class FishStyleCompletion {
   }
 
   /**
-   * 获取基于语法的补全
+   * 获取语法补全
    */
   private async getSyntaxCompletions(
-    command: ShellParserTypes.Command
+    command: ShellParserTypes.Command,
+    context: CompletionContext
   ): Promise<ICompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 开始获取语法补全, 命令:', command);
-    const suggestions: ICompletionSuggestion[] = [];
 
-    // 常见命令列表
-    const commonCommands = [
-      'ls', 'll', 'cd', 'pwd', 'mkdir', 'rm', 'cp', 'mv',
-      'cat', 'less', 'more', 'head', 'tail',
-      'grep', 'find', 'sed', 'awk',
-      'ps', 'top', 'kill', 'pkill',
-      'git', 'npm', 'node', 'python',
-      'curl', 'wget', 'ssh', 'scp',
-      'vim', 'nano', 'chmod', 'chown',
-      'systemctl', 'service', 'journalctl',
-      'docker', 'kubectl', 'helm'
-    ];
-
-    // 常见命令的参数提示
-    const commonArgs: Record<string, string[]> = {
-      ls: ['-l', '-a', '-h', '--color', '-R', '-t', '-S', '-r'],
-      grep: ['-i', '-r', '-n', '-v', '-l', '-c', '-w', '-x', '-E'],
-      git: ['status', 'add', 'commit', 'push', 'pull', 'checkout', 'branch', 'merge', 'rebase', 'log', 'fetch', 'clone'],
-      npm: ['install', 'start', 'run', 'test', 'build', 'update', 'publish', 'link', 'uninstall'],
-      docker: ['ps', 'images', 'run', 'build', 'stop', 'rm', 'rmi', 'exec', 'logs', 'pull', 'push'],
-      kubectl: ['get', 'describe', 'create', 'delete', 'apply', 'logs', 'exec', 'port-forward', 'rollout'],
-      systemctl: ['start', 'stop', 'restart', 'status', 'enable', 'disable', 'reload'],
-      find: ['-name', '-type', '-size', '-mtime', '-exec', '-print', '-delete'],
-      ps: ['-ef', '-aux', '-u', '-p', '--sort'],
-      curl: ['-X', '-H', '-d', '-i', '-v', '-L', '-o', '--data'],
-      mkdir: ['-p', '-v', '-m'],
-      rm: ['-r', '-f', '-i', '-v'],
-      cp: ['-r', '-f', '-i', '-v', '-p'],
-      chmod: ['-R', '-v', '+x', '-x', 'u+x', 'g+x', 'o+x']
-    };
-
-    // 1. 如果命令名不完整，提供命令名补全
-    if (!command.args.length) {
+    // 如果命令名为空，提供命令名补全
+    if (!command.name) {
       console.log('[FishStyleCompletion] 提供命令名补全');
-      const matchingCommands = commonCommands
-        .filter(cmd => cmd.startsWith(command.name))
-        .map(cmd => ({
-          fullCommand: cmd,
-          suggestion: cmd.slice(command.name.length),
-          source: CompletionSource.LOCAL,
-          score: 0.8
-        }));
-      suggestions.push(...matchingCommands);
+      return this.getCommandNameCompletions(command, context);
     }
 
-    // 2. 如果命令存在且有参数列表，提供参数补全
-    const args = commonArgs[command.name] || [];
-    const lastArg = command.args[command.args.length - 1] || '';
-    console.log('[FishStyleCompletion] 命令参数信息:', {
+    // 获取命令参数信息
+    const commandInfo = {
       commandName: command.name,
-      availableArgs: args,
-      lastArg
-    });
+      availableArgs: command.args,
+      lastArg: command.args[command.args.length - 1] || ''
+    };
+    console.log('[FishStyleCompletion] 命令参数信息:', commandInfo);
 
-    // 添加命令参数建议
-    if (command.name in commonArgs) {
-      const argSuggestions = args
-        .filter(arg => arg.startsWith(lastArg))
-        .map(arg => ({
-          fullCommand: `${command.name} ${arg}`,
-          suggestion: arg.slice(lastArg.length),
-          source: CompletionSource.LOCAL,
-          score: 0.7
-        }));
-      suggestions.push(...argSuggestions);
+    // 处理特定命令的补全
+    switch (command.name) {
+      case 'ls':
+        return this.getLsCompletions(command);
+      case 'git':
+        return this.getGitCompletions(command);
+      case 'docker':
+        return this.getDockerCompletions(command);
+      default:
+        return this.getDefaultCompletions(command);
+    }
+  }
+
+  /**
+   * 获取ls命令的补全
+   */
+  private getLsCompletions(command: ShellParserTypes.Command): ICompletionSuggestion[] {
+    console.log('[FishStyleCompletion] 获取ls命令补全');
+    
+    // 如果最后一个参数以-开头，提供选项补全
+    const lastArg = command.args[command.args.length - 1] || '';
+    if (lastArg.startsWith('-')) {
+      return [
+        { fullCommand: 'ls -l', suggestion: '-l', source: CompletionSource.LOCAL, score: 0.9 },
+        { fullCommand: 'ls -la', suggestion: '-la', source: CompletionSource.LOCAL, score: 0.9 },
+        { fullCommand: 'ls -lh', suggestion: '-lh', source: CompletionSource.LOCAL, score: 0.9 },
+        { fullCommand: 'ls -lt', suggestion: '-lt', source: CompletionSource.LOCAL, score: 0.9 },
+        { fullCommand: 'ls -ltr', suggestion: '-ltr', source: CompletionSource.LOCAL, score: 0.9 }
+      ];
     }
 
-    console.log('[FishStyleCompletion] 语法补全结果:', suggestions);
-    return suggestions;
+    return [];
   }
 
   /**
@@ -371,121 +504,267 @@ export class FishStyleCompletion {
   /**
    * 对补全建议进行排序
    */
-  private rankSuggestions(
-    suggestions: ICompletionSuggestion[]
-  ): ICompletionSuggestion[] {
-    return suggestions
-      .sort((a, b) => {
-        // 1. 首先按得分排序
-        if (b.score !== a.score) {
-          return b.score - a.score;
-        }
-        
-        // 2. 然后按建议长度排序（优先显示较短的建议）
-        return a.suggestion.length - b.suggestion.length;
-      })
-      .slice(0, 5); // 最多返回5个建议
+  private rankSuggestions(suggestions: ICompletionSuggestion[]): ICompletionSuggestion[] {
+    console.log('[FishStyleCompletion] 开始对补全建议排序');
+    
+    // 1. 按分数降序排序
+    const sortedSuggestions = [...suggestions].sort((a, b) => b.score - a.score);
+    
+    // 2. 去重,保留分数最高的建议
+    const uniqueSuggestions = new Map<string, ICompletionSuggestion>();
+    for (const suggestion of sortedSuggestions) {
+      if (!uniqueSuggestions.has(suggestion.suggestion)) {
+        uniqueSuggestions.set(suggestion.suggestion, suggestion);
+      }
+    }
+    
+    // 3. 限制返回数量
+    const maxSuggestions = 10;
+    const result = Array.from(uniqueSuggestions.values()).slice(0, maxSuggestions);
+    
+    console.log('[FishStyleCompletion] 排序后的建议:', result);
+    return result;
   }
 
   /**
    * 获取文件名补全
    */
-  private async getFileNameCompletions(prefix: string): Promise<ICompletionSuggestion[]> {
-    // 这里应该通过 SSH 会话或本地文件系统获取文件列表
-    // 暂时返回空数组，等待实现
-    return [];
+  private async getFileNameCompletions(
+    partialPath: string
+  ): Promise<ICompletionSuggestion[]> {
+    console.log('[FishStyleCompletion] 获取文件名补全, 路径:', partialPath);
+    try {
+      // 这里应该根据当前目录和部分路径获取匹配的文件列表
+      // 暂时返回一些示例建议
+      return [
+        {
+          fullCommand: partialPath + 'file1.txt',
+          suggestion: 'file1.txt',
+          source: CompletionSource.LOCAL,
+          score: 0.7
+        },
+        {
+          fullCommand: partialPath + 'file2.txt',
+          suggestion: 'file2.txt',
+          source: CompletionSource.LOCAL,
+          score: 0.7
+        }
+      ];
+    } catch (error) {
+      console.error('[FishStyleCompletion] 获取文件名补全失败:', error);
+      return [];
+    }
   }
 
   /**
-   * 获取变量名补全
+   * 获取变量补全
    */
-  private async getVariableCompletions(prefix: string): Promise<ICompletionSuggestion[]> {
-    // 这里应该从环境变量或上下文中获取变量列表
-    // 暂时返回一些常见的环境变量
-    const commonVars = [
-      'HOME', 'PATH', 'USER', 'SHELL', 'PWD', 'LANG',
-      'TERM', 'DISPLAY', 'EDITOR', 'PAGER'
+  private async getVariableCompletions(
+    partialVar: string
+  ): Promise<ICompletionSuggestion[]> {
+    console.log('[FishStyleCompletion] 获取变量补全, 变量:', partialVar);
+    try {
+      // 常见的环境变量
+      const commonVars = [
+        'HOME', 'PATH', 'USER', 'SHELL', 'PWD', 'LANG',
+        'TERM', 'DISPLAY', 'EDITOR', 'PAGER', 'TMPDIR'
+      ];
+
+      return commonVars
+        .filter(v => v.toLowerCase().startsWith(partialVar.toLowerCase()))
+        .map(v => ({
+          fullCommand: '$' + v,
+          suggestion: v.slice(partialVar.length),
+          source: CompletionSource.LOCAL,
+          score: 0.7
+        }));
+    } catch (error) {
+      console.error('[FishStyleCompletion] 获取变量补全失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取命令名补全
+   */
+  private getCommandNameCompletions(command: ShellParserTypes.Command, context: CompletionContext): ICompletionSuggestion[] {
+    console.log('[FishStyleCompletion] 获取命令名补全');
+    const commonCommands = [
+      'ls', 'll', 'cd', 'pwd', 'mkdir', 'rm', 'cp', 'mv',
+      'cat', 'less', 'more', 'head', 'tail',
+      'grep', 'find', 'sed', 'awk',
+      'ps', 'top', 'kill', 'pkill',
+      'git', 'npm', 'node', 'python',
+      'curl', 'wget', 'ssh', 'scp',
+      'vim', 'nano', 'chmod', 'chown',
+      'systemctl', 'service', 'journalctl',
+      'docker', 'kubectl', 'helm'
     ];
 
-    return commonVars
-      .filter(v => v.startsWith(prefix.replace(/^\$\{?/, '')))
-      .map(v => ({
-        fullCommand: prefix.startsWith('${') ? '${' + v + '}' : '$' + v,
-        suggestion: v.slice(prefix.replace(/^\$\{?/, '').length),
+    // 根据当前输入过滤命令
+    const inputCommand = command.name || '';
+    return commonCommands
+      .filter(cmd => cmd.startsWith(inputCommand))
+      .map(cmd => ({
+        fullCommand: cmd,
+        suggestion: cmd.slice(inputCommand.length),
         source: CompletionSource.LOCAL,
-        score: 0.6
+        score: 0.8
       }));
   }
 
   /**
-   * 获取 Git 子命令列表
+   * 获取默认命令的补全
    */
-  private async getGitSubcommands(): Promise<ICompletionSuggestion[]> {
-    const gitCommands = [
-      'add', 'commit', 'push', 'pull', 'fetch', 'merge',
-      'rebase', 'checkout', 'branch', 'tag', 'log',
-      'status', 'diff', 'stash', 'reset', 'remote'
+  private getDefaultCompletions(command: ShellParserTypes.Command): ICompletionSuggestion[] {
+    console.log('[FishStyleCompletion] 获取默认命令补全');
+    const lastArg = command.args[command.args.length - 1] || '';
+    
+    // 如果最后一个参数以-开头，提供通用选项补全
+    if (lastArg.startsWith('-')) {
+      return [
+        { fullCommand: `${command.name} -h`, suggestion: '-h', source: CompletionSource.LOCAL, score: 0.7 },
+        { fullCommand: `${command.name} --help`, suggestion: '--help', source: CompletionSource.LOCAL, score: 0.7 },
+        { fullCommand: `${command.name} -v`, suggestion: '-v', source: CompletionSource.LOCAL, score: 0.7 },
+        { fullCommand: `${command.name} --version`, suggestion: '--version', source: CompletionSource.LOCAL, score: 0.7 }
+      ];
+    }
+
+    return [];
+  }
+
+  /**
+   * 获取基于文件类型的补全
+   */
+  private async getFileTypeCompletions(
+    command: ShellParserTypes.Command,
+    context: CompletionContext
+  ): Promise<ICompletionSuggestion[]> {
+    console.log('[FishStyleCompletion] 获取文件类型补全');
+    const suggestions: ICompletionSuggestion[] = [];
+
+    // 常见的文件类型关联
+    const fileTypeAssociations: Record<string, string[]> = {
+      // 文本编辑器
+      'vim': ['.txt', '.md', '.json', '.yaml', '.yml', '.conf'],
+      'nano': ['.txt', '.md', '.conf'],
+      'code': ['.ts', '.js', '.py', '.java', '.cpp', '.h'],
+      
+      // 文件查看
+      'cat': ['.txt', '.log', '.conf', '.md'],
+      'less': ['.log', '.txt'],
+      'tail': ['.log'],
+      
+      // 编译和构建
+      'gcc': ['.c', '.cpp'],
+      'javac': ['.java'],
+      'python': ['.py'],
+      'node': ['.js', '.ts'],
+      
+      // 压缩和解压
+      'tar': ['.tar.gz', '.tgz', '.tar'],
+      'unzip': ['.zip'],
+      'gunzip': ['.gz']
+    };
+
+    const commandName = command.name;
+    if (!commandName || !(commandName in fileTypeAssociations)) {
+      return suggestions;
+    }
+
+    const fileTypes = fileTypeAssociations[commandName];
+    const lastArg = command.args[command.args.length - 1] || '';
+
+    // 如果最后一个参数是路径的一部分，提供匹配的文件建议
+    if (lastArg && !lastArg.startsWith('-')) {
+      suggestions.push(...fileTypes.map(ext => ({
+        fullCommand: `${commandName} ${lastArg}${ext}`,
+        suggestion: ext,
+        source: CompletionSource.LOCAL,
+        score: 0.7
+      })));
+    }
+
+    return suggestions;
+  }
+
+  /**
+   * 获取基于目录操作模式的补全
+   */
+  private async getDirectoryPatternCompletions(
+    command: ShellParserTypes.Command,
+    context: CompletionContext
+  ): Promise<ICompletionSuggestion[]> {
+    console.log('[FishStyleCompletion] 获取目录操作模式补全');
+    const suggestions: ICompletionSuggestion[] = [];
+
+    // 常见的目录操作命令
+    const directoryCommands = ['cd', 'ls', 'mkdir', 'rmdir', 'cp', 'mv'];
+    if (!directoryCommands.includes(command.name || '')) {
+      return suggestions;
+    }
+
+    const lastArg = command.args[command.args.length - 1] || '';
+    if (!lastArg || lastArg.startsWith('-')) {
+      return suggestions;
+    }
+
+    // 常见的目录模式
+    const commonPatterns = [
+      'src/', 'dist/', 'build/', 'docs/',
+      'test/', 'tests/', 'config/', 'scripts/',
+      'node_modules/', 'target/', 'bin/', 'lib/'
     ];
 
-    return gitCommands.map(cmd => ({
-      fullCommand: 'git ' + cmd,
-      suggestion: cmd,
-      source: CompletionSource.LOCAL,
-      score: 0.9
-    }));
+    suggestions.push(...commonPatterns
+      .filter(pattern => pattern.startsWith(lastArg))
+      .map(pattern => ({
+        fullCommand: `${command.name} ${pattern}`,
+        suggestion: pattern.slice(lastArg.length),
+        source: CompletionSource.LOCAL,
+        score: 0.8
+      })));
+
+    return suggestions;
   }
 
   /**
-   * 获取 Git 分支列表
+   * 获取基于错误修正的补全
    */
-  private async getGitBranches(): Promise<ICompletionSuggestion[]> {
-    // 这里应该通过执行 git branch 命令获取实际的分支列表
-    // 暂时返回空数组，等待实现
-    return [];
-  }
+  private async getErrorCorrectionCompletions(
+    command: ShellParserTypes.Command,
+    context: CompletionContext
+  ): Promise<ICompletionSuggestion[]> {
+    console.log('[FishStyleCompletion] 获取错误修正补全');
+    const suggestions: ICompletionSuggestion[] = [];
 
-  /**
-   * 获取 Git 未暂存文件列表
-   */
-  private async getGitUnstagedFiles(): Promise<ICompletionSuggestion[]> {
-    // 这里应该通过执行 git status 命令获取实际的未暂存文件列表
-    // 暂时返回空数组，等待实现
-    return [];
-  }
+    // 常见的命令拼写错误修正
+    const commonMistakes: Record<string, string> = {
+      'gti': 'git',
+      'sl': 'ls',
+      'grpe': 'grep',
+      'pythno': 'python',
+      'mkidr': 'mkdir',
+      'rmd': 'rm -d',
+      'cta': 'cat',
+      'lesss': 'less',
+      'cd..': 'cd ..',
+      'gitp': 'git push',
+      'gitc': 'git commit'
+    };
 
-  /**
-   * 获取 Docker 子命令列表
-   */
-  private async getDockerSubcommands(): Promise<ICompletionSuggestion[]> {
-    const dockerCommands = [
-      'run', 'start', 'stop', 'restart', 'kill', 'rm',
-      'ps', 'images', 'pull', 'push', 'build', 'exec',
-      'logs', 'inspect', 'network', 'volume', 'compose'
-    ];
+    const inputCommand = command.name || '';
+    const correction = commonMistakes[inputCommand];
+    
+    if (correction) {
+      suggestions.push({
+        fullCommand: correction,
+        suggestion: correction,
+        source: CompletionSource.LOCAL,
+        score: 0.9
+      });
+    }
 
-    return dockerCommands.map(cmd => ({
-      fullCommand: 'docker ' + cmd,
-      suggestion: cmd,
-      source: CompletionSource.LOCAL,
-      score: 0.9
-    }));
-  }
-
-  /**
-   * 获取 Docker 容器列表
-   */
-  private async getDockerContainers(): Promise<ICompletionSuggestion[]> {
-    // 这里应该通过执行 docker ps 命令获取实际的容器列表
-    // 暂时返回空数组，等待实现
-    return [];
-  }
-
-  /**
-   * 获取 Docker 镜像列表
-   */
-  private async getDockerImages(): Promise<ICompletionSuggestion[]> {
-    // 这里应该通过执行 docker images 命令获取实际的镜像列表
-    // 暂时返回空数组，等待实现
-    return [];
+    return suggestions;
   }
 } 
