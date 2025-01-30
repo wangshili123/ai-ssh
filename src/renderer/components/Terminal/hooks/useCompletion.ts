@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { CompletionService } from '../../../../services/completion/CompletionService';
+import { SessionState } from '../../../../services/completion/core/types/context.types';
+import { eventBus } from '../../../services/eventBus';
 
 interface UseCompletionProps {
   terminalRef: React.MutableRefObject<XTerm | null>;
@@ -285,7 +287,17 @@ export const useCompletion = ({
       
       try {
         console.log('[useCompletion] Getting suggestions from service');
-        const newSuggestions = await completionService?.getSuggestions(currentInput);
+        const sessionState: SessionState = {
+          sessionId: eventBus.getCurrentSessionId(),
+          currentWorkingDirectory: process.cwd(),
+          environment: process.env as { [key: string]: string }
+        };
+
+        const newSuggestions = await completionService?.getSuggestions(
+          currentInput,
+          cursorPositionRef.current.x,
+          sessionState
+        );
         console.log('[useCompletion] Got suggestions:', newSuggestions);
         
         if (newSuggestions && newSuggestions.length > 0) {

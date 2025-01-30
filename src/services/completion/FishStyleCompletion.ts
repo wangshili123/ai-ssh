@@ -31,7 +31,11 @@ export class FishStyleCompletion {
     console.log('[FishStyleCompletion] 开始获取补全建议, 命令:', command);
     const suggestions: ICompletionSuggestion[] = [];
 
-    // 1. 基于SSH会话的补全
+    // 1. 基于命令语法的智能补全
+    const syntaxSuggestions = await this.getIntelligentSyntaxCompletions(command);
+    suggestions.push(...syntaxSuggestions);
+
+    // 2. 基于SSH会话的补全
     if (context.sshSession) {
       console.log('[FishStyleCompletion] 获取SSH补全建议...');
       const sshSuggestions = await this.getSSHCompletions(command, context);
@@ -39,21 +43,140 @@ export class FishStyleCompletion {
       suggestions.push(...sshSuggestions);
     }
 
-    // 2. 基于命令历史的补全
+    // 3. 基于命令历史的补全
     console.log('[FishStyleCompletion] 获取历史补全建议...');
     const historySuggestions = await this.getHistoryCompletions(command, context);
     console.log('[FishStyleCompletion] 历史补全建议:', historySuggestions);
     suggestions.push(...historySuggestions);
 
-    // 3. 基于命令语法的补全
-    console.log('[FishStyleCompletion] 获取语法补全建议...');
-    const syntaxSuggestions = await this.getSyntaxCompletions(command);
-    console.log('[FishStyleCompletion] 语法补全建议:', syntaxSuggestions);
-    suggestions.push(...syntaxSuggestions);
-
     const rankedSuggestions = this.rankSuggestions(suggestions);
     console.log('[FishStyleCompletion] 最终排序后的建议:', rankedSuggestions);
     return rankedSuggestions;
+  }
+
+  /**
+   * 获取基于语法的智能补全
+   */
+  private async getIntelligentSyntaxCompletions(
+    command: ShellParserTypes.Command
+  ): Promise<ICompletionSuggestion[]> {
+    const suggestions: ICompletionSuggestion[] = [];
+    
+    // 1. 基本命令补全
+    const basicSuggestions = await this.getSyntaxCompletions(command);
+    suggestions.push(...basicSuggestions);
+
+    // 2. 根据命令类型提供特定补全
+    if (this.isGitCommand(command)) {
+      suggestions.push(...await this.getGitCompletions(command));
+    } else if (this.isDockerCommand(command)) {
+      suggestions.push(...await this.getDockerCompletions(command));
+    }
+
+    // 3. 根据参数位置提供特定补全
+    const lastArg = command.args[command.args.length - 1] || '';
+    if (this.isInQuotes(lastArg)) {
+      // 在引号内提供文件名补全
+      suggestions.push(...await this.getFileNameCompletions(this.stripQuotes(lastArg)));
+    } else if (this.isVariableExpansion(lastArg)) {
+      // 在变量展开中提供变量名补全
+      suggestions.push(...await this.getVariableCompletions(lastArg));
+    } else if (this.isRedirectionTarget(command, command.args.length - 1)) {
+      // 在重定向后提供文件名补全
+      suggestions.push(...await this.getFileNameCompletions(lastArg));
+    }
+
+    return suggestions;
+  }
+
+  /**
+   * 检查是否是 Git 命令
+   */
+  private isGitCommand(command: ShellParserTypes.Command): boolean {
+    return command.name === 'git';
+  }
+
+  /**
+   * 检查是否是 Docker 命令
+   */
+  private isDockerCommand(command: ShellParserTypes.Command): boolean {
+    return command.name === 'docker';
+  }
+
+  /**
+   * 检查参数是否在引号内
+   */
+  private isInQuotes(arg: string): boolean {
+    return (arg.startsWith('"') && !arg.endsWith('"')) ||
+           (arg.startsWith("'") && !arg.endsWith("'"));
+  }
+
+  /**
+   * 检查是否是变量展开
+   */
+  private isVariableExpansion(arg: string): boolean {
+    return arg.startsWith('$') || arg.startsWith('${');
+  }
+
+  /**
+   * 检查是否是重定向目标
+   */
+  private isRedirectionTarget(command: ShellParserTypes.Command, argIndex: number): boolean {
+    const prevArg = command.args[argIndex - 1];
+    return prevArg === '>' || prevArg === '>>' || prevArg === '<';
+  }
+
+  /**
+   * 去除引号
+   */
+  private stripQuotes(arg: string): string {
+    return arg.replace(/^["']|["']$/g, '');
+  }
+
+  /**
+   * 获取 Git 特定的补全
+   */
+  private async getGitCompletions(
+    command: ShellParserTypes.Command
+  ): Promise<ICompletionSuggestion[]> {
+    const suggestions: ICompletionSuggestion[] = [];
+    const subCommand = command.args[0];
+
+    if (!subCommand) {
+      // 提供 git 子命令补全
+      return this.getGitSubcommands();
+    } else if (subCommand === 'checkout') {
+      // 提供分支名补全
+      return this.getGitBranches();
+    } else if (subCommand === 'add') {
+      // 提供未暂存文件补全
+      return this.getGitUnstagedFiles();
+    }
+
+    return suggestions;
+  }
+
+  /**
+   * 获取 Docker 特定的补全
+   */
+  private async getDockerCompletions(
+    command: ShellParserTypes.Command
+  ): Promise<ICompletionSuggestion[]> {
+    const suggestions: ICompletionSuggestion[] = [];
+    const subCommand = command.args[0];
+
+    if (!subCommand) {
+      // 提供 docker 子命令补全
+      return this.getDockerSubcommands();
+    } else if (subCommand === 'exec' || subCommand === 'logs') {
+      // 提供容器ID/名称补全
+      return this.getDockerContainers();
+    } else if (subCommand === 'run' || subCommand === 'pull') {
+      // 提供镜像名补全
+      return this.getDockerImages();
+    }
+
+    return suggestions;
   }
 
   /**
@@ -262,5 +385,107 @@ export class FishStyleCompletion {
         return a.suggestion.length - b.suggestion.length;
       })
       .slice(0, 5); // 最多返回5个建议
+  }
+
+  /**
+   * 获取文件名补全
+   */
+  private async getFileNameCompletions(prefix: string): Promise<ICompletionSuggestion[]> {
+    // 这里应该通过 SSH 会话或本地文件系统获取文件列表
+    // 暂时返回空数组，等待实现
+    return [];
+  }
+
+  /**
+   * 获取变量名补全
+   */
+  private async getVariableCompletions(prefix: string): Promise<ICompletionSuggestion[]> {
+    // 这里应该从环境变量或上下文中获取变量列表
+    // 暂时返回一些常见的环境变量
+    const commonVars = [
+      'HOME', 'PATH', 'USER', 'SHELL', 'PWD', 'LANG',
+      'TERM', 'DISPLAY', 'EDITOR', 'PAGER'
+    ];
+
+    return commonVars
+      .filter(v => v.startsWith(prefix.replace(/^\$\{?/, '')))
+      .map(v => ({
+        fullCommand: prefix.startsWith('${') ? '${' + v + '}' : '$' + v,
+        suggestion: v.slice(prefix.replace(/^\$\{?/, '').length),
+        source: CompletionSource.LOCAL,
+        score: 0.6
+      }));
+  }
+
+  /**
+   * 获取 Git 子命令列表
+   */
+  private async getGitSubcommands(): Promise<ICompletionSuggestion[]> {
+    const gitCommands = [
+      'add', 'commit', 'push', 'pull', 'fetch', 'merge',
+      'rebase', 'checkout', 'branch', 'tag', 'log',
+      'status', 'diff', 'stash', 'reset', 'remote'
+    ];
+
+    return gitCommands.map(cmd => ({
+      fullCommand: 'git ' + cmd,
+      suggestion: cmd,
+      source: CompletionSource.LOCAL,
+      score: 0.9
+    }));
+  }
+
+  /**
+   * 获取 Git 分支列表
+   */
+  private async getGitBranches(): Promise<ICompletionSuggestion[]> {
+    // 这里应该通过执行 git branch 命令获取实际的分支列表
+    // 暂时返回空数组，等待实现
+    return [];
+  }
+
+  /**
+   * 获取 Git 未暂存文件列表
+   */
+  private async getGitUnstagedFiles(): Promise<ICompletionSuggestion[]> {
+    // 这里应该通过执行 git status 命令获取实际的未暂存文件列表
+    // 暂时返回空数组，等待实现
+    return [];
+  }
+
+  /**
+   * 获取 Docker 子命令列表
+   */
+  private async getDockerSubcommands(): Promise<ICompletionSuggestion[]> {
+    const dockerCommands = [
+      'run', 'start', 'stop', 'restart', 'kill', 'rm',
+      'ps', 'images', 'pull', 'push', 'build', 'exec',
+      'logs', 'inspect', 'network', 'volume', 'compose'
+    ];
+
+    return dockerCommands.map(cmd => ({
+      fullCommand: 'docker ' + cmd,
+      suggestion: cmd,
+      source: CompletionSource.LOCAL,
+      score: 0.9
+    }));
+  }
+
+  /**
+   * 获取 Docker 容器列表
+   */
+  private async getDockerContainers(): Promise<ICompletionSuggestion[]> {
+    // 这里应该通过执行 docker ps 命令获取实际的容器列表
+    // 暂时返回空数组，等待实现
+    return [];
+  }
+
+  /**
+   * 获取 Docker 镜像列表
+   */
+  private async getDockerImages(): Promise<ICompletionSuggestion[]> {
+    // 这里应该通过执行 docker images 命令获取实际的镜像列表
+    // 暂时返回空数组，等待实现
+    return [];
   }
 } 

@@ -3,7 +3,7 @@ import { Tabs, Badge, Button } from 'antd';
 import { FolderOutlined } from '@ant-design/icons';
 import TerminalTabContent from '../TerminalTabContent/TerminalTabContent';
 import SessionListModal from '../../SessionListModal';
-import { eventBus } from '../../../services/eventBus';
+import { eventBus, TabInfo } from '../../../services/eventBus';
 import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
 import { FileBrowserConnectionManager } from '../../FileBrowser/FileBrowserMain/FileBrowserConnectionManager';
 import type { SessionInfo } from '../../../../main/services/storage';
@@ -82,7 +82,12 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
     // 设置当前标签页和shell
     eventBus.setCurrentTabId(tabId);
     eventBus.setCurrentShellId(shellId);
-
+    const tabInfo: TabInfo = {
+      tabId,
+      shellId,
+      sessionInfo
+    };
+    eventBus.addTabInfo(tabInfo);
    
     
     console.log('[TerminalTabsManager] 新标签页创建完成:', { tabId, shellId, sessionInfo });

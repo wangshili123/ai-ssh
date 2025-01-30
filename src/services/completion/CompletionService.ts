@@ -6,6 +6,12 @@ import { ShellParserTypes } from '../parser/ShellParserTypes';
 import { FishStyleCompletion } from './FishStyleCompletion';
 import { CompletionContext } from './CompletionContext';
 import debounce from 'lodash/debounce';
+import { EnhancedContextAnalyzer } from './analyzers/EnhancedContextAnalyzer';
+import { 
+  EnhancedCompletionContext, 
+  CommandExecutionResult,
+  SessionState
+} from './core/types/context.types';
 
 export interface ICompletionSuggestion {
   fullCommand: string;    // 完整的命令
@@ -37,10 +43,12 @@ export class CompletionService {
   private lastSuggestions: ICompletionSuggestion[] = [];
   private selectedIndex: number = 0;
   private initialized: boolean = false;
+  private contextAnalyzer: EnhancedContextAnalyzer;
 
   private constructor() {
     this.shellParser = ShellParser.getInstance();
     this.fishCompletion = FishStyleCompletion.getInstance();
+    this.contextAnalyzer = EnhancedContextAnalyzer.getInstance();
     this.initializeAsync();
   }
 
@@ -77,12 +85,189 @@ export class CompletionService {
   }
 
   /**
+   * 获取补全建议
+   */
+  public async getSuggestions(
+    input: string,
+    cursorPosition: number,
+    sessionState: SessionState
+  ): Promise<ICompletionSuggestion[]> {
+    console.log('[CompletionService] 开始获取补全建议, 输入:', input);
+
+    try {
+      // 1. 获取增强的上下文
+      const enhancedContext = await this.contextAnalyzer.getEnhancedContext(
+        input,
+        cursorPosition,
+        sessionState
+      );
+
+      // 2. 获取基础补全建议
+      const command = enhancedContext.currentCommand.type === 'command' 
+        ? enhancedContext.currentCommand 
+        : { name: '', args: [], options: [], redirects: [] };
+
+      const suggestions = await this.fishCompletion.getSuggestions(
+        command,
+        {
+          sshSession: undefined, // 如果需要SSH补全，在这里添加
+          recentCommands: enhancedContext.commandHistory.recent.map(r => r.command),
+          commandHistory: {
+            frequency: enhancedContext.commandHistory.statistics[0]?.frequency || 0,
+            lastUsed: enhancedContext.commandHistory.statistics[0]?.lastUsed || new Date()
+          },
+          currentCommand: {
+            name: command.name,
+            args: command.args,
+            options: command.options,
+            isIncomplete: true
+          }
+        }
+      );
+
+      // 3. 根据增强上下文调整建议的排序和得分
+      return this.adjustSuggestions(suggestions, enhancedContext);
+    } catch (error) {
+      console.error('[CompletionService] 获取补全建议失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 根据增强上下文调整建议
+   */
+  private adjustSuggestions(
+    suggestions: ICompletionSuggestion[],
+    context: EnhancedCompletionContext
+  ): ICompletionSuggestion[] {
+    return suggestions.map(suggestion => {
+      const adjustedScore = this.calculateContextualScore(suggestion, context);
+      return {
+        ...suggestion,
+        score: adjustedScore
+      };
+    }).sort((a, b) => b.score - a.score);
+  }
+
+  /**
+   * 计算上下文相关的得分
+   */
+  private calculateContextualScore(
+    suggestion: ICompletionSuggestion,
+    context: EnhancedCompletionContext
+  ): number {
+    let score = suggestion.score;
+
+    // 1. 基于命令链的得分
+    const chainScore = this.getCommandChainScore(suggestion, context);
+    
+    // 2. 基于时间模式的得分
+    const timeScore = this.getTimePatternScore(suggestion, context);
+    
+    // 3. 基于上下文模式的得分
+    const contextScore = this.getContextPatternScore(suggestion, context);
+
+    // 4. 基于环境状态的得分
+    const environmentScore = this.getEnvironmentScore(suggestion, context);
+
+    // 综合得分
+    return (
+      score * 0.4 +
+      chainScore * 0.3 +
+      timeScore * 0.1 +
+      contextScore * 0.1 +
+      environmentScore * 0.1
+    );
+  }
+
+  /**
+   * 获取命令链得分
+   */
+  private getCommandChainScore(
+    suggestion: ICompletionSuggestion,
+    context: EnhancedCompletionContext
+  ): number {
+    const lastCommand = context.commandHistory.recent[context.commandHistory.recent.length - 1]?.command;
+    if (!lastCommand) return 0;
+
+    const chainStats = context.userPatterns.commandChains[lastCommand];
+    if (!chainStats) return 0;
+
+    const nextCommandCount = chainStats.nextCommands[suggestion.fullCommand] || 0;
+    return nextCommandCount / (chainStats.frequency || 1);
+  }
+
+  /**
+   * 获取时间模式得分
+   */
+  private getTimePatternScore(
+    suggestion: ICompletionSuggestion,
+    context: EnhancedCompletionContext
+  ): number {
+    const currentHour = new Date().getHours();
+    const hourPattern = context.userPatterns.timePatterns[currentHour] || {};
+    const commandCount = hourPattern[suggestion.fullCommand] || 0;
+    
+    const totalCommands = Object.values(hourPattern).reduce((sum: number, count: number) => sum + count, 0);
+    return totalCommands > 0 ? commandCount / totalCommands : 0;
+  }
+
+  /**
+   * 获取上下文模式得分
+   */
+  private getContextPatternScore(
+    suggestion: ICompletionSuggestion,
+    context: EnhancedCompletionContext
+  ): number {
+    // TODO: 实现更复杂的上下文识别
+    const currentContext = 'default';
+    const contextPattern = context.userPatterns.contextPatterns[currentContext] || {};
+    const commandCount = contextPattern[suggestion.fullCommand] || 0;
+    
+    const totalCommands = Object.values(contextPattern).reduce((sum: number, count: number) => sum + count, 0);
+    return totalCommands > 0 ? commandCount / totalCommands : 0;
+  }
+
+  /**
+   * 获取环境相关得分
+   */
+  private getEnvironmentScore(
+    suggestion: ICompletionSuggestion,
+    context: EnhancedCompletionContext
+  ): number {
+    let score = 0;
+
+    // 1. Git相关命令在Git仓库中得分更高
+    if (context.environment.isGitRepository && suggestion.fullCommand.startsWith('git')) {
+      score += 0.3;
+    }
+
+    // 2. 文件操作命令与最近修改的文件相关性
+    if (
+      ['cat', 'vim', 'nano', 'less'].some(cmd => suggestion.fullCommand.startsWith(cmd)) &&
+      context.environment.lastModifiedFiles.some((file: string) => suggestion.fullCommand.includes(file))
+    ) {
+      score += 0.3;
+    }
+
+    // 3. 进程相关命令与运行进程的相关性
+    if (
+      ['kill', 'pkill'].some(cmd => suggestion.fullCommand.startsWith(cmd)) &&
+      context.environment.runningProcesses.some((proc: string) => suggestion.fullCommand.includes(proc))
+    ) {
+      score += 0.3;
+    }
+
+    return score;
+  }
+
+  /**
    * 获取实时补全建议
    * @param input 当前输入的命令
    * @param sshSession 当前SSH会话
    * @returns 补全建议列表
    */
-  public async getSuggestions(
+  public async getSuggestionsOld(
     input: string,
     sshSession?: CompletionContext['sshSession']
   ): Promise<ICompletionSuggestion[]> {
@@ -272,5 +457,21 @@ export class CompletionService {
   public clearSuggestion(): void {
     this.lastSuggestions = [];
     this.selectedIndex = 0;
+  }
+
+  /**
+   * 更新命令执行结果
+   */
+  public updateCommandExecution(
+    command: string,
+    output: string[],
+    exitCode: number
+  ): void {
+    this.contextAnalyzer.updateCommandExecution({
+      command,
+      output,
+      exitCode,
+      timestamp: new Date()
+    });
   }
 } 

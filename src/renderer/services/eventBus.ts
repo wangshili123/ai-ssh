@@ -37,6 +37,11 @@ class EventBus extends EventEmitter {
     });
   }
 
+  //添加会话信息
+  addTabInfo(tabInfo: TabInfo) {
+    this.tabMap.set(tabInfo.tabId, tabInfo);
+  }
+
   public static getInstance(): EventBus {
     if (!EventBus.instance) {
       EventBus.instance = new EventBus();
@@ -120,6 +125,37 @@ class EventBus extends EventEmitter {
       currentTabId: this.currentTabId,
       tabMap: Array.from(this.tabMap.entries())
     });
+  }
+
+  /**
+   * 获取当前会话信息
+   */
+  getCurrentSessionInfo(): SessionInfo | undefined {
+    const currentTabId = this.getCurrentTabId();
+    console.log('[EventBus] getCurrentSessionInfo - currentTabId:', currentTabId);
+    
+    if (!currentTabId) {
+      console.log('[EventBus] getCurrentSessionInfo - No current tab ID');
+      return undefined;
+    }
+    
+    const tabInfo = this.getTabInfo(currentTabId);
+    console.log('[EventBus] getCurrentSessionInfo - tabInfo:', tabInfo);
+    
+    if (!tabInfo?.sessionInfo) {
+      console.log('[EventBus] getCurrentSessionInfo - No session info in tab');
+    }
+    
+    return tabInfo?.sessionInfo;
+  }
+
+  /**
+   * 获取当前会话ID
+   */
+  getCurrentSessionId(): string {
+    const sessionInfo = this.getCurrentSessionInfo();
+    console.log('[EventBus] getCurrentSessionId - sessionInfo:', sessionInfo);
+    return sessionInfo?.id || 'default-session';
   }
 }
 
