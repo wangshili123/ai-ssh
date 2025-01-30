@@ -120,7 +120,7 @@
   - SSH会话补全
   - 历史命令补全
 
-- [ ] 增强上下文感知补全
+- [x] 增强上下文感知补全
   ```typescript
   class ContextAwareCompletion {
     async getSuggestions(input: string, context: CompletionContext) {
@@ -133,7 +133,7 @@
   ```
 
 ### 2.2 命令关系分析优化
-- [ ] 实现命令链分析
+- [x] 实现命令链分析
   ```typescript
   class CommandChainAnalyzer {
     analyzeChain(node: Parser.SyntaxNode) {
@@ -147,7 +147,7 @@
   ```
 
 ### 2.3 排序策略改进
-- [ ] 实现多因素排序
+- [x] 实现多因素排序
   ```typescript
   interface ScoringFactors {
     frequency: number;    // 使用频率
