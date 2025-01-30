@@ -50,6 +50,14 @@ export class EnhancedContextAnalyzer {
   private errorCorrectionAnalyzer: ErrorCorrectionAnalyzer;
   private commandExecutor: CommandExecutor;
 
+  // 添加环境状态缓存
+  private environmentCache: Map<string, {
+    state: EnvironmentState;
+    timestamp: number;
+  }> = new Map();
+
+  private readonly ENV_CACHE_EXPIRY = 5000; // 5秒缓存过期
+
   private constructor() {
     this.shellParser = ShellParser.getInstance();
     this.argumentAnalyzer = ArgumentPatternAnalyzer.getInstance();
@@ -145,6 +153,7 @@ export class EnhancedContextAnalyzer {
     cursorPosition: number,
     sessionState: SessionState
   ): Promise<EnhancedCompletionContext> {
+    const startTime = performance.now();
     this.checkInitialized();
     
     console.log('[EnhancedContextAnalyzer] 开始获取补全上下文:', {
@@ -154,18 +163,29 @@ export class EnhancedContextAnalyzer {
     });
 
     // 1. 解析当前命令
+    const parseStartTime = performance.now();
     const currentCommand = await this.shellParser.parse(input);
+    const parseEndTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 命令解析耗时:', (parseEndTime - parseStartTime).toFixed(2), 'ms');
     console.log('[EnhancedContextAnalyzer] 命令解析结果:', currentCommand);
     
     // 2. 获取环境状态
+    const envStartTime = performance.now();
     const environment = await this.getEnvironmentState(sessionState.currentWorkingDirectory);
+    const envEndTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 获取环境状态耗时:', (envEndTime - envStartTime).toFixed(2), 'ms');
     console.log('[EnhancedContextAnalyzer] 环境状态:', environment);
 
     // 3. 实时从数据库获取最近的命令历史
+    const historyStartTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 从数据库获取的历史记录...');
     const recentHistory = await this.commandHistory.search('', 100);
+    const historyEndTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 获取历史记录耗时:', (historyEndTime - historyStartTime).toFixed(2), 'ms');
     console.log('[EnhancedContextAnalyzer] 从数据库获取的历史记录:', recentHistory);
 
     // 更新内存中的统计信息
+    const statsStartTime = performance.now();
     recentHistory.forEach(record => {
       this.commandStats.set(record.command, {
         frequency: record.frequency,
@@ -173,14 +193,28 @@ export class EnhancedContextAnalyzer {
         outputs: []
       });
     });
+    const statsEndTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 更新统计信息耗时:', (statsEndTime - statsStartTime).toFixed(2), 'ms');
 
     // 4. 获取相关的模式
+    const patternsStartTime = performance.now();
     const patterns = await this.getRelevantPatterns(
       input,
       sessionState.currentWorkingDirectory,
       currentCommand
     );
+    const patternsEndTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 获取相关模式耗时:', (patternsEndTime - patternsStartTime).toFixed(2), 'ms');
     console.log('[EnhancedContextAnalyzer] 相关模式:', patterns);
+
+    const endTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 获取增强上下文完成, 总耗时:', (endTime - startTime).toFixed(2), 'ms', {
+      '命令解析耗时': (parseEndTime - parseStartTime).toFixed(2),
+      '环境状态耗时': (envEndTime - envStartTime).toFixed(2),
+      '历史记录耗时': (historyEndTime - historyStartTime).toFixed(2),
+      '统计信息耗时': (statsEndTime - statsStartTime).toFixed(2),
+      '相关模式耗时': (patternsEndTime - patternsStartTime).toFixed(2)
+    });
 
     return {
       currentCommand,
@@ -207,17 +241,39 @@ export class EnhancedContextAnalyzer {
     cwd: string,
     parsedCommand: ShellParserTypes.ParseResult
   ): Promise<EnhancedPatterns> {
+    const startTime = performance.now();
+    
     // 获取命令的参数模式
+    const argStartTime = performance.now();
     const argPatterns = this.argumentAnalyzer.getPatterns(input);
+    const argEndTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 获取参数模式耗时:', (argEndTime - argStartTime).toFixed(2), 'ms');
     
     // 获取当前目录的相关命令
+    const dirStartTime = performance.now();
     const dirPatterns = await this.directoryAnalyzer.getPatterns(cwd);
+    const dirEndTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 获取目录模式耗时:', (dirEndTime - dirStartTime).toFixed(2), 'ms');
     
     // 获取相关文件类型的命令
+    const fileStartTime = performance.now();
     const filePatterns = await this.fileTypeAnalyzer.getPatterns(cwd, parsedCommand);
+    const fileEndTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 获取文件类型模式耗时:', (fileEndTime - fileStartTime).toFixed(2), 'ms');
     
     // 获取可能的错误修正
+    const corrStartTime = performance.now();
     const corrections = this.errorCorrectionAnalyzer.getCorrections(input);
+    const corrEndTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 获取错误修正耗时:', (corrEndTime - corrStartTime).toFixed(2), 'ms');
+
+    const endTime = performance.now();
+    console.log('[EnhancedContextAnalyzer] 获取相关模式完成, 总耗时:', (endTime - startTime).toFixed(2), 'ms', {
+      '参数模式耗时': (argEndTime - argStartTime).toFixed(2),
+      '目录模式耗时': (dirEndTime - dirStartTime).toFixed(2),
+      '文件类型模式耗时': (fileEndTime - fileStartTime).toFixed(2),
+      '错误修正耗时': (corrEndTime - corrStartTime).toFixed(2)
+    });
 
     return {
       argumentPatterns: argPatterns,
@@ -286,13 +342,55 @@ export class EnhancedContextAnalyzer {
    * 获取环境状态
    */
   private async getEnvironmentState(cwd: string): Promise<EnvironmentState> {
-    return {
-      currentDirectory: cwd,
-      isGitRepository: await this.checkIsGitRepository(cwd),
-      recentFiles: await this.getRecentFiles(cwd),
-      runningProcesses: await this.getRunningProcesses(),
-      lastModifiedFiles: await this.getLastModifiedFiles(cwd)
-    };
+    try {
+      // 1. 检查缓存
+      const cached = this.environmentCache.get(cwd);
+      const now = Date.now();
+      
+      if (cached && (now - cached.timestamp < this.ENV_CACHE_EXPIRY)) {
+        return cached.state;
+      }
+
+      // 2. 并行执行所有命令
+      const [
+        isGitRepo,
+        recentFiles,
+        runningProcesses,
+        lastModifiedFiles
+      ] = await Promise.all([
+        this.checkIsGitRepository(cwd),
+        this.getRecentFiles(cwd),
+        this.getRunningProcesses(),
+        this.getLastModifiedFiles(cwd)
+      ]);
+
+      // 3. 构建环境状态
+      const state: EnvironmentState = {
+        currentDirectory: cwd,
+        isGitRepository: isGitRepo,
+        recentFiles,
+        runningProcesses,
+        lastModifiedFiles
+      };
+
+      // 4. 更新缓存
+      this.environmentCache.set(cwd, {
+        state,
+        timestamp: now
+      });
+
+      return state;
+    } catch (error) {
+      console.error('获取环境状态失败:', error);
+      // 返回默认状态
+      return {
+        currentDirectory: cwd,
+        isGitRepository: false,
+        recentFiles: [],
+        runningProcesses: [],
+        lastModifiedFiles: []
+      };
+    }
   }
 
   /**

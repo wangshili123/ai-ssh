@@ -7,6 +7,14 @@ import { eventBus } from '@/renderer/services/eventBus';
 export class FileTypePatternAnalyzer {
   private static instance: FileTypePatternAnalyzer;
   private fileTypePatterns: Map<string, FileTypePattern> = new Map();
+  
+  // 添加缓存
+  private fileListCache: Map<string, {
+    files: string[],
+    timestamp: number
+  }> = new Map();
+  
+  private readonly CACHE_EXPIRY = 5000; // 5秒缓存过期
 
   private constructor() {}
 
@@ -52,15 +60,33 @@ export class FileTypePatternAnalyzer {
     parsedCommand: ShellParserTypes.ParseResult
   ): Promise<string[]> {
     try {
-      // 获取当前目录下的文件
-      const files = await this.executeCommand('ls');
+      // 1. 检查缓存
+      const cached = this.fileListCache.get(cwd);
+      const now = Date.now();
+      
+      let files: string[];
+      if (cached && (now - cached.timestamp < this.CACHE_EXPIRY)) {
+        files = cached.files;
+      } else {
+        // 2. 如果缓存不存在或已过期，获取文件列表
+        const result = await this.executeCommand('ls');
+        files = result.split('\n').filter(Boolean);
+        
+        // 3. 更新缓存
+        this.fileListCache.set(cwd, {
+          files,
+          timestamp: now
+        });
+      }
+      
+      // 4. 提取扩展名
       const extensions = new Set(
-        files.split('\n')
-          .map(f => f.split('.').pop())
-          .filter((ext): ext is string => ext !== undefined && ext !== '')
+        files
+          .map((f: string) => f.split('.').pop())
+          .filter((ext: string | undefined): ext is string => ext !== undefined && ext !== '')
       );
       
-      // 收集所有相关的命令
+      // 5. 收集相关命令
       const commands = new Set<string>();
       for (const ext of extensions) {
         const pattern = this.fileTypePatterns.get(ext);

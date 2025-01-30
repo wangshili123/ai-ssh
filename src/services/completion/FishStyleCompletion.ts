@@ -108,6 +108,7 @@ export class FishStyleCompletion {
     command: ShellParserTypes.Command,
     context: CompletionContext
   ): Promise<CompletionSuggestion[]> {
+    const startTime = performance.now();
     console.log('[FishStyleCompletion] 开始获取补全建议');
     console.log('[FishStyleCompletion] 命令信息:', {
       name: command.name,
@@ -123,7 +124,11 @@ export class FishStyleCompletion {
     });
 
     // 1. 尝试从缓存获取
+    const cacheStartTime = performance.now();
     const cachedSuggestions = this.getCachedSuggestions(command, context);
+    const cacheEndTime = performance.now();
+    console.log('[FishStyleCompletion] 缓存查询耗时:', (cacheEndTime - cacheStartTime).toFixed(2), 'ms');
+    
     if (cachedSuggestions) {
       console.log('[FishStyleCompletion] 使用缓存的建议');
       return cachedSuggestions;
@@ -132,28 +137,40 @@ export class FishStyleCompletion {
     const suggestions: CompletionSuggestion[] = [];
 
     // 2. 基于命令语法的智能补全
+    const syntaxStartTime = performance.now();
     console.log('[FishStyleCompletion] 获取语法补全...');
     const syntaxSuggestions = await this.getIntelligentSyntaxCompletions(command, context);
+    const syntaxEndTime = performance.now();
+    console.log('[FishStyleCompletion] 语法补全耗时:', (syntaxEndTime - syntaxStartTime).toFixed(2), 'ms');
     console.log('[FishStyleCompletion] 语法补全结果:', syntaxSuggestions);
     suggestions.push(...syntaxSuggestions);
 
     // 3. 基于SSH会话的补全
     if (context.sshSession) {
+      const sshStartTime = performance.now();
       console.log('[FishStyleCompletion] 获取SSH补全建议...');
       const sshSuggestions = await this.getSSHCompletions(command, context);
+      const sshEndTime = performance.now();
+      console.log('[FishStyleCompletion] SSH补全耗时:', (sshEndTime - sshStartTime).toFixed(2), 'ms');
       console.log('[FishStyleCompletion] SSH补全建议:', sshSuggestions);
       suggestions.push(...sshSuggestions);
     }
 
     // 4. 基于命令历史的补全
+    const historyStartTime = performance.now();
     console.log('[FishStyleCompletion] 获取历史补全建议...');
     const historySuggestions = await this.getHistoryCompletions(command, context);
+    const historyEndTime = performance.now();
+    console.log('[FishStyleCompletion] 历史补全耗时:', (historyEndTime - historyStartTime).toFixed(2), 'ms');
     console.log('[FishStyleCompletion] 历史补全建议:', historySuggestions);
     suggestions.push(...historySuggestions);
 
     // 5. 对所有建议进行排序和去重
     console.log('[FishStyleCompletion] 原始建议数量:', suggestions.length);
+    const rankStartTime = performance.now();
     const rankedSuggestions = this.rankSuggestions(suggestions);
+    const rankEndTime = performance.now();
+    console.log('[FishStyleCompletion] 排序耗时:', (rankEndTime - rankStartTime).toFixed(2), 'ms');
     console.log('[FishStyleCompletion] 排序后建议数量:', rankedSuggestions.length);
     console.log('[FishStyleCompletion] 最终建议列表:', rankedSuggestions.map(s => ({
       suggestion: s.suggestion,
@@ -162,7 +179,19 @@ export class FishStyleCompletion {
     })));
 
     // 6. 缓存结果
+    const cacheWriteStartTime = performance.now();
     this.cacheSuggestions(command, context, rankedSuggestions);
+    const cacheWriteEndTime = performance.now();
+    console.log('[FishStyleCompletion] 写入缓存耗时:', (cacheWriteEndTime - cacheWriteStartTime).toFixed(2), 'ms');
+
+    const endTime = performance.now();
+    console.log('[FishStyleCompletion] 补全建议获取完成, 总耗时:', (endTime - startTime).toFixed(2), 'ms', {
+      '缓存查询耗时': (cacheEndTime - cacheStartTime).toFixed(2),
+      '语法补全耗时': (syntaxEndTime - syntaxStartTime).toFixed(2),
+      '历史补全耗时': (historyEndTime - historyStartTime).toFixed(2),
+      '排序耗时': (rankEndTime - rankStartTime).toFixed(2),
+      '缓存写入耗时': (cacheWriteEndTime - cacheWriteStartTime).toFixed(2)
+    });
 
     return rankedSuggestions;
   }

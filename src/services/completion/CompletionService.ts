@@ -85,6 +85,7 @@ export class CompletionService {
     cursorPosition: number,
     sessionState: SessionState
   ): Promise<CompletionSuggestion[]> {
+    const startTime = performance.now();
     console.log('[CompletionService] 开始获取补全建议:', {
       input,
       cursorPosition,
@@ -93,15 +94,19 @@ export class CompletionService {
 
     try {
       // 1. 获取增强的上下文
+      const contextStartTime = performance.now();
       console.log('[CompletionService] 正在获取增强上下文...');
       const enhancedContext = await this.contextAnalyzer.getEnhancedContext(
         input,
         cursorPosition,
         sessionState
       );
+      const contextEndTime = performance.now();
+      console.log('[CompletionService] 获取增强上下文完成, 耗时:', (contextEndTime - contextStartTime).toFixed(2), 'ms');
       console.log('[CompletionService] 获取到的增强上下文:', enhancedContext);
 
       // 2. 从历史记录中查找匹配的命令
+      const historyStartTime = performance.now();
       console.log('[CompletionService] 从历史记录中查找匹配的命令...');
       const historyResults = await this.commandHistory.search(input, 10);
       const historySuggestions = historyResults
@@ -112,6 +117,8 @@ export class CompletionService {
           source: CompletionSource.HISTORY,
           score: 0.8
         }));
+      const historyEndTime = performance.now();
+      console.log('[CompletionService] 历史记录匹配完成, 耗时:', (historyEndTime - historyStartTime).toFixed(2), 'ms');
       console.log('[CompletionService] 历史记录匹配结果:', historySuggestions);
 
       // 3. 获取基础补全建议
@@ -120,6 +127,7 @@ export class CompletionService {
         : { name: input, args: [], options: [], redirects: [] };
       console.log('[CompletionService] 处理的命令对象:', command);
 
+      const fishStartTime = performance.now();
       console.log('[CompletionService] 正在获取Fish风格补全建议...');
       const syntaxSuggestions = await this.fishCompletion.getSuggestions(
         command,
@@ -138,29 +146,53 @@ export class CompletionService {
           }
         }
       );
+      const fishEndTime = performance.now();
+      console.log('[CompletionService] Fish风格补全完成, 耗时:', (fishEndTime - fishStartTime).toFixed(2), 'ms');
 
       // 4. 过滤基础补全建议
+      const filterStartTime = performance.now();
       const filteredSyntaxSuggestions = syntaxSuggestions.filter(
         suggestion => suggestion.fullCommand.toLowerCase().startsWith(input.toLowerCase())
       );
+      const filterEndTime = performance.now();
+      console.log('[CompletionService] 过滤补全建议完成, 耗时:', (filterEndTime - filterStartTime).toFixed(2), 'ms');
       console.log('[CompletionService] 过滤后的基础补全建议:', filteredSyntaxSuggestions);
 
       // 5. 合并历史记录和基础补全建议
       const allSuggestions = [...historySuggestions, ...filteredSyntaxSuggestions];
 
       // 6. 使用ScoringService调整建议的排序和得分
+      const scoringStartTime = performance.now();
       console.log('[CompletionService] 正在调整建议排序和得分...');
       const adjustedSuggestions = await this.scoringService.adjustSuggestionScores(
         allSuggestions,
         input,
         enhancedContext
       );
+      const scoringEndTime = performance.now();
+      console.log('[CompletionService] 调整排序和得分完成, 耗时:', (scoringEndTime - scoringStartTime).toFixed(2), 'ms');
 
       // 7. 去重并限制数量
-      return this.scoringService.deduplicateAndLimit(adjustedSuggestions, 10);
+      const dedupeStartTime = performance.now();
+      const finalSuggestions = this.scoringService.deduplicateAndLimit(adjustedSuggestions, 10);
+      const dedupeEndTime = performance.now();
+      console.log('[CompletionService] 去重和限制数量完成, 耗时:', (dedupeEndTime - dedupeStartTime).toFixed(2), 'ms');
+
+      const endTime = performance.now();
+      console.log('[CompletionService] 获取补全建议完成, 总耗时:', (endTime - startTime).toFixed(2), 'ms', {
+        '增强上下文耗时': (contextEndTime - contextStartTime).toFixed(2),
+        '历史记录查询耗时': (historyEndTime - historyStartTime).toFixed(2),
+        'Fish补全耗时': (fishEndTime - fishStartTime).toFixed(2),
+        '过滤耗时': (filterEndTime - filterStartTime).toFixed(2),
+        '打分耗时': (scoringEndTime - scoringStartTime).toFixed(2),
+        '去重耗时': (dedupeEndTime - dedupeStartTime).toFixed(2)
+      });
+
+      return finalSuggestions;
 
     } catch (error) {
-      console.error('[CompletionService] 获取补全建议失败:', error);
+      const endTime = performance.now();
+      console.error('[CompletionService] 获取补全建议失败, 总耗时:', (endTime - startTime).toFixed(2), 'ms, 错误:', error);
       return [];
     }
   }
