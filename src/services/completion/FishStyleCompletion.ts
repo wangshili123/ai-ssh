@@ -436,12 +436,6 @@ export class FishStyleCompletion {
   ): Promise<ICompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 开始获取语法补全, 命令:', command);
 
-    // 如果命令名为空，提供命令名补全
-    if (!command.name) {
-      console.log('[FishStyleCompletion] 提供命令名补全');
-      return this.getCommandNameCompletions(command, context);
-    }
-
     // 获取命令参数信息
     const commandInfo = {
       commandName: command.name,
@@ -449,6 +443,12 @@ export class FishStyleCompletion {
       lastArg: command.args[command.args.length - 1] || ''
     };
     console.log('[FishStyleCompletion] 命令参数信息:', commandInfo);
+
+    // 如果命令名为空或者是部分输入，提供命令名补全
+    if (!command.name || !this.isFullCommand(command.name)) {
+      console.log('[FishStyleCompletion] 提供命令名补全');
+      return this.getBasicCommandSuggestions(command.name || '');
+    }
 
     // 处理特定命令的补全
     switch (command.name) {
@@ -461,6 +461,21 @@ export class FishStyleCompletion {
       default:
         return this.getDefaultCompletions(command);
     }
+  }
+
+  /**
+   * 检查是否是完整的命令
+   */
+  private isFullCommand(name: string): boolean {
+    const basicCommands = [
+      'ls', 'll', 'cd', 'pwd', 'mkdir', 'rm', 'cp', 'mv',
+      'cat', 'less', 'more', 'head', 'tail', 'grep', 'find',
+      'sed', 'awk', 'ps', 'top', 'kill', 'pkill', 'git',
+      'npm', 'node', 'python', 'curl', 'wget', 'ssh', 'scp',
+      'vim', 'nano', 'chmod', 'chown', 'systemctl', 'service',
+      'journalctl', 'docker', 'kubectl', 'helm'
+    ];
+    return basicCommands.includes(name);
   }
 
   /**
@@ -587,27 +602,25 @@ export class FishStyleCompletion {
   /**
    * 获取命令名补全
    */
-  private getCommandNameCompletions(command: ShellParserTypes.Command, context: CompletionContext): ICompletionSuggestion[] {
+  private getBasicCommandSuggestions(input: string): ICompletionSuggestion[] {
     console.log('[FishStyleCompletion] 获取命令名补全');
-    const commonCommands = [
+    
+    // 基础命令列表
+    const basicCommands = [
       'ls', 'll', 'cd', 'pwd', 'mkdir', 'rm', 'cp', 'mv',
-      'cat', 'less', 'more', 'head', 'tail',
-      'grep', 'find', 'sed', 'awk',
-      'ps', 'top', 'kill', 'pkill',
-      'git', 'npm', 'node', 'python',
-      'curl', 'wget', 'ssh', 'scp',
-      'vim', 'nano', 'chmod', 'chown',
-      'systemctl', 'service', 'journalctl',
-      'docker', 'kubectl', 'helm'
+      'cat', 'less', 'more', 'head', 'tail', 'grep', 'find',
+      'sed', 'awk', 'ps', 'top', 'kill', 'pkill', 'git',
+      'npm', 'node', 'python', 'curl', 'wget', 'ssh', 'scp',
+      'vim', 'nano', 'chmod', 'chown', 'systemctl', 'service',
+      'journalctl', 'docker', 'kubectl', 'helm'
     ];
 
-    // 根据当前输入过滤命令
-    const inputCommand = command.name || '';
-    return commonCommands
-      .filter(cmd => cmd.startsWith(inputCommand))
+    // 只返回以用户输入为前缀的命令
+    return basicCommands
+      .filter(cmd => cmd.startsWith(input))
       .map(cmd => ({
         fullCommand: cmd,
-        suggestion: cmd.slice(inputCommand.length),
+        suggestion: cmd,
         source: CompletionSource.LOCAL,
         score: 0.8
       }));

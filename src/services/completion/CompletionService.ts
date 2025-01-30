@@ -137,23 +137,25 @@ export class CompletionService {
       // 2. 先从历史记录中查找匹配的命令
       console.log('[CompletionService] 从历史记录中查找匹配的命令...');
       const historyResults = await this.commandHistory.search(input, 10);
-      const historySuggestions = historyResults.map(item => ({
-        fullCommand: item.command,
-        suggestion: item.command.slice(input.length),
-        source: CompletionSource.HISTORY,
-        score: 0.8,
-        details: {
-          frequency: item.frequency,
-          lastUsed: item.last_used,
-          success: item.success
-        }
-      }));
+      const historySuggestions = historyResults
+        .filter(item => item.command.toLowerCase().startsWith(input.toLowerCase()))
+        .map(item => ({
+          fullCommand: item.command,
+          suggestion: item.command,
+          source: CompletionSource.HISTORY,
+          score: 0.8,
+          details: {
+            frequency: item.frequency,
+            lastUsed: item.last_used,
+            success: item.success
+          }
+        }));
       console.log('[CompletionService] 历史记录匹配结果:', historySuggestions);
 
       // 3. 获取基础补全建议
       const command = enhancedContext.currentCommand.type === 'command' 
         ? enhancedContext.currentCommand 
-        : { name: '', args: [], options: [], redirects: [] };
+        : { name: input, args: [], options: [], redirects: [] };
       console.log('[CompletionService] 处理的命令对象:', command);
 
       console.log('[CompletionService] 正在获取Fish风格补全建议...');
@@ -174,17 +176,22 @@ export class CompletionService {
           }
         }
       );
-      console.log('[CompletionService] 获取到的基础补全建议:', syntaxSuggestions);
 
-      // 4. 合并历史记录和基础补全建议
-      const allSuggestions = [...historySuggestions, ...syntaxSuggestions];
+      // 4. 过滤基础补全建议，只保留以输入为前缀的建议
+      const filteredSyntaxSuggestions = syntaxSuggestions.filter(
+        suggestion => suggestion.fullCommand.toLowerCase().startsWith(input.toLowerCase())
+      );
+      console.log('[CompletionService] 过滤后的基础补全建议:', filteredSyntaxSuggestions);
 
-      // 5. 根据增强上下文调整建议的排序和得分
+      // 5. 合并历史记录和基础补全建议
+      const allSuggestions = [...historySuggestions, ...filteredSyntaxSuggestions];
+
+      // 6. 根据增强上下文调整建议的排序和得分
       console.log('[CompletionService] 正在调整建议排序和得分...');
       const adjustedSuggestions = await this.adjustSuggestionScores(allSuggestions, input, enhancedContext);
       console.log('[CompletionService] 最终的补全建议:', adjustedSuggestions);
 
-      // 6. 去重并限制数量
+      // 7. 去重并限制数量
       return this.deduplicateAndLimit(adjustedSuggestions, 10);
 
     } catch (error) {
@@ -255,11 +262,11 @@ export class CompletionService {
 
         // 7. 根据不同来源调整权重
         const weights = {
-          base: 0.2,      // 基础得分权重降低
-          history: 0.4,   // 历史使用权重提高
+          base: 0.1,      // 基础得分权重进一步降低
+          history: 0.5,   // 历史使用权重进一步提高
           context: 0.15,  // 上下文相关度权重
-          chain: 0.15,    // 命令链权重提高
-          time: 0.05,     // 时间模式权重降低
+          chain: 0.15,    // 命令链权重
+          time: 0.05,     // 时间模式权重
           env: 0.05       // 环境状态权重
         };
 
@@ -268,11 +275,14 @@ export class CompletionService {
           (Date.now() - new Date(historyInfo.lastUsed).getTime()) / (1000 * 60) : // 转换为分钟
           Number.MAX_VALUE;
 
-        // 最近使用的命令获得额外加分
-        const recentBonus = timeSinceLastUse < 5 ? 0.3 : // 5分钟内使用过
-                           timeSinceLastUse < 30 ? 0.2 : // 30分钟内使用过
-                           timeSinceLastUse < 60 ? 0.1 : // 1小时内使用过
+        // 最近使用的命令获得更高的额外加分
+        const recentBonus = timeSinceLastUse < 5 ? 0.5 : // 5分钟内使用过
+                           timeSinceLastUse < 30 ? 0.3 : // 30分钟内使用过
+                           timeSinceLastUse < 60 ? 0.2 : // 1小时内使用过
                            0;
+
+        // 根据来源调整基础分数
+        const sourceBonus = suggestion.source === CompletionSource.HISTORY ? 0.3 : 0;
 
         finalScore = (
           suggestion.score * weights.base +
@@ -281,7 +291,8 @@ export class CompletionService {
           chainScore * weights.chain +
           timeScore * weights.time +
           envScore * weights.env +
-          recentBonus  // 加入最近使用的额外得分
+          recentBonus +  // 加入最近使用的额外得分
+          sourceBonus    // 加入来源的额外得分
         );
 
         console.log('[CompletionService] 建议得分调整:', {
