@@ -1,9 +1,11 @@
 import { CompletionSuggestion } from '../types/completion.types';
-import { EnhancedCompletionContext, CommandExecutionResult } from '../analyzers/types/context.types';
+import { EnhancedCompletionContext } from '../analyzers/types/context.types';
 import { ContextScoring } from './factors/ContextScoring';
 import { ChainScoring } from './factors/ChainScoring';
 import { TimeScoring } from './factors/TimeScoring';
 import { EnvironmentScoring } from './factors/EnvironmentScoring';
+import { FrequencyScoring } from './factors/FrequencyScoring';
+import { RecencyScoring } from './factors/RecencyScoring';
 
 export class ScoringService {
   private static instance: ScoringService;
@@ -11,12 +13,26 @@ export class ScoringService {
   private chainScoring: ChainScoring;
   private timeScoring: TimeScoring;
   private environmentScoring: EnvironmentScoring;
+  private frequencyScoring: FrequencyScoring;
+  private recencyScoring: RecencyScoring;
+
+  private readonly weights = {
+    base: 0.1,       // 基础得分权重
+    frequency: 0.25, // 使用频率权重
+    recency: 0.20,   // 最近使用权重
+    context: 0.15,   // 上下文相关度权重
+    chain: 0.15,     // 命令链权重
+    time: 0.075,     // 时间模式权重
+    env: 0.075       // 环境状态权重
+  };
 
   private constructor() {
     this.contextScoring = new ContextScoring();
     this.chainScoring = new ChainScoring();
     this.timeScoring = new TimeScoring();
     this.environmentScoring = new EnvironmentScoring();
+    this.frequencyScoring = new FrequencyScoring();
+    this.recencyScoring = new RecencyScoring();
   }
 
   public static getInstance(): ScoringService {
@@ -36,31 +52,24 @@ export class ScoringService {
     const adjustedSuggestions = await Promise.all(
       suggestions.map(async (suggestion) => {
         // 1. 计算基础得分
-        let finalScore = suggestion.score;
+        let finalScore = suggestion.score * this.weights.base;
 
         // 2. 计算各个维度的得分
+        const frequencyScore = this.frequencyScoring.calculateScore(suggestion, context);
+        const recencyScore = this.recencyScoring.calculateScore(suggestion, context);
         const contextScore = this.contextScoring.calculateScore(suggestion, context);
         const chainScore = this.chainScoring.calculateScore(suggestion, context);
         const timeScore = this.timeScoring.calculateScore(suggestion, context);
         const envScore = this.environmentScoring.calculateScore(suggestion, context);
 
-        // 3. 根据不同来源调整权重
-        const weights = {
-          base: 0.1,      // 基础得分权重
-          history: 0.5,   // 历史使用权重
-          context: 0.15,  // 上下文相关度权重
-          chain: 0.15,    // 命令链权重
-          time: 0.05,     // 时间模式权重
-          env: 0.05       // 环境状态权重
-        };
-
-        // 4. 计算最终得分
-        finalScore = (
-          suggestion.score * weights.base +
-          contextScore * weights.context +
-          chainScore * weights.chain +
-          timeScore * weights.time +
-          envScore * weights.env
+        // 3. 计算加权总分
+        finalScore += (
+          frequencyScore * this.weights.frequency +
+          recencyScore * this.weights.recency +
+          contextScore * this.weights.context +
+          chainScore * this.weights.chain +
+          timeScore * this.weights.time +
+          envScore * this.weights.env
         );
 
         console.log('[ScoringService] 建议得分调整:', {
@@ -68,6 +77,8 @@ export class ScoringService {
           originalScore: suggestion.score,
           adjustedScore: finalScore,
           details: {
+            frequencyScore,
+            recencyScore,
             contextScore,
             chainScore,
             timeScore,
@@ -79,6 +90,8 @@ export class ScoringService {
           ...suggestion,
           score: finalScore,
           details: {
+            frequencyScore,
+            recencyScore,
             contextScore,
             chainScore,
             timeScore,
@@ -88,7 +101,7 @@ export class ScoringService {
       })
     );
 
-    // 5. 按最终得分排序
+    // 4. 按最终得分排序
     return adjustedSuggestions.sort((a, b) => b.score - a.score);
   }
 
