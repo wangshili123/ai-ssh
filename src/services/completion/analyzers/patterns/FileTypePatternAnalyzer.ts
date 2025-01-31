@@ -4,29 +4,43 @@ import { ShellParserTypes } from '../../../parser/ShellParserTypes';
 import { sshService } from '@/main/services/ssh';
 import { eventBus } from '@/renderer/services/eventBus';
 
+interface FileSystemSnapshot {
+  files: Set<string>;
+  timestamp: number;
+  checksum: string;
+}
+
+interface FileTypeCache {
+  patterns: FileTypePattern[];
+  timestamp: number;
+  directory: string;
+}
+
 export class FileTypePatternAnalyzer {
   private static instance: FileTypePatternAnalyzer;
   private fileTypePatterns: Map<string, FileTypePattern> = new Map();
+  private fileSystemSnapshots: Map<string, FileSystemSnapshot> = new Map();
+  private patternCache: Map<string, FileTypeCache> = new Map();
   
-  // 添加缓存
-  private fileListCache: Map<string, {
-    files: string[],
-    timestamp: number
-  }> = new Map();
+  private readonly CACHE_DURATION = {
+    SNAPSHOT: 10000,  // 10s
+    PATTERN: 30000,   // 30s
+  };
   
-  private readonly CACHE_EXPIRY = 5000; // 5秒缓存过期
-
   private constructor() {}
-
+  
   public static getInstance(): FileTypePatternAnalyzer {
     if (!FileTypePatternAnalyzer.instance) {
       FileTypePatternAnalyzer.instance = new FileTypePatternAnalyzer();
     }
     return FileTypePatternAnalyzer.instance;
   }
-
+  
   public async updatePattern(result: CommandExecutionResult): Promise<void> {
     try {
+      console.log('[FileTypePatternAnalyzer] 更新文件类型模式');
+      const startTime = Date.now();
+      
       const commandParts = result.command.split(' ');
       const commandName = commandParts[0];
       const args = commandParts.slice(1);
@@ -36,7 +50,7 @@ export class FileTypePatternAnalyzer {
       
       for (const file of files) {
         const parts = file.split('.');
-        if (parts.length < 2) continue; // 跳过没有扩展名的文件
+        if (parts.length < 2) continue;
         
         const extension = parts[parts.length - 1];
         const pattern = this.fileTypePatterns.get(extension) || {
@@ -50,104 +64,159 @@ export class FileTypePatternAnalyzer {
         
         this.fileTypePatterns.set(extension, pattern);
       }
+      
+      const duration = Date.now() - startTime;
+      console.log('[FileTypePatternAnalyzer] 更新完成, 耗时:', duration, 'ms');
     } catch (error) {
-      console.error('更新文件类型模式失败:', error);
+      console.error('[FileTypePatternAnalyzer] 更新文件类型模式失败:', error);
     }
   }
-
+  
   public async getPatterns(
     cwd: string,
     parsedCommand: ShellParserTypes.ParseResult
   ): Promise<string[]> {
     try {
+      console.log('[FileTypePatternAnalyzer] 获取文件类型模式');
+      const startTime = Date.now();
+      
       // 1. 检查缓存
-      const cached = this.fileListCache.get(cwd);
-      const now = Date.now();
-      
-      let files: string[];
-      if (cached && (now - cached.timestamp < this.CACHE_EXPIRY)) {
-        files = cached.files;
-      } else {
-        // 2. 如果缓存不存在或已过期，获取文件列表
-        const result = await this.executeCommand('ls');
-        files = result.split('\n').filter(Boolean);
-        
-        // 3. 更新缓存
-        this.fileListCache.set(cwd, {
-          files,
-          timestamp: now
-        });
+      const cached = this.patternCache.get(cwd);
+      if (cached && this.isPatternCacheValid(cached)) {
+        console.log('[FileTypePatternAnalyzer] 使用缓存的模式');
+        return this.getCommandsFromPatterns(cached.patterns);
       }
       
-      // 4. 提取扩展名
-      const extensions = new Set(
-        files
-          .map((f: string) => f.split('.').pop())
-          .filter((ext: string | undefined): ext is string => ext !== undefined && ext !== '')
-      );
+      // 2. 获取文件系统快照
+      const snapshot = await this.getFileSystemSnapshot(cwd);
       
-      // 5. 收集相关命令
-      const commands = new Set<string>();
-      for (const ext of extensions) {
-        const pattern = this.fileTypePatterns.get(ext);
-        if (pattern) {
-          Object.keys(pattern.commands).forEach(cmd => commands.add(cmd));
-        }
-      }
+      // 3. 分析文件类型
+      const patterns = await this.analyzeFileTypes(snapshot.files);
       
-      return Array.from(commands);
+      // 4. 更新缓存
+      this.patternCache.set(cwd, {
+        patterns,
+        timestamp: Date.now(),
+        directory: cwd
+      });
+      
+      const commands = this.getCommandsFromPatterns(patterns);
+      
+      const duration = Date.now() - startTime;
+      console.log('[FileTypePatternAnalyzer] 获取完成, 耗时:', duration, 'ms');
+      
+      return commands;
     } catch (error) {
-      console.error('获取文件类型模式失败:', error);
+      console.error('[FileTypePatternAnalyzer] 获取文件类型模式失败:', error);
       return [];
     }
   }
-
-  private async executeCommand(command: string): Promise<string> {
-    try {
-      const sessionId = eventBus.getCurrentSessionId();
-      if (!sessionId) {
-        throw new Error('No active shell session found');
+  
+  private async getFileSystemSnapshot(cwd: string): Promise<FileSystemSnapshot> {
+    const existing = this.fileSystemSnapshots.get(cwd);
+    if (existing && this.isSnapshotValid(existing)) {
+      return existing;
+    }
+    
+    const sessionInfo = await eventBus.getCurrentSessionInfo();
+    if (!sessionInfo) {
+      throw new Error('未找到会话信息');
+    }
+    
+    const client = await sshService.getConnection(sessionInfo.id);
+    const result = await this.executeCommand(client, 'ls -la');
+    const files = new Set(result.split('\n').filter(Boolean));
+    
+    const snapshot: FileSystemSnapshot = {
+      files,
+      timestamp: Date.now(),
+      checksum: this.calculateChecksum(files)
+    };
+    
+    this.fileSystemSnapshots.set(cwd, snapshot);
+    return snapshot;
+  }
+  
+  private async analyzeFileTypes(files: Set<string>): Promise<FileTypePattern[]> {
+    const patterns: FileTypePattern[] = [];
+    const extensionMap = new Map<string, number>();
+    
+    for (const file of files) {
+      const parts = file.split('.');
+      if (parts.length < 2) continue;
+      
+      const extension = parts[parts.length - 1];
+      extensionMap.set(extension, (extensionMap.get(extension) || 0) + 1);
+      
+      const pattern = this.fileTypePatterns.get(extension);
+      if (pattern) {
+        patterns.push(pattern);
       }
-
-      let connection = sshService.getConnection(sessionId);
-      if (!connection) {
-        const sessionInfo = eventBus.getCurrentSessionInfo();
-        if (!sessionInfo) {
-          throw new Error('No session information found');
+    }
+    
+    return patterns;
+  }
+  
+  private getCommandsFromPatterns(patterns: FileTypePattern[]): string[] {
+    const commands = new Set<string>();
+    for (const pattern of patterns) {
+      Object.keys(pattern.commands).forEach(cmd => commands.add(cmd));
+    }
+    return Array.from(commands);
+  }
+  
+  private isSnapshotValid(snapshot: FileSystemSnapshot): boolean {
+    const age = Date.now() - snapshot.timestamp;
+    return age < this.CACHE_DURATION.SNAPSHOT;
+  }
+  
+  private isPatternCacheValid(cache: FileTypeCache): boolean {
+    const age = Date.now() - cache.timestamp;
+    return age < this.CACHE_DURATION.PATTERN;
+  }
+  
+  private calculateChecksum(files: Set<string>): string {
+    return Array.from(files).sort().join('|');
+  }
+  
+  private async executeCommand(client: any, command: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      client.exec(command, (err: Error | undefined, stream: any) => {
+        if (err) {
+          reject(err);
+          return;
         }
-
-        await sshService.connect(sessionInfo);
-        connection = sshService.getConnection(sessionId);
         
-        if (!connection) {
-          throw new Error('Failed to create SSH connection');
-        }
-      }
-
-      return new Promise((resolve, reject) => {
-        connection!.exec(command, (err, stream) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-
-          let output = '';
-          stream.on('data', (data: Buffer) => {
-            output += data.toString();
-          });
-
-          stream.on('end', () => {
-            resolve(output);
-          });
-
-          stream.on('error', (error: Error) => {
-            reject(error);
-          });
+        let output = '';
+        stream.on('data', (data: Buffer) => {
+          output += data.toString();
+        });
+        
+        stream.on('end', () => {
+          resolve(output);
+        });
+        
+        stream.on('error', (err: Error) => {
+          reject(err);
         });
       });
-    } catch (error) {
-      console.error('执行命令失败:', error);
-      throw error;
-    }
+    });
+  }
+  
+  public clearCache(directory: string): void {
+    this.fileSystemSnapshots.delete(directory);
+    this.patternCache.delete(directory);
+  }
+  
+  public getCacheStats(): { 
+    snapshotSize: number; 
+    patternSize: number;
+    patternCount: number;
+  } {
+    return {
+      snapshotSize: this.fileSystemSnapshots.size,
+      patternSize: this.patternCache.size,
+      patternCount: this.fileTypePatterns.size
+    };
   }
 } 
