@@ -320,7 +320,7 @@ export const useCompletion = ({
         setDropdownVisible(false);
         setSuggestions([]);
       }
-    }, 600);
+    }, 500);
 
     suggestionTimeoutRef.current = timeout;
 

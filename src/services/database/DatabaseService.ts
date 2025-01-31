@@ -177,15 +177,18 @@ export class DatabaseService {
 
         -- 命令关系表
         CREATE TABLE IF NOT EXISTS command_relations (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          prev_command_id INTEGER NOT NULL,
-          next_command_id INTEGER NOT NULL,
-          relation_type TEXT NOT NULL,
-          frequency INTEGER DEFAULT 1,
-          last_used DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (prev_command_id) REFERENCES command_history(id),
-          FOREIGN KEY (next_command_id) REFERENCES command_history(id)
-        );
+                                   id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                   command1_id INTEGER NOT NULL,
+                                   command2_id INTEGER NOT NULL,
+                                   relation_type TEXT NOT NULL,
+                                   frequency INTEGER DEFAULT 0,
+                                   last_used DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                   success_rate REAL DEFAULT 0,
+                                   avg_time_gap INTEGER DEFAULT 0,
+                                   FOREIGN KEY (command1_id) REFERENCES command_history(id),
+                                   FOREIGN KEY (command2_id) REFERENCES command_history(id),
+                                   UNIQUE(command1_id, command2_id)
+);
 
         -- 命令历史索引
         CREATE INDEX IF NOT EXISTS idx_command_history_command ON command_history(command);
@@ -193,8 +196,8 @@ export class DatabaseService {
         CREATE INDEX IF NOT EXISTS idx_command_history_frequency ON command_history(frequency);
 
         -- 命令关系索引
-        CREATE INDEX IF NOT EXISTS idx_command_relations_prev ON command_relations(prev_command_id);
-        CREATE INDEX IF NOT EXISTS idx_command_relations_next ON command_relations(next_command_id);
+        CREATE INDEX IF NOT EXISTS idx_command_relations_prev ON command_relations(command1_id);
+        CREATE INDEX IF NOT EXISTS idx_command_relations_next ON command_relations(command2_id);
         CREATE INDEX IF NOT EXISTS idx_command_relations_type ON command_relations(relation_type);
       `);
       console.log('[DatabaseService] 数据表创建完成');
