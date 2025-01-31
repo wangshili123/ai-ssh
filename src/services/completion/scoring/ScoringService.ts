@@ -6,6 +6,8 @@ import { TimeScoring } from './factors/TimeScoring';
 import { EnvironmentScoring } from './factors/EnvironmentScoring';
 import { FrequencyScoring } from './factors/FrequencyScoring';
 import { RecencyScoring } from './factors/RecencyScoring';
+import { PrefixScoring } from './factors/PrefixScoring';
+import { SyntaxScoring } from './factors/SyntaxScoring';
 
 export class ScoringService {
   private static instance: ScoringService;
@@ -15,15 +17,19 @@ export class ScoringService {
   private environmentScoring: EnvironmentScoring;
   private frequencyScoring: FrequencyScoring;
   private recencyScoring: RecencyScoring;
+  private prefixScoring: PrefixScoring;
+  private syntaxScoring: SyntaxScoring;
 
   private readonly weights = {
-    base: 0.1,       // 基础得分权重
-    frequency: 0.25, // 使用频率权重
-    recency: 0.20,   // 最近使用权重
-    context: 0.15,   // 上下文相关度权重
-    chain: 0.15,     // 命令链权重
-    time: 0.075,     // 时间模式权重
-    env: 0.075       // 环境状态权重
+    base: 0.05,      // 基础得分权重
+    frequency: 0.20, // 使用频率权重
+    recency: 0.15,   // 最近使用权重
+    prefix: 0.15,    // 前缀匹配权重
+    syntax: 0.15,    // 语法匹配权重
+    context: 0.10,   // 上下文相关度权重
+    chain: 0.10,     // 命令链权重
+    time: 0.05,      // 时间模式权重
+    env: 0.05        // 环境状态权重
   };
 
   private constructor() {
@@ -33,6 +39,8 @@ export class ScoringService {
     this.environmentScoring = new EnvironmentScoring();
     this.frequencyScoring = new FrequencyScoring();
     this.recencyScoring = new RecencyScoring();
+    this.prefixScoring = new PrefixScoring();
+    this.syntaxScoring = new SyntaxScoring();
   }
 
   public static getInstance(): ScoringService {
@@ -57,6 +65,8 @@ export class ScoringService {
         // 2. 计算各个维度的得分
         const frequencyScore = this.frequencyScoring.calculateScore(suggestion, context);
         const recencyScore = this.recencyScoring.calculateScore(suggestion, context);
+        const prefixScore = this.prefixScoring.calculateScore(suggestion, input);
+        const syntaxScore = this.syntaxScoring.calculateScore(suggestion, context);
         const contextScore = this.contextScoring.calculateScore(suggestion, context);
         const chainScore = this.chainScoring.calculateScore(suggestion, context);
         const timeScore = this.timeScoring.calculateScore(suggestion, context);
@@ -66,6 +76,8 @@ export class ScoringService {
         finalScore += (
           frequencyScore * this.weights.frequency +
           recencyScore * this.weights.recency +
+          prefixScore * this.weights.prefix +
+          syntaxScore * this.weights.syntax +
           contextScore * this.weights.context +
           chainScore * this.weights.chain +
           timeScore * this.weights.time +
@@ -79,6 +91,8 @@ export class ScoringService {
           details: {
             frequencyScore,
             recencyScore,
+            prefixScore,
+            syntaxScore,
             contextScore,
             chainScore,
             timeScore,
@@ -92,6 +106,8 @@ export class ScoringService {
           details: {
             frequencyScore,
             recencyScore,
+            prefixScore,
+            syntaxScore,
             contextScore,
             chainScore,
             timeScore,
