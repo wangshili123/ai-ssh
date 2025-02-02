@@ -43,3 +43,4 @@ requirements.txt
 .venv/*
 tests/*
 tools/*
+测试结果.txt

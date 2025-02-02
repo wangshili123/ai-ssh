@@ -1,5 +1,6 @@
 import { Client, ConnectConfig } from 'ssh2';
 import { EventEmitter } from 'events';
+import { eventBus } from '../../renderer/services/eventBus';
 
 interface SSHConnectionPool {
   client: Client;
@@ -16,6 +17,15 @@ interface ConnectionMetrics {
   commandCount: number;
   errorCount: number;
   avgResponseTime: number;
+}
+
+/**
+ * 命令执行结果接口
+ */
+interface CommandResult {
+  stdout: string;
+  stderr: string;
+  code?: number;
 }
 
 export class SSHConnectionManager extends EventEmitter {
@@ -182,5 +192,98 @@ export class SSHConnectionManager extends EventEmitter {
   
   public getActiveConnectionsCount(): number {
     return this.connections.size;
+  }
+
+  /**
+   * 在当前会话中执行SSH命令
+   * @param command 要执行的命令
+   * @returns 命令执行结果，包含stdout和stderr
+   */
+  public async executeCurrentSessionCommand(command: string): Promise<CommandResult> {
+    const sessionInfo = await eventBus.getCurrentSessionInfo();
+    if (!sessionInfo) {
+      throw new Error('未找到当前会话信息');
+    }
+
+    console.log(`[SSHConnectionManager] 在当前会话中执行命令 [${sessionInfo.id}]:`, command);
+    const startTime = Date.now();
+    
+    try {
+      // 获取或创建连接
+      const connection = await this.getConnection(sessionInfo.id, {
+        host: sessionInfo.host,
+        port: sessionInfo.port,
+        username: sessionInfo.username,
+        password: sessionInfo.password,
+        privateKey: sessionInfo.privateKey
+      });
+
+      if (!connection) {
+        throw new Error('SSH连接未建立');
+      }
+
+      const result = await new Promise<CommandResult>((resolve, reject) => {
+        connection.exec(command, (err, stream) => {
+          if (err) {
+            console.error(`[SSHConnectionManager] 执行命令失败 [${sessionInfo.id}]:`, err);
+            reject(err);
+            return;
+          }
+
+          let stdout = '';
+          let stderr = '';
+          let code: number | undefined;
+
+          stream.on('data', (data: Buffer) => {
+            stdout += data.toString();
+          });
+
+          stream.stderr?.on('data', (data: Buffer) => {
+            stderr += data.toString();
+          });
+
+          stream.on('exit', (exitCode: number) => {
+            code = exitCode;
+          });
+
+          stream.on('close', () => {
+            resolve({ stdout, stderr, code });
+          });
+
+          stream.on('error', (err: Error) => {
+            console.error(`[SSHConnectionManager] 命令执行错误 [${sessionInfo.id}]:`, err);
+            reject(err);
+          });
+        });
+      });
+
+      // 更新指标
+      this.updateCommandMetrics(sessionInfo.id, startTime);
+      
+      console.log(`[SSHConnectionManager] 命令执行完成 [${sessionInfo.id}], 耗时:`, Date.now() - startTime, 'ms');
+      return result;
+
+    } catch (error) {
+      console.error(`[SSHConnectionManager] 执行命令失败 [${sessionInfo.id}]:`, error);
+      // 更新错误计数
+      this.updateMetricsOnError(sessionInfo.id);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新命令执行指标
+   */
+  private updateCommandMetrics(sessionId: string, startTime: number): void {
+    const connection = this.connections.get(sessionId);
+    if (connection) {
+      const executionTime = Date.now() - startTime;
+      const { metrics } = connection;
+      
+      // 更新平均响应时间
+      metrics.avgResponseTime = (metrics.avgResponseTime * metrics.commandCount + executionTime) / (metrics.commandCount + 1);
+      metrics.commandCount++;
+      connection.lastUsed = Date.now();
+    }
   }
 } 

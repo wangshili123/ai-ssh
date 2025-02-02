@@ -16,8 +16,12 @@ export interface EventMap {
   'tab-change': TabInfo;
   'tab-create': TabInfo & { isNew: boolean };
   'terminal-connection-change': ConnectionInfo;
+  'terminal-data': { shellId: string; data: string };
+  'terminal-close': string;
   'tabIdChanged': string;
   'shellIdChanged': string;
+  'completion:tab-remove': string;
+  'ssh:directory-change': { shellId: string; directory: string };
 }
 
 class EventBus extends EventEmitter {

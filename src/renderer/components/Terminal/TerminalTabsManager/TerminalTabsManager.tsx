@@ -157,6 +157,7 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
         // 清理被删除标签页的状态
         eventBus.removeTab(tabToRemove.tabId);
         sftpConnectionManager.closeConnection(tabToRemove.tabId);
+        eventBus.emit('completion:tab-remove', tabToRemove.tabId);
       }
     }
   };

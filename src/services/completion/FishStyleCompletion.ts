@@ -1,13 +1,14 @@
 import { ShellParserTypes } from '../parser/ShellParserTypes';
 import { CompletionContext, CompletionSource, CompletionSuggestion } from './types/completion.types';
-import { SSHCompletion } from './SSHCompletion';
+import { eventBus } from '../../renderer/services/eventBus';
+import { CompletionSSHManager } from './CompletionSSHManager';
 
 /**
  * Fish-shell风格的补全算法实现
  */
 export class FishStyleCompletion {
   private static instance: FishStyleCompletion;
-  private sshCompletion: SSHCompletion;
+  private sshManager: CompletionSSHManager;
 
   /**
    * 补全建议缓存
@@ -23,7 +24,7 @@ export class FishStyleCompletion {
   private readonly CACHE_EXPIRY = 5000;
 
   private constructor() {
-    this.sshCompletion = SSHCompletion.getInstance();
+    this.sshManager = CompletionSSHManager.getInstance();
   }
 
   public static getInstance(): FishStyleCompletion {
@@ -252,7 +253,7 @@ export class FishStyleCompletion {
     });
 
     if (this.isInQuotes(lastArg)) {
-      const fileNameSuggestions = await this.getFileNameCompletions(this.stripQuotes(lastArg));
+      const fileNameSuggestions = await this.getFileNameCompletions(this.stripQuotes(lastArg), context);
       console.log('[FishStyleCompletion] 文件名补全结果:', fileNameSuggestions);
       suggestions.push(...fileNameSuggestions);
     } else if (this.isVariableExpansion(lastArg)) {
@@ -260,7 +261,7 @@ export class FishStyleCompletion {
       console.log('[FishStyleCompletion] 变量补全结果:', varSuggestions);
       suggestions.push(...varSuggestions);
     } else if (this.isRedirectionTarget(command, command.args.length - 1)) {
-      const redirectionSuggestions = await this.getFileNameCompletions(lastArg);
+      const redirectionSuggestions = await this.getFileNameCompletions(lastArg, context);
       console.log('[FishStyleCompletion] 重定向补全结果:', redirectionSuggestions);
       suggestions.push(...redirectionSuggestions);
     }
@@ -372,32 +373,50 @@ export class FishStyleCompletion {
   ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 开始获取SSH补全, 命令:', command);
     const suggestions: CompletionSuggestion[] = [];
-    const session = context.sshSession!;
 
     try {
-      // 获取当前目录
-      const currentDirectory = await session.getCurrentDirectory();
-      console.log('[FishStyleCompletion] 当前目录:', currentDirectory);
+      const sessionInfo = eventBus.getCurrentSessionInfo();
+      if (!sessionInfo) {
+        console.log('[FishStyleCompletion] 未找到会话信息');
+        return [];
+      }
 
       // 1. 如果是空命令，获取命令补全
       if (!command.name) {
         console.log('[FishStyleCompletion] 获取空命令补全...');
-        const cmdSuggestions = await this.sshCompletion.getCommandCompletions(session, '');
-        console.log('[FishStyleCompletion] 命令补全结果:', cmdSuggestions);
-        suggestions.push(...cmdSuggestions);
-        return suggestions;
+        return this.getBasicCommandSuggestions('');
       }
 
       // 2. 如果命令存在且有参数，尝试路径补全
       if (command.args.length > 0) {
         const lastArg = command.args[command.args.length - 1];
         console.log('[FishStyleCompletion] 获取路径补全, 最后参数:', lastArg);
-        const pathSuggestions = await this.sshCompletion.getPathCompletions(
-          session,
-          currentDirectory,
-          lastArg
-        );
-        console.log('[FishStyleCompletion] 路径补全结果:', pathSuggestions);
+
+        // 获取当前目录
+        const pwdResult = await this.sshManager.executeCommand(sessionInfo, 'pwd');
+        console.log('[FishStyleCompletion] 当前目录:', pwdResult.stdout.trim());
+
+        // 获取当前目录下的文件列表
+        const lsResult = await this.sshManager.executeCommand(sessionInfo, 'ls -la');
+        console.log('[FishStyleCompletion] 文件列表:', lsResult.stdout);
+
+        const files = lsResult.stdout.split('\n')
+          .filter(line => line.trim() && !line.startsWith('total'))
+          .map(line => {
+            const parts = line.trim().split(/\s+/);
+            return parts[parts.length - 1];
+          })
+          .filter(file => file !== '.' && file !== '..');
+
+        const pathSuggestions = files
+          .filter(file => !lastArg || file.toLowerCase().startsWith(lastArg.toLowerCase()))
+          .map(file => ({
+            fullCommand: `${command.name} ${file}`,
+            suggestion: lastArg ? file.slice(lastArg.length) : file,
+            source: CompletionSource.LOCAL,
+            score: 0.9
+          }));
+
         suggestions.push(...pathSuggestions);
       }
 
@@ -405,11 +424,21 @@ export class FishStyleCompletion {
       const lastInput = command.args[command.args.length - 1] || command.name;
       if (lastInput.startsWith('$')) {
         console.log('[FishStyleCompletion] 获取环境变量补全, 输入:', lastInput);
-        const envSuggestions = await this.sshCompletion.getEnvCompletions(
-          session,
-          lastInput.slice(1)
-        );
-        console.log('[FishStyleCompletion] 环境变量补全结果:', envSuggestions);
+
+        // 获取环境变量
+        const result = await this.sshManager.executeCommand(sessionInfo, 'env');
+        const envVars = result.stdout.split('\n')
+          .filter(line => line.includes('='))
+          .map(line => line.split('=')[0])
+          .filter(varName => varName.startsWith(lastInput.slice(1)));
+
+        const envSuggestions = envVars.map(varName => ({
+          fullCommand: `$${varName}`,
+          suggestion: varName.slice(lastInput.length - 1),
+          source: CompletionSource.LOCAL,
+          score: 0.8
+        }));
+
         suggestions.push(...envSuggestions);
       }
 
@@ -468,18 +497,38 @@ export class FishStyleCompletion {
     const commandInfo = {
       commandName: command.name,
       availableArgs: command.args,
-      lastArg: command.args[command.args.length - 1] || ''
+      lastArg: command.args[command.args.length - 1] || '',
+      hasTrailingSpace: command.hasTrailingSpace || false
     };
     console.log('[FishStyleCompletion] 命令参数信息:', commandInfo);
 
+    // 如果是需要文件补全的命令，直接返回文件列表
+    if (this.isFileCompletionCommand(commandInfo.commandName)) {
+      console.log('[FishStyleCompletion] 检测到需要文件补全的命令:', commandInfo.commandName);
+      console.log('[FishStyleCompletion] 命令状态:', {
+        hasTrailingSpace: commandInfo.hasTrailingSpace,
+        argsLength: commandInfo.availableArgs.length,
+        lastArg: commandInfo.lastArg
+      });
+
+      // 如果命令后面有空格或者有参数，说明需要补全文件名
+      if (commandInfo.hasTrailingSpace || commandInfo.availableArgs.length > 0) {
+        console.log('[FishStyleCompletion] 需要文件补全, 最后参数:', commandInfo.lastArg);
+        const suggestions = await this.getFileNameCompletions(commandInfo.lastArg, context);
+        console.log('[FishStyleCompletion] 文件补全建议:', suggestions);
+        return suggestions;
+      }
+      return [];
+    }
+
     // 如果命令名为空或者是部分输入，提供命令名补全
-    if (!command.name || !this.isFullCommand(command.name)) {
+    if (!commandInfo.commandName || !this.isFullCommand(commandInfo.commandName)) {
       console.log('[FishStyleCompletion] 提供命令名补全');
-      return this.getBasicCommandSuggestions(command.name || '');
+      return this.getBasicCommandSuggestions(commandInfo.commandName);
     }
 
     // 处理特定命令的补全
-    switch (command.name) {
+    switch (commandInfo.commandName) {
       case 'ls':
         return this.getLsCompletions(command);
       case 'git':
@@ -504,6 +553,16 @@ export class FishStyleCompletion {
       'journalctl', 'docker', 'kubectl', 'helm'
     ];
     return basicCommands.includes(name);
+  }
+
+  /**
+   * 判断是否是需要文件补全的命令
+   */
+  private isFileCompletionCommand(commandName: string): boolean {
+    const fileCommands = ['cat', 'vim', 'nano', 'less', 'more', 'tail', 'head', 'cp', 'mv', 'rm'];
+    const result = fileCommands.includes(commandName.toLowerCase());
+    console.log('[FishStyleCompletion] 文件补全命令检查:', { commandName, isFileCommand: result });
+    return result;
   }
 
   /**
@@ -573,26 +632,73 @@ export class FishStyleCompletion {
    * 获取文件名补全
    */
   private async getFileNameCompletions(
-    partialPath: string
+    partialPath: string,
+    context: CompletionContext
   ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 获取文件名补全, 路径:', partialPath);
     try {
-      // 这里应该根据当前目录和部分路径获取匹配的文件列表
-      // 暂时返回一些示例建议
-      return [
-        {
-          fullCommand: partialPath + 'file1.txt',
-          suggestion: 'file1.txt',
-          source: CompletionSource.LOCAL,
-          score: 0.7
-        },
-        {
-          fullCommand: partialPath + 'file2.txt',
-          suggestion: 'file2.txt',
-          source: CompletionSource.LOCAL,
-          score: 0.7
-        }
-      ];
+      const sessionInfo = eventBus.getCurrentSessionInfo();
+      if (!sessionInfo) {
+        console.log('[FishStyleCompletion] 未找到会话信息');
+        return [];
+      }
+
+      // 获取当前目录
+      const pwdResult = await this.sshManager.executeCommand(sessionInfo, 'pwd');
+      const currentDir = pwdResult.stdout.trim();
+      console.log('[FishStyleCompletion] 当前目录:', currentDir);
+
+      // 获取当前目录下的文件列表
+      const lsResult = await this.sshManager.executeCommand(sessionInfo, 'ls -la');
+      console.log('[FishStyleCompletion] 原始 ls 输出:', lsResult);
+
+      // 解析 ls -la 的输出
+      const lines = lsResult.stdout.split('\n');
+      console.log('[FishStyleCompletion] 分割后的行数:', lines.length);
+      
+      const files = lines
+        .filter(line => {
+          const shouldKeep = line.trim() && !line.startsWith('total');
+          console.log('[FishStyleCompletion] 处理行:', { line, shouldKeep });
+          return shouldKeep;
+        })
+        .map(line => {
+          const parts = line.trim().split(/\s+/);
+          console.log('[FishStyleCompletion] 分割行:', { line, parts });
+          const permissions = parts[0];
+          const name = parts[parts.length - 1];
+          const isDirectory = permissions.startsWith('d');
+          console.log('[FishStyleCompletion] 解析文件:', { name, permissions, isDirectory });
+          return { name, isDirectory };
+        })
+        .filter(file => {
+          const shouldKeep = file.name !== '.' && file.name !== '..';
+          console.log('[FishStyleCompletion] 过滤文件:', { file, shouldKeep });
+          return shouldKeep;
+        });
+
+      console.log('[FishStyleCompletion] 解析后的文件列表:', files);
+
+      // 过滤并转换为补全建议
+      const suggestions = files
+        .filter(file => {
+          const matches = !partialPath || file.name.toLowerCase().startsWith(partialPath.toLowerCase());
+          console.log('[FishStyleCompletion] 匹配文件:', { file, partialPath, matches });
+          return matches;
+        })
+        .map(file => {
+          const suggestion = {
+            fullCommand: file.name,
+            suggestion: partialPath ? file.name.slice(partialPath.length) : file.name,
+            source: CompletionSource.LOCAL,
+            score: file.isDirectory ? 0.95 : 0.9  // 目录优先级略高
+          };
+          console.log('[FishStyleCompletion] 生成建议:', suggestion);
+          return suggestion;
+        });
+
+      console.log('[FishStyleCompletion] 文件名补全建议:', suggestions);
+      return suggestions;
     } catch (error) {
       console.error('[FishStyleCompletion] 获取文件名补全失败:', error);
       return [];

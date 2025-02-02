@@ -120,6 +120,45 @@
   - SSH会话补全
   - 历史命令补全
 
+- [x] 目录同步机制
+  ```typescript
+  // 在 CompletionSSHManager 中维护目录映射
+  class CompletionSSHManager {
+    private currentDirectories: Map<string, string> = new Map(); // tabId -> currentDirectory
+    
+    // 更新目录（由终端 cd 命令触发）
+    public async updateDirectory(tabId: string, command: string) {
+      if (command.startsWith('cd ')) {
+        // 在补全连接中执行相同的 cd 命令
+        await this.executeCommand(tabId, command);
+        // 获取新目录
+        const result = await this.executeCommand(tabId, 'pwd');
+        const newDirectory = result.stdout.trim();
+        // 更新目录映射
+        this.currentDirectories.set(tabId, newDirectory);
+      }
+    }
+    
+    // 获取当前目录（用于补全）
+    public getCurrentDirectory(tabId: string): string {
+      return this.currentDirectories.get(tabId) || '~';
+    }
+  }
+
+  // 终端事件处理
+  class Terminal {
+    private async handleCommand(command: string) {
+      if (command.startsWith('cd ')) {
+        // 发送目录变更事件到补全服务
+        eventBus.emit('terminal:directory-change', {
+          tabId: this.tabId,
+          command: command
+        });
+      }
+    }
+  }
+  ```
+
 - [x] 增强上下文感知补全
   ```typescript
   class ContextAwareCompletion {

@@ -13,4 +13,5 @@ export interface SessionInfo {
   group?: string;
   groupOrder?: number;
   status: 'disconnected' | 'connecting' | 'connected' | 'error';
+  currentDirectory?: string;  // 当前工作目录
 } 

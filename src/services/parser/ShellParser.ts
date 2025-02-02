@@ -188,17 +188,40 @@ export class ShellParser {
    * 处理命令节点
    */
   private processCommand(node: SyntaxNode): ShellParserTypes.ParseResult {
+    console.log('处理命令节点:', {
+      type: node.type,
+      text: node.text,
+      children: node.children.map(child => ({
+        type: child.type,
+        text: child.text
+      }))
+    });
+
     const command: ShellParserTypes.Command = {
       name: '',
       args: [],
       options: [],
-      redirects: []
+      redirects: [],
+      hasTrailingSpace: node.text.endsWith(' ')  // 初始化时就设置尾部空格标记
     };
 
+    // 标记是否已经处理过命令名
+    let hasProcessedCommandName = false;
+
     for (const child of node.children) {
+      console.log('处理子节点:', {
+        type: child.type,
+        text: child.text
+      });
+
       switch (child.type) {
         case 'command_name':
-          command.name = child.text;
+          if (!hasProcessedCommandName) {
+            command.name = child.text;  // 不要 trim，保留原始状态
+            hasProcessedCommandName = true;
+          } else {
+            command.args.push(child.text);
+          }
           break;
         case 'argument':
           command.args.push(child.text);
@@ -212,9 +235,21 @@ export class ShellParser {
             target: child.lastChild?.text || ''
           });
           break;
+        case 'word':
+          if (!hasProcessedCommandName) {
+            command.name = child.text;  // 不要 trim，保留原始状态
+            hasProcessedCommandName = true;
+          } else {
+            command.args.push(child.text);
+          }
+          break;
       }
     }
 
+    // 最后再处理命令名的空格
+    command.name = command.name.trim();
+
+    console.log('命令处理结果:', command);
     return {
       type: 'command',
       ...command

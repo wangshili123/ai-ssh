@@ -293,11 +293,11 @@ export const useCompletion = ({
           environment: process.env as { [key: string]: string }
         };
 
-        const newSuggestions = await completionService?.getSuggestions(
-          currentInput,
-          cursorPositionRef.current.x,
-          sessionState
-        );
+        const newSuggestions = await completionService?.getSuggestions({
+          input: currentInput,
+          cursorPosition: cursorPositionRef.current.x,  // 只使用 x 坐标作为光标位置
+          sessionState: sessionState
+        });
         console.log('[useCompletion] Got suggestions:', newSuggestions);
         
         if (newSuggestions && newSuggestions.length > 0) {

@@ -8,11 +8,17 @@ console.log('Loading renderer SSH service...');
 class SSHService {
   private dataCallbacks: Map<string, (data: string) => void>;
   private closeCallbacks: Map<string, () => void>;
+  private currentDirectories: Map<string, string> = new Map();
 
   constructor() {
     console.log('Initializing renderer SSHService...');
     this.dataCallbacks = new Map();
     this.closeCallbacks = new Map();
+
+    // 监听目录变更事件
+    ipcRenderer.on('ssh:directory-change', (_, { shellId, directory }) => {
+      this.currentDirectories.set(shellId, directory);
+    });
   }
 
   async connect(sessionInfo: SessionInfo) {
@@ -106,6 +112,11 @@ class SSHService {
     if (!result.success) {
       throw new Error(result.error);
     }
+  }
+
+  // 获取当前目录
+  getCurrentDirectory(shellId: string): string {
+    return this.currentDirectories.get(shellId) || '~';
   }
 }
 

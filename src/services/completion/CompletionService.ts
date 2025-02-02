@@ -8,6 +8,8 @@ import { CompletionContext, CompletionSource, CompletionSuggestion } from './typ
 import { EnhancedContextAnalyzer } from './analyzers/EnhancedContextAnalyzer';
 import { SessionState } from './core/types/context.types';
 import { ScoringService } from './scoring/ScoringService';
+import { SSHSession } from './SSHCompletion';
+import { SSHConnectionManager } from '../ssh/SSHConnectionManager';
 
 export class CompletionService {
   private static instance: CompletionService;
@@ -80,121 +82,170 @@ export class CompletionService {
     }
   }
 
-  public async getSuggestions(
-    input: string,
-    cursorPosition: number,
-    sessionState: SessionState
-  ): Promise<CompletionSuggestion[]> {
+  /**
+   * 获取补全建议
+   */
+  public async getSuggestions(params: {
+    input: string;
+    cursorPosition: number;
+    sessionState: SessionState;
+  }): Promise<CompletionSuggestion[]> {
+    console.log('[CompletionService] 开始获取补全建议:', params);
+
+    const { input, cursorPosition, sessionState } = params;
+    const hasSession = sessionState && sessionState.currentWorkingDirectory !== undefined;
+    console.log('[CompletionService] SSH 会话状态:', { hasSession });
+
     const startTime = performance.now();
-    console.log('[CompletionService] 开始获取补全建议:', {
+
+    // 获取增强上下文
+    console.log('[CompletionService] 正在获取增强上下文...');
+    const enhancedContext = await this.contextAnalyzer.getEnhancedContext(
       input,
       cursorPosition,
       sessionState
+    );
+
+    // 如果解析出的命令存在，添加原始输入的空格信息
+    if (enhancedContext.currentCommand.type === 'program' && enhancedContext.currentCommand.commands.length > 0) {
+      const command = enhancedContext.currentCommand.commands[0];
+      command.hasTrailingSpace = input.endsWith(' ');
+      console.log('[CompletionService] 设置命令尾部空格状态:', command.hasTrailingSpace);
+    }
+
+    console.log('[CompletionService] 获取增强上下文完成, 耗时:', performance.now() - startTime, 'ms');
+    console.log('[CompletionService] 获取到的增强上下文:', enhancedContext);
+
+    // 从历史记录中查找匹配的命令
+    const historyStartTime = performance.now();
+    console.log('[CompletionService] 从历史记录中查找匹配的命令...');
+    const historyResults = await this.commandHistory.search(input, 10);
+    const historySuggestions = historyResults
+      .filter(item => item.command.toLowerCase().startsWith(input.toLowerCase()))
+      .map(item => ({
+        fullCommand: item.command,
+        suggestion: item.command,
+        source: CompletionSource.HISTORY,
+        score: 0.8
+      }));
+    const historyEndTime = performance.now();
+    console.log('[CompletionService] 历史记录匹配完成, 耗时:', (historyEndTime - historyStartTime).toFixed(2), 'ms');
+    console.log('[CompletionService] 历史记录匹配结果:', historySuggestions);
+
+    // 获取基础补全建议
+    const command = enhancedContext.currentCommand.type === 'command' 
+      ? {
+          ...enhancedContext.currentCommand,
+          name: enhancedContext.currentCommand.name,
+          hasTrailingSpace: input.endsWith(' ')
+        }
+      : { 
+          name: input.trim(), 
+          args: [], 
+          options: [], 
+          redirects: [],
+          hasTrailingSpace: input.endsWith(' ')
+        };
+    console.log('[CompletionService] 处理的命令对象:', command);
+
+    const fishStartTime = performance.now();
+    console.log('[CompletionService] 正在获取Fish风格补全建议...');
+    const syntaxSuggestions = await this.fishCompletion.getSuggestions(
+      command,
+      {
+        sshSession: hasSession ? {
+          execute: async (command: string) => {
+            console.log('[CompletionService] 执行 SSH 命令:', command);
+            const result = await SSHConnectionManager.getInstance().executeCurrentSessionCommand(command);
+            console.log('[CompletionService] SSH 命令执行结果:', result);
+            return {
+              stdout: result.stdout,
+              stderr: result.stderr
+            };
+          },
+          getCurrentDirectory: async () => {
+            console.log('[CompletionService] 获取当前目录');
+            const result = await SSHConnectionManager.getInstance().executeCurrentSessionCommand('pwd');
+            console.log('[CompletionService] 当前目录:', result.stdout.trim());
+            return result.stdout.trim();
+          },
+          getEnvironmentVars: async () => {
+            console.log('[CompletionService] 获取环境变量');
+            const result = await SSHConnectionManager.getInstance().executeCurrentSessionCommand('env');
+            const vars: Record<string, string> = {};
+            result.stdout.split('\n').forEach((line: string) => {
+              const [key, ...values] = line.split('=');
+              if (key) vars[key] = values.join('=');
+            });
+            console.log('[CompletionService] 环境变量:', vars);
+            return vars;
+          }
+        } : undefined,
+        recentCommands: enhancedContext.commandHistory.recent.map(r => r.command),
+        commandHistory: {
+          frequency: enhancedContext.commandHistory.statistics[0]?.frequency || 0,
+          lastUsed: enhancedContext.commandHistory.statistics[0]?.lastUsed || new Date()
+        },
+        currentCommand: {
+          name: command.name,
+          args: command.args,
+          options: command.options,
+          isIncomplete: true
+        }
+      }
+    );
+    const fishEndTime = performance.now();
+    console.log('[CompletionService] Fish风格补全完成, 耗时:', (fishEndTime - fishStartTime).toFixed(2), 'ms');
+    console.log('[CompletionService] Fish风格补全建议:', syntaxSuggestions);
+
+    // 过滤基础补全建议
+    const filterStartTime = performance.now();
+    const filteredSyntaxSuggestions = syntaxSuggestions.filter(suggestion => {
+      // 如果输入以空格结尾，说明是在补全参数，不需要过滤
+      if (input.endsWith(' ')) {
+        return true;
+      }
+      // 否则按照命令前缀过滤
+      return suggestion.fullCommand.toLowerCase().startsWith(input.toLowerCase());
+    });
+    const filterEndTime = performance.now();
+    console.log('[CompletionService] 过滤补全建议完成, 耗时:', (filterEndTime - filterStartTime).toFixed(2), 'ms');
+    console.log('[CompletionService] 过滤后的基础补全建议:', filteredSyntaxSuggestions);
+
+    // 合并历史记录和基础补全建议
+    const allSuggestions = [...historySuggestions, ...filteredSyntaxSuggestions];
+    console.log('[CompletionService] 合并后的所有建议:', allSuggestions);
+
+    // 使用ScoringService调整建议的排序和得分
+    const scoringStartTime = performance.now();
+    console.log('[CompletionService] 正在调整建议排序和得分...');
+    const adjustedSuggestions = await this.scoringService.adjustSuggestionScores(
+      allSuggestions,
+      input,
+      enhancedContext
+    );
+    const scoringEndTime = performance.now();
+    console.log('[CompletionService] 调整排序和得分完成, 耗时:', (scoringEndTime - scoringStartTime).toFixed(2), 'ms');
+    console.log('[CompletionService] 调整后的建议:', adjustedSuggestions);
+
+    // 去重并限制数量
+    const dedupeStartTime = performance.now();
+    const finalSuggestions = this.scoringService.deduplicateAndLimit(adjustedSuggestions, 10);
+    const dedupeEndTime = performance.now();
+    console.log('[CompletionService] 去重和限制数量完成, 耗时:', (dedupeEndTime - dedupeStartTime).toFixed(2), 'ms');
+    console.log('[CompletionService] 最终补全建议:', finalSuggestions);
+
+    const endTime = performance.now();
+    console.log('[CompletionService] 获取补全建议完成, 总耗时:', (endTime - startTime).toFixed(2), 'ms', {
+      '增强上下文耗时': (performance.now() - startTime).toFixed(2),
+      '历史记录查询耗时': (historyEndTime - historyStartTime).toFixed(2),
+      'Fish补全耗时': (fishEndTime - fishStartTime).toFixed(2),
+      '过滤耗时': (filterEndTime - filterStartTime).toFixed(2),
+      '打分耗时': (scoringEndTime - scoringStartTime).toFixed(2),
+      '去重耗时': (dedupeEndTime - dedupeStartTime).toFixed(2)
     });
 
-    try {
-      // 1. 获取增强的上下文
-      const contextStartTime = performance.now();
-      console.log('[CompletionService] 正在获取增强上下文...');
-      const enhancedContext = await this.contextAnalyzer.getEnhancedContext(
-        input,
-        cursorPosition,
-        sessionState
-      );
-      const contextEndTime = performance.now();
-      console.log('[CompletionService] 获取增强上下文完成, 耗时:', (contextEndTime - contextStartTime).toFixed(2), 'ms');
-      console.log('[CompletionService] 获取到的增强上下文:', enhancedContext);
-
-      // 2. 从历史记录中查找匹配的命令
-      const historyStartTime = performance.now();
-      console.log('[CompletionService] 从历史记录中查找匹配的命令...');
-      const historyResults = await this.commandHistory.search(input, 10);
-      const historySuggestions = historyResults
-        .filter(item => item.command.toLowerCase().startsWith(input.toLowerCase()))
-        .map(item => ({
-          fullCommand: item.command,
-          suggestion: item.command,
-          source: CompletionSource.HISTORY,
-          score: 0.8
-        }));
-      const historyEndTime = performance.now();
-      console.log('[CompletionService] 历史记录匹配完成, 耗时:', (historyEndTime - historyStartTime).toFixed(2), 'ms');
-      console.log('[CompletionService] 历史记录匹配结果:', historySuggestions);
-
-      // 3. 获取基础补全建议
-      const command = enhancedContext.currentCommand.type === 'command' 
-        ? enhancedContext.currentCommand 
-        : { name: input, args: [], options: [], redirects: [] };
-      console.log('[CompletionService] 处理的命令对象:', command);
-
-      const fishStartTime = performance.now();
-      console.log('[CompletionService] 正在获取Fish风格补全建议...');
-      const syntaxSuggestions = await this.fishCompletion.getSuggestions(
-        command,
-        {
-          sshSession: undefined,
-          recentCommands: enhancedContext.commandHistory.recent.map(r => r.command),
-          commandHistory: {
-            frequency: enhancedContext.commandHistory.statistics[0]?.frequency || 0,
-            lastUsed: enhancedContext.commandHistory.statistics[0]?.lastUsed || new Date()
-          },
-          currentCommand: {
-            name: command.name,
-            args: command.args,
-            options: command.options,
-            isIncomplete: true
-          }
-        }
-      );
-      const fishEndTime = performance.now();
-      console.log('[CompletionService] Fish风格补全完成, 耗时:', (fishEndTime - fishStartTime).toFixed(2), 'ms');
-
-      // 4. 过滤基础补全建议
-      const filterStartTime = performance.now();
-      const filteredSyntaxSuggestions = syntaxSuggestions.filter(
-        suggestion => suggestion.fullCommand.toLowerCase().startsWith(input.toLowerCase())
-      );
-      const filterEndTime = performance.now();
-      console.log('[CompletionService] 过滤补全建议完成, 耗时:', (filterEndTime - filterStartTime).toFixed(2), 'ms');
-      console.log('[CompletionService] 过滤后的基础补全建议:', filteredSyntaxSuggestions);
-
-      // 5. 合并历史记录和基础补全建议
-      const allSuggestions = [...historySuggestions, ...filteredSyntaxSuggestions];
-
-      // 6. 使用ScoringService调整建议的排序和得分
-      const scoringStartTime = performance.now();
-      console.log('[CompletionService] 正在调整建议排序和得分...');
-      const adjustedSuggestions = await this.scoringService.adjustSuggestionScores(
-        allSuggestions,
-        input,
-        enhancedContext
-      );
-      const scoringEndTime = performance.now();
-      console.log('[CompletionService] 调整排序和得分完成, 耗时:', (scoringEndTime - scoringStartTime).toFixed(2), 'ms');
-
-      // 7. 去重并限制数量
-      const dedupeStartTime = performance.now();
-      const finalSuggestions = this.scoringService.deduplicateAndLimit(adjustedSuggestions, 10);
-      const dedupeEndTime = performance.now();
-      console.log('[CompletionService] 去重和限制数量完成, 耗时:', (dedupeEndTime - dedupeStartTime).toFixed(2), 'ms');
-
-      const endTime = performance.now();
-      console.log('[CompletionService] 获取补全建议完成, 总耗时:', (endTime - startTime).toFixed(2), 'ms', {
-        '增强上下文耗时': (contextEndTime - contextStartTime).toFixed(2),
-        '历史记录查询耗时': (historyEndTime - historyStartTime).toFixed(2),
-        'Fish补全耗时': (fishEndTime - fishStartTime).toFixed(2),
-        '过滤耗时': (filterEndTime - filterStartTime).toFixed(2),
-        '打分耗时': (scoringEndTime - scoringStartTime).toFixed(2),
-        '去重耗时': (dedupeEndTime - dedupeStartTime).toFixed(2)
-      });
-
-      return finalSuggestions;
-
-    } catch (error) {
-      const endTime = performance.now();
-      console.error('[CompletionService] 获取补全建议失败, 总耗时:', (endTime - startTime).toFixed(2), 'ms, 错误:', error);
-      return [];
-    }
+    return finalSuggestions;
   }
 
   public async recordCommand(
@@ -273,5 +324,37 @@ export class CompletionService {
       exitCode,
       timestamp: new Date()
     });
+  }
+
+  private async getSSHSession(sessionState: SessionState): Promise<SSHSession | undefined> {
+    try {
+      const sshManager = SSHConnectionManager.getInstance();
+
+      return {
+        execute: async (command: string) => {
+          const result = await sshManager.executeCurrentSessionCommand(command);
+          return {
+            stdout: result.stdout,
+            stderr: result.stderr
+          };
+        },
+        getCurrentDirectory: async () => {
+          const result = await sshManager.executeCurrentSessionCommand('pwd');
+          return result.stdout.trim();
+        },
+        getEnvironmentVars: async () => {
+          const result = await sshManager.executeCurrentSessionCommand('env');
+          const vars: Record<string, string> = {};
+          result.stdout.split('\n').forEach((line: string) => {
+            const [key, ...values] = line.split('=');
+            if (key) vars[key] = values.join('=');
+          });
+          return vars;
+        }
+      };
+    } catch (error) {
+      console.error('[CompletionService] 获取 SSH 会话失败:', error);
+      return undefined;
+    }
   }
 } 

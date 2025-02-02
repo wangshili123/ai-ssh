@@ -125,12 +125,78 @@ export const useTerminalInit = ({
 
     // 注册事件处理器
     terminal.onData(callbacksRef.current.handleInput);
+    
+    let currentCommand = '';
     terminal.onKey(async (event) => {
       const ev = event.domEvent;
       const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
 
-      if (ev.key === 'Enter') {
-        await callbacksRef.current.handleEnterKey();
+      if (printable && ev.key !== 'Enter') {
+        currentCommand += ev.key;
+      } else if (ev.key === 'Backspace') {
+        currentCommand = currentCommand.slice(0, -1);
+      } else if (ev.key === 'Enter') {
+        const command = currentCommand.trim();
+        console.log('[useTerminalInit] Executing command:', command);
+        
+        // 检查是否是 cd 命令
+        if (command.startsWith('cd ')) {
+          // 等待命令执行完成
+          await callbacksRef.current.handleEnterKey();
+          
+          // 执行 pwd 命令获取新的目录
+          const shellId = shellIdRef.current;
+          if (shellId) {
+            console.log('[useTerminalInit] Executing pwd after cd command');
+            try {
+              // 执行 pwd 命令
+              await sshService.write(shellId, 'pwd\n');
+              
+              // 等待输出
+              await new Promise<void>((resolve) => {
+                const checkOutput = () => {
+                  const output = terminalOutputService.getHistory();
+                  const lastOutput = output[output.length - 1]?.output;
+                  
+                  if (lastOutput) {
+                    const lines = lastOutput.split('\n');
+                    const pwdOutput = lines.find(line => !line.includes('$ ') && !line.includes('# ') && line.trim());
+                    
+                    if (pwdOutput) {
+                      const newDirectory = pwdOutput.trim();
+                      console.log('[useTerminalInit] New directory:', newDirectory);
+                      
+                      // 更新会话信息中的当前目录
+                      if (configRef.current.sessionInfo) {
+                        const sessionInfo = configRef.current.sessionInfo;
+                        sessionInfo.currentDirectory = newDirectory;
+                        // 发送目录变更事件
+                        eventBus.emit('ssh:directory-change', { 
+                          shellId: sessionInfo.id, 
+                          directory: newDirectory 
+                        });
+                      }
+                      resolve();
+                    } else {
+                      setTimeout(checkOutput, 10);
+                    }
+                  } else {
+                    setTimeout(checkOutput, 10);
+                  }
+                };
+                
+                checkOutput();
+              });
+            } catch (error) {
+              console.error('[useTerminalInit] Failed to get new directory:', error);
+            }
+          }
+        } else {
+          await callbacksRef.current.handleEnterKey();
+        }
+        
+        // 重置当前命令
+        currentCommand = '';
       }
     });
 

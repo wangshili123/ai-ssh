@@ -25,6 +25,7 @@ export interface SessionInfo {
   groupOrder?: number;  // 在分组内的排序
   status: 'disconnected' | 'connecting' | 'connected' | 'error';
   lastError?: string;
+  currentDirectory?: string;  // 当前工作目录
 }
 
 // 加密密钥，实际应用中应该使用更安全的方式存储
@@ -36,10 +37,23 @@ class StorageService {
   private groupsPath: string;
 
   constructor() {
-    // 在用户数据目录下创建存储文件
-    const userDataPath = app.getPath('userData');
-    this.storagePath = path.join(userDataPath, 'sessions.json');
-    this.groupsPath = path.join(userDataPath, 'groups.json');
+    try {
+      // 在用户数据目录下创建存储文件
+      const userDataPath = app.getPath('userData');
+      this.storagePath = path.join(userDataPath, 'sessions.json');
+      this.groupsPath = path.join(userDataPath, 'groups.json');
+    } catch (error) {
+      // 如果在渲染进程中，提供一个默认路径
+      console.warn('无法获取 app.getPath，使用默认路径', error);
+      const defaultPath = path.join(process.cwd(), '.storage');
+      this.storagePath = path.join(defaultPath, 'sessions.json');
+      this.groupsPath = path.join(defaultPath, 'groups.json');
+      
+      // 确保目录存在
+      if (!fs.existsSync(defaultPath)) {
+        fs.mkdirSync(defaultPath, { recursive: true });
+      }
+    }
   }
 
   // 加密数据

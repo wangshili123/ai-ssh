@@ -1,18 +1,18 @@
-import { Client } from 'ssh2';
+import { Client, Channel } from 'ssh2';
 import type { SessionInfo } from './storage';
 import { BrowserWindow } from 'electron';
 import { sftpManager } from './sftp';
+import { storageService } from './storage';
 
 console.log('Loading SSH service...');
 
 class SSHService {
-  private connections: Map<string, Client>;
-  private shells: Map<string, any>;
+  private connections: Map<string, Client> = new Map();
+  private shells: Map<string, Channel> = new Map();
+  private currentDirectories: Map<string, string> = new Map();
 
   constructor() {
     console.log('Initializing SSHService...');
-    this.connections = new Map();
-    this.shells = new Map();
   }
 
   /**
@@ -118,8 +118,10 @@ class SSHService {
     if (this.shells.has(shellId)) {
       console.log(`Shell ${shellId} already exists, closing it first`);
       const oldShell = this.shells.get(shellId);
-      oldShell.end();
-      this.shells.delete(shellId);
+      if (oldShell) {
+        oldShell.end();
+        this.shells.delete(shellId);
+      }
     }
 
     return new Promise<void>((resolve, reject) => {
@@ -153,11 +155,19 @@ class SSHService {
           return;
         }
 
+        // 初始化目录为用户主目录
+        this.updateCurrentDirectory(shellId, '~');
+
         // 监听数据事件
         stream.on('data', (data: Buffer) => {
           const dataStr = data.toString();
           console.log(`Sending shell data to renderer [${shellId}]:`, dataStr);
           mainWindow.webContents.send(`ssh:data:${shellId}`, dataStr);
+
+          // 检查是否是 cd 命令
+          if (this.isChangeDirectoryCommand(dataStr)) {
+            this.handleDirectoryChange(shellId, dataStr);
+          }
         });
 
         // 监听关闭事件
@@ -194,7 +204,81 @@ class SSHService {
     if (!shell) {
       throw new Error('No shell session found');
     }
-    shell.setWindow(rows, cols);
+    shell.setWindow(rows, cols, 0, 0);
+  }
+
+  // 新增：检查是否是 cd 命令
+  private isChangeDirectoryCommand(data: string): boolean {
+    // 匹配 cd 命令，包括带参数的情况
+    const cdPattern = /^cd\s+.+$/;
+    const isCD = cdPattern.test(data.trim());
+    console.log('[SSH] isChangeDirectoryCommand check:', { data: data.trim(), isCD });
+    return isCD;
+  }
+
+  // 新增：处理目录变更
+  private async handleDirectoryChange(shellId: string, command: string) {
+    console.log('[SSH] handleDirectoryChange:', { shellId, command });
+    try {
+      // 执行 pwd 命令获取新的工作目录
+      const shell = this.shells.get(shellId);
+      if (!shell) {
+        console.log('[SSH] Shell not found for directory change:', shellId);
+        return;
+      }
+
+      shell.write('pwd\n');
+      console.log('[SSH] Sent pwd command to get new directory');
+      
+      // 等待并处理 pwd 命令的输出
+      const output = await new Promise<string>((resolve) => {
+        const handler = (data: Buffer) => {
+          const pwd = data.toString().trim();
+          console.log('[SSH] Received pwd output:', pwd);
+          if (pwd.startsWith('/')) {  // 确保是有效的路径
+            shell.removeListener('data', handler);
+            resolve(pwd);
+          }
+        };
+        shell.on('data', handler);
+      });
+
+      // 更新当前目录
+      this.updateCurrentDirectory(shellId, output);
+    } catch (error) {
+      console.error(`[SSH] Failed to handle directory change [${shellId}]:`, error);
+    }
+  }
+
+  // 新增：更新当前目录
+  private async updateCurrentDirectory(shellId: string, directory: string) {
+    console.log('[SSH] Updating current directory:', { shellId, directory });
+    
+    // 更新目录映射
+    this.currentDirectories.set(shellId, directory);
+    
+    // 更新 SessionInfo 中的 currentDirectory
+    const sessionId = shellId.split('-')[0];
+    try {
+      const sessions = await storageService.loadSessions();
+      const sessionIndex = sessions.findIndex(s => s.id === sessionId);
+      if (sessionIndex !== -1) {
+        sessions[sessionIndex].currentDirectory = directory;
+        await storageService.saveSessions(sessions);
+        console.log('[SSH] Updated SessionInfo currentDirectory:', { sessionId, directory });
+      } else {
+        console.log('[SSH] Session not found:', sessionId);
+      }
+    } catch (error) {
+      console.error('[SSH] Failed to update SessionInfo:', error);
+    }
+  }
+
+  // 获取当前目录
+  getCurrentDirectory(shellId: string): string {
+    const directory = this.currentDirectories.get(shellId);
+    console.log('[SSH] Getting current directory:', { shellId, directory });
+    return directory || '~';
   }
 }
 

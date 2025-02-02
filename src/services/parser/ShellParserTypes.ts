@@ -18,6 +18,7 @@ export namespace ShellParserTypes {
     args: string[];    // 命令参数
     options: string[]; // 命令选项
     redirects: Redirect[]; // 重定向
+    hasTrailingSpace?: boolean;  // 命令后是否有空格
   }
 
   /**
