@@ -256,7 +256,7 @@ export class CompletionService {
 
     // 去重并限制数量
     const dedupeStartTime = performance.now();
-    const finalSuggestions = this.scoringService.deduplicateAndLimit(adjustedSuggestions, 10);
+    const finalSuggestions = this.scoringService.deduplicateAndLimit(adjustedSuggestions, 3);
     const dedupeEndTime = performance.now();
     console.log('[CompletionService] 去重和限制数量完成, 耗时:', (dedupeEndTime - dedupeStartTime).toFixed(2), 'ms');
     console.log('[CompletionService] 最终补全建议:', finalSuggestions);
