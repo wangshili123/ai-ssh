@@ -26,7 +26,7 @@ export namespace ShellParserTypes {
    */
   export type ParseResult = 
     | { type: 'program'; commands: Command[] }
-    | { type: 'command'; name: string; args: string[]; options: string[]; redirects: Redirect[] }
+    | { type: 'command'; name: string; args: string[]; options: string[]; redirects: Redirect[]; hasTrailingSpace?: boolean }
     | { type: 'pipeline'; commands: Command[] }
     | { type: 'error'; error: string }
     | { type: 'unknown'; raw: string };

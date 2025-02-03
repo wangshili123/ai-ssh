@@ -128,7 +128,7 @@ export const useTerminalInit = ({
     terminal.onData(callbacksRef.current.handleInput);
     
     let currentCommand = '';
-
+    const tabId = eventBus.getCurrentTabId() || '';
     terminal.onKey(async (event) => {
       const ev = event.domEvent;
       
@@ -155,7 +155,6 @@ export const useTerminalInit = ({
           await new Promise(resolve => setTimeout(resolve, 100));
           
           // 发送目录变更事件到补全服务
-          const tabId = configRef.current.instanceId || configRef.current.sessionInfo?.id || '';
           console.log('[useTerminalInit] Sending directory change event for tab:', tabId, 'command:', command);
           eventBus.emit('terminal:directory-change', {
             tabId,
@@ -197,7 +196,7 @@ export const useTerminalInit = ({
       shellIdRef.current = shellId;
 
       // 设置补全服务的会话信息
-      const tabId = eventBus.getCurrentTabId() || '';
+
       const completionSSHManager = CompletionSSHManager.getInstance();
       completionSSHManager.setSessionForTab(tabId, configRef.current.sessionInfo);
 

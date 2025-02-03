@@ -197,12 +197,25 @@ export class ShellParser {
       }))
     });
 
+    // 如果tree-sitter解析失败，使用简单的空格分割
+    if (node.children.length === 0) {
+      const parts = node.text.trim().split(/\s+/);
+      return {
+        type: 'command',
+        name: parts[0] || '',
+        args: parts.slice(1),
+        options: [],
+        redirects: [],
+        hasTrailingSpace: node.text.endsWith(' ')
+      };
+    }
+
     const command: ShellParserTypes.Command = {
       name: '',
       args: [],
       options: [],
       redirects: [],
-      hasTrailingSpace: node.text.endsWith(' ')  // 初始化时就设置尾部空格标记
+      hasTrailingSpace: node.text.endsWith(' ')
     };
 
     // 标记是否已经处理过命令名
@@ -217,7 +230,7 @@ export class ShellParser {
       switch (child.type) {
         case 'command_name':
           if (!hasProcessedCommandName) {
-            command.name = child.text;  // 不要 trim，保留原始状态
+            command.name = child.text.trim();
             hasProcessedCommandName = true;
           } else {
             command.args.push(child.text);
@@ -237,7 +250,7 @@ export class ShellParser {
           break;
         case 'word':
           if (!hasProcessedCommandName) {
-            command.name = child.text;  // 不要 trim，保留原始状态
+            command.name = child.text.trim();
             hasProcessedCommandName = true;
           } else {
             command.args.push(child.text);
@@ -246,10 +259,6 @@ export class ShellParser {
       }
     }
 
-    // 最后再处理命令名的空格
-    command.name = command.name.trim();
-
-    console.log('命令处理结果:', command);
     return {
       type: 'command',
       ...command

@@ -161,13 +161,16 @@ export class CompletionService {
           name: enhancedContext.currentCommand.name,
           hasTrailingSpace: input.endsWith(' ')
         }
-      : { 
-          name: input.trim(), 
-          args: [], 
-          options: [], 
-          redirects: [],
-          hasTrailingSpace: input.endsWith(' ')
-        };
+      : (() => {
+          const parts = input.trim().split(/\s+/);
+          return { 
+            name: parts[0] || '', 
+            args: parts.slice(1), 
+            options: [], 
+            redirects: [],
+            hasTrailingSpace: input.endsWith(' ')
+          };
+        })();
     console.log('[CompletionService] 处理的命令对象:', command);
 
     const fishStartTime = performance.now();
