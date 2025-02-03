@@ -123,7 +123,9 @@ export class FishStyleCompletion {
 
     // 获取建议
     const suggestions: CompletionSuggestion[] = [];
-
+    //当前目录
+    const currentDirectory = this.sshManager.getCurrentDirectory(eventBus.getCurrentTabId());
+    console.log('[FishStyleCompletion] 当前目录:', currentDirectory);
     try {
       // 预先获取共用数据
       const commonData = {

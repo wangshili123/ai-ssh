@@ -32,7 +32,7 @@ export interface EventMap {
 class EventBus extends EventEmitter {
   private static instance: EventBus;
   private currentShellId: string | null = null;
-  private currentTabId: string | null = null;
+  private currentTabId: string  = "default-tab";
   private tabMap: Map<string, TabInfo> = new Map();
 
   private constructor() {
@@ -78,7 +78,7 @@ class EventBus extends EventEmitter {
     return this.currentShellId;
   }
 
-  getCurrentTabId(): string | null {
+  getCurrentTabId(): string | 'default-tab' {
     const tabId = this.currentTabId;
     console.log('[EventBus] 获取当前 tabId:', tabId);
     return tabId;
@@ -114,7 +114,7 @@ class EventBus extends EventEmitter {
   removeTab(tabId: string) {
     console.log('[EventBus] 移除标签页:', tabId);
     if (this.currentTabId === tabId) {
-      this.currentTabId = null;
+      this.currentTabId = 'default-tab';
       this.currentShellId = null;
     }
     this.tabMap.delete(tabId);
