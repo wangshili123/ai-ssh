@@ -128,32 +128,35 @@ export const useTerminalInit = ({
     terminal.onData(callbacksRef.current.handleInput);
     
     let currentCommand = '';
-    let isBackspacing = false;
 
     terminal.onKey(async (event) => {
       const ev = event.domEvent;
-      const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
-
+      
+      // 处理退格键
       if (ev.key === 'Backspace') {
         if (currentCommand.length > 0) {
           currentCommand = currentCommand.slice(0, -1);
+          console.log('[useTerminalInit] Command after backspace:', currentCommand);
         }
-        isBackspacing = true;
-      } else if (ev.key === 'Enter') {
+        return;
+      }
+      
+      // 处理回车键
+      if (ev.key === 'Enter') {
         const command = currentCommand.trim();
         console.log('[useTerminalInit] Executing command:', command);
         
         // 先执行命令
         await callbacksRef.current.handleEnterKey();
         
-        // 命令执行完成后，如果是 cd 命令则发送事件
+        // 如果是 cd 命令则发送事件
         if (command.startsWith('cd ')) {
           // 等待一小段时间确保 cd 命令执行完成
           await new Promise(resolve => setTimeout(resolve, 100));
           
           // 发送目录变更事件到补全服务
           const tabId = configRef.current.instanceId || configRef.current.sessionInfo?.id || '';
-          console.log('[useTerminalInit] Sending directory change event for tab:', tabId);
+          console.log('[useTerminalInit] Sending directory change event for tab:', tabId, 'command:', command);
           eventBus.emit('terminal:directory-change', {
             tabId,
             command: command
@@ -162,14 +165,14 @@ export const useTerminalInit = ({
         
         // 重置当前命令
         currentCommand = '';
-        isBackspacing = false;
-      } else if (printable && !isBackspacing) {
-        currentCommand += ev.key;
+        return;
       }
 
-      // 重置退格状态
-      if (ev.key !== 'Backspace') {
-        isBackspacing = false;
+      // 处理普通字符输入
+      const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
+      if (printable && ev.key.length === 1) {
+        currentCommand += ev.key;
+        console.log('[useTerminalInit] Command after input:', currentCommand);
       }
     });
 
