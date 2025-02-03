@@ -115,7 +115,7 @@ export class CompletionSSHManager {
       const commandId = Date.now().toString();
       const cmd: ShellCommand = {
         id: commandId,
-        command
+        command: this.shouldPreserveOutput(command) ? command + ' | cat' : command
       };
 
       console.log(`[CompletionSSHManager] Sending command with ID: ${commandId}`);
@@ -129,17 +129,27 @@ export class CompletionSSHManager {
           pending.reject(new Error('Command execution timeout'));
           connection.pendingCommands.delete(commandId);
         }
-      }, 10000);
+      }, 60000);
 
       // 保存 promise 的 resolve 和 reject
       connection.pendingCommands.set(commandId, {
-        resolve,
+        resolve: (result: CommandResult) => {
+          // 确保输出中的换行符被正确保留
+          resolve({
+            ...result,
+            stdout: result.stdout.replace(/\\n/g, '\n'),
+            stderr: result.stderr.replace(/\\n/g, '\n')
+          });
+        },
         reject,
         timer
       });
 
-      // 发送 JSON 格式的命令
-      const jsonCmd = JSON.stringify(cmd) + '\n';
+      // 发送 JSON 格式的命令，确保换行符被正确编码
+      const jsonCmd = JSON.stringify({
+        ...cmd,
+        command: cmd.command.replace(/\n/g, '\\n')
+      }) + '\n';
       console.log(`[CompletionSSHManager] Writing command to shell:`, jsonCmd);
       connection.shell.write(jsonCmd);
     });
@@ -164,10 +174,15 @@ export class CompletionSSHManager {
           if (pending) {
             console.log(`[CompletionSSHManager] Found pending command for ID ${response.id}`);
             clearTimeout(pending.timer);
+            
+            // 解码 base64 输出
+            const stdout = Buffer.from(response.stdout, 'base64').toString();
+            const stderr = Buffer.from(response.stderr, 'base64').toString();
+            
             pending.resolve({
               exitCode: response.exitCode,
-              stdout: response.stdout,
-              stderr: response.stderr
+              stdout,
+              stderr
             });
             connection.pendingCommands.delete(response.id);
           } else {
@@ -286,9 +301,9 @@ execute_command() {
         eval "$cmd" >"$output_file" 2>"$error_file"
         exit_code=$?
         
-        # 读取输出和错误
-        output=$(cat "$output_file" | sed 's/"/\\"/g' | tr '\n' ' ')
-        error=$(cat "$error_file" | sed 's/"/\\"/g' | tr '\n' ' ')
+        # 读取输出和错误，使用 base64 编码保留所有字符
+        output=$(cat "$output_file" | base64 -w 0)
+        error=$(cat "$error_file" | base64 -w 0)
         
         # 清理临时文件
         rm -f "$output_file" "$error_file"
@@ -494,5 +509,15 @@ echo "[ShellWrapper] Main loop ended" >&2
       this.sessionMap.delete(tabId);
       this.currentDirectories.delete(tabId);
     }
+  }
+
+  /**
+   * 判断是否需要保持命令输出格式
+   */
+  private shouldPreserveOutput(command: string): boolean {
+    // 需要保持输出格式的命令列表
+    const preserveOutputCommands = ['ls', 'find', 'grep', 'ps'];
+    const cmdName = command.trim().split(/\s+/)[0];
+    return preserveOutputCommands.some(cmd => cmdName === cmd);
   }
 } 

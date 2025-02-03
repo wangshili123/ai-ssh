@@ -595,50 +595,31 @@ export class FishStyleCompletion {
         return [];
       }
 
-      // 获取当前目录
-      const pwdResult = await this.sshManager.executeCommandForTab(context.tabId, 'pwd');
-      const currentDir = pwdResult.stdout.trim();
-      console.log('[FishStyleCompletion] 当前目录:', currentDir);
-
-      // 获取当前目录下的文件列表
-      const lsResult = await this.sshManager.executeCommandForTab(context.tabId, 'ls -la');
+      // 获取当前目录下的文件列表，使用 ls -1a 并通过 head 限制结果数量
+      const lsResult = await this.sshManager.executeCommandForTab(context.tabId, 'ls -1aU | cat');
       console.log('[FishStyleCompletion] 原始 ls 输出:', lsResult);
 
-      // 解析 ls -la 的输出
-      const lines = lsResult.stdout.split('\n');
-      console.log('[FishStyleCompletion] 分割后的行数:', lines.length);
-      
-      const files = lines
-        .filter(line => {
-          const shouldKeep = line.trim() && !line.startsWith('total');
-          console.log('[FishStyleCompletion] 处理行:', { line, shouldKeep });
-          return shouldKeep;
-        })
-        .map(line => {
-          const parts = line.trim().split(/\s+/);
-          console.log('[FishStyleCompletion] 分割行:', { line, parts });
-          const permissions = parts[0];
-          const name = parts[parts.length - 1];
-          const isDirectory = permissions.startsWith('d');
-          console.log('[FishStyleCompletion] 解析文件:', { name, permissions, isDirectory });
-          return { name, isDirectory };
-        })
-        .filter(file => {
-          const shouldKeep = file.name !== '.' && file.name !== '..';
-          console.log('[FishStyleCompletion] 过滤文件:', { file, shouldKeep });
-          return shouldKeep;
-        });
+      // 解析 ls -1a 的输出，只取前10个结果
+      const files = lsResult.stdout.split('\n')
+        .map(line => line.trim())
+        .filter(line => line && line !== '.' && line !== '..')
+        .slice(0, 10)  // 限制结果数量
+        .map(name => ({
+          name,
+          // 通过检查名称是否以 / 结尾来判断是否是目录
+          isDirectory: name.endsWith('/')
+        }));
 
       console.log('[FishStyleCompletion] 解析后的文件列表:', files);
 
       // 过滤并转换为补全建议
       const suggestions = files
-        .filter((file: { name: string; isDirectory: boolean }) => {
+        .filter(file => {
           const matches = !partialPath || file.name.toLowerCase().startsWith(partialPath.toLowerCase());
           console.log('[FishStyleCompletion] 匹配文件:', { file, partialPath, matches });
           return matches;
         })
-        .map((file: { name: string; isDirectory: boolean }) => {
+        .map(file => {
           const suggestion = {
             fullCommand: file.name,
             suggestion: partialPath ? file.name.slice(partialPath.length) : file.name,
