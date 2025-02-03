@@ -197,7 +197,7 @@ export const useTerminalInit = ({
       shellIdRef.current = shellId;
 
       // 设置补全服务的会话信息
-      const tabId = configRef.current.instanceId || configRef.current.sessionInfo.id;
+      const tabId = eventBus.getCurrentTabId() || '';
       const completionSSHManager = CompletionSSHManager.getInstance();
       completionSSHManager.setSessionForTab(tabId, configRef.current.sessionInfo);
 

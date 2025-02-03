@@ -340,8 +340,8 @@ echo "[ShellWrapper] Main loop ended" >&2
         console.log('[CompletionSSHManager] Sent test command');
         
         // 给更多时间等待响应
-        setTimeout(resolve, 500);
-      }, 500);
+        setTimeout(resolve, 5000);
+      }, 5000);
     });
   }
 
