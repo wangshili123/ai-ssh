@@ -25,6 +25,12 @@ export class CompletionSSHManager {
     eventBus.on('terminal:directory-change', async ({ tabId, command }) => {
       await this.updateDirectory(tabId, command);
     });
+
+    // 监听标签页移除事件
+    eventBus.on('completion:tab-remove', (tabId: string) => {
+      console.log(`[CompletionSSHManager] Tab removed, cleaning up connection for tab: ${tabId}`);
+      this.closeConnectionForTab(tabId);
+    });
   }
 
   // 更新目录（由终端 cd 命令触发）
@@ -69,7 +75,7 @@ export class CompletionSSHManager {
     return CompletionSSHManager.instance;
   }
   
-  // 获取或创建连接
+  // 获取或创建连接（移除心跳相关代码）
   private async getConnection(sessionInfo: SessionInfo): Promise<CachedSSHConnection> {
     const existingConnection = this.connections.get(sessionInfo.id);
     if (existingConnection) {
@@ -79,7 +85,6 @@ export class CompletionSSHManager {
         return existingConnection;
       } catch (error) {
         console.log(`[CompletionSSHManager] 现有连接已断开，创建新连接:`, error);
-        // 确保关闭旧连接
         try {
           existingConnection.client.end();
         } catch (e) {
@@ -98,15 +103,9 @@ export class CompletionSSHManager {
         lastUsed: Date.now(),
         isReady: false
       };
-
-      let connectionTimeout = setTimeout(() => {
-        reject(new Error('Connection timeout'));
-        client.end();
-      }, 10000); // 10秒超时
       
       client.on('ready', () => {
         console.log(`[CompletionSSHManager] 连接就绪: ${sessionInfo.id}`);
-        clearTimeout(connectionTimeout);
         connection.isReady = true;
         this.connections.set(sessionInfo.id, connection);
         resolve(connection);
@@ -114,7 +113,6 @@ export class CompletionSSHManager {
       
       client.on('error', (err) => {
         console.error(`[CompletionSSHManager] 连接错误:`, err);
-        clearTimeout(connectionTimeout);
         reject(err);
       });
 
@@ -128,15 +126,13 @@ export class CompletionSSHManager {
         this.connections.delete(sessionInfo.id);
       });
       
-      // 连接配置
+      // 连接配置（移除心跳相关配置）
       const connectConfig = {
         host: sessionInfo.host,
         port: sessionInfo.port,
         username: sessionInfo.username,
         password: sessionInfo.password,
-        privateKey: sessionInfo.privateKey,
-        keepaliveInterval: 10000, // 每10秒发送一次心跳
-        keepaliveCountMax: 3      // 最多重试3次
+        privateKey: sessionInfo.privateKey
       };
       
       client.connect(connectConfig);
@@ -282,18 +278,36 @@ export class CompletionSSHManager {
     }
   }
 
-  // 设置标签页的会话信息
-  public setSessionForTab(tabId: string, sessionInfo: SessionInfo) {
+  // 设置标签页的会话信息并创建连接
+  public async setSessionForTab(tabId: string, sessionInfo: SessionInfo) {
+    console.log(`[CompletionSSHManager] Setting session for tab ${tabId}:`, sessionInfo.id);
     this.sessionMap.set(tabId, sessionInfo);
+    
+    // 主动创建连接
+    try {
+      await this.getConnection(sessionInfo);
+      console.log(`[CompletionSSHManager] Connection created for tab ${tabId}`);
+    } catch (error) {
+      console.error(`[CompletionSSHManager] Failed to create connection for tab ${tabId}:`, error);
+    }
   }
   
-  // 关闭连接
-  public async closeConnection(sessionId: string): Promise<void> {
-    const connection = this.connections.get(sessionId);
-    if (connection) {
-      console.log(`[CompletionSSHManager] 关闭连接: ${sessionId}`);
-      connection.client.end();
-      this.connections.delete(sessionId);
+  // 关闭标签页的连接
+  private closeConnectionForTab(tabId: string) {
+    const sessionInfo = this.sessionMap.get(tabId);
+    if (sessionInfo) {
+      const connection = this.connections.get(sessionInfo.id);
+      if (connection) {
+        console.log(`[CompletionSSHManager] Closing connection for tab ${tabId}`);
+        try {
+          connection.client.end();
+        } catch (error) {
+          console.error(`[CompletionSSHManager] Error closing connection:`, error);
+        }
+        this.connections.delete(sessionInfo.id);
+      }
+      this.sessionMap.delete(tabId);
+      this.currentDirectories.delete(tabId);
     }
   }
 } 
