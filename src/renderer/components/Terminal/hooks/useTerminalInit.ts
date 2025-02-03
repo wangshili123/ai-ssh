@@ -9,6 +9,7 @@ import { terminalOutputService } from '../../../services/terminalOutput';
 import type { SessionInfo } from '../../../../main/services/storage';
 import type { TerminalProps } from '../types/terminal.types';
 import { waitForConnection } from '../utils/terminal.utils';
+import { CompletionSSHManager } from '@/services/completion/CompletionSSHManager';
 
 export interface UseTerminalInitProps {
   sessionInfo?: SessionInfo;
@@ -139,60 +140,21 @@ export const useTerminalInit = ({
         const command = currentCommand.trim();
         console.log('[useTerminalInit] Executing command:', command);
         
-        // 检查是否是 cd 命令
-        if (command.startsWith('cd ')) {
-          // 等待命令执行完成
-          await callbacksRef.current.handleEnterKey();
+        // 先执行命令
+        await callbacksRef.current.handleEnterKey();
+        
+        // 命令执行完成后，如果是 cd 命令则发送事件
+        if (command.trim().startsWith('cd')) {
+          // 等待一小段时间确保 cd 命令执行完成
+          await new Promise(resolve => setTimeout(resolve, 100));
           
-          // 执行 pwd 命令获取新的目录
-          const shellId = shellIdRef.current;
-          if (shellId) {
-            console.log('[useTerminalInit] Executing pwd after cd command');
-            try {
-              // 执行 pwd 命令
-              await sshService.write(shellId, 'pwd\n');
-              
-              // 等待输出
-              await new Promise<void>((resolve) => {
-                const checkOutput = () => {
-                  const output = terminalOutputService.getHistory();
-                  const lastOutput = output[output.length - 1]?.output;
-                  
-                  if (lastOutput) {
-                    const lines = lastOutput.split('\n');
-                    const pwdOutput = lines.find(line => !line.includes('$ ') && !line.includes('# ') && line.trim());
-                    
-                    if (pwdOutput) {
-                      const newDirectory = pwdOutput.trim();
-                      console.log('[useTerminalInit] New directory:', newDirectory);
-                      
-                      // 更新会话信息中的当前目录
-                      if (configRef.current.sessionInfo) {
-                        const sessionInfo = configRef.current.sessionInfo;
-                        sessionInfo.currentDirectory = newDirectory;
-                        // 发送目录变更事件
-                        eventBus.emit('ssh:directory-change', { 
-                          shellId: sessionInfo.id, 
-                          directory: newDirectory 
-                        });
-                      }
-                      resolve();
-                    } else {
-                      setTimeout(checkOutput, 10);
-                    }
-                  } else {
-                    setTimeout(checkOutput, 10);
-                  }
-                };
-                
-                checkOutput();
-              });
-            } catch (error) {
-              console.error('[useTerminalInit] Failed to get new directory:', error);
-            }
-          }
-        } else {
-          await callbacksRef.current.handleEnterKey();
+          // 发送目录变更事件到补全服务
+          const tabId = configRef.current.instanceId || configRef.current.sessionInfo?.id || '';
+          console.log('[useTerminalInit] Sending directory change event for tab:', tabId);
+          eventBus.emit('terminal:directory-change', {
+            tabId,
+            command: command.trim()
+          });
         }
         
         // 重置当前命令
@@ -219,6 +181,11 @@ export const useTerminalInit = ({
       console.log('[useTerminalInit] Creating SSH connection...');
       const shellId = configRef.current.sessionInfo.id + (configRef.current.instanceId ? `-${configRef.current.instanceId}` : '');
       shellIdRef.current = shellId;
+
+      // 设置补全服务的会话信息
+      const tabId = configRef.current.instanceId || configRef.current.sessionInfo.id;
+      const completionSSHManager = CompletionSSHManager.getInstance();
+      completionSSHManager.setSessionForTab(tabId, configRef.current.sessionInfo);
 
       // 等待连接就绪
       waitForConnection(configRef.current.sessionInfo)
