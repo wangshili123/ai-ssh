@@ -89,10 +89,32 @@ export class CompletionService {
     input: string;
     cursorPosition: number;
     sessionState: SessionState;
+    tabId: string;
   }): Promise<CompletionSuggestion[]> {
+    this.checkInitialized();
+    await this.waitForInitialization();
+
+    const { input, cursorPosition, sessionState, tabId } = params;
+    
+    // 创建上下文对象
+    const context: CompletionContext = {
+      tabId,
+      sshSession: await this.getSSHSession(sessionState),
+      recentCommands: [],
+      commandHistory: {
+        frequency: 0,
+        lastUsed: new Date()
+      },
+      currentCommand: {
+        name: '',
+        args: [],
+        options: [],
+        isIncomplete: true
+      }
+    };
+
     console.log('[CompletionService] 开始获取补全建议:', params);
 
-    const { input, cursorPosition, sessionState } = params;
     const hasSession = sessionState && sessionState.currentWorkingDirectory !== undefined;
     console.log('[CompletionService] SSH 会话状态:', { hasSession });
 
@@ -153,6 +175,7 @@ export class CompletionService {
     const syntaxSuggestions = await this.fishCompletion.getSuggestions(
       command,
       {
+        tabId,
         sshSession: hasSession ? {
           execute: async (command: string) => {
             console.log('[CompletionService] 执行 SSH 命令:', command);

@@ -109,92 +109,44 @@ export class FishStyleCompletion {
     command: ShellParserTypes.Command,
     context: CompletionContext
   ): Promise<CompletionSuggestion[]> {
-    const startTime = performance.now();
-    console.log('[FishStyleCompletion] 开始获取补全建议');
-    console.log('[FishStyleCompletion] 命令信息:', {
-      name: command.name,
-      args: command.args
-    });
-    console.log('[FishStyleCompletion] 上下文信息:', {
-      hasSSHSession: !!context.sshSession,
-      recentCommandsCount: context.recentCommands.length,
-      commandHistoryInfo: {
-        frequency: context.commandHistory.frequency,
-        lastUsed: context.commandHistory.lastUsed
-      }
-    });
+    console.log('[FishStyleCompletion] Getting suggestions for command:', command);
 
-    // 1. 尝试从缓存获取
-    const cacheStartTime = performance.now();
+    // 检查缓存
     const cachedSuggestions = this.getCachedSuggestions(command, context);
-    const cacheEndTime = performance.now();
-    console.log('[FishStyleCompletion] 缓存查询耗时:', (cacheEndTime - cacheStartTime).toFixed(2), 'ms');
-    
     if (cachedSuggestions) {
-      console.log('[FishStyleCompletion] 使用缓存的建议');
+      console.log('[FishStyleCompletion] Using cached suggestions');
       return cachedSuggestions;
     }
 
+    // 清理过期缓存
+    this.cleanExpiredCache();
+
+    // 获取建议
     const suggestions: CompletionSuggestion[] = [];
 
-    // 2. 基于命令语法的智能补全
-    const syntaxStartTime = performance.now();
-    console.log('[FishStyleCompletion] 获取语法补全...');
-    const syntaxSuggestions = await this.getIntelligentSyntaxCompletions(command, context);
-    const syntaxEndTime = performance.now();
-    console.log('[FishStyleCompletion] 语法补全耗时:', (syntaxEndTime - syntaxStartTime).toFixed(2), 'ms');
-    console.log('[FishStyleCompletion] 语法补全结果:', syntaxSuggestions);
-    suggestions.push(...syntaxSuggestions);
+    try {
+      // 1. 获取智能语法补全
+      const syntaxSuggestions = await this.getIntelligentSyntaxCompletions(command, context);
+      suggestions.push(...syntaxSuggestions);
 
-    // 3. 基于SSH会话的补全
-    if (context.sshSession) {
-      const sshStartTime = performance.now();
-      console.log('[FishStyleCompletion] 获取SSH补全建议...');
-      const sshSuggestions = await this.getSSHCompletions(command, context);
-      const sshEndTime = performance.now();
-      console.log('[FishStyleCompletion] SSH补全耗时:', (sshEndTime - sshStartTime).toFixed(2), 'ms');
-      console.log('[FishStyleCompletion] SSH补全建议:', sshSuggestions);
-      suggestions.push(...sshSuggestions);
+      // 2. 获取历史记录补全
+      const historySuggestions = await this.getHistoryCompletions(command, context);
+      suggestions.push(...historySuggestions);
+
+      // 3. 获取 SSH 补全（如果在 SSH 会话中）
+      if (context.sshSession) {
+        const sshSuggestions = await this.getSSHCompletions(command, context);
+        suggestions.push(...sshSuggestions);
+      }
+
+      // 缓存结果
+      this.cacheSuggestions(command, context, suggestions);
+
+      return suggestions;
+    } catch (error) {
+      console.error('[FishStyleCompletion] Error getting suggestions:', error);
+      return [];
     }
-
-    // 4. 基于命令历史的补全
-    const historyStartTime = performance.now();
-    console.log('[FishStyleCompletion] 获取历史补全建议...');
-    const historySuggestions = await this.getHistoryCompletions(command, context);
-    const historyEndTime = performance.now();
-    console.log('[FishStyleCompletion] 历史补全耗时:', (historyEndTime - historyStartTime).toFixed(2), 'ms');
-    console.log('[FishStyleCompletion] 历史补全建议:', historySuggestions);
-    suggestions.push(...historySuggestions);
-
-    // 5. 对所有建议进行排序和去重
-    console.log('[FishStyleCompletion] 原始建议数量:', suggestions.length);
-    const rankStartTime = performance.now();
-    const rankedSuggestions = this.rankSuggestions(suggestions);
-    const rankEndTime = performance.now();
-    console.log('[FishStyleCompletion] 排序耗时:', (rankEndTime - rankStartTime).toFixed(2), 'ms');
-    console.log('[FishStyleCompletion] 排序后建议数量:', rankedSuggestions.length);
-    console.log('[FishStyleCompletion] 最终建议列表:', rankedSuggestions.map(s => ({
-      suggestion: s.suggestion,
-      score: s.score,
-      source: s.source
-    })));
-
-    // 6. 缓存结果
-    const cacheWriteStartTime = performance.now();
-    this.cacheSuggestions(command, context, rankedSuggestions);
-    const cacheWriteEndTime = performance.now();
-    console.log('[FishStyleCompletion] 写入缓存耗时:', (cacheWriteEndTime - cacheWriteStartTime).toFixed(2), 'ms');
-
-    const endTime = performance.now();
-    console.log('[FishStyleCompletion] 补全建议获取完成, 总耗时:', (endTime - startTime).toFixed(2), 'ms', {
-      '缓存查询耗时': (cacheEndTime - cacheStartTime).toFixed(2),
-      '语法补全耗时': (syntaxEndTime - syntaxStartTime).toFixed(2),
-      '历史补全耗时': (historyEndTime - historyStartTime).toFixed(2),
-      '排序耗时': (rankEndTime - rankStartTime).toFixed(2),
-      '缓存写入耗时': (cacheWriteEndTime - cacheWriteStartTime).toFixed(2)
-    });
-
-    return rankedSuggestions;
   }
 
   /**
@@ -393,24 +345,24 @@ export class FishStyleCompletion {
         console.log('[FishStyleCompletion] 获取路径补全, 最后参数:', lastArg);
 
         // 获取当前目录
-        const pwdResult = await this.sshManager.executeCommand(sessionInfo, 'pwd');
+        const pwdResult = await this.sshManager.executeCommandForTab(context.tabId, 'pwd');
         console.log('[FishStyleCompletion] 当前目录:', pwdResult.stdout.trim());
 
         // 获取当前目录下的文件列表
-        const lsResult = await this.sshManager.executeCommand(sessionInfo, 'ls -la');
+        const lsResult = await this.sshManager.executeCommandForTab(context.tabId, 'ls -la');
         console.log('[FishStyleCompletion] 文件列表:', lsResult.stdout);
 
         const files = lsResult.stdout.split('\n')
-          .filter(line => line.trim() && !line.startsWith('total'))
-          .map(line => {
+          .filter((line: string) => line.trim() && !line.startsWith('total'))
+          .map((line: string) => {
             const parts = line.trim().split(/\s+/);
             return parts[parts.length - 1];
           })
-          .filter(file => file !== '.' && file !== '..');
+          .filter((file: string) => file !== '.' && file !== '..');
 
         const pathSuggestions = files
-          .filter(file => !lastArg || file.toLowerCase().startsWith(lastArg.toLowerCase()))
-          .map(file => ({
+          .filter((file: string) => !lastArg || file.toLowerCase().startsWith(lastArg.toLowerCase()))
+          .map((file: string) => ({
             fullCommand: `${command.name} ${file}`,
             suggestion: lastArg ? file.slice(lastArg.length) : file,
             source: CompletionSource.LOCAL,
@@ -426,11 +378,11 @@ export class FishStyleCompletion {
         console.log('[FishStyleCompletion] 获取环境变量补全, 输入:', lastInput);
 
         // 获取环境变量
-        const result = await this.sshManager.executeCommand(sessionInfo, 'env');
+        const result = await this.sshManager.executeCommandForTab(context.tabId, 'env');
         const envVars = result.stdout.split('\n')
-          .filter(line => line.includes('='))
-          .map(line => line.split('=')[0])
-          .filter(varName => varName.startsWith(lastInput.slice(1)));
+          .filter((line: string) => line.includes('='))
+          .map((line: string) => line.split('=')[0])
+          .filter((varName: string) => varName.startsWith(lastInput.slice(1)));
 
         const envSuggestions = envVars.map(varName => ({
           fullCommand: `$${varName}`,
@@ -644,12 +596,12 @@ export class FishStyleCompletion {
       }
 
       // 获取当前目录
-      const pwdResult = await this.sshManager.executeCommand(sessionInfo, 'pwd');
+      const pwdResult = await this.sshManager.executeCommandForTab(context.tabId, 'pwd');
       const currentDir = pwdResult.stdout.trim();
       console.log('[FishStyleCompletion] 当前目录:', currentDir);
 
       // 获取当前目录下的文件列表
-      const lsResult = await this.sshManager.executeCommand(sessionInfo, 'ls -la');
+      const lsResult = await this.sshManager.executeCommandForTab(context.tabId, 'ls -la');
       console.log('[FishStyleCompletion] 原始 ls 输出:', lsResult);
 
       // 解析 ls -la 的输出
@@ -681,12 +633,12 @@ export class FishStyleCompletion {
 
       // 过滤并转换为补全建议
       const suggestions = files
-        .filter(file => {
+        .filter((file: { name: string; isDirectory: boolean }) => {
           const matches = !partialPath || file.name.toLowerCase().startsWith(partialPath.toLowerCase());
           console.log('[FishStyleCompletion] 匹配文件:', { file, partialPath, matches });
           return matches;
         })
-        .map(file => {
+        .map((file: { name: string; isDirectory: boolean }) => {
           const suggestion = {
             fullCommand: file.name,
             suggestion: partialPath ? file.name.slice(partialPath.length) : file.name,

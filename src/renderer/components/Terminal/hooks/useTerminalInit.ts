@@ -128,14 +128,17 @@ export const useTerminalInit = ({
     terminal.onData(callbacksRef.current.handleInput);
     
     let currentCommand = '';
+    let isBackspacing = false;
+
     terminal.onKey(async (event) => {
       const ev = event.domEvent;
       const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
 
-      if (printable && ev.key !== 'Enter') {
-        currentCommand += ev.key;
-      } else if (ev.key === 'Backspace') {
-        currentCommand = currentCommand.slice(0, -1);
+      if (ev.key === 'Backspace') {
+        if (currentCommand.length > 0) {
+          currentCommand = currentCommand.slice(0, -1);
+        }
+        isBackspacing = true;
       } else if (ev.key === 'Enter') {
         const command = currentCommand.trim();
         console.log('[useTerminalInit] Executing command:', command);
@@ -144,7 +147,7 @@ export const useTerminalInit = ({
         await callbacksRef.current.handleEnterKey();
         
         // 命令执行完成后，如果是 cd 命令则发送事件
-        if (command.trim().startsWith('cd')) {
+        if (command.startsWith('cd ')) {
           // 等待一小段时间确保 cd 命令执行完成
           await new Promise(resolve => setTimeout(resolve, 100));
           
@@ -153,12 +156,20 @@ export const useTerminalInit = ({
           console.log('[useTerminalInit] Sending directory change event for tab:', tabId);
           eventBus.emit('terminal:directory-change', {
             tabId,
-            command: command.trim()
+            command: command
           });
         }
         
         // 重置当前命令
         currentCommand = '';
+        isBackspacing = false;
+      } else if (printable && !isBackspacing) {
+        currentCommand += ev.key;
+      }
+
+      // 重置退格状态
+      if (ev.key !== 'Backspace') {
+        isBackspacing = false;
       }
     });
 

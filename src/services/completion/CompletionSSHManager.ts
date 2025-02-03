@@ -1,17 +1,18 @@
-import { Client } from 'ssh2';
+import { Client, ClientChannel } from 'ssh2';
 import { eventBus } from '@/renderer/services/eventBus';
 import { sshService } from '@/renderer/services/ssh';
 import type { SessionInfo } from '@/main/services/storage';
 
-interface CachedSSHConnection {
-  client: Client;
-  lastUsed: number;
-  isReady: boolean;
-}
-
 interface CommandResult {
   stdout: string;
   stderr: string;
+}
+
+interface CachedSSHConnection {
+  client: Client;
+  shell: ClientChannel | null;  // shell session
+  isReady: boolean;
+  shellReady: boolean;         // shell session 是否就绪
 }
 
 export class CompletionSSHManager {
@@ -19,11 +20,14 @@ export class CompletionSSHManager {
   private connections: Map<string, CachedSSHConnection> = new Map();
   private currentDirectories: Map<string, string> = new Map(); // tabId -> currentDirectory
   private sessionMap: Map<string, SessionInfo> = new Map(); // tabId -> sessionInfo
+  private outputBuffers: Map<string, string> = new Map(); // sessionId -> current output buffer
   
   private constructor() {
     // 监听终端目录变更事件
-    eventBus.on('terminal:directory-change', async ({ tabId, command }) => {
-      await this.updateDirectory(tabId, command);
+    eventBus.on('terminal:directory-change', async ({ tabId, command, terminalCommand }) => {
+      // 优先使用终端实际显示的命令
+      const actualCommand = terminalCommand || command;
+      await this.updateDirectory(tabId, actualCommand);
     });
 
     // 监听标签页移除事件
@@ -33,19 +37,30 @@ export class CompletionSSHManager {
     });
   }
 
+  /**
+   * 规范化命令字符串
+   */
+  private normalizeCommand(command: string): string {
+    // 移除 ANSI 转义序列和控制字符
+    return command.replace(/[\x00-\x1F\x7F]|\x1b\[[0-9;]*[a-zA-Z]/g, '').trim();
+  }
+
   // 更新目录（由终端 cd 命令触发）
   private async updateDirectory(tabId: string, command: string) {
-    if (command.startsWith('cd ')) {
-      console.log(`[CompletionSSHManager] Updating directory for tab ${tabId}, command: ${command}`);
+    if (command.startsWith('cd')) {
+      const normalizedCommand = this.normalizeCommand(command);
+      console.log(`[CompletionSSHManager] Updating directory for tab ${tabId}, command: ${normalizedCommand}`);
       try {
-        // 在补全连接中执行相同的 cd 命令
-        const cdResult = await this.executeCommandForTab(tabId, command);
-        console.log(`[CompletionSSHManager] CD command result:`, cdResult);
+        const sessionInfo = this.sessionMap.get(tabId);
+        if (!sessionInfo) {
+          throw new Error(`No session found for tab ${tabId}`);
+        }
+
+        const connection = await this.getConnection(sessionInfo);
         
-        // 获取新目录
-        console.log(`[CompletionSSHManager] Executing PWD command for tab ${tabId}`);
-        const result = await this.executeCommandForTab(tabId, 'pwd');
-        console.log(`[CompletionSSHManager] PWD command result:`, result);
+        // 使用 cd 和 pwd 的组合命令来确保在同一个上下文中执行
+        const result = await this.executeInShell(connection, `${normalizedCommand} && pwd`);
+        console.log(`[CompletionSSHManager] Directory update result:`, result);
         
         if (result.stdout) {
           const newDirectory = result.stdout.trim();
@@ -75,7 +90,7 @@ export class CompletionSSHManager {
     return CompletionSSHManager.instance;
   }
   
-  // 获取或创建连接（移除心跳相关代码）
+  // 获取或创建连接
   private async getConnection(sessionInfo: SessionInfo): Promise<CachedSSHConnection> {
     const existingConnection = this.connections.get(sessionInfo.id);
     if (existingConnection) {
@@ -100,8 +115,9 @@ export class CompletionSSHManager {
     return new Promise((resolve, reject) => {
       const connection: CachedSSHConnection = {
         client,
-        lastUsed: Date.now(),
-        isReady: false
+        isReady: false,
+        shell: null,
+        shellReady: false
       };
       
       client.on('ready', () => {
@@ -111,7 +127,7 @@ export class CompletionSSHManager {
         resolve(connection);
       });
       
-      client.on('error', (err) => {
+      client.on('error', (err: Error) => {
         console.error(`[CompletionSSHManager] 连接错误:`, err);
         reject(err);
       });
@@ -126,7 +142,7 @@ export class CompletionSSHManager {
         this.connections.delete(sessionInfo.id);
       });
       
-      // 连接配置（移除心跳相关配置）
+      // 连接配置
       const connectConfig = {
         host: sessionInfo.host,
         port: sessionInfo.port,
@@ -175,101 +191,19 @@ export class CompletionSSHManager {
     });
   }
   
-  // 为特定会话执行命令
-  public async executeCommand(sessionInfo: SessionInfo, command: string): Promise<CommandResult> {
-    console.log(`[CompletionSSHManager] Executing command for session ${sessionInfo.id}: ${command}`);
-    const connection = await this.getConnection(sessionInfo);
-    
-    // 等待连接就绪
-    if (!connection.isReady) {
-      console.log(`[CompletionSSHManager] Waiting for connection to be ready...`);
-      await new Promise<void>((resolve) => {
-        const checkReady = () => {
-          if (connection.isReady) {
-            resolve();
-          } else {
-            setTimeout(checkReady, 100);
-          }
-        };
-        checkReady();
-      });
-    }
-    
-    return new Promise<CommandResult>((resolve, reject) => {
-      console.log(`[CompletionSSHManager] Connection ready, executing command: ${command}`);
-      
-      // 确保命令以换行符结尾
-      if (!command.endsWith('\n')) {
-        command += '\n';
-      }
-      
-      connection.client.exec(command, (err, stream) => {
-        if (err) {
-          console.error(`[CompletionSSHManager] Command execution failed:`, err);
-          reject(err);
-          return;
-        }
-
-        let stdout = '';
-        let stderr = '';
-        let ended = false;
-        let closed = false;
-
-        const checkComplete = () => {
-          if (ended && closed) {
-            console.log(`[CompletionSSHManager] Command execution complete:`, { command, stdout, stderr });
-            resolve({ stdout, stderr });
-          }
-        };
-
-        stream.on('data', (data: Buffer) => {
-          const chunk = data.toString();
-          console.log(`[CompletionSSHManager] Received stdout chunk:`, chunk);
-          stdout += chunk;
-        });
-
-        stream.stderr?.on('data', (data: Buffer) => {
-          const chunk = data.toString();
-          console.log(`[CompletionSSHManager] Received stderr chunk:`, chunk);
-          stderr += chunk;
-        });
-
-        stream.on('end', () => {
-          console.log(`[CompletionSSHManager] Stream ended`);
-          ended = true;
-          checkComplete();
-        });
-
-        stream.on('close', (code: number) => {
-          console.log(`[CompletionSSHManager] Stream closed with code:`, code);
-          closed = true;
-          if (code !== 0) {
-            reject(new Error(`Command failed with code ${code}: ${stderr}`));
-            return;
-          }
-          checkComplete();
-        });
-
-        stream.on('error', (err: Error) => {
-          console.error(`[CompletionSSHManager] Stream error:`, err);
-          reject(err);
-        });
-      });
-    });
-  }
-
   // 为特定标签页执行命令
-  private async executeCommandForTab(tabId: string, command: string): Promise<CommandResult> {
-    console.log(`[CompletionSSHManager] Executing command for tab ${tabId}: ${command}`);
+  public async executeCommandForTab(tabId: string, command: string): Promise<CommandResult> {
+    const normalizedCommand = this.normalizeCommand(command);
+    console.log(`[CompletionSSHManager] Executing command for tab ${tabId}: ${normalizedCommand}`);
     const sessionInfo = this.sessionMap.get(tabId);
     if (!sessionInfo) {
       console.error(`[CompletionSSHManager] No session found for tab ${tabId}`);
       throw new Error(`No session found for tab ${tabId}`);
     }
+
     try {
-      // 去除命令两端的空格
-      command = command.trim();
-      const result = await this.executeCommand(sessionInfo, command);
+      const connection = await this.getConnection(sessionInfo);
+      const result = await this.executeInShell(connection, normalizedCommand);
       console.log(`[CompletionSSHManager] Command result for tab ${tabId}:`, result);
       return result;
     } catch (error) {
@@ -283,10 +217,11 @@ export class CompletionSSHManager {
     console.log(`[CompletionSSHManager] Setting session for tab ${tabId}:`, sessionInfo.id);
     this.sessionMap.set(tabId, sessionInfo);
     
-    // 主动创建连接
+    // 主动创建连接和 shell
     try {
-      await this.getConnection(sessionInfo);
-      console.log(`[CompletionSSHManager] Connection created for tab ${tabId}`);
+      const connection = await this.getConnection(sessionInfo);
+      await this.createShellSession(connection);
+      console.log(`[CompletionSSHManager] Connection and shell created for tab ${tabId}`);
     } catch (error) {
       console.error(`[CompletionSSHManager] Failed to create connection for tab ${tabId}:`, error);
     }
@@ -300,6 +235,9 @@ export class CompletionSSHManager {
       if (connection) {
         console.log(`[CompletionSSHManager] Closing connection for tab ${tabId}`);
         try {
+          if (connection.shell) {
+            connection.shell.end();
+          }
           connection.client.end();
         } catch (error) {
           console.error(`[CompletionSSHManager] Error closing connection:`, error);
@@ -309,5 +247,90 @@ export class CompletionSSHManager {
       this.sessionMap.delete(tabId);
       this.currentDirectories.delete(tabId);
     }
+  }
+
+  // 创建 shell session
+  private async createShellSession(connection: CachedSSHConnection): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (connection.shell) {
+        console.log('[CompletionSSHManager] Shell session already exists');
+        resolve();
+        return;
+      }
+
+      console.log('[CompletionSSHManager] Creating new shell session');
+      connection.client.shell((err, shell) => {
+        if (err) {
+          console.error('[CompletionSSHManager] Failed to create shell:', err);
+          reject(err);
+          return;
+        }
+
+        connection.shell = shell;
+        
+        // 设置编码
+        shell.setEncoding('utf8');
+        
+        // 处理错误
+        shell.on('error', (err: Error) => {
+          console.error('[CompletionSSHManager] Shell error:', err);
+          connection.shellReady = false;
+        });
+
+        // 处理关闭
+        shell.on('close', () => {
+          console.log('[CompletionSSHManager] Shell closed');
+          connection.shellReady = false;
+          connection.shell = null;
+        });
+
+        // 标记就绪
+        shell.on('ready', () => {
+          console.log('[CompletionSSHManager] Shell ready');
+          connection.shellReady = true;
+          resolve();
+        });
+
+        // 初始化完成
+        connection.shellReady = true;
+        resolve();
+      });
+    });
+  }
+
+  // 在 shell 中执行命令
+  private async executeInShell(connection: CachedSSHConnection, command: string): Promise<CommandResult> {
+    return new Promise((resolve, reject) => {
+      connection.client.exec(command, (err, stream) => {
+        if (err) {
+          console.error(`[CompletionSSHManager] Failed to execute command: ${command}`, err);
+          reject(err);
+          return;
+        }
+
+        let stdout = '';
+        let stderr = '';
+
+        stream.on('data', (data: Buffer) => {
+          stdout += data.toString();
+        });
+
+        stream.stderr.on('data', (data: Buffer) => {
+          stderr += data.toString();
+        });
+
+        stream.on('close', () => {
+          resolve({
+            stdout: stdout.trim(),
+            stderr: stderr.trim()
+          });
+        });
+
+        stream.on('error', (err: Error) => {
+          console.error(`[CompletionSSHManager] Stream error:`, err);
+          reject(err);
+        });
+      });
+    });
   }
 } 

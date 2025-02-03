@@ -20,6 +20,7 @@ export interface CompletionSuggestion {
 }
 
 export interface CompletionContext {
+  tabId: string;
   sshSession?: any;  // 根据实际SSH会话类型定义
   recentCommands: string[];
   commandHistory: {

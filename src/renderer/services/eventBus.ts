@@ -22,7 +22,11 @@ export interface EventMap {
   'shellIdChanged': string;
   'completion:tab-remove': string;
   'ssh:directory-change': { shellId: string; directory: string };
-  'terminal:directory-change': { tabId: string; command: string };
+  'terminal:directory-change': {
+    tabId: string;
+    command: string;
+    terminalCommand?: string;
+  };
 }
 
 class EventBus extends EventEmitter {

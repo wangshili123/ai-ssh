@@ -296,7 +296,8 @@ export const useCompletion = ({
         const newSuggestions = await completionService?.getSuggestions({
           input: currentInput,
           cursorPosition: cursorPositionRef.current.x,  // 只使用 x 坐标作为光标位置
-          sessionState: sessionState
+          sessionState: sessionState,
+          tabId: eventBus.getCurrentTabId() || ''  // 添加 tabId
         });
         console.log('[useCompletion] Got suggestions:', newSuggestions);
         
