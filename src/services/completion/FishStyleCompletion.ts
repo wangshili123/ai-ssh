@@ -254,7 +254,7 @@ export class FishStyleCompletion {
     });
 
     if (this.isInQuotes(lastArg)) {
-      const fileNameSuggestions = await this.getFileNameCompletions(this.stripQuotes(lastArg), context, commonData.fileList);
+      const fileNameSuggestions = await this.getFileNameCompletions(this.stripQuotes(lastArg), context, commonData.fileList, command);
       console.log('[FishStyleCompletion] 文件名补全结果:', fileNameSuggestions);
       suggestions.push(...fileNameSuggestions);
     } else if (this.isVariableExpansion(lastArg)) {
@@ -270,7 +270,7 @@ export class FishStyleCompletion {
       console.log('[FishStyleCompletion] 变量补全结果:', varSuggestions);
       suggestions.push(...varSuggestions);
     } else if (this.isRedirectionTarget(command, command.args.length - 1)) {
-      const redirectionSuggestions = await this.getFileNameCompletions(lastArg, context, commonData.fileList);
+      const redirectionSuggestions = await this.getFileNameCompletions(lastArg, context, commonData.fileList, command);
       console.log('[FishStyleCompletion] 重定向补全结果:', redirectionSuggestions);
       suggestions.push(...redirectionSuggestions);
     }
@@ -401,7 +401,7 @@ export class FishStyleCompletion {
       if (command.args.length > 0) {
         const lastArg = command.args[command.args.length - 1];
         console.log('[FishStyleCompletion] 获取路径补全, 最后参数:', lastArg);
-        const pathSuggestions = await this.getFileNameCompletions(lastArg, context, commonData.fileList);
+        const pathSuggestions = await this.getFileNameCompletions(lastArg, context, commonData.fileList, command);
         suggestions.push(...pathSuggestions);
       }
 
@@ -615,10 +615,14 @@ export class FishStyleCompletion {
   private async getFileNameCompletions(
     partialPath: string,
     context: CompletionContext,
-    fileList: Array<{ name: string; isDirectory: boolean }>
+    fileList: Array<{ name: string; isDirectory: boolean }>,
+    currentCommand?: ShellParserTypes.Command
   ): Promise<CompletionSuggestion[]> {
     console.log('[FishStyleCompletion] 获取文件名补全, 路径:', partialPath);
     try {
+      // 获取命令前缀（如果有）
+      const commandPrefix = currentCommand ? `${currentCommand.name} ` : '';
+      
       // 过滤并转换为补全建议
       const suggestions = fileList
         .filter(file => {
@@ -628,8 +632,8 @@ export class FishStyleCompletion {
         })
         .map(file => {
           const suggestion = {
-            fullCommand: file.name,
-            suggestion: partialPath ? file.name.slice(partialPath.length) : file.name,
+            fullCommand: `${commandPrefix}${file.name}`,  // 加入命令前缀
+            suggestion: file.name,
             source: CompletionSource.LOCAL,
             score: file.isDirectory ? 0.95 : 0.9  // 目录优先级略高
           };
