@@ -5,217 +5,369 @@
 ```
 src/
   ├── services/
-  │   ├── completion/              # 补全相关服务
-  │   │   ├── engine/             # 补全引擎
-  │   │   │   ├── CompletionEngine.ts     # 补全核心引擎
-  │   │   │   ├── LocalRuleEngine.ts      # 本地规则引擎
-  │   │   │   └── types/
-  │   │   │       └── engine.types.ts     # 引擎相关类型
-  │   │   │
-  │   │   ├── collector/          # 数据收集
-  │   │   │   ├── CommandCollector.ts     # 命令数据收集
-  │   │   │   ├── UsageCollector.ts       # 使用数据收集
-  │   │   │   └── types/
-  │   │   │       └── collector.types.ts  # 收集器类型
-  │   │   │
-  │   │   └── learning/           # AI 学习系统
-  │   │       ├── CommandLearner.ts       # 命令学习器
-  │   │       ├── RuleGenerator.ts        # 规则生成器
+  │   ├── completion/           # 现有的补全服务
+  │   │   └── learning/        # 新增 AI 学习模块
+  │   │       ├── collector/   # 数据收集
+  │   │       │   ├── CommandUsageCollector.ts  # 命令使用收集
+  │   │       │   └── CompletionUsageCollector.ts  # 补全使用收集
+  │   │       │
+  │   │       ├── analyzer/    # 学习分析
+  │   │       │   ├── PatternAnalyzer.ts    # 模式分析器
+  │   │       │   └── RuleOptimizer.ts      # 规则优化器
+  │   │       │
+  │   │       ├── cache/      # 缓存管理
+  │   │       │   ├── WeightCache.ts       # 权重缓存
+  │   │       │   └── UsageCache.ts        # 使用数据缓存
+  │   │       │
   │   │       └── types/
-  │   │           └── learning.types.ts   # 学习相关类型
+  │   │           └── learning.types.ts
   │   │
-  │   ├── database/               # 数据库服务
+  │   ├── database/           # 数据库服务
   │   │   ├── models/
-  │   │   │   ├── CommandHistory.ts       # 已有的命令历史
-  │   │   │   ├── CommandRelation.ts      # 命令关系
-  │   │   │   ├── CompletionRules.ts      # 补全规则
-  │   │   │   └── LearningData.ts         # 学习数据
+  │   │   │   ├── CommandUsage.ts     # 命令使用记录
+  │   │   │   └── CompletionUsage.ts  # 补全使用记录
   │   │   └── migrations/
-  │   │       └── 002_learning_tables.ts  # 学习相关表结构
+  │   │       └── 002_learning_tables.ts
   │   │
   │   └── ai/
-  │       └── AIService.ts        # 通用 AI 服务（已存在）
+  │       └── AIService.ts    # 通用 AI 服务
 ```
 
 ## 2. 核心组件设计
 
-### 2.1 补全引擎 (CompletionEngine)
+### 2.1 数据收集系统
 
-1. **补全核心引擎**
-   - 功能：提供实时的命令补全服务
+1. **命令使用收集器 (CommandUsageCollector)**
+   - 功能：收集用户命令使用数据
    - 工作方式：
-     * 同步处理：基于本地规则快速响应
-     * 规则驱动：使用学习生成的规则
-     * 上下文感知：考虑当前环境
+     * 内存缓冲：批量收集减少 IO
+     * 定时保存：避免频繁写入
+     * 异步处理：不影响主流程
    - 主要职责：
-     * 处理用户输入
-     * 匹配补全规则
-     * 生成补全建议
-     * 排序补全结果
+     * 记录命令使用
+     * 统计使用频率
+     * 管理数据缓冲
+     * 定期持久化
 
-2. **本地规则引擎**
-   - 功能：管理和应用补全规则
+2. **补全使用收集器 (CompletionUsageCollector)**
+   - 功能：收集补全选择数据
    - 工作方式：
-     * 内存缓存：常用规则常驻内存
-     * 索引优化：快速规则查找
-     * 规则更新：定期同步数据库
+     * 内存缓冲：批量处理
+     * 周期性存储：定时保存
+     * 异步记录：不阻塞补全
    - 主要职责：
-     * 规则加载和缓存
-     * 规则匹配和应用
-     * 规则优先级管理
-     * 规则有效性验证
+     * 记录补全选择
+     * 跟踪采纳率
+     * 管理缓冲区
+     * 执行持久化
 
-### 2.2 数据收集系统
+### 2.2 学习分析系统
 
-1. **命令收集器**
-   - 功能：收集用户命令数据
-   - 工作方式：
-     * 实时记录：捕获命令执行
-     * 批量处理：定期数据清洗
-     * 增量存储：优化存储效率
-   - 主要职责：
-     * 记录命令内容
-     * 收集执行上下文
-     * 跟踪执行结果
-     * 关联相关命令
-
-2. **使用数据收集器**
-   - 功能：收集补全使用数据
-   - 工作方式：
-     * 行为跟踪：记录用户选择
-     * 效果分析：统计采纳率
-     * 问题诊断：记录异常情况
-   - 主要职责：
-     * 跟踪补全使用
-     * 记录用户选择
-     * 统计使用效果
-     * 收集反馈数据
-
-### 2.3 AI 学习系统
-
-1. **命令学习器**
+1. **模式分析器 (PatternAnalyzer)**
    - 功能：分析命令使用模式
    - 工作方式：
-     * 离线分析：定期处理数据
-     * 模式识别：发现使用规律
-     * 渐进学习：持续优化结果
+     * 离线分析：不影响实时补全
+     * 定期执行：固定周期分析
+     * 增量处理：只分析新数据
+     * AI 分析：利用大模型进行深度分析
    - 主要职责：
-     * 分析命令模式
-     * 识别参数规律
-     * 发现命令关联
-     * 生成学习结果
+     * 分析使用频率
+     * 识别使用模式
+     * 生成优化建议
+     * 评估分析结果
+   - AI 模型应用：
+     * 输入：批量的命令使用记录和补全选择数据
+     * 分析维度：
+       - 命令间的语义关联
+       - 参数使用模式
+       - 上下文相关性
+       - 用户习惯特征
+     * 输出：优化后的规则权重和新规则建议
 
-2. **规则生成器**
-   - 功能：基于学习结果生成规则
+2. **规则优化器 (RuleOptimizer)**
+   - 功能：优化补全规则权重
    - 工作方式：
-     * 定期更新：固定周期生成
-     * 增量更新：持续优化规则
-     * 质量控制：验证规则有效性
+     * 定期优化：固定周期更新
+     * 增量更新：最小化影响
+     * 原子操作：确保一致性
    - 主要职责：
-     * 转换学习结果
-     * 生成补全规则
-     * 评估规则质量
-     * 优化规则结构
+     * 更新规则权重
+     * 添加新规则
+     * 清理旧规则
+     * 维护规则版本
+
+### 2.3 缓存系统
+
+1. **权重缓存 (WeightCache)**
+   - 功能：缓存规则权重数据
+   - 工作方式：
+     * 内存缓存：快速访问
+     * 双层缓存：热点和普通
+     * LRU 策略：自动淘汰
+   - 主要职责：
+     * 缓存权重数据
+     * 管理缓存生命周期
+     * 处理缓存更新
+     * 提供快速访问
+
+2. **使用数据缓存 (UsageCache)**
+   - 功能：缓存使用统计数据
+   - 工作方式：
+     * 内存缓冲：减少 IO
+     * 批量处理：优化性能
+     * 定期同步：保证可靠性
+   - 主要职责：
+     * 缓存使用数据
+     * 管理数据生命周期
+     * 执行批量同步
+     * 提供统计接口
+
+### 2.4 AI 分析系统
+
+1. **AI 分析服务 (AIAnalysisService)**
+   - 功能：利用 AI 大模型分析命令数据
+   - 工作方式：
+     * 定期分析：每日/每周执行
+     * 批量处理：聚合分析多条数据
+     * 异步执行：后台运行不影响实时业务
+   - 主要职责：
+     * 数据预处理：
+       - 清洗原始命令数据
+       - 提取关键特征
+       - 构建分析上下文
+     * AI 分析流程：
+       - 构建分析 Prompt
+       - 调用 AI 模型
+       - 解析模型输出
+     * 结果处理：
+       - 验证分析结果
+       - 转换为规则格式
+       - 更新权重数据
+
+2. **Prompt 管理器 (PromptManager)**
+   - 功能：管理和优化 AI 分析的 Prompt
+   - 工作方式：
+     * 模板化：使用预定义模板
+     * 动态组装：根据分析需求构建
+     * 版本控制：跟踪 Prompt 效果
+   - 主要职责：
+     * 维护 Prompt 模板：
+       - 命令关联分析模板
+       - 参数模式分析模板
+       - 上下文关联模板
+     * 优化 Prompt 策略：
+       - 根据分析效果调整
+       - 控制 token 使用量
+       - 确保输出格式规范
+
+3. **分析调度器 (AnalysisScheduler)**
+   - 功能：调度和管理 AI 分析任务
+   - 工作方式：
+     * 定时触发：按计划执行分析
+     * 条件触发：达到阈值时触发
+     * 资源控制：管理 API 调用配额
+   - 主要职责：
+     * 任务调度：
+       - 安排分析时间
+       - 控制并发数量
+       - 处理失败重试
+     * 资源管理：
+       - 监控 API 用量
+       - 控制成本开支
+       - 优化调用效率
 
 ## 3. 数据库设计
 
-### 3.1 学习数据表
+### 3.1 命令使用表
 ```sql
-CREATE TABLE learning_data (
+CREATE TABLE command_usage (
     id INTEGER PRIMARY KEY,
-    command_pattern TEXT NOT NULL,     -- 命令模式
-    parameter_pattern TEXT,            -- 参数模式
-    context_pattern TEXT,              -- 上下文模式
-    frequency INTEGER DEFAULT 1,        -- 出现频率
-    last_used_at TIMESTAMP,            -- 最后使用时间
+    command TEXT NOT NULL,        -- 实际使用的命令
+    frequency INTEGER DEFAULT 1,   -- 使用频率
+    last_used_at TIMESTAMP,       -- 最后使用时间
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP,
-    is_active BOOLEAN DEFAULT true
+    updated_at TIMESTAMP
 );
 
-CREATE INDEX idx_command_pattern ON learning_data(command_pattern);
-CREATE INDEX idx_last_used ON learning_data(last_used_at);
+CREATE INDEX idx_command ON command_usage(command);
+CREATE INDEX idx_frequency ON command_usage(frequency DESC);
 ```
 
-### 3.2 补全规则表
+### 3.2 补全使用表
 ```sql
-CREATE TABLE completion_rules (
+CREATE TABLE completion_usage (
     id INTEGER PRIMARY KEY,
-    pattern TEXT NOT NULL,             -- 匹配模式
-    suggestions JSON NOT NULL,         -- 补全建议
-    source TEXT NOT NULL,              -- 规则来源：learning/manual
-    confidence FLOAT NOT NULL,         -- 置信度
-    usage_count INTEGER DEFAULT 0,     -- 使用次数
-    hit_rate FLOAT DEFAULT 0,         -- 命中率
+    input TEXT NOT NULL,          -- 用户输入
+    selected TEXT NOT NULL,       -- 选中的补全
+    frequency INTEGER DEFAULT 1,   -- 选中频率
+    adoption_rate FLOAT,          -- 采纳率
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP,
-    last_used_at TIMESTAMP,           -- 最后使用时间
-    is_active BOOLEAN DEFAULT true
+    updated_at TIMESTAMP
 );
 
-CREATE INDEX idx_pattern ON completion_rules(pattern);
-CREATE INDEX idx_usage ON completion_rules(usage_count DESC);
+CREATE INDEX idx_input ON completion_usage(input);
+CREATE INDEX idx_selected ON completion_usage(selected);
 ```
 
-### 3.3 规则评估表
+### 3.3 规则权重表
 ```sql
-CREATE TABLE rule_evaluations (
+CREATE TABLE rule_weights (
     id INTEGER PRIMARY KEY,
-    rule_id INTEGER NOT NULL,
-    evaluation_type TEXT NOT NULL,     -- 评估类型：accuracy/adoption
-    score FLOAT NOT NULL,             -- 评估分数
-    sample_size INTEGER NOT NULL,      -- 样本数量
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    rule_id INTEGER NOT NULL,     -- 关联到现有规则
+    weight FLOAT NOT NULL,        -- 权重值
+    confidence FLOAT NOT NULL,    -- 置信度
+    last_updated TIMESTAMP,       -- 最后更新时间
+    version INTEGER DEFAULT 1,    -- 权重版本
     FOREIGN KEY (rule_id) REFERENCES completion_rules(id)
 );
 
-CREATE INDEX idx_rule_eval ON rule_evaluations(rule_id, evaluation_type);
+CREATE INDEX idx_rule_weight ON rule_weights(rule_id, weight DESC);
 ```
 
-## 4. 工作流程
+## 4. 系统集成
 
-### 4.1 数据收集流程
+### 4.1 与现有补全系统集成
+
+1. **权重注入机制**
+```typescript
+class CompletionService {
+  // 获取补全结果时注入学习权重
+  async getCompletions(input: string): Promise<Completion[]> {
+    // 1. 获取基础补全结果
+    const baseCompletions = await this.getBaseCompletions(input);
+    
+    // 2. 注入学习权重
+    const weightedCompletions = await this.injectWeights(baseCompletions);
+    
+    // 3. 重新排序
+    return this.reorderCompletions(weightedCompletions);
+  }
+}
 ```
-用户操作 → 命令收集器 → 原始数据存储 → 数据清洗 → 学习数据表
+
+2. **结果合并策略**
+```typescript
+class CompletionMerger {
+  // 合并基础结果和学习结果
+  async mergeResults(
+    baseResults: Completion[],
+    weights: WeightMap
+  ): Promise<Completion[]> {
+    // 1. 应用权重
+    // 2. 调整排序
+    // 3. 确保稳定性
+    return mergedResults;
+  }
+}
 ```
 
-### 4.2 学习流程
+### 4.2 缓存策略
+
+1. **多级缓存**
+```typescript
+class CacheManager {
+  // 内存缓存（速度最快，容量最小）
+  private memoryCache: LRUCache<string, Weight>;
+  
+  // 持久化缓存（速度中等，容量大）
+  private diskCache: SQLiteCache<string, Weight>;
+  
+  async getWeight(ruleId: string): Promise<Weight> {
+    // 1. 检查内存缓存
+    // 2. 检查持久化缓存
+    // 3. 加载数据库
+    return weight;
+  }
+}
 ```
-学习数据 → 命令学习器 → 学习结果 → 规则生成器 → 补全规则表
+
+2. **缓存更新**
+```typescript
+class CacheUpdater {
+  // 增量更新缓存
+  async updateCache(weights: Weight[]) {
+    // 1. 更新内存缓存
+    // 2. 异步更新持久化缓存
+    // 3. 清理过期数据
+  }
+}
 ```
 
-### 4.3 补全流程
+## 5. 工作流程
+
+### 5.1 数据收集流程
 ```
-用户输入 → 补全引擎 → 规则匹配 → 生成建议 → 返回结果
+用户操作 → 内存缓冲 → 批量处理 → 持久化存储
 ```
 
-## 5. 监控和维护
+### 5.2 学习优化流程
+```
+数据收集完成
+    ↓
+【AI 分析流程】
+1. 数据预处理
+   - 清洗数据
+   - 提取特征
+   - 构建上下文
+    ↓
+2. AI 模型分析
+   - 生成分析 Prompt
+   - 调用 AI 模型
+   - 解析返回结果
+    ↓
+3. 结果处理
+   - 验证分析结果
+   - 转换规则格式
+   - 更新权重数据
+    ↓
+规则优化完成
+```
 
-### 5.1 性能监控
-- 补全响应时间
-- 规则匹配效率
-- 学习任务耗时
-- 存储空间使用
+### 5.3 补全应用流程
+```
+用户输入 → 基础补全 → 注入权重 → 重排序 → 返回结果
+```
 
-### 5.2 质量监控
-- 规则准确率
-- 补全采纳率
-- 学习效果
-- 数据质量
+## 6. 性能优化
 
-## 6. 开发计划
+### 6.1 关键指标
+- 补全响应时间 < 50ms
+- 缓存命中率 > 90%
+- 内存占用 < 100MB
+- 写入批量 > 100条/次
+
+### 6.2 优化策略
+1. **内存优化**
+   - 使用 LRU 缓存
+   - 限制缓存大小
+   - 定期清理过期数据
+
+2. **IO优化**
+   - 批量写入
+   - 异步处理
+   - 增量更新
+
+3. **计算优化**
+   - 预计算权重
+   - 索引优化
+   - 并行处理
+
+## 7. 开发计划
 
 ### 第一周：基础设施
-1. 补全引擎框架
-2. 数据收集系统
-3. 数据库表设计
+1. 数据收集系统
+2. 缓存框架
+3. 数据库设计
+4. AI 分析服务框架搭建
 
-### 第二周：学习系统
-1. 命令学习器
-2. 规则生成器
-3. 规则管理
+### 第二周：核心功能
+1. Prompt 管理系统开发
+2. AI 分析流程实现
+3. 规则优化器开发
+4. 系统集成
 
 ### 第三周：优化和测试
 1. 性能优化
-2. 单元测试
-3. 集成测试 
+2. AI 分析效果测试
+3. 监控完善
+4. 成本优化 
