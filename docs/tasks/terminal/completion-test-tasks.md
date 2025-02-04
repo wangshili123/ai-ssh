@@ -11,10 +11,10 @@
 - [x] 输入 `cat ../` 应该显示上级目录的内容
 
 ## 3. Git 命令补全测试
-- [ ] 基础命令补全
-  - [ ] 输入 `git ch` 应该提示 checkout, cherry-pick 等
-  - [ ] 输入 `git co` 应该提示 commit, config 等
-  - [ ] 输入 `git pu` 应该提示 push, pull 等
+- [x] 基础命令补全 ✅
+  - [x] 输入 `git ch` 应该提示 checkout, cherry-pick 等
+  - [x] 输入 `git co` 应该提示 commit, config 等
+  - [x] 输入 `git pu` 应该提示 push, pull 等
 
 - [ ] 参数补全
   - [ ] `git checkout -` 应该提示 -b, --branch 等选项
