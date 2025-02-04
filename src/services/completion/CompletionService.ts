@@ -10,6 +10,7 @@ import { SessionState } from './core/types/context.types';
 import { ScoringService } from './scoring/ScoringService';
 import { SSHSession } from './SSHCompletion';
 import { SSHConnectionManager } from '../ssh/SSHConnectionManager';
+import { CompletionSSHManager } from './CompletionSSHManager';
 
 export class CompletionService {
   private static instance: CompletionService;
@@ -191,9 +192,9 @@ export class CompletionService {
           },
           getCurrentDirectory: async () => {
             console.log('[CompletionService] 获取当前目录');
-            const result = await SSHConnectionManager.getInstance().executeCurrentSessionCommand('pwd');
-            console.log('[CompletionService] 当前目录:', result.stdout.trim());
-            return result.stdout.trim();
+            const currentDirectory = CompletionSSHManager.getInstance().getCurrentDirectoryN();
+            console.log('[CompletionService] 当前目录:', currentDirectory);
+            return currentDirectory;
           },
           getEnvironmentVars: async () => {
             console.log('[CompletionService] 获取环境变量');
@@ -365,8 +366,9 @@ export class CompletionService {
           };
         },
         getCurrentDirectory: async () => {
-          const result = await sshManager.executeCurrentSessionCommand('pwd');
-          return result.stdout.trim();
+          const currentDirectory = CompletionSSHManager.getInstance().getCurrentDirectoryN();
+          console.log('[CompletionService] 当前目录:', currentDirectory);
+          return currentDirectory;
         },
         getEnvironmentVars: async () => {
           const result = await sshManager.executeCurrentSessionCommand('env');
@@ -375,6 +377,7 @@ export class CompletionService {
             const [key, ...values] = line.split('=');
             if (key) vars[key] = values.join('=');
           });
+          console.log('[CompletionService] 环境变量:', vars);
           return vars;
         }
       };

@@ -97,6 +97,10 @@ export class CompletionSSHManager {
     return dir || '~';
   }
 
+  public getCurrentDirectoryN(): string {
+    return this.getCurrentDirectory(eventBus.getCurrentTabId());
+  }
+
   private async executeCommand(connection: CachedSSHConnection, command: string): Promise<CommandResult> {
     console.log(`[CompletionSSHManager] Executing command: ${command}`);
     
@@ -156,7 +160,7 @@ export class CompletionSSHManager {
   }
 
   private handleShellOutput(connection: CachedSSHConnection, data: string) {
-    console.log(`[CompletionSSHManager] Received shell output:`, data);
+    // console.log(`[CompletionSSHManager] Received shell output:`, data);
     connection.buffer += data;
 
     // 尝试解析完整的 JSON 响应
@@ -251,11 +255,14 @@ export class CompletionSSHManager {
         });
 
         // 初始化 shell 环境
+        //统计耗时
+        const startTime = Date.now();
         this.initializeShell(shell).then(() => {
-          console.log('[CompletionSSHManager] Shell initialization completed');
+          console.log(`[CompletionSSHManager] Shell initialization completed，time: ${Date.now() - startTime}ms`);
           connection.shellReady = true;
           resolve();
         }).catch(reject);
+
       });
     });
   }
@@ -355,8 +362,8 @@ echo "[ShellWrapper] Main loop ended" >&2
         console.log('[CompletionSSHManager] Sent test command');
         
         // 给更多时间等待响应
-        setTimeout(resolve, 5000);
-      }, 5000);
+        setTimeout(resolve, 500);
+      }, 500);
     });
   }
 
@@ -383,6 +390,15 @@ echo "[ShellWrapper] Main loop ended" >&2
     try {
       const connection = await this.getConnection(sessionInfo);
       await this.createShellSession(connection);
+      const pwdResult = await this.executeCommand(connection, 'pwd -P');
+      //初始化获取当前目录
+      if (pwdResult.exitCode === 0) {
+        const newDirectory = pwdResult.stdout.trim();
+        console.log(`[CompletionSSHManager] New directory for tab ${tabId}: ${newDirectory}`);
+        this.currentDirectories.set(tabId, newDirectory);
+      } else {
+        console.error(`[CompletionSSHManager] Failed to get current directory:`, pwdResult.stderr);
+      }
       console.log(`[CompletionSSHManager] Connection and shell created for tab ${tabId}`);
     } catch (error) {
       console.error(`[CompletionSSHManager] Failed to create connection for tab ${tabId}:`, error);

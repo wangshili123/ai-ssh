@@ -1,7 +1,8 @@
 import { ShellParserTypes } from '../parser/ShellParserTypes';
 import { CompletionContext, CompletionSource, CompletionSuggestion } from './types/completion.types';
-import { eventBus } from '../../renderer/services/eventBus';
+import { eventBus } from '@/renderer/services/eventBus';
 import { CompletionSSHManager } from './CompletionSSHManager';
+import { SessionInfo } from '@/main/services/storage';
 
 /**
  * Fish-shell风格的补全算法实现
@@ -124,7 +125,7 @@ export class FishStyleCompletion {
     // 获取建议
     const suggestions: CompletionSuggestion[] = [];
     //当前目录
-    const currentDirectory = this.sshManager.getCurrentDirectory(eventBus.getCurrentTabId());
+    const currentDirectory = this.sshManager.getCurrentDirectoryN();
     console.log('[FishStyleCompletion] 当前目录:', currentDirectory);
     try {
       // 预先获取共用数据
@@ -134,27 +135,36 @@ export class FishStyleCompletion {
       };
 
       if (context.sshSession) {
+        const tabId = eventBus.getCurrentTabId();
         // 获取文件列表（如果需要的话）
         if (this.needsFileCompletion(command)) {
-          const lsResult = await this.sshManager.executeCommandForTab(context.tabId, 'ls -1aU | cat');
-          commonData.fileList = lsResult.stdout.split('\n')
-            .map(line => line.trim())
-            .filter(line => line && line !== '.' && line !== '..')
-            .map(name => ({
-              name,
-              isDirectory: name.endsWith('/')
-            }));
-          console.log('[FishStyleCompletion] 预加载的文件列表:', commonData.fileList);
+          try {
+            const lsResult = await this.sshManager.executeCommandForTab(tabId, 'ls -1aU | cat');
+            commonData.fileList = lsResult.stdout.split('\n')
+              .map(line => line.trim())
+              .filter(line => line && line !== '.' && line !== '..')
+              .map(name => ({
+                name,
+                isDirectory: name.endsWith('/')
+              }));
+            console.log('[FishStyleCompletion] 预加载的文件列表:', commonData.fileList);
+          } catch (error) {
+            console.error('[FishStyleCompletion] 获取文件列表失败:', error);
+          }
         }
 
         // 获取环境变量（如果需要的话）
         if (this.needsEnvCompletion(command)) {
-          const envResult = await this.sshManager.executeCommandForTab(context.tabId, 'env');
-          envResult.stdout.split('\n').forEach(line => {
-            const [key, ...values] = line.split('=');
-            if (key) commonData.envVars[key] = values.join('=');
-          });
-          console.log('[FishStyleCompletion] 预加载的环境变量:', commonData.envVars);
+          try {
+            const envResult = await this.sshManager.executeCommandForTab(tabId, 'env');
+            envResult.stdout.split('\n').forEach(line => {
+              const [key, ...values] = line.split('=');
+              if (key) commonData.envVars[key] = values.join('=');
+            });
+            console.log('[FishStyleCompletion] 预加载的环境变量:', commonData.envVars);
+          } catch (error) {
+            console.error('[FishStyleCompletion] 获取环境变量失败:', error);
+          }
         }
       }
 
@@ -860,4 +870,5 @@ export class FishStyleCompletion {
 
     return suggestions;
   }
+
 } 
