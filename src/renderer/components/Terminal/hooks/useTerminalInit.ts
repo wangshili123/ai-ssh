@@ -28,6 +28,7 @@ export interface UseTerminalInitProps {
   searchAddonRef: React.MutableRefObject<SearchAddon | null>;
   fitAddonRef: React.MutableRefObject<FitAddon | null>;
   shellIdRef: React.MutableRefObject<string | null>;
+  pendingCommandRef: React.MutableRefObject<string>;
 }
 
 export const useTerminalInit = ({
@@ -43,6 +44,7 @@ export const useTerminalInit = ({
   searchAddonRef,
   fitAddonRef,
   shellIdRef,
+  pendingCommandRef,
 }: UseTerminalInitProps) => {
   // 使用 ref 来跟踪初始化状态
   const hasInitializedRef = useRef(false);
@@ -127,51 +129,38 @@ export const useTerminalInit = ({
     // 注册事件处理器
     terminal.onData(callbacksRef.current.handleInput);
     
-    let currentCommand = '';
+    // 移除currentCommand变量，直接使用pendingCommandRef
     const tabId = eventBus.getCurrentTabId() || '';
     terminal.onKey(async (event) => {
       const ev = event.domEvent;
       
-      // 处理退格键
-      if (ev.key === 'Backspace') {
-        if (currentCommand.length > 0) {
-          currentCommand = currentCommand.slice(0, -1);
-          console.log('[useTerminalInit] Command after backspace:', currentCommand);
-        }
-        return;
-      }
-      
       // 处理回车键
       if (ev.key === 'Enter') {
-        const command = currentCommand.trim();
+        // 使用pendingCommandRef获取完整命令
+        const command = pendingCommandRef.current.trim();
         console.log('[useTerminalInit] Executing command:', command);
         
         // 先执行命令
         await callbacksRef.current.handleEnterKey();
         
         // 如果是 cd 命令则发送事件
-        if (command.startsWith('cd ')) {
+        if (command.startsWith('cd ') || command === 'cd' || command === '..' || command === '.') {
           // 等待一小段时间确保 cd 命令执行完成
           await new Promise(resolve => setTimeout(resolve, 100));
           
+          // 标准化 cd 命令
+          const normalizedCommand = command === '..' ? 'cd ..' : 
+                                  command === '.' ? 'cd .' :
+                                  command;
+          
           // 发送目录变更事件到补全服务
-          console.log('[useTerminalInit] Sending directory change event for tab:', tabId, 'command:', command);
+          console.log('[useTerminalInit] Sending directory change event for tab:', tabId, 'command:', normalizedCommand);
           eventBus.emit('terminal:directory-change', {
             tabId,
-            command: command
+            command: normalizedCommand
           });
         }
-        
-        // 重置当前命令
-        currentCommand = '';
         return;
-      }
-
-      // 处理普通字符输入
-      const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
-      if (printable && ev.key.length === 1) {
-        currentCommand += ev.key;
-        console.log('[useTerminalInit] Command after input:', currentCommand);
       }
     });
 

@@ -79,7 +79,8 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     terminalRef,
     searchAddonRef,
     fitAddonRef,
-    shellIdRef
+    shellIdRef,
+    pendingCommandRef
   });
 
   // 在组件挂载后设置 isReady
