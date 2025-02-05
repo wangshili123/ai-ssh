@@ -1,0 +1,224 @@
+useCommandHandler.ts:9 [useCommandHandler] handleInput called with data: 
+useCommandHandler.ts:12 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCommandHandler.ts:61 [useCommandHandler] Updated pending command (backspace): git commit 
+useCompletion.ts:157 [useCompletion] Updating pending command to: git commit 
+useCompletion.ts:208 [useCompletion] Input changed from: git commit - to: git commit 
+useCompletion.ts:219 [useCompletion] Setting up suggestion timer for input: git commit 
+useCommandHandler.ts:9 [useCommandHandler] handleInput called with data: -
+useCommandHandler.ts:12 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:157 [useCompletion] Updating pending command to: git commit -
+useCompletion.ts:208 [useCompletion] Input changed from: git commit  to: git commit -
+useCompletion.ts:219 [useCompletion] Setting up suggestion timer for input: git commit -
+useCompletion.ts:229 [useCompletion] Suggestion timer triggered for input: git commit -
+useCompletion.ts:231 [useCompletion] Getting suggestions from service
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738652503331
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738652503331
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738652503331
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738652503331' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738652503331', shellId: '1737016726289-1738652503331', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '251', host: '172.16.2.191', port: 22, username: 'root', …}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738652503331
+CompletionService.ts:96 [CompletionService] 开始获取补全建议: {input: 'git commit -', cursorPosition: 27, sessionState: {…}, tabId: 'tab-1738652503331'}
+CompletionService.ts:98 [CompletionService] SSH 会话状态: {hasSession: true}
+CompletionService.ts:101 [CompletionService] 正在获取增强上下文...
+EnhancedContextAnalyzer.ts:116 [EnhancedContextAnalyzer] 开始获取补全上下文: {input: 'git commit -', cursorPosition: 27, sessionState: {…}}
+ShellParser.ts:182 处理命令节点: {type: 'command', text: 'git commit -', children: Array(3)}
+ShellParser.ts:212 处理子节点: {type: 'command_name', text: 'git'}
+ShellParser.ts:212 处理子节点: {type: 'word', text: 'commit'}
+ShellParser.ts:212 处理子节点: {type: 'word', text: '-'}
+EnhancedContextAnalyzer.ts:125 [EnhancedContextAnalyzer] 命令解析耗时: 0.88 ms
+EnhancedContextAnalyzer.ts:126 [EnhancedContextAnalyzer] 命令解析结果: {type: 'program', commands: Array(1)}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738652503331
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738652503331
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738652503331
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738652503331' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738652503331', shellId: '1737016726289-1738652503331', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '251', host: '172.16.2.191', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738652503331
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738652503331
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738652503331
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738652503331' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738652503331', shellId: '1737016726289-1738652503331', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '251', host: '172.16.2.191', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738652503331
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738652503331
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738652503331
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738652503331' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738652503331', shellId: '1737016726289-1738652503331', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '251', host: '172.16.2.191', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738652503331
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738652503331
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738652503331
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738652503331' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738652503331', shellId: '1737016726289-1738652503331', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '251', host: '172.16.2.191', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+EnhancedContextAnalyzer.ts:131 [EnhancedContextAnalyzer] 获取环境状态耗时: 410.91 ms
+EnhancedContextAnalyzer.ts:132 [EnhancedContextAnalyzer] 环境状态: {currentDirectory: '/', isGitRepository: false, recentFiles: Array(10), runningProcesses: Array(10), lastModifiedFiles: Array(10)}
+EnhancedContextAnalyzer.ts:135 [EnhancedContextAnalyzer] 从数据库获取的历史记录...
+CommandHistory.ts:69 CommandHistory.search called: {prefix: '', limit: 100}
+CommandHistory.ts:106 Executing search query: 
+          SELECT id, command, context, frequency, last_used, success, outputs
+          FROM command_history
+          ORDER BY last_used DESC, frequency DESC
+          LIMIT ?
+         {params: Array(1)}
+CommandHistory.ts:108 
+          SELECT id, command, context, frequency, last_used, success, outputs
+          FROM command_history
+          ORDER BY last_used DESC, frequency DESC
+          LIMIT 100.0
+        
+CommandHistory.ts:109 Search results: (27) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+CommandHistory.ts:119 Mapped results: (27) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+EnhancedContextAnalyzer.ts:138 [EnhancedContextAnalyzer] 获取历史记录耗时: 2.28 ms
+EnhancedContextAnalyzer.ts:139 [EnhancedContextAnalyzer] 从数据库获取的历史记录: (27) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+EnhancedContextAnalyzer.ts:150 [EnhancedContextAnalyzer] 更新统计信息耗时: 0.04 ms
+EnhancedContextAnalyzer.ts:190 [EnhancedContextAnalyzer] 获取参数模式耗时: 0.00 ms
+EnhancedContextAnalyzer.ts:195 [EnhancedContextAnalyzer] 获取目录模式耗时: 0.07 ms
+FileTypePatternAnalyzer.ts:54 [FileTypePatternAnalyzer] 获取文件类型模式
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738652503331
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738652503331
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738652503331
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738652503331' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738652503331', shellId: '1737016726289-1738652503331', sessionInfo: {…}}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+FileTypePatternAnalyzer.ts:74 [FileTypePatternAnalyzer] 获取完成, 耗时: 463 ms
+EnhancedContextAnalyzer.ts:200 [EnhancedContextAnalyzer] 获取文件类型模式耗时: 463.54 ms
+EnhancedContextAnalyzer.ts:205 [EnhancedContextAnalyzer] 获取错误修正耗时: 0.00 ms
+EnhancedContextAnalyzer.ts:207 [EnhancedContextAnalyzer] 获取相关模式完成, 总耗时: 463.91 ms {参数模式耗时: '0.00', 目录模式耗时: '0.07', 文件类型模式耗时: '463.54', 错误修正耗时: '0.00'}
+EnhancedContextAnalyzer.ts:155 [EnhancedContextAnalyzer] 获取相关模式耗时: 464.16 ms
+EnhancedContextAnalyzer.ts:156 [EnhancedContextAnalyzer] 相关模式: {argumentPatterns: Array(0), directoryPatterns: Array(0), fileTypePatterns: Array(0), errorCorrections: Array(0)}
+EnhancedContextAnalyzer.ts:158 [EnhancedContextAnalyzer] 获取增强上下文完成, 总耗时: 880.31 ms {命令解析耗时: '0.88', 环境状态耗时: '410.91', 历史记录耗时: '2.28', 统计信息耗时: '0.04', 相关模式耗时: '464.16'}
+CompletionService.ts:107 [CompletionService] 设置命令尾部空格状态: false
+CompletionService.ts:109 [CompletionService] 获取增强上下文完成, 耗时: 880.75 ms
+CompletionService.ts:110 [CompletionService] 获取到的增强上下文: {currentCommand: {…}, commandHistory: {…}, environment: {…}, userPatterns: {…}, patterns: {…}, …}
+CompletionService.ts:113 [CompletionService] 从历史记录中查找匹配的命令...
+CommandHistory.ts:69 CommandHistory.search called: {prefix: 'git commit -', limit: 10}
+CommandHistory.ts:106 Executing search query: 
+          SELECT id, command, context, frequency, last_used, success, outputs
+          FROM command_history
+          WHERE command LIKE ?
+          ORDER BY
+            CASE 
+              WHEN command = ? THEN 3        -- 完全匹配最高优先级
+              WHEN command LIKE ? THEN 2     -- 前缀匹配次优先级 
+              ELSE 1                         -- 包含匹配最低优先级
+            END DESC,
+            frequency DESC,
+            last_used DESC
+          LIMIT ?
+         {params: Array(4)}
+CommandHistory.ts:108 
+          SELECT id, command, context, frequency, last_used, success, outputs
+          FROM command_history
+          WHERE command LIKE '%git commit -%'
+          ORDER BY
+            CASE 
+              WHEN command = 'git commit -' THEN 3        -- 完全匹配最高优先级
+              WHEN command LIKE 'git commit -%' THEN 2     -- 前缀匹配次优先级 
+              ELSE 1                         -- 包含匹配最低优先级
+            END DESC,
+            frequency DESC,
+            last_used DESC
+          LIMIT 10.0
+        
+CommandHistory.ts:109 Search results: []
+CommandHistory.ts:119 Mapped results: []
+CompletionService.ts:124 [CompletionService] 历史记录匹配完成, 耗时: 1.58 ms
+CompletionService.ts:125 [CompletionService] 历史记录匹配结果: []
+CompletionService.ts:143 [CompletionService] 处理的命令对象: {name: 'git', args: Array(2), options: Array(0), redirects: Array(0), hasTrailingSpace: false}
+CompletionService.ts:145 [CompletionService] 正在获取Fish风格补全建议...
+FishStyleCompletion.ts:82 [FishStyleCompletion] Getting suggestions for command: {name: 'git', args: Array(2), options: Array(0), redirects: Array(0), hasTrailingSpace: false}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738652503331
+FishStyleCompletion.ts:95 [FishStyleCompletion] 当前目录: /
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738652503331
+FishStyleCompletion.ts:462 [FishStyleCompletion] 文件补全命令检查: {commandName: 'git', isFileCommand: false}
+CompletionSSHManager.ts:304 [CompletionSSHManager] Executing command for tab tab-1738652503331: ls -1aU | cat
+CompletionSSHManager.ts:67 [CompletionSSHManager] Executing command: ls -1aU | cat
+CompletionSSHManager.ts:83 [CompletionSSHManager] Sending command with ID: 1738653462846
+CompletionSSHManager.ts:112 [CompletionSSHManager] Writing command to shell: {"id":"1738653462846","command":"ls -1aU | cat | cat"}
+
+CompletionSSHManager.ts:125 [CompletionSSHManager] Found JSON line: {"id":"1738653462846","exitCode":0,"stdout":"LgouLgpib290CmRldgpob21lCnByb2MKcnVuCnN5cwpldGMKcm9vdAp2YXIKdG1wCnVzcgpiaW4Kc2JpbgpsaWIKbGliNjQKbWVkaWEKbW50Cm9wdApzcnYKLnJlYWRhaGVhZApjeHJfY2xvdWQKaW1hZ2UKZGF0YQpjeHIKZmxpbmstY2RjCi5hdXRvcmVsYWJlbApsb2cKLmF1dG9yZWxhYmxlCi5iYXNoX2hpc3RvcnkKYXBwCjEyMwp0ZXN0LnR4dApkYXRhLnR4dAo=","stderr":""}
+CompletionSSHManager.ts:130 [CompletionSSHManager] Found pending command for ID 1738653462846
+FishStyleCompletion.ts:115 [FishStyleCompletion] 预加载的文件列表: (33) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+FishStyleCompletion.ts:176 [FishStyleCompletion] 开始获取智能语法补全
+FishStyleCompletion.ts:177 [FishStyleCompletion] 命令类型检查: {isGitCommand: true, isDockerCommand: false}
+FishStyleCompletion.ts:399 [FishStyleCompletion] 开始获取语法补全, 命令: {name: 'git', args: Array(2), options: Array(0), redirects: Array(0), hasTrailingSpace: false}args: Array(2)0: "commit"1: "-"length: 2[[Prototype]]: Array(0)hasTrailingSpace: falsename: "git"options: []redirects: [][[Prototype]]: Object
+FishStyleCompletion.ts:407 [FishStyleCompletion] 命令参数信息: {commandName: 'git', availableArgs: Array(2), lastArg: '-', hasTrailingSpace: false}
+FishStyleCompletion.ts:462 [FishStyleCompletion] 文件补全命令检查: {commandName: 'git', isFileCommand: false}
+FishStyleCompletion.ts:285 [FishStyleCompletion] 获取git命令补全
+FishStyleCompletion.ts:184 [FishStyleCompletion] 基本语法补全结果: []
+FishStyleCompletion.ts:285 [FishStyleCompletion] 获取git命令补全
+FishStyleCompletion.ts:189 [FishStyleCompletion] Git命令补全结果: []
+FishStyleCompletion.ts:621 [FishStyleCompletion] 获取文件类型补全
+FishStyleCompletion.ts:199 [FishStyleCompletion] 文件类型补全结果: []
+FishStyleCompletion.ts:664 [FishStyleCompletion] 获取目录操作模式补全
+FishStyleCompletion.ts:203 [FishStyleCompletion] 目录操作模式补全结果: []
+FishStyleCompletion.ts:695 [FishStyleCompletion] 获取错误修正补全
+FishStyleCompletion.ts:207 [FishStyleCompletion] 错误修正补全结果: []
+FishStyleCompletion.ts:211 [FishStyleCompletion] 参数分析: {lastArg: '-', isInQuotes: false, isVariableExpansion: false, isRedirectionTarget: false}
+FishStyleCompletion.ts:240 [FishStyleCompletion] 智能语法补全完成, 总建议数: 0
+FishStyleCompletion.ts:371 [FishStyleCompletion] 开始获取历史补全, 命令: {name: 'git', args: Array(2), options: Array(0), redirects: Array(0), hasTrailingSpace: false}
+FishStyleCompletion.ts:372 [FishStyleCompletion] 补全上下文: {tabId: 'tab-1738652503331', sshSession: {…}, recentCommands: Array(10), commandHistory: {…}, currentCommand: {…}}
+FishStyleCompletion.ts:392 [FishStyleCompletion] 历史补全结果: []
+FishStyleCompletion.ts:325 [FishStyleCompletion] 开始获取SSH补全, 命令: {name: 'git', args: Array(2), options: Array(0), redirects: Array(0), hasTrailingSpace: false}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738652503331
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738652503331
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738652503331
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738652503331' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738652503331', shellId: '1737016726289-1738652503331', sessionInfo: {…}}
+FishStyleCompletion.ts:341 [FishStyleCompletion] 获取路径补全, 最后参数: -
+FishStyleCompletion.ts:522 [FishStyleCompletion] 获取文件名补全, 路径: -
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:530 [FishStyleCompletion] 匹配文件: {file: {…}, partialPath: '-', matches: false}
+FishStyleCompletion.ts:543 [FishStyleCompletion] 文件名补全建议: []
+CompletionService.ts:190 [CompletionService] Fish风格补全完成, 耗时: 555.64 ms
+CompletionService.ts:191 [CompletionService] Fish风格补全建议: []
+CompletionService.ts:203 [CompletionService] 过滤补全建议完成, 耗时: 0.00 ms
+CompletionService.ts:204 [CompletionService] 过滤后的基础补全建议: []
+CompletionService.ts:207 [CompletionService] 合并后的所有建议: []
+CompletionService.ts:210 [CompletionService] 正在调整建议排序和得分...
+ScoringService.ts:41 [ScoringService] 开始调整建议得分...
+CompletionService.ts:213 [CompletionService] 调整排序和得分完成, 耗时: 0.24 ms
+CompletionService.ts:214 [CompletionService] 调整后的建议: []
+CompletionService.ts:219 [CompletionService] 去重和限制数量完成, 耗时: 0.01 ms
+CompletionService.ts:220 [CompletionService] 最终补全建议: []
+CompletionService.ts:222 [CompletionService] 获取补全建议完成, 总耗时: 1440.23 ms {增强上下文耗时: '1440.23', 历史记录查询耗时: '1.58', Fish补全耗时: '555.64', 过滤耗时: '0.00', 打分耗时: '0.24', …}
+useCompletion.ts:243 [useCompletion] Got suggestions: []
+useCompletion.ts:256 [useCompletion] No suggestions found, hiding dropdown
+SSHConnectionManager.ts:128 [SSHConnectionManager] 开始清理过期连接
