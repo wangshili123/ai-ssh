@@ -25,9 +25,9 @@ export class CompletionUsageCollector extends BaseCollector {
   async collect(data: CompletionUsageData): Promise<void> {
     const key = `${data.input}:${data.suggestion}`;
     this.cache.set(key, {
-      input: data.input,
-      suggestion: data.suggestion,
-      isSelected: data.isSelected
+      input: String(data.input),
+      suggestion: String(data.suggestion),
+      is_selected: data.isSelected ? 1 : 0
     });
 
     if (this.cache.size >= this.batchSize) {
@@ -45,13 +45,17 @@ export class CompletionUsageCollector extends BaseCollector {
       INSERT INTO completion_usage 
         (input, suggestion, is_selected)
       VALUES 
-        (@input, @suggestion, @isSelected)
+        (@input, @suggestion, @is_selected)
     `);
 
     try {
       this.db.transaction(() => {
         for (const data of this.cache.values()) {
-          stmt.run(data);
+          stmt.run({
+            input: String(data.input),
+            suggestion: String(data.suggestion),
+            is_selected: Number(data.is_selected)
+          });
         }
       })();
       this.cache.clear();
