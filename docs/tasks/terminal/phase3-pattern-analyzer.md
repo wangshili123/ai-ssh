@@ -29,7 +29,6 @@ class AnalysisScheduler {
 class PatternAnalyzer {
   private static instance: PatternAnalyzer;
   private db: Database;
-  private aiService: AIService;
 }
 ```
 
@@ -37,16 +36,16 @@ class PatternAnalyzer {
 - 获取增量数据
 - 预处理数据
 - 执行基础统计分析
-- 调用 AI 进行深度分析
-- 合并分析结果
-- 存储分析结果
+- 识别命令模式
+- 计算基础指标
+- 生成分析结果
 
 **实现步骤**：
 1. 实现数据获取接口
 2. 添加数据预处理逻辑
 3. 实现基础统计分析
-4. 集成 AI 分析
-5. 实现结果合并逻辑
+4. 实现模式识别
+5. 实现指标计算
 6. 添加结果存储功能
 
 ### 1.3 分析结果缓存 (PatternCache)
@@ -91,6 +90,7 @@ interface ProcessedData {
   commandPatterns: CommandPattern[];
   parameterPatterns: ParameterPattern[];
   contextPatterns: ContextPattern[];
+  basicMetrics: BasicMetrics;
 }
 ```
 
@@ -98,22 +98,38 @@ interface ProcessedData {
 1. 实现数据清洗
 2. 添加特征提取
 3. 实现数据分组
-4. 添加数据验证
+4. 计算基础指标
+5. 添加数据验证
 
-### 2.3 AI 分析集成
+### 2.3 模式识别
 ```typescript
-interface AIAnalysisPrompt {
-  data: ProcessedData;
-  context: AnalysisContext;
-  requirements: AnalysisRequirements;
+interface PatternRecognition {
+  extractParameterPatterns(): ParameterPattern[];
+  extractSequencePatterns(): SequencePattern[];
+  extractContextPatterns(): ContextPattern[];
 }
 ```
 
 **实现步骤**：
-1. 设计 Prompt 模板
-2. 实现批量处理逻辑
-3. 添加结果解析
-4. 实现错误处理
+1. 实现参数模式识别
+2. 实现序列模式识别
+3. 实现上下文模式识别
+4. 添加模式验证
+
+### 2.4 指标计算
+```typescript
+interface MetricsCalculation {
+  calculateBasicMetrics(): BasicMetrics;
+  calculatePatternMetrics(): PatternMetrics;
+  calculateCorrelationMetrics(): CorrelationMetrics;
+}
+```
+
+**实现步骤**：
+1. 实现基础指标计算
+2. 实现模式指标计算
+3. 实现相关性指标计算
+4. 添加指标验证
 
 ## 3. 结果应用
 
@@ -143,16 +159,11 @@ class PatternApplier {
 ### 第二阶段：数据处理
 - [ ] 实现增量数据获取
 - [ ] 实现数据预处理
-- [ ] 实现基础统计分析
+- [ ] 实现模式识别
+- [ ] 实现指标计算
 - [ ] 添加单元测试
 
-### 第三阶段：AI 集成
-- [ ] 实现 Prompt 管理
-- [ ] 实现 AI 分析集成
-- [ ] 实现结果解析
-- [ ] 添加集成测试
-
-### 第四阶段：结果应用
+### 第三阶段：结果应用
 - [ ] 实现 PatternApplier
 - [ ] 实现规则更新
 - [ ] 实现关系更新
@@ -163,7 +174,6 @@ class PatternApplier {
 ### 5.1 性能考虑
 - 使用批量处理减少数据库操作
 - 实现智能的缓存策略
-- 控制 AI API 调用频率
 - 优化数据结构和算法
 
 ### 5.2 可靠性保证

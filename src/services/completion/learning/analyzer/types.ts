@@ -1,0 +1,72 @@
+/**
+ * 命令参数模式
+ * 用于表示命令及其参数的使用模式
+ */
+export interface ParameterPattern {
+  command: string;          // 基础命令
+  parameter: string;        // 参数部分
+  frequency: number;        // 出现频率
+  examples: string[];       // 使用示例
+}
+
+/**
+ * 命令上下文模式
+ * 用于表示命令在特定上下文中的使用模式
+ */
+export interface ContextPattern {
+  command: string;          // 命令
+  context: string;          // 上下文
+  frequency: number;        // 出现频率
+  correlation: number;      // 与上下文的相关性
+}
+
+/**
+ * 命令序列模式
+ * 用于表示连续执行的命令序列
+ */
+export interface SequencePattern {
+  commands: string[];       // 命令序列
+  frequency: number;        // 出现频率
+  timeGap: number;         // 平均时间间隔
+  successRate: number;     // 成功率
+}
+
+/**
+ * 预处理后的数据
+ * 包含各种统计信息和识别出的模式
+ */
+export interface ProcessedData {
+  uniqueCommands: Set<string>;                  // 唯一命令集合
+  commandFrequency: Map<string, number>;        // 命令频率映射
+  parameterPatterns: ParameterPattern[];        // 参数模式列表
+  contextPatterns: ContextPattern[];            // 上下文模式列表
+  sequencePatterns: SequencePattern[];          // 序列模式列表
+  totalSamples: number;                         // 总样本数
+  totalUniqueCommands: number;                  // 唯一命令数
+  averageFrequency: number;                     // 平均频率
+}
+
+/**
+ * 分析上下文
+ * 包含分析过程中需要的上下文信息
+ */
+export interface AnalysisContext {
+  timeRange: {
+    start: Date;           // 分析开始时间
+    end: Date;             // 分析结束时间
+  };
+  totalSamples: number;    // 总样本数
+  uniqueUsers: number;     // 唯一用户数
+}
+
+/**
+ * 分析配置
+ * 用于配置分析过程的各种参数
+ */
+export interface AnalysisConfig {
+  minFrequency: number;        // 最小频率阈值
+  minConfidence: number;       // 最小置信度阈值
+  maxSequenceLength: number;   // 最大序列长度
+  contextWindow: number;       // 上下文窗口大小
+  batchSize: number;          // 批处理大小
+} 
