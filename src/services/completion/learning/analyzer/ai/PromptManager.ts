@@ -17,6 +17,9 @@ export class PromptManager {
 环境上下文：
 {{context}}
 
+使用特征：
+{{features}}
+
 请从以下方面进行分析：
 1. 模式关联性分析
 2. 使用效率评估
@@ -29,7 +32,8 @@ export class PromptManager {
 3. 优先级需要明确标注
 4. 风险需要充分评估
 
-请以 JSON 格式返回分析结果，格式如下：
+请以 JSON 格式返回分析结果强制要求（不要带markdown格式，json按文本格式返回）
+，格式如下：
 {
   "insights": {
     "patternInsights": [
@@ -88,16 +92,36 @@ export class PromptManager {
   /**
    * 生成分析 Prompt
    */
-  public async generateAnalysisPrompt(input: AIAnalysisInput): Promise<string> {
+  public async generateAnalysisPrompt(
+    input: AIAnalysisInput,
+    processedData: any
+  ): Promise<string> {
     try {
-      return this.ANALYSIS_TEMPLATE
-        .replace('{{patterns}}', JSON.stringify(input.baseAnalysis.patterns, null, 2))
+      const prompt = this.ANALYSIS_TEMPLATE
+        .replace('{{patterns}}', JSON.stringify({
+          parameters: processedData.patterns.parameters,
+          contexts: processedData.patterns.contexts,
+          sequences: processedData.patterns.sequences
+        }, null, 2))
         .replace('{{metrics}}', JSON.stringify(input.baseAnalysis.metrics, null, 2))
         .replace('{{context}}', JSON.stringify({
           environment: input.context.environmentState,
           preferences: input.context.userPreferences,
           history: input.context.historicalData
+        }, null, 2))
+        .replace('{{features}}', JSON.stringify({
+          commandFrequency: Object.fromEntries(processedData.features.commandFrequency),
+          contextualUsage: Object.fromEntries(processedData.features.contextualUsage),
+          timeDistribution: Object.fromEntries(processedData.features.timeDistribution),
+          errorRates: Object.fromEntries(processedData.features.errorRates)
         }, null, 2));
+
+      // 验证 Prompt 长度
+      if (!this.validatePromptLength(prompt)) {
+        throw new Error('Generated prompt exceeds maximum length');
+      }
+
+      return prompt;
     } catch (error) {
       console.error('[PromptManager] Failed to generate analysis prompt:', error);
       throw new Error(`Failed to generate analysis prompt: ${error}`);

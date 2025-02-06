@@ -1,6 +1,7 @@
 import { aiService } from '../../../../../renderer/services/ai';
 import { PromptManager } from './PromptManager';
 import { AnalysisValidator } from './AnalysisValidator';
+import { DataPreprocessor } from './preprocessor/DataPreprocessor';
 import {
   AIAnalysisInput,
   AIAnalysisResult,
@@ -70,21 +71,25 @@ export class AIAnalyzer {
         return cachedResult;
       }
 
-      // 2. 生成分析 Prompt
-      const prompt = await this.promptManager.generateAnalysisPrompt(input);
+      // 2. 数据预处理
+      const processedData = await DataPreprocessor.preprocess(input);
+      console.log('[AIAnalyzer] Data preprocessing completed');
 
-      // 3. 调用 AI 服务
+      // 3. 生成分析 Prompt
+      const prompt = await this.promptManager.generateAnalysisPrompt(input, processedData);
+
+      // 4. 调用 AI 服务
       const startTime = Date.now();
       const analysisResponse = await this.callAIService(prompt);
 
-      // 4. 解析和验证结果
+      // 5. 解析和验证结果
       const result = await this.parseAndValidateResponse(analysisResponse, input);
 
-      // 5. 添加元数据
+      // 6. 添加元数据
       result.metadata.processingTime = Date.now() - startTime;
       result.metadata.timestamp = new Date().toISOString();
 
-      // 6. 缓存结果
+      // 7. 缓存结果
       this.cacheResult(cacheKey, result);
 
       console.log('[AIAnalyzer] Analysis completed successfully');
