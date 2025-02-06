@@ -6,7 +6,7 @@ export interface ParameterPattern {
   command: string;          // 基础命令
   parameter: string;        // 参数部分
   frequency: number;        // 出现频率
-  examples: string[];       // 使用示例
+  confidence: number;       // 置信度
 }
 
 /**
@@ -17,7 +17,7 @@ export interface ContextPattern {
   command: string;          // 命令
   context: string;          // 上下文
   frequency: number;        // 出现频率
-  correlation: number;      // 与上下文的相关性
+  confidence: number;       // 置信度
 }
 
 /**
@@ -27,8 +27,7 @@ export interface ContextPattern {
 export interface SequencePattern {
   commands: string[];       // 命令序列
   frequency: number;        // 出现频率
-  timeGap: number;         // 平均时间间隔
-  successRate: number;     // 成功率
+  confidence: number;       // 置信度
 }
 
 /**
@@ -69,4 +68,20 @@ export interface AnalysisConfig {
   maxSequenceLength: number;   // 最大序列长度
   contextWindow: number;       // 上下文窗口大小
   batchSize: number;          // 批处理大小
+}
+
+/**
+ * 模式分析结果
+ */
+export interface PatternAnalysisResult {
+  parameterPatterns: ParameterPattern[];
+  contextPatterns: ContextPattern[];
+  sequencePatterns: SequencePattern[];
+  metrics: {
+    totalCommands: number;
+    uniqueCommands: number;
+    averageConfidence: number;
+    averageFrequency: number;
+  };
+  timestamp: string;
 } 
