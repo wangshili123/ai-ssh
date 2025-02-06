@@ -176,18 +176,174 @@ src/
 ```
 AnalysisScheduler (定时触发)
         ↓
+加载分析状态 (从数据库)
+        ↓
+数据量检查 (检查阈值)
+        ↓
 PatternAnalyzer (基础分析)
         ↓
 AIAnalyzer (AI深度分析)
         ↓
 RuleOptimizer (规则更新)
+        ↓
+保存分析状态 (到数据库)
 ```
 
-1. `AnalysisScheduler` 定时触发分析任务
-2. `PatternAnalyzer` 执行基础模式分析
-3. 分析完成后自动触发 `AIAnalyzer` 进行深度分析
+1. `AnalysisScheduler` 定时触发分析任务：
+   - 从数据库加载上次分析状态（最后处理的ID、时间等）
+   - 检查增量数据是否满足分析条件：
+     * 新增命令数量是否达到最小阈值
+     * 数据时间跨度是否合理
+     * 命令多样性是否满足要求
+   - 如果数据不满足要求，记录原因并跳过本次分析
+
+2. 数据满足要求时，`PatternAnalyzer` 执行基础模式分析：
+   - 只分析上次分析位置之后的新数据
+   - 记录分析进度和指标
+   - 完成后更新分析状态
+
+3. 分析完成后触发 `AIAnalyzer` 进行深度分析
 4. `AIAnalyzer` 完成后触发 `RuleOptimizer` 更新规则
 5. 整个过程是串行的，每个步骤都依赖前一个步骤的结果
+
+### 2.6 分析状态管理
+
+1. **状态存储表**
+```sql
+CREATE TABLE analysis_state (
+    id INTEGER PRIMARY KEY,
+    component TEXT NOT NULL,        -- 组件名称
+    last_processed_id INTEGER,      -- 上次处理的最后ID
+    last_analysis_time TIMESTAMP,   -- 上次分析时间
+    processed_count INTEGER,        -- 处理的记录数
+    analysis_metrics TEXT,          -- 分析指标（JSON）
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    UNIQUE(component)
+);
+
+CREATE INDEX idx_analysis_state_component ON analysis_state(component);
+```
+
+2. **分析阈值配置**
+```typescript
+interface AnalysisThreshold {
+  // 数据量阈值
+  minNewCommandCount: number;     // 最小新增命令数
+  minUniqueCommands: number;      // 最小不同命令数
+  minCompletionUsage: number;     // 最小补全使用次数
+  
+  // 时间维度阈值
+  minTimeSinceLastAnalysis: number; // 距离上次分析的最小时间间隔
+  maxAnalysisInterval: number;      // 最大分析间隔
+  
+  // 质量维度阈值
+  minSuccessRate: number;          // 最小成功率
+  maxErrorRate: number;            // 最大错误率
+  minCompletionAdoption: number;   // 最小补全采纳率
+}
+
+const defaultThresholds: AnalysisThreshold = {
+  // 数据量阈值
+  minNewCommandCount: 50,          // 至少50条新命令
+  minUniqueCommands: 10,           // 至少10种不同命令
+  minCompletionUsage: 20,          // 至少20次补全使用
+  
+  // 时间维度阈值（毫秒）
+  minTimeSinceLastAnalysis: 300000,  // 至少5分钟
+  maxAnalysisInterval: 86400000,     // 最长1天
+  
+  // 质量维度阈值
+  minSuccessRate: 0.6,              // 至少60%成功率
+  maxErrorRate: 0.3,                // 最多30%错误率
+  minCompletionAdoption: 0.4        // 至少40%采纳率
+};
+```
+
+3. **状态管理接口**
+```typescript
+interface AnalysisState {
+  lastProcessedId: number;
+  lastAnalysisTime: Date;
+  processedCount: number;
+  metrics: {
+    commandCount: number;
+    uniqueCommands: number;
+    successRate: number;
+    errorRate: number;
+    completionAdoption: number;
+  };
+}
+
+interface StateManager {
+  loadState(component: string): Promise<AnalysisState>;
+  saveState(component: string, state: AnalysisState): Promise<void>;
+  shouldPerformAnalysis(state: AnalysisState): boolean;
+}
+```
+
+4. **分析决策逻辑**
+```typescript
+class AnalysisScheduler {
+  async checkAnalysisConditions(): Promise<{
+    shouldProceed: boolean;
+    reason?: string;
+  }> {
+    // 1. 加载状态
+    const state = await this.stateManager.loadState('PatternAnalyzer');
+    
+    // 2. 检查时间间隔
+    const timeSinceLastAnalysis = Date.now() - state.lastAnalysisTime.getTime();
+    if (timeSinceLastAnalysis < this.thresholds.minTimeSinceLastAnalysis) {
+      return {
+        shouldProceed: false,
+        reason: '距离上次分析时间过短'
+      };
+    }
+    
+    // 3. 检查新数据量
+    const newDataCount = await this.getNewDataCount(state.lastProcessedId);
+    if (newDataCount < this.thresholds.minNewCommandCount) {
+      return {
+        shouldProceed: false,
+        reason: '新增数据量不足'
+      };
+    }
+    
+    // 4. 检查数据质量
+    const dataQuality = await this.checkDataQuality(state.lastProcessedId);
+    if (!this.meetsQualityThresholds(dataQuality)) {
+      return {
+        shouldProceed: false,
+        reason: '数据质量不满足要求'
+      };
+    }
+    
+    return { shouldProceed: true };
+  }
+}
+```
+
+### 2.7 监控和日志
+
+1. **分析日志表**
+```sql
+CREATE TABLE analysis_log (
+    id INTEGER PRIMARY KEY,
+    component TEXT NOT NULL,
+    analysis_type TEXT NOT NULL,    -- 'scheduled' 或 'manual'
+    start_time TIMESTAMP,
+    end_time TIMESTAMP,
+    status TEXT,                    -- 'success', 'skipped', 'failed'
+    skip_reason TEXT,              -- 如果被跳过，记录原因
+    error_message TEXT,            -- 如果失败，记录错误
+    metrics TEXT,                  -- 分析指标（JSON）
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_analysis_log_component ON analysis_log(component);
+CREATE INDEX idx_analysis_log_status ON analysis_log(status);
+```
 
 ## 3. 数据库设计
 
@@ -204,4 +360,52 @@ CREATE TABLE command_usage (
 
 CREATE INDEX idx_command ON command_usage(command);
 CREATE INDEX idx_frequency ON command_usage(frequency DESC);
+```
+
+### 3.2 补全使用表
+```sql
+CREATE TABLE completion_usage (
+    id INTEGER PRIMARY KEY,
+    input TEXT NOT NULL,          -- 用户输入
+    selected TEXT NOT NULL,       -- 选中的补全
+    frequency INTEGER DEFAULT 1,   -- 选中频率
+    adoption_rate FLOAT,          -- 采纳率
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE INDEX idx_input ON completion_usage(input);
+CREATE INDEX idx_selected ON completion_usage(selected);
+```
+
+### 3.3 规则权重表
+```sql
+CREATE TABLE rule_weights (
+    id INTEGER PRIMARY KEY,
+    rule_id INTEGER NOT NULL,     -- 关联到现有规则
+    weight FLOAT NOT NULL,        -- 权重值
+    confidence FLOAT NOT NULL,    -- 置信度
+    last_updated TIMESTAMP,       -- 最后更新时间
+    version INTEGER DEFAULT 1,    -- 权重版本
+    FOREIGN KEY (rule_id) REFERENCES completion_rules(id)
+);
+
+CREATE INDEX idx_rule_weight ON rule_weights(rule_id, weight DESC);
+```
+
+### 3.4 分析状态表
+```sql
+CREATE TABLE analysis_state (
+    id INTEGER PRIMARY KEY,
+    component TEXT NOT NULL,        -- 组件名称
+    last_processed_id INTEGER,      -- 上次处理的最后ID
+    last_analysis_time TIMESTAMP,   -- 上次分析时间
+    processed_count INTEGER,        -- 处理的记录数
+    analysis_metrics TEXT,          -- 分析指标（JSON）
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    UNIQUE(component)
+);
+
+CREATE INDEX idx_analysis_state_component ON analysis_state(component);
 ```
