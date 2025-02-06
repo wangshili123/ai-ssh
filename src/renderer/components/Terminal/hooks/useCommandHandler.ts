@@ -12,6 +12,7 @@ interface UseCommandHandlerProps {
   onSuggestionClear: () => void;
   updatePendingCommand: (newCommand: string) => void;
   pendingCommandRef: React.MutableRefObject<string>;
+  acceptSuggestion: () => string | null | undefined;
 }
 
 interface UseCommandHandlerReturn {
@@ -26,6 +27,7 @@ export const useCommandHandler = ({
   onSuggestionClear,
   updatePendingCommand,
   pendingCommandRef,
+  acceptSuggestion,
 }: UseCommandHandlerProps): UseCommandHandlerReturn => {
   // 处理命令输入
   const handleInput = useCallback(async (data: string) => {
@@ -39,10 +41,10 @@ export const useCommandHandler = ({
       return;
     }
 
-    // 如果是Tab键,接受当前建议
-    if (data === '\t') {
-      console.log('[useCommandHandler] Tab key pressed, current pendingCommand:', pendingCommandRef.current);
-      const suggestion = completionService?.acceptSuggestion();
+    // 处理 Alt + / 的特殊序列
+    if (data === '\x1b/') {
+      console.log('[useCommandHandler] Alt+/ pressed, current pendingCommand:', pendingCommandRef.current);
+      const suggestion = acceptSuggestion();
       console.log('[useCommandHandler] Got suggestion:', suggestion);
       
       if (suggestion && suggestion !== pendingCommandRef.current) {
@@ -59,13 +61,11 @@ export const useCommandHandler = ({
             
             // 更新状态
             console.log('[useCommandHandler] Updating pendingCommand from', pendingCommandRef.current, 'to', suggestion);
-
             updatePendingCommand(suggestion);
             
             // 清除补全提示（空格和暗色字符）
             terminal.write(' '.repeat(completionPart.length + 1)); // 用空格覆盖补全提示和分隔空格
             terminal.write('\b'.repeat(completionPart.length + 1)); // 移回光标位置
-
             
             // 发送到SSH
             if (shellIdRef.current) {
@@ -78,13 +78,12 @@ export const useCommandHandler = ({
             }
           }
         }
-        return;
       }
+      return;
     }
 
     // 如果是控制字符（箭头键等），直接发送到 SSH
-    // 排除 Tab 键 (ASCII 9)
-    if ((data.charCodeAt(0) < 32 && data.charCodeAt(0) !== 9) || data.charCodeAt(0) === 127) {
+    if (data.charCodeAt(0) < 32 || data.charCodeAt(0) === 127) {
       // 如果是退格键，需要更新命令状态
       if (data === '\b' || data === '\x7f') {
         if (pendingCommandRef.current.length > 0) {
@@ -123,7 +122,7 @@ export const useCommandHandler = ({
         terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
       });
     }
-  }, [terminalRef, shellIdRef, completionService, onSuggestionClear, updatePendingCommand, pendingCommandRef]);
+  }, [terminalRef, shellIdRef, completionService, onSuggestionClear, updatePendingCommand, pendingCommandRef, acceptSuggestion]);
 
   // 处理回车键
   const handleEnterKey = useCallback(async () => {

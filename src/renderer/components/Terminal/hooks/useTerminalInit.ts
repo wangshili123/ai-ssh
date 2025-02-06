@@ -11,6 +11,7 @@ import type { TerminalProps } from '../types/terminal.types';
 import { waitForConnection } from '../utils/terminal.utils';
 import { CompletionSSHManager } from '@/services/completion/CompletionSSHManager';
 import { CommandOutputAnalyzer } from '../../../../services/terminal/analysis/CommandOutputAnalyzer';
+import { CompletionService } from '@/services/completion/CompletionService';
 
 export interface UseTerminalInitProps {
   sessionInfo?: SessionInfo;
@@ -134,6 +135,14 @@ export const useTerminalInit = ({
     const tabId = eventBus.getCurrentTabId() || '';
     terminal.onKey(async (event) => {
       const ev = event.domEvent;
+      
+      // 处理 Alt + /
+      if (ev.key === '/' && ev.altKey) {
+        ev.preventDefault(); // 阻止默认的 / 字符输入
+        console.log('[useTerminalInit] Alt + / pressed');
+        await callbacksRef.current.handleInput('\x1b/'); // 发送特殊序列表示 Alt + /
+        return;
+      }
       
       // 处理回车键
       if (ev.key === 'Enter') {

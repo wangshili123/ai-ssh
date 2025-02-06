@@ -54,6 +54,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     onSuggestionClear: clearSuggestion,
     updatePendingCommand,
     pendingCommandRef,
+    acceptSuggestion,
   });
 
   // 使用 useContextMenu hook
@@ -80,7 +81,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     searchAddonRef,
     fitAddonRef,
     shellIdRef,
-    pendingCommandRef
+    pendingCommandRef,
   });
 
   // 在组件挂载后设置 isReady

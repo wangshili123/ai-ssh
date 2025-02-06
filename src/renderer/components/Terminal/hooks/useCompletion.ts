@@ -178,10 +178,32 @@ export const useCompletion = ({
   }, []);
 
   const acceptSuggestion = useCallback(() => {
-    if (!dropdownVisible || suggestions.length === 0) return null;
+    console.log('[useCompletion] acceptSuggestion called:', {
+      dropdownVisible,
+      suggestionsLength: suggestions.length,
+      selectedIndex,
+      currentInput
+    });
+    
+    if (!dropdownVisible || suggestions.length === 0) {
+      console.log('[useCompletion] No suggestions available:', {
+        dropdownVisible,
+        suggestionsLength: suggestions.length
+      });
+      return null;
+    }
     
     const suggestion = suggestions[selectedIndex];
-    if (!suggestion) return null;
+    console.log('[useCompletion] Selected suggestion:', {
+      suggestion,
+      selectedIndex,
+      allSuggestions: suggestions
+    });
+    
+    if (!suggestion) {
+      console.log('[useCompletion] No suggestion at selected index');
+      return null;
+    }
 
     // 收集补全使用数据
     try {
@@ -196,6 +218,7 @@ export const useCompletion = ({
 
     setDropdownVisible(false);
     setSuggestions([]);
+    console.log('[useCompletion] Returning suggestion:', suggestion.fullCommand);
     return suggestion.fullCommand;
   }, [dropdownVisible, suggestions, selectedIndex, currentInput]);
 
