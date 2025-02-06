@@ -4,6 +4,7 @@ import * as path from 'path';
 import { ipcRenderer } from 'electron';
 import * as migration001 from '../../services/database/migrations/001_initial_schema';
 import { createCommandUsageTable, createCompletionUsageTable } from './models';
+import { CollectorService } from '../completion/learning/collector/CollectorService';
 
 /**
  * 数据库服务
@@ -57,6 +58,14 @@ export class DatabaseService {
       
       this.initialized = true;
       console.log('[DatabaseService] 数据库初始化完成');
+
+      // 初始化收集器服务
+      try {
+        await CollectorService.getInstance().init();
+        console.log('[DatabaseService] 收集器服务初始化完成');
+      } catch (error) {
+        console.error('[DatabaseService] 收集器服务初始化失败:', error);
+      }
     } catch (error) {
       console.error('[DatabaseService] 数据库初始化失败:', error);
       throw error;

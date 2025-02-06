@@ -10,6 +10,7 @@ import type { SessionInfo } from '../../../../main/services/storage';
 import type { TerminalProps } from '../types/terminal.types';
 import { waitForConnection } from '../utils/terminal.utils';
 import { CompletionSSHManager } from '@/services/completion/CompletionSSHManager';
+import { CommandOutputAnalyzer } from '../../../../services/terminal/analysis/CommandOutputAnalyzer';
 
 export interface UseTerminalInitProps {
   sessionInfo?: SessionInfo;
@@ -198,6 +199,18 @@ export const useTerminalInit = ({
               terminal.write(data);
               // 收集终端输出
               terminalOutputService.addOutput(shellId, data);
+              // 添加到命令分析器
+              CommandOutputAnalyzer.getInstance().addOutput(shellId, data);
+              
+              // 如果看到提示符，说明命令执行完成
+              if (data.includes('$') || data.includes('#') || data.includes('>')) {
+                CommandOutputAnalyzer.getInstance().analyzeAndCollect(shellId, {
+                  shouldCollectHistory: true,
+                  shouldCollectUsage: true
+                }).catch(error => {
+                  console.error('[useTerminalInit] Failed to analyze command:', error);
+                });
+              }
             },
             () => {
               callbacksRef.current.setIsConnected(false);

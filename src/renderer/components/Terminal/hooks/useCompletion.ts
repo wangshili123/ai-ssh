@@ -3,6 +3,7 @@ import { Terminal as XTerm } from 'xterm';
 import { CompletionService } from '../../../../services/completion/CompletionService';
 import { SessionState } from '../../../../services/completion/core/types/context.types';
 import { eventBus } from '../../../services/eventBus';
+import { CollectorService } from '../../../../services/completion/learning/collector/CollectorService';
 
 interface UseCompletionProps {
   terminalRef: React.MutableRefObject<XTerm | null>;
@@ -182,10 +183,21 @@ export const useCompletion = ({
     const suggestion = suggestions[selectedIndex];
     if (!suggestion) return null;
 
+    // 收集补全使用数据
+    try {
+      CollectorService.getInstance().collectCompletionUsage(
+        currentInput,
+        suggestion.fullCommand,
+        true
+      );
+    } catch (error) {
+      console.error('[useCompletion] 补全使用数据收集失败:', error);
+    }
+
     setDropdownVisible(false);
     setSuggestions([]);
     return suggestion.fullCommand;
-  }, [dropdownVisible, suggestions, selectedIndex]);
+  }, [dropdownVisible, suggestions, selectedIndex, currentInput]);
 
   const recordCommand = useCallback(async (command: string) => {
     if (!command.trim()) return;

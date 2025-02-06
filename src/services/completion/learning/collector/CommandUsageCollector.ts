@@ -10,7 +10,10 @@ import { CommandUsage } from '../../../database/models';
 export class CommandUsageCollector extends BaseCollector {
   private db: Database.Database;
 
-  constructor(db: Database.Database, options?: CollectorOptions) {
+  constructor(db: Database.Database, options: CollectorOptions = {
+    batchSize: 50,
+    flushInterval: 5000
+  }) {
     super(options);
     this.db = db;
   }
@@ -33,7 +36,6 @@ export class CommandUsageCollector extends BaseCollector {
     } else {
       this.cache.set(key, {
         command: data.command,
-        context: data.context,
         frequency: 1,
         successCount: data.success ? 1 : 0,
         failCount: data.success ? 0 : 1
@@ -53,9 +55,9 @@ export class CommandUsageCollector extends BaseCollector {
 
     const stmt = this.db.prepare(`
       INSERT INTO command_usage 
-        (command, context, frequency, success_count, fail_count)
+        (command, frequency, success_count, fail_count)
       VALUES 
-        (@command, @context, @frequency, @successCount, @failCount)
+        (@command, @frequency, @successCount, @failCount)
       ON CONFLICT(command) DO UPDATE SET
         frequency = frequency + excluded.frequency,
         success_count = success_count + excluded.success_count,

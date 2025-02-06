@@ -2,6 +2,8 @@ import { useCallback, useRef } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { CompletionService } from '../../../../services/completion/CompletionService';
 import { sshService } from '../../../services/ssh';
+import { CollectorService } from '../../../../services/completion/learning/collector/CollectorService';
+import { CommandOutputAnalyzer } from '../../../../services/terminal/analysis/CommandOutputAnalyzer';
 
 interface UseCommandHandlerProps {
   terminalRef: React.MutableRefObject<XTerm | null>;
@@ -128,22 +130,15 @@ export const useCommandHandler = ({
     console.log('[useCommandHandler] Enter key handler called, current pendingCommand:', pendingCommandRef.current);
     const commandToRecord = pendingCommandRef.current.trim();
     
-    if (shellIdRef.current) {
+    if (shellIdRef.current && commandToRecord) {
       console.log('[useCommandHandler] Processing Enter key, command to record:', commandToRecord);
-      // 发送回车到SSH
+      
       try {
-        await sshService.write(shellIdRef.current, '\r');
+        // 开始记录命令输出
+        CommandOutputAnalyzer.getInstance().startCommand(shellIdRef.current, commandToRecord);
         
-        // 如果有命令要记录
-        if (commandToRecord) {
-          console.log('[useCommandHandler] Recording command:', commandToRecord);
-          try {
-            await completionService?.recordCommand(commandToRecord);
-            console.log('[useCommandHandler] Command recorded successfully');
-          } catch (error: any) {
-            console.error('[useCommandHandler] Failed to record command:', error);
-          }
-        }
+        // 发送回车到SSH
+        await sshService.write(shellIdRef.current, '\r');
         
         // 清除状态
         updatePendingCommand('');
@@ -153,9 +148,11 @@ export const useCommandHandler = ({
         if (terminalRef.current) {
           terminalRef.current.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
         }
+        // 清理分析器缓存
+        CommandOutputAnalyzer.getInstance().clearCache(shellIdRef.current);
       }
     }
-  }, [terminalRef, shellIdRef, completionService, onSuggestionClear, updatePendingCommand, pendingCommandRef]);
+  }, [terminalRef, shellIdRef, onSuggestionClear, updatePendingCommand, pendingCommandRef]);
 
   return {
     handleInput,

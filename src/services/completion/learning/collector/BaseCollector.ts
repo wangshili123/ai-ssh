@@ -10,10 +10,10 @@ export abstract class BaseCollector implements Collector {
   protected flushInterval: number;
   protected flushTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(options: CollectorOptions = {}) {
+  constructor(options: CollectorOptions) {
     this.cache = new Map();
-    this.batchSize = options.batchSize || 100;
-    this.flushInterval = options.flushInterval || 5000;
+    this.batchSize = options.batchSize;
+    this.flushInterval = options.flushInterval;
     this.setupAutoFlush();
   }
 

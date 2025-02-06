@@ -10,7 +10,10 @@ import { CompletionUsage } from '../../../database/models';
 export class CompletionUsageCollector extends BaseCollector {
   private db: Database.Database;
 
-  constructor(db: Database.Database, options?: CollectorOptions) {
+  constructor(db: Database.Database, options: CollectorOptions = {
+    batchSize: 50,
+    flushInterval: 5000
+  }) {
     super(options);
     this.db = db;
   }
@@ -24,8 +27,7 @@ export class CompletionUsageCollector extends BaseCollector {
     this.cache.set(key, {
       input: data.input,
       suggestion: data.suggestion,
-      isSelected: data.isSelected,
-      context: data.context
+      isSelected: data.isSelected
     });
 
     if (this.cache.size >= this.batchSize) {
@@ -41,9 +43,9 @@ export class CompletionUsageCollector extends BaseCollector {
 
     const stmt = this.db.prepare(`
       INSERT INTO completion_usage 
-        (input, suggestion, is_selected, context)
+        (input, suggestion, is_selected)
       VALUES 
-        (@input, @suggestion, @isSelected, @context)
+        (@input, @suggestion, @isSelected)
     `);
 
     try {
