@@ -151,23 +151,23 @@ class PatternApplier {
 ## 4. 开发计划
 
 ### 第一阶段：基础框架
-- [ ] 实现 AnalysisScheduler
-- [ ] 实现 PatternAnalyzer 基础结构
-- [ ] 实现 PatternCache
-- [ ] 添加基础测试
+- [x] 实现 AnalysisScheduler
+- [x] 实现 PatternAnalyzer 基础结构
+- [x] 实现 PatternCache
+- [x] 添加基础测试
 
 ### 第二阶段：数据处理
-- [ ] 实现增量数据获取
-- [ ] 实现数据预处理
-- [ ] 实现模式识别
-- [ ] 实现指标计算
-- [ ] 添加单元测试
+- [x] 实现增量数据获取
+- [x] 实现数据预处理
+- [x] 实现模式识别
+- [x] 实现指标计算
+- [x] 添加单元测试
 
 ### 第三阶段：结果应用
-- [ ] 实现 PatternApplier
-- [ ] 实现规则更新
-- [ ] 实现关系更新
-- [ ] 添加系统测试
+- [x] 实现 PatternApplier
+- [x] 实现规则更新
+- [x] 实现关系更新
+- [x] 添加系统测试
 
 ## 5. 注意事项
 
