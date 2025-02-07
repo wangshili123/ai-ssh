@@ -1,6 +1,106 @@
-[useTerminalInit] Alt + / pressed
-useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: /
+xterm.js:1 [Violation] 'blur' handler took 166ms
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: p
 useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
-useCommandHandler.ts:21 [useCommandHandler] Alt+/ pressed, current pendingCommand: l
-useCommandHandler.ts:23 [useCommandHandler] Got suggestion: undefined
-useTerminalInit.ts:100 [useTerminalInit] Got suggestion: null
+useCompletion.ts:184 [useCompletion] Updating pending command to: p
+useCompletion.ts:235 [useCompletion] Input changed from:  to: p
+useCompletion.ts:246 [useCompletion] Setting up suggestion timer for input: p
+useCompletion.ts:256 [useCompletion] Suggestion timer triggered for input: p
+useCompletion.ts:258 [useCompletion] Getting suggestions from service
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738911953094
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738911953094
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738911953094
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738911953094' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738911953094', shellId: '1737016726289-1738911953094', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738911953094
+EnhancedContextAnalyzer.ts:116 [EnhancedContextAnalyzer] 开始获取补全上下文: {input: 'p', cursorPosition: 21, sessionState: {…}}
+ShellParser.ts:182 处理命令节点: {type: 'command', text: 'p', children: Array(1)}
+ShellParser.ts:212 处理子节点: {type: 'command_name', text: 'p'}
+EnhancedContextAnalyzer.ts:125 [EnhancedContextAnalyzer] 命令解析耗时: 0.77 ms
+EnhancedContextAnalyzer.ts:126 [EnhancedContextAnalyzer] 命令解析结果: {type: 'program', commands: Array(1)}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738911953094
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738911953094
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738911953094
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738911953094' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738911953094', shellId: '1737016726289-1738911953094', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738911953094
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738911953094
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738911953094
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738911953094' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738911953094', shellId: '1737016726289-1738911953094', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738911953094
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738911953094
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738911953094
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738911953094' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738911953094', shellId: '1737016726289-1738911953094', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738911953094
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738911953094
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738911953094
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738911953094' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738911953094', shellId: '1737016726289-1738911953094', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+EnhancedContextAnalyzer.ts:131 [EnhancedContextAnalyzer] 获取环境状态耗时: 319.44 ms
+EnhancedContextAnalyzer.ts:132 [EnhancedContextAnalyzer] 环境状态: {currentDirectory: '/', isGitRepository: false, recentFiles: Array(9), runningProcesses: Array(10), lastModifiedFiles: Array(9)}
+EnhancedContextAnalyzer.ts:135 [EnhancedContextAnalyzer] 从数据库获取的历史记录...
+CommandHistory.ts:69 CommandHistory.search called: {prefix: '', limit: 100}
+CommandHistory.ts:106 Executing search query: 
+          SELECT id, command, context, frequency, last_used, success, outputs
+          FROM command_history
+          ORDER BY last_used DESC, frequency DESC
+          LIMIT ?
+         {params: Array(1)}
+CommandHistory.ts:108 
+          SELECT id, command, context, frequency, last_used, success, outputs
+          FROM command_history
+          ORDER BY last_used DESC, frequency DESC
+          LIMIT 100.0
+        
+CommandHistory.ts:109 Search results: (32) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+CommandHistory.ts:119 Mapped results: (32) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+EnhancedContextAnalyzer.ts:138 [EnhancedContextAnalyzer] 获取历史记录耗时: 2.44 ms
+EnhancedContextAnalyzer.ts:139 [EnhancedContextAnalyzer] 从数据库获取的历史记录: (32) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+EnhancedContextAnalyzer.ts:150 [EnhancedContextAnalyzer] 更新统计信息耗时: 0.03 ms
+EnhancedContextAnalyzer.ts:190 [EnhancedContextAnalyzer] 获取参数模式耗时: 0.00 ms
+EnhancedContextAnalyzer.ts:195 [EnhancedContextAnalyzer] 获取目录模式耗时: 0.05 ms
+FileTypePatternAnalyzer.ts:54 [FileTypePatternAnalyzer] 获取文件类型模式
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1738911953094
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1738911953094
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1738911953094
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1738911953094' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1738911953094', shellId: '1737016726289-1738911953094', sessionInfo: {…}}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+FileTypePatternAnalyzer.ts:74 [FileTypePatternAnalyzer] 获取完成, 耗时: 293 ms
+EnhancedContextAnalyzer.ts:200 [EnhancedContextAnalyzer] 获取文件类型模式耗时: 293.74 ms
+EnhancedContextAnalyzer.ts:205 [EnhancedContextAnalyzer] 获取错误修正耗时: 0.03 ms
+EnhancedContextAnalyzer.ts:207 [EnhancedContextAnalyzer] 获取相关模式完成, 总耗时: 294.06 ms {参数模式耗时: '0.00', 目录模式耗时: '0.05', 文件类型模式耗时: '293.74', 错误修正耗时: '0.03'}
+EnhancedContextAnalyzer.ts:155 [EnhancedContextAnalyzer] 获取相关模式耗时: 294.19 ms
+EnhancedContextAnalyzer.ts:156 [EnhancedContextAnalyzer] 相关模式: {argumentPatterns: Array(0), directoryPatterns: Array(0), fileTypePatterns: Array(0), errorCorrections: Array(0)}
+EnhancedContextAnalyzer.ts:158 [EnhancedContextAnalyzer] 获取增强上下文完成, 总耗时: 618.49 ms {命令解析耗时: '0.77', 环境状态耗时: '319.44', 历史记录耗时: '2.44', 统计信息耗时: '0.03', 相关模式耗时: '294.19'}
+useCompletion.ts:271 [useCompletion] Got suggestions: (3) [{…}, {…}, {…}]
+useCompletion.ts:273 [useCompletion] Setting suggestions and showing dropdown
+useCompletion.ts:289 [useCompletion] Updating dropdown position after showing
+CompletionDropdown.tsx:54 [CompletionDropdown] absoluteLeft,absoluteTop: {absoluteLeft: 169.125, absoluteTop: 175}
+useCompletion.ts:225 [useCompletion] dropdownVisible changed: true
+useCompletion.ts:227 [useCompletion] Dropdown is visible, updating position
+useCompletion.ts:106 [useCompletion] Updating dropdown position
+useCompletion.ts:29 [useCompletion] rect: {rect: DOMRect}
+useCompletion.ts:37 [useCompletion] terminal: {terminal: d}
+useCompletion.ts:47 [useCompletion] dims: {dims: {…}}
+useCompletion.ts:48 [useCompletion] cell: {cellWidth: 7.6875, cellHeight: 17}
+useCompletion.ts:72 [useCompletion] bottomPosition: {bottomPosition: 209, rowInView: 11, cellHeight: 17}
+useCompletion.ts:76 [useCompletion] Scroll info: {viewportY: 0, rowInView: 11, actualRow: 11, bottomPosition: 209, terminalBottom: 595, …}
+useCompletion.ts:89 [useCompletion] Terminal rect: DOMRect {x: 2, y: 74, width: 980, height: 597, top: 74, …}
+useCompletion.ts:90 [useCompletion] Current cursor: {row: 11, col: 21}
+useCompletion.ts:91 [useCompletion] Cell dimensions: {cellWidth: 7.6875, cellHeight: 17}
+useCompletion.ts:92 [useCompletion] Dropdown dimensions: {height: 132}
+useCompletion.ts:93 [useCompletion] Would exceed bottom: false
+useCompletion.ts:94 [useCompletion] Calculated position: {left: 169.125, top: 209}
+useCompletion.ts:108 [useCompletion] Setting dropdown position to: {left: 169.125, top: 209}
+CompletionDropdown.tsx:54 [CompletionDropdown] absoluteLeft,absoluteTop: {absoluteLeft: 169.125, absoluteTop: 209}

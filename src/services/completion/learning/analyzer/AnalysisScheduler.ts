@@ -1,5 +1,6 @@
 import { PatternAnalyzer } from './PatternAnalyzer';
 import { DatabaseService } from '../../../database/DatabaseService';
+import { RuleCache } from '../cache/RuleCache';
 
 /**
  * 分析任务调度器
@@ -74,7 +75,46 @@ export class AnalysisScheduler {
 
       // 执行分析
       const analyzer = PatternAnalyzer.getInstance();
-      await analyzer.analyze();
+      const result = await analyzer.analyze();
+      
+      if (result) {
+        console.log('[AnalysisScheduler] Analysis result:', {
+          patternsCount: result.patterns.length,
+          suggestionsCount: result.suggestions.length,
+          metrics: result.metrics
+        });
+
+        // 更新规则缓存
+        const ruleCache = RuleCache.getInstance();
+        const rules = result.patterns.map(pattern => ({
+          id: `${pattern.context}_${Buffer.from(pattern.pattern).toString('base64')}`,
+          type: pattern.context as 'parameter' | 'context' | 'sequence',
+          pattern: pattern.pattern,
+          weight: pattern.frequency / result.metrics.totalCommands,
+          confidence: pattern.confidence,
+          version: 1,
+          metadata: {
+            source: 'pattern_analysis' as const,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            lastApplied: new Date().toISOString(),
+            lastUsed: pattern.lastUsed || new Date().toISOString(),
+            performance: {
+              usageCount: pattern.frequency,
+              successRate: pattern.successRate || 1,
+              adoptionRate: 1,
+              averageLatency: pattern.avgExecutionTime || 0
+            }
+          }
+        }));
+
+        console.log('[AnalysisScheduler] Updating rule cache with new rules:', {
+          rulesCount: rules.length,
+          sampleRules: rules.slice(0, 3)
+        });
+
+        ruleCache.updateRules(rules);
+      }
 
       // 更新最后分析时间
       this.lastAnalysisTime = new Date();
