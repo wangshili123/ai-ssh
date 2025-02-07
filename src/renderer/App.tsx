@@ -7,6 +7,7 @@ import AIAssistant from './components/AIAssistant';
 import AppStatusBar from './components/StatusBar/AppStatusBar';
 import type { SessionInfo } from '../main/services/storage';
 import { eventBus } from './services/eventBus';
+import { DatabaseService } from '../services/database/DatabaseService';
 import './App.css';
 
 const { Content, Sider } = Layout;
@@ -18,6 +19,21 @@ const App: React.FC = () => {
   const [aiSiderWidth, setAiSiderWidth] = useState(400);
   const [currentTabId, setCurrentTabId] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState(true);
+
+  // 初始化数据库和基础服务
+  useEffect(() => {
+    const initializeServices = async () => {
+      try {
+        console.log('[App] 开始初始化基础服务...');
+        await DatabaseService.getInstance().init();
+        console.log('[App] 基础服务初始化完成');
+      } catch (error) {
+        console.error('[App] 基础服务初始化失败:', error);
+      }
+    };
+
+    initializeServices();
+  }, []);
 
   // 监听标签页ID变化
   useEffect(() => {

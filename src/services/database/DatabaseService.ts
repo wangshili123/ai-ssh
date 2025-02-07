@@ -6,6 +6,7 @@ import * as migration001 from './migrations/001_initial_schema';
 import * as learningTables from './migrations/002_learning_tables';
 import * as analysisTables from './migrations/003_analysis_tables';
 import { CollectorService } from '../completion/learning/collector/CollectorService';
+import { AnalysisScheduler } from '../completion/learning/analyzer/AnalysisScheduler';
 
 /**
  * 数据库服务
@@ -74,6 +75,15 @@ export class DatabaseService {
         console.log('[DatabaseService] 收集器服务初始化完成');
       } catch (error) {
         console.error('[DatabaseService] 收集器服务初始化失败:', error);
+      }
+
+      // 启动分析调度器
+      try {
+        const scheduler = AnalysisScheduler.getInstance();
+        scheduler.startScheduling();
+        console.log('[DatabaseService] 分析调度器启动完成');
+      } catch (error) {
+        console.error('[DatabaseService] 分析调度器启动失败:', error);
       }
     } catch (error) {
       console.error('[DatabaseService] 数据库初始化失败:', error);

@@ -45,14 +45,15 @@ export class CompletionService {
 
   private async initializeAsync() {
     try {
-      await DatabaseService.getInstance().init();
+      // 检查数据库是否已初始化
+      const dbService = DatabaseService.getInstance();
+      if (!dbService.isInitialized()) {
+        throw new Error('数据库未初始化');
+      }
+
       this.commandHistory = new CommandHistory();
       this.commandRelation = new CommandRelation();
       this.contextAnalyzer = await EnhancedContextAnalyzer.getInstance();
-
-      // 启动分析调度器
-      const scheduler = AnalysisScheduler.getInstance();
-      scheduler.startScheduling();
       
       this.initialized = true;
       console.log('[CompletionService] 初始化完成');
