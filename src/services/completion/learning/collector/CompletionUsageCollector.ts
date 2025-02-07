@@ -28,15 +28,14 @@ export class CompletionUsageCollector {
           input,
           suggestion,
           is_selected,
-          timestamp
-        ) VALUES (?, ?, ?, ?)
+          created_at
+        ) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
       `);
 
       stmt.run(
         data.input,
         data.suggestion,
-        data.isSelected ? 1 : 0,
-        data.timestamp
+        data.isSelected ? 1 : 0
       );
     } catch (error) {
       console.error('[CompletionUsageCollector] 收集补全使用数据失败:', error);
@@ -60,16 +59,15 @@ export class CompletionUsageCollector {
             input,
             suggestion,
             is_selected,
-            timestamp
-          ) VALUES (?, ?, ?, ?)
+            created_at
+          ) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
         `);
 
         for (const item of data) {
           stmt.run(
             item.input,
             item.suggestion,
-            item.isSelected ? 1 : 0,
-            item.timestamp
+            item.isSelected ? 1 : 0
           );
         }
       });

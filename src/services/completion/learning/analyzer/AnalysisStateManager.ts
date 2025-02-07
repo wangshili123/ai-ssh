@@ -284,12 +284,20 @@ export class AnalysisStateManager {
     changeRate: number
   ): boolean {
     const minCommandCount = 10;
-    const minCompletionCount = 20;
+    const minCompletionCount = 2;
     const minChangeRate = 0.2;
-
+    console.log('[AnalysisStateManager] 数据检查结果:', {
+      commandCount: counts.commandCount,
+      completionCount: counts.completionCount,
+      changeRate,
+      minCommandCount,
+      minCompletionCount,
+      minChangeRate
+    });
     return counts.commandCount >= minCommandCount &&
            counts.completionCount >= minCompletionCount &&
            changeRate >= minChangeRate;
+
   }
 
   /**

@@ -24,22 +24,29 @@ export class CommandUsageCollector {
   public async collect(data: CommandUsageData): Promise<void> {
     try {
       const stmt = this.db.prepare(`
-        INSERT INTO command_usage (command, success, last_used)
-        VALUES (?, ?, ?)
+        INSERT INTO command_usage (
+          command,
+          frequency,
+          success_count,
+          fail_count,
+          last_used
+        ) VALUES (?, 1, ?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT(command) DO UPDATE SET
           frequency = frequency + 1,
-          success_count = success_count + CASE WHEN ? THEN 1 ELSE 0 END,
-          fail_count = fail_count + CASE WHEN ? THEN 0 ELSE 1 END,
-          last_used = ?
+          success_count = success_count + ?,
+          fail_count = fail_count + ?,
+          last_used = CURRENT_TIMESTAMP
       `);
+
+      const successCount = data.success ? 1 : 0;
+      const failCount = data.success ? 0 : 1;
 
       stmt.run(
         data.command,
-        data.success,
-        data.timestamp,
-        data.success,
-        data.success,
-        data.timestamp
+        successCount,
+        failCount,
+        successCount,
+        failCount
       );
     } catch (error) {
       console.error('[CommandUsageCollector] 收集命令使用数据失败:', error);
@@ -59,23 +66,30 @@ export class CommandUsageCollector {
       // 开始事务
       const transaction = this.db.transaction((data: CommandUsageData[]) => {
         const stmt = this.db.prepare(`
-          INSERT INTO command_usage (command, success, last_used)
-          VALUES (?, ?, ?)
+          INSERT INTO command_usage (
+            command,
+            frequency,
+            success_count,
+            fail_count,
+            last_used
+          ) VALUES (?, 1, ?, ?, CURRENT_TIMESTAMP)
           ON CONFLICT(command) DO UPDATE SET
             frequency = frequency + 1,
-            success_count = success_count + CASE WHEN ? THEN 1 ELSE 0 END,
-            fail_count = fail_count + CASE WHEN ? THEN 0 ELSE 1 END,
-            last_used = ?
+            success_count = success_count + ?,
+            fail_count = fail_count + ?,
+            last_used = CURRENT_TIMESTAMP
         `);
 
         for (const item of data) {
+          const successCount = item.success ? 1 : 0;
+          const failCount = item.success ? 0 : 1;
+
           stmt.run(
             item.command,
-            item.success,
-            item.timestamp,
-            item.success,
-            item.success,
-            item.timestamp
+            successCount,
+            failCount,
+            successCount,
+            failCount
           );
         }
       });

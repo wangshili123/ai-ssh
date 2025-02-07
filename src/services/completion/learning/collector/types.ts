@@ -16,25 +16,23 @@ export interface CollectorOptions {
 }
 
 /**
- * 命令使用数据接口
+ * 命令使用数据
  */
 export interface CommandUsageData {
   command: string;
   success: boolean;
-  timestamp: Date;
   context?: string;
   executionTime?: number;
   errorType?: string;
 }
 
 /**
- * 补全使用数据接口
+ * 补全使用数据
  */
 export interface CompletionUsageData {
   input: string;
   suggestion: string;
   isSelected: boolean;
-  timestamp: Date;
   context?: string;
   executionTime?: number;
   errorType?: string;

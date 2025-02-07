@@ -137,7 +137,7 @@ export class CollectorService {
       this.commandQueue.push({
         command,
         success,
-        timestamp: new Date()
+        context: undefined
       });
 
       // 检查是否需要执行批处理
@@ -175,7 +175,7 @@ export class CollectorService {
         input,
         suggestion,
         isSelected,
-        timestamp: new Date()
+        context: undefined
       });
 
       // 检查是否需要执行批处理

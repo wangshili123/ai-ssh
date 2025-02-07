@@ -85,7 +85,6 @@ export class AnalysisScheduler {
   private static instance: AnalysisScheduler;
   private isAnalyzing: boolean = false;
   private lastAnalysisTime: Date | null = null;
-  private analysisInterval: number = 1000 * 60 * 0.1; // 保持6秒用于测试
   private retryCount: number = 0;
   private readonly MAX_RETRIES: number = 3;
   private schedulerTimer: NodeJS.Timeout | null = null;
@@ -96,7 +95,7 @@ export class AnalysisScheduler {
     minCommandCount: 10,        // 最小命令数
     minCompletionCount: 20,     // 最小补全数
     minDataChangeRate: 0.2,     // 最小数据变化率
-    minAnalysisInterval: 5 * 60 * 1000,  // 最小分析间隔（5分钟）
+    minAnalysisInterval: 0.2 * 60 * 1000,  // 最小分析间隔（）
     optimalAnalysisInterval: 30 * 60 * 1000  // 最佳分析间隔（30分钟）
   };
 
@@ -126,7 +125,7 @@ export class AnalysisScheduler {
     // 设置定期执行
     this.schedulerTimer = setInterval(() => {
       this.scheduleAnalysis();
-    }, this.analysisInterval);
+    }, this.config.minAnalysisInterval);
   }
 
   /**
@@ -144,42 +143,17 @@ export class AnalysisScheduler {
    * 判断是否应该执行分析
    */
   private shouldRunAnalysis(checkResult: DataCheckResult): boolean {
-    const {
-      newCommandCount,
-      newCompletionCount,
-      lastAnalysisTime,
-      dataChangeRate
-    } = checkResult.metrics;
-
-    // 检查数据量
-    if (newCommandCount < this.config.minCommandCount ||
-        newCompletionCount < this.config.minCompletionCount) {
-      console.log('[AnalysisScheduler] 数据量不足:', {
-        newCommandCount,
-        newCompletionCount,
-        required: {
-          commands: this.config.minCommandCount,
-          completions: this.config.minCompletionCount
-        }
-      });
+    if (!checkResult.hasEnoughData) {
+      console.log('[AnalysisScheduler] 数据量不足或变化不大:', checkResult.metrics);
       return false;
     }
 
     // 检查时间间隔
-    const timeSinceLastAnalysis = Date.now() - lastAnalysisTime.getTime();
+    const timeSinceLastAnalysis = Date.now() - checkResult.metrics.lastAnalysisTime.getTime();
     if (timeSinceLastAnalysis < this.config.minAnalysisInterval) {
       console.log('[AnalysisScheduler] 分析间隔过短:', {
         timeSinceLastAnalysis,
         required: this.config.minAnalysisInterval
-      });
-      return false;
-    }
-
-    // 检查数据变化率
-    if (dataChangeRate < this.config.minDataChangeRate) {
-      console.log('[AnalysisScheduler] 数据变化率过低:', {
-        dataChangeRate,
-        required: this.config.minDataChangeRate
       });
       return false;
     }
@@ -323,7 +297,7 @@ export class AnalysisScheduler {
 
     const now = new Date().getTime();
     const lastAnalysis = this.lastAnalysisTime.getTime();
-    return now - lastAnalysis >= this.analysisInterval;
+    return now - lastAnalysis >= this.config.minAnalysisInterval;
   }
 
   /**
