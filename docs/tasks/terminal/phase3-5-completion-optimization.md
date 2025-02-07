@@ -36,13 +36,13 @@ src/services/completion/
   │   │   └── SequenceRuleMatcher.ts    # 序列规则匹配
   │   └── RuleEvaluator.ts              # 规则评估器
   └── cache/
-      ├── SuggestionCache.ts            # 补全结果缓存
-      └── RuleMatchCache.ts             # 规则匹配结果缓存
+      └── SuggestionCache.ts            # 补全结果缓存
 ```
 
 ### 2.2 缓存优化
+
+#### 2.2.1 LRU缓存基类
 ```typescript
-// LRU 缓存基类
 class LRUCache<K, V> {
   private cache: Map<K, V>;
   private keyTimestamps: Map<K, number>;
@@ -111,8 +111,50 @@ class LRUCache<K, V> {
     }
   }
 }
+```
 
-// 补全结果缓存
+#### 2.2.2 增强规则缓存
+```typescript
+class RuleCache {
+  private rules: Map<string, CompletionRule>;
+  private matchCache: Map<string, {
+    matchedRules: CompletionRule[];
+    scores: Map<string, number>;
+    timestamp: number;
+  }>;
+
+  // 获取所有规则
+  getRules(): CompletionRule[] {
+    return Array.from(this.rules.values());
+  }
+
+  // 获取匹配的规则（带缓存）
+  getMatchingRules(
+    input: string,
+    context: EnhancedContext
+  ): { rules: CompletionRule[]; scores: Map<string, number> } {
+    // 1. 检查缓存
+    const cacheKey = this.getCacheKey(input, context);
+    const cached = this.getFromMatchCache(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // 2. 计算匹配
+    const { matchedRules, scores } = this.computeMatchingRules(input, context);
+
+    // 3. 更新缓存
+    this.updateMatchCache(cacheKey, matchedRules, scores);
+
+    return { rules: matchedRules, scores };
+  }
+
+  // 缓存相关方法...
+}
+```
+
+#### 2.2.3 补全结果缓存
+```typescript
 class SuggestionCache extends LRUCache<string, CacheItem> {
   private static instance: SuggestionCache;
 
@@ -138,7 +180,6 @@ class SuggestionCache extends LRUCache<string, CacheItem> {
   private serializeContext(context: EnhancedContext): string {
     return JSON.stringify({
       currentDirectory: context.currentDirectory,
-      lastCommand: context.commandHistory?.recent[0]?.command,
       shellType: context.shellType
     });
   }
@@ -189,47 +230,6 @@ class SuggestionCache extends LRUCache<string, CacheItem> {
     setInterval(() => this.cleanup(), 60 * 1000); // 每分钟清理一次
   }
 }
-
-// 规则匹配缓存
-class RuleMatchCache extends LRUCache<string, RuleMatchResult> {
-  private static instance: RuleMatchCache;
-
-  private constructor() {
-    super(500, 10 * 60 * 1000); // 500条缓存，10分钟过期
-    this.startCleanupInterval();
-  }
-
-  public static getInstance(): RuleMatchCache {
-    if (!RuleMatchCache.instance) {
-      RuleMatchCache.instance = new RuleMatchCache();
-    }
-    return RuleMatchCache.instance;
-  }
-
-  // 获取规则匹配结果
-  public getMatch(input: string): RuleMatchResult | null {
-    return this.get(input);
-  }
-
-  // 缓存规则匹配结果
-  public setMatch(
-    input: string,
-    matchedRules: CompletionRule[],
-    scores: Map<string, number>
-  ): void {
-    const result: RuleMatchResult = {
-      matchedRules,
-      scores,
-      timestamp: Date.now()
-    };
-    this.set(input, result);
-  }
-
-  // 启动定期清理
-  private startCleanupInterval(): void {
-    setInterval(() => this.cleanup(), 5 * 60 * 1000); // 每5分钟清理一次
-  }
-}
 ```
 
 ### 2.3 核心优化
@@ -240,7 +240,6 @@ class CompletionService {
   private scoringService: ScoringService;
   private ruleEvaluator: RuleEvaluator;
   private suggestionCache: SuggestionCache;
-  private ruleMatchCache: RuleMatchCache;
 
   async getSuggestions(params: {
     input: string;
@@ -299,58 +298,22 @@ class CompletionService {
   private async getIntelligentSuggestions(
     input: string,
     context: EnhancedContext
-  ): Promise<CompletionRule[]> {
-    // 1. 检查规则匹配缓存
-    const cachedMatch = this.ruleMatchCache.getMatch(input);
-    if (cachedMatch) {
-      return cachedMatch.matchedRules;
-    }
-
-    // 2. 获取规则并评估
-    const rules = this.ruleCache.getRules();
-    const matchedRules = rules.filter(rule => {
-      const score = this.ruleEvaluator.evaluateRule(rule, input, context);
-      return score > MATCH_THRESHOLD;
-    });
-
-    // 3. 缓存匹配结果
-    this.ruleMatchCache.setMatch(input, matchedRules, new Map());
+  ): Promise<CompletionSuggestion[]> {
+    // 使用增强的 RuleCache 获取匹配规则
+    const { rules, scores } = this.ruleCache.getMatchingRules(input, context);
     
-    return matchedRules;
-  }
-}
-```
-
-### 2.4 规则评估
-```typescript
-class RuleEvaluator {
-  private parameterMatcher: ParameterRuleMatcher;
-  private contextMatcher: ContextRuleMatcher;
-  private sequenceMatcher: SequenceRuleMatcher;
-
-  evaluateRule(
-    rule: CompletionRule,
-    input: string,
-    context: EnhancedContext
-  ): number {
-    // 1. 根据规则类型选择匹配器
-    const matcher = this.getMatcherForRule(rule);
-    
-    // 2. 计算匹配分数
-    const matchScore = matcher.match(rule, input, context);
-    
-    // 3. 应用规则权重和置信度
-    return matchScore * rule.weight * rule.confidence;
+    // 转换为补全建议
+    return this.transformRulesToSuggestions(rules, scores);
   }
 }
 ```
 
 ## 3. 实现步骤
 
-### 3.1 第一阶段：缓存实现
-- [ ] 实现补全结果缓存
-- [ ] 实现规则匹配缓存
-- [ ] 优化缓存策略
+### 3.1 第一阶段：缓存优化
+- [ ] 实现 LRUCache 基类
+- [ ] 增强 RuleCache，添加规则匹配缓存
+- [ ] 实现 SuggestionCache
 
 ### 3.2 第二阶段：规则匹配
 - [ ] 实现参数规则匹配器
@@ -402,27 +365,24 @@ class RuleEvaluator {
 - 清晰的缓存策略
 - 完整的文档
 - 详细的日志
-- 性能监控 
+- 性能监控
 
 ## 6. 缓存策略说明
 
-### 6.1 LRU缓存机制
-- 采用 Map 存储缓存数据，保证 O(1) 的访问性能
-- 使用时间戳记录每个缓存项的访问时间
-- 当缓存达到容量上限时，自动淘汰最久未使用的项
-- 支持 TTL (Time To Live) 机制，自动过期清理
+### 6.1 规则缓存策略
+- 规则本体存储：使用 Map 存储规则对象
+- 匹配结果缓存：缓存规则匹配的结果和分数
+- 缓存键设计：基于输入和简化的上下文信息
+- 定期清理：自动清理过期的匹配结果
 
-### 6.2 缓存键设计
-- 补全建议缓存：结合输入和关键上下文信息（目录、shell类型等）
-- 规则匹配缓存：主要基于输入内容，减少上下文依赖
-- 序列化上下文时只保留必要信息，避免缓存键过大
+### 6.2 补全结果缓存策略
+- LRU 缓存机制：最近最少使用淘汰策略
+- 上下文相关：缓存键包含必要的上下文信息
+- 有效期控制：设置合理的缓存过期时间
+- 容量限制：控制缓存大小，避免内存占用过大
 
-### 6.3 缓存清理策略
-- 定时清理：每隔固定时间（1-5分钟）清理过期数据
-- 容量控制：设置合理的缓存容量上限，超出时自动淘汰
-- 分级缓存：不同类型缓存采用不同的容量和过期时间
-
-### 6.4 性能考虑
-- 缓存操作（读写、清理）都在后台进行，不影响主线程
-- 缓存键的生成和序列化尽量简单高效
-- 合理设置缓存容量，避免占用过多内存 
+### 6.3 性能优化策略
+- 异步清理：缓存清理在后台进行
+- 延迟加载：按需加载和计算规则匹配
+- 并行处理：并行获取各类补全建议
+- 增量更新：支持规则的增量更新 
