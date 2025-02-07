@@ -53,4 +53,35 @@ export interface AnalysisResult {
     averageSuccessRate: number;    // 平均成功率
     averageExecutionTime: number;  // 平均执行时间
   };
+}
+
+/**
+ * 补全规则类型
+ */
+export interface CompletionRule {
+  id: string;
+  type: 'parameter' | 'context' | 'sequence';
+  pattern: string;
+  weight: number;
+  confidence: number;
+  version: number;
+  metadata: {
+    description?: string;
+    examples?: string[];
+    performance?: {
+      usageCount: number;
+      successRate: number;
+      adoptionRate: number;
+      averageLatency: number;
+    };
+    [key: string]: any;
+  };
+}
+
+/**
+ * 规则更新类型
+ */
+export interface RuleUpdate {
+  ruleId: string;
+  changes: Partial<CompletionRule>;
 } 

@@ -10,6 +10,9 @@ import {
   OptimizationResult,
   RuleVersion
 } from './types/rule-optimizer.types';
+import { Database } from 'better-sqlite3';
+import { DatabaseService } from '../../../../database/DatabaseService';
+import { RuleCache } from '../cache/RuleCache';
 
 /**
  * 规则优化器
@@ -21,6 +24,8 @@ export class RuleOptimizer {
   private ruleApplier: RuleApplier;
   private versionManager: RuleVersionManager;
   private isOptimizing: boolean = false;
+  private db: Database;
+  private ruleCache: RuleCache;
 
   private config: RuleOptimizerConfig = {
     minConfidenceThreshold: 0.7,
@@ -36,6 +41,8 @@ export class RuleOptimizer {
     this.ruleGenerator = new RuleGenerator();
     this.ruleApplier = new RuleApplier();
     this.versionManager = RuleVersionManager.getInstance();
+    this.db = DatabaseService.getInstance().getDatabase();
+    this.ruleCache = RuleCache.getInstance();
   }
 
   /**
@@ -69,7 +76,7 @@ export class RuleOptimizer {
       const aiRules = this.ruleGenerator.generateFromAIInsights(aiResults);
 
       // 2. 获取现有规则
-      const existingRules = await this.ruleApplier.getCurrentRules();
+      const existingRules = await this.getCurrentRules();
 
       // 3. 合并规则
       const mergedRules = this.ruleGenerator.mergeRules(existingRules, [...patternRules, ...aiRules]);
@@ -82,22 +89,49 @@ export class RuleOptimizer {
       // 5. 生成规则更新
       const updates = this.generateUpdates(existingRules, mergedRules);
 
-      // 6. 创建新版本
-      const version = await this.versionManager.createVersion(updates);
-
-      // 7. 应用更新
+      // 6. 创建新版本并应用更新
       await this.applyRuleUpdates(updates);
 
-      // 8. 生成优化结果
-      const result = this.generateOptimizationResult(updates, version);
+      // 7. 获取当前版本信息
+      const currentVersion = await this.versionManager.getCurrentVersion();
+      const versionInfo: RuleVersion = {
+        version: currentVersion,
+        timestamp: new Date().toISOString(),
+        changes: updates,
+        status: 'active'
+      };
 
-      console.log('[RuleOptimizer] Rule optimization completed');
+      // 8. 生成优化结果
+      const result: OptimizationResult = {
+        updatedRules: mergedRules,
+        removedRules: updates
+          .filter(u => u.changes.weight === 0)
+          .map(u => u.ruleId),
+        newRules: updates
+          .filter(u => !existingRules.find(r => r.id === u.ruleId))
+          .map(u => u.changes as CompletionRule),
+        version: versionInfo,
+        performance: {
+          totalRules: mergedRules.length,
+          updatedCount: updates.length,
+          addedCount: updates.filter(u => !existingRules.find(r => r.id === u.ruleId)).length,
+          removedCount: updates.filter(u => u.changes.weight === 0).length,
+          averageConfidence: this.calculateAverageConfidence(mergedRules)
+        }
+      };
+
+      console.log('[RuleOptimizer] Rule optimization completed:', {
+        totalRules: result.performance.totalRules,
+        updatedCount: result.performance.updatedCount,
+        addedCount: result.performance.addedCount,
+        removedCount: result.performance.removedCount
+      });
+
       return result;
 
     } catch (error) {
       console.error('[RuleOptimizer] Optimization failed:', error);
-      await this.handleOptimizationError(error as Error);
-      return null;
+      throw error;
     } finally {
       this.isOptimizing = false;
     }
@@ -108,19 +142,174 @@ export class RuleOptimizer {
    */
   public async applyRuleUpdates(updates: RuleUpdate[]): Promise<void> {
     try {
-      // 1. 按批次处理更新
-      const batches = this.splitIntoBatches(updates, this.config.batchSize);
-      
-      for (const batch of batches) {
-        // 2. 应用更新批次
-        await this.ruleApplier.applyUpdates(batch);
-        
-        // 3. 更新规则权重
-        const updatedRules = await this.ruleApplier.getCurrentRules();
-        this.ruleApplier.updateRuleWeights(updatedRules);
+      // 开始事务
+      this.db.exec('BEGIN TRANSACTION');
+
+      // 1. 更新规则版本
+      const version = await this.versionManager.createVersion(updates);
+
+      // 2. 批量更新规则
+      for (const update of updates) {
+        if (Object.keys(update.changes).length === 0) continue;
+
+        // 如果是新规则
+        if (update.changes.id) {
+          const stmt = this.db.prepare(`
+            INSERT INTO completion_rules (
+              id, type, pattern, weight, confidence, version, metadata,
+              created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          `);
+
+          stmt.run(
+            update.changes.id,
+            update.changes.type,
+            update.changes.pattern,
+            update.changes.weight,
+            update.changes.confidence,
+            version,
+            JSON.stringify(update.changes.metadata)
+          );
+
+          // 创建性能记录
+          const perfStmt = this.db.prepare(`
+            INSERT INTO rule_performance (
+              rule_id, usage_count, success_count, adoption_count, total_latency
+            ) VALUES (?, 0, 0, 0, 0)
+          `);
+          perfStmt.run(update.changes.id);
+        } 
+        // 更新现有规则
+        else {
+          const sets: string[] = [];
+          const params: any[] = [];
+
+          if (update.changes.pattern) {
+            sets.push('pattern = ?');
+            params.push(update.changes.pattern);
+          }
+          if (update.changes.weight !== undefined) {
+            sets.push('weight = ?');
+            params.push(update.changes.weight);
+          }
+          if (update.changes.confidence !== undefined) {
+            sets.push('confidence = ?');
+            params.push(update.changes.confidence);
+          }
+          if (update.changes.version !== undefined) {
+            sets.push('version = ?');
+            params.push(version);
+          }
+          if (update.changes.metadata) {
+            sets.push('metadata = ?');
+            params.push(JSON.stringify(update.changes.metadata));
+          }
+
+          sets.push('updated_at = CURRENT_TIMESTAMP');
+          params.push(update.ruleId);
+
+          const stmt = this.db.prepare(`
+            UPDATE completion_rules
+            SET ${sets.join(', ')}
+            WHERE id = ?
+          `);
+          stmt.run(...params);
+        }
       }
+
+      // 3. 更新规则性能指标
+      for (const update of updates) {
+        if (update.changes.metadata?.performance) {
+          const perf = update.changes.metadata.performance;
+          const stmt = this.db.prepare(`
+            UPDATE rule_performance
+            SET 
+              usage_count = usage_count + ?,
+              success_count = success_count + ?,
+              adoption_count = adoption_count + ?,
+              total_latency = total_latency + ?,
+              last_used_at = CURRENT_TIMESTAMP
+            WHERE rule_id = ?
+          `);
+
+          stmt.run(
+            1, // 增加使用次数
+            perf.successRate ? 1 : 0,
+            perf.adoptionRate ? 1 : 0,
+            perf.averageLatency || 0,
+            update.ruleId
+          );
+        }
+      }
+
+      // 提交事务
+      this.db.exec('COMMIT');
+
+      // 更新缓存
+      this.ruleCache.updateRules(updates.map(u => ({
+        ...u.changes,
+        id: u.ruleId
+      })) as CompletionRule[]);
+
     } catch (error) {
+      // 回滚事务
+      this.db.exec('ROLLBACK');
       console.error('[RuleOptimizer] Failed to apply updates:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取当前规则
+   */
+  public async getCurrentRules(): Promise<CompletionRule[]> {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT r.*, p.usage_count, p.success_count, p.adoption_count, p.total_latency
+        FROM completion_rules r
+        LEFT JOIN rule_performance p ON r.id = p.rule_id
+        WHERE r.version = (
+          SELECT MAX(version)
+          FROM rule_versions
+          WHERE status = 'active'
+        )
+      `);
+
+      interface RuleRow {
+        id: string;
+        type: string;
+        pattern: string;
+        weight: number;
+        confidence: number;
+        version: number;
+        metadata: string;
+        usage_count: number;
+        success_count: number;
+        adoption_count: number;
+        total_latency: number;
+      }
+
+      const rules = stmt.all() as RuleRow[];
+
+      return rules.map(rule => ({
+        id: rule.id,
+        type: rule.type as 'parameter' | 'context' | 'sequence',
+        pattern: rule.pattern,
+        weight: rule.weight,
+        confidence: rule.confidence,
+        version: rule.version,
+        metadata: {
+          ...JSON.parse(rule.metadata),
+          performance: {
+            usageCount: rule.usage_count || 0,
+            successRate: rule.success_count / (rule.usage_count || 1),
+            adoptionRate: rule.adoption_count / (rule.usage_count || 1),
+            averageLatency: rule.total_latency / (rule.usage_count || 1)
+          }
+        }
+      }));
+    } catch (error) {
+      console.error('[RuleOptimizer] Failed to get current rules:', error);
       throw error;
     }
   }
@@ -201,41 +390,6 @@ export class RuleOptimizer {
     if (existing.version !== updated.version) changes.version = updated.version;
 
     return changes;
-  }
-
-  /**
-   * 生成优化结果
-   */
-  private generateOptimizationResult(
-    updates: RuleUpdate[],
-    version: RuleVersion
-  ): OptimizationResult {
-    const baseRuleKeys = ['id', 'type', 'pattern', 'weight', 'confidence', 'version', 'metadata'];
-    const newRules = updates
-      .filter(update => Object.keys(update.changes).length === baseRuleKeys.length)
-      .map(update => update.changes as CompletionRule);
-
-    const updatedRules = updates
-      .filter(update => Object.keys(update.changes).length < baseRuleKeys.length)
-      .map(update => update.changes as CompletionRule);
-
-    const removedRules = updates
-      .filter(update => update.changes.weight === 0)
-      .map(update => update.ruleId);
-
-    return {
-      updatedRules,
-      removedRules,
-      newRules,
-      version,
-      performance: {
-        totalRules: newRules.length + updatedRules.length,
-        updatedCount: updatedRules.length,
-        addedCount: newRules.length,
-        removedCount: removedRules.length,
-        averageConfidence: this.calculateAverageConfidence([...newRules, ...updatedRules])
-      }
-    };
   }
 
   /**
