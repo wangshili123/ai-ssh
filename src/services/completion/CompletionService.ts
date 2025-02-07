@@ -14,6 +14,8 @@ import { CompletionSSHManager } from './CompletionSSHManager';
 import { RuleEvaluator } from './rules/RuleEvaluator';
 import { RuleCache } from './learning/cache/RuleCache';
 import { SuggestionCache } from './cache/SuggestionCache';
+import { AnalysisScheduler } from './learning/analyzer/AnalysisScheduler';
+import { CompletionRule } from './learning/analyzer/optimizer/types/rule-optimizer.types';
 
 export class CompletionService {
   private static instance: CompletionService;
@@ -47,6 +49,11 @@ export class CompletionService {
       this.commandHistory = new CommandHistory();
       this.commandRelation = new CommandRelation();
       this.contextAnalyzer = await EnhancedContextAnalyzer.getInstance();
+
+      // 启动分析调度器
+      const scheduler = AnalysisScheduler.getInstance();
+      scheduler.startScheduling();
+      
       this.initialized = true;
       console.log('[CompletionService] 初始化完成');
     } catch (error) {

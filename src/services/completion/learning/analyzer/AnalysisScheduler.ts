@@ -9,7 +9,7 @@ export class AnalysisScheduler {
   private static instance: AnalysisScheduler;
   private isAnalyzing: boolean = false;
   private lastAnalysisTime: Date | null = null;
-  private analysisInterval: number = 24 * 60 * 60 * 1000; // 24小时
+  private analysisInterval: number = 1000 * 60 * 5; // 5分钟
   private retryCount: number = 0;
   private readonly MAX_RETRIES: number = 3;
   private schedulerTimer: NodeJS.Timeout | null = null;

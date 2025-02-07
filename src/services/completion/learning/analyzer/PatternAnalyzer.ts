@@ -3,6 +3,7 @@ import { CompletionUsage, CommandPattern, OptimizationSuggestion, AnalysisResult
 import { AnalysisConfig } from './types';
 import { DataPreprocessor } from './preprocessor/DataPreprocessor';
 import { MetricsCalculator } from './metrics/MetricsCalculator';
+import { CompletionUsageModel } from '../../../database/models/CompletionUsage';
 
 /**
  * 命令模式分析器
@@ -12,6 +13,7 @@ export class PatternAnalyzer {
   private static instance: PatternAnalyzer;
   private isProcessing: boolean = false;
   private lastProcessedId: number = 0;
+  private completionUsageModel: CompletionUsageModel;
   private config: AnalysisConfig = {
     minFrequency: 3,
     minConfidence: 0.6,
@@ -20,7 +22,9 @@ export class PatternAnalyzer {
     batchSize: 1000
   };
 
-  private constructor() {}
+  private constructor() {
+    this.completionUsageModel = new CompletionUsageModel();
+  }
 
   /**
    * 获取分析器实例
@@ -45,13 +49,8 @@ export class PatternAnalyzer {
       this.isProcessing = true;
       console.log('[PatternAnalyzer] Starting pattern analysis');
 
-      const db = DatabaseService.getInstance().getDatabase();
-      if (!db) {
-        throw new Error('Database not initialized');
-      }
-
       // 获取新的补全使用数据
-      const newData = await this.fetchNewCompletionData(db);
+      const newData = await this.fetchNewCompletionData();
       if (newData.length === 0) {
         console.log('[PatternAnalyzer] No new data to analyze');
         return null;
@@ -80,7 +79,7 @@ export class PatternAnalyzer {
         }
       };
 
-      this.lastProcessedId = newData[newData.length - 1].id;
+      this.lastProcessedId = newData[newData.length - 1].id!;
       console.log('[PatternAnalyzer] Analysis completed successfully');
       return result;
 
@@ -95,17 +94,24 @@ export class PatternAnalyzer {
   /**
    * 获取新的补全使用数据
    */
-  private async fetchNewCompletionData(db: any): Promise<CompletionUsage[]> {
+  private async fetchNewCompletionData(): Promise<CompletionUsage[]> {
     try {
-      const query = `
-        SELECT * FROM completion_usage 
-        WHERE id > ? 
-        ORDER BY id ASC
-        LIMIT ?
-      `;
-      
-      const rows = await db.all(query, [this.lastProcessedId, this.config.batchSize]);
-      return rows;
+      const dbData = await this.completionUsageModel.findAfterLastProcessedId(
+        this.lastProcessedId,
+        this.config.batchSize
+      );
+
+      // 转换数据类型
+      return dbData.map(item => ({
+        id: item.id || 0,  // 确保 id 不为 undefined
+        input: item.input,
+        suggestion: item.suggestion,
+        is_selected: item.is_selected ? 1 : 0,  // 转换为数字类型
+        timestamp: item.created_at || new Date().toISOString(),
+        context: item.context,
+        success: true,  // 默认为 true
+        execution_time: 0  // 默认为 0
+      }));
     } catch (error) {
       console.error('[PatternAnalyzer] Failed to fetch completion data:', error);
       throw error;
