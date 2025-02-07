@@ -14,6 +14,7 @@ export class PatternAnalyzer {
   private isProcessing: boolean = false;
   private lastProcessedId: number = 0;
   private completionUsageModel: CompletionUsageModel;
+  private db: any;
   private config: AnalysisConfig = {
     minFrequency: 3,
     minConfidence: 0.6,
@@ -24,6 +25,8 @@ export class PatternAnalyzer {
 
   private constructor() {
     this.completionUsageModel = new CompletionUsageModel();
+    this.db = DatabaseService.getInstance().getDatabase();
+    this.loadAnalysisState();
   }
 
   /**
@@ -34,6 +37,70 @@ export class PatternAnalyzer {
       PatternAnalyzer.instance = new PatternAnalyzer();
     }
     return PatternAnalyzer.instance;
+  }
+
+  /**
+   * 加载分析状态
+   */
+  private async loadAnalysisState(): Promise<void> {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT last_processed_id, last_analysis_time, processed_count, analysis_metrics
+        FROM analysis_state
+        WHERE component = 'PatternAnalyzer'
+      `);
+      const state = stmt.get();
+      
+      if (state) {
+        this.lastProcessedId = state.last_processed_id;
+        console.log('[PatternAnalyzer] 加载分析状态:', {
+          lastProcessedId: this.lastProcessedId,
+          lastAnalysisTime: state.last_analysis_time,
+          processedCount: state.processed_count
+        });
+      } else {
+        // 如果没有状态记录，创建一个
+        const insertStmt = this.db.prepare(`
+          INSERT INTO analysis_state (
+            component, last_processed_id, last_analysis_time, processed_count, analysis_metrics
+          ) VALUES (?, ?, CURRENT_TIMESTAMP, 0, ?)
+        `);
+        insertStmt.run('PatternAnalyzer', 0, JSON.stringify({}));
+      }
+    } catch (error) {
+      console.error('[PatternAnalyzer] 加载分析状态失败:', error);
+    }
+  }
+
+  /**
+   * 保存分析状态
+   */
+  private async saveAnalysisState(result: AnalysisResult): Promise<void> {
+    try {
+      const stmt = this.db.prepare(`
+        UPDATE analysis_state
+        SET last_processed_id = ?,
+            last_analysis_time = CURRENT_TIMESTAMP,
+            processed_count = processed_count + ?,
+            analysis_metrics = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE component = 'PatternAnalyzer'
+      `);
+
+      stmt.run(
+        this.lastProcessedId,
+        result.patterns.length,
+        JSON.stringify(result.metrics)
+      );
+
+      console.log('[PatternAnalyzer] 保存分析状态:', {
+        lastProcessedId: this.lastProcessedId,
+        processedCount: result.patterns.length,
+        metrics: result.metrics
+      });
+    } catch (error) {
+      console.error('[PatternAnalyzer] 保存分析状态失败:', error);
+    }
   }
 
   /**
@@ -99,7 +166,12 @@ export class PatternAnalyzer {
         }
       };
 
+      // 更新最后处理的ID
       this.lastProcessedId = newData[newData.length - 1].id!;
+      
+      // 保存分析状态
+      await this.saveAnalysisState(result);
+
       console.log('[PatternAnalyzer] Analysis completed successfully:', {
         metrics: result.metrics
       });
