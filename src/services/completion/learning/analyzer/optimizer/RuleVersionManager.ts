@@ -15,10 +15,12 @@ export class RuleVersionManager {
   private ruleModel: CompletionRule;
   private versionModel: RuleVersion;
   private currentVersion: number = 0;
+  private db: any;
 
   private constructor() {
     this.ruleModel = new CompletionRule();
     this.versionModel = new RuleVersion();
+    this.db = DatabaseService.getInstance().getDatabase();
   }
 
   public static getInstance(): RuleVersionManager {
@@ -31,23 +33,33 @@ export class RuleVersionManager {
   /**
    * 创建新版本
    */
-  public async createVersion(changes: RuleUpdate[]): Promise<RuleVersionType> {
-    const version: RuleVersionData = {
-      version: ++this.currentVersion,
-      changes,
-      status: 'active',
-      createdAt: new Date().toISOString()
-    };
+  public async createVersion(changes: RuleUpdate[]): Promise<number> {
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO rule_versions (version, changes, status)
+        VALUES (?, ?, ?)
+      `);
 
-    // 保存版本到数据库
-    await this.versionModel.create(version);
+      // 获取当前最大版本号
+      const maxVersionStmt = this.db.prepare(`
+        SELECT COALESCE(MAX(version), 0) as maxVersion
+        FROM rule_versions
+      `);
+      const { maxVersion } = maxVersionStmt.get() as { maxVersion: number };
+      const newVersion = maxVersion + 1;
 
-    return {
-      version: version.version,
-      timestamp: version.createdAt,
-      changes: version.changes,
-      status: version.status
-    };
+      // 插入新版本
+      stmt.run(
+        newVersion,
+        JSON.stringify(changes),
+        'active'
+      );
+
+      return newVersion;
+    } catch (error) {
+      console.error('[RuleVersionManager] Failed to create version:', error);
+      throw error;
+    }
   }
 
   /**
@@ -75,8 +87,7 @@ export class RuleVersionManager {
         .sort((a, b) => b.version - a.version);
 
       // 5. 使用事务执行回滚
-      const db = DatabaseService.getInstance().getDatabase();
-      await db.transaction(async () => {
+      await this.db.transaction(async () => {
         // 回滚每个版本
         for (const v of versionsToRollback) {
           await this.rollbackVersion(v);

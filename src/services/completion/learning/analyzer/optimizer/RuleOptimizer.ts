@@ -161,6 +161,13 @@ export class RuleOptimizer {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
           `);
 
+          const metadata = {
+            ...update.changes.metadata,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            lastApplied: new Date().toISOString()
+          };
+
           stmt.run(
             update.changes.id,
             update.changes.type,
@@ -168,16 +175,22 @@ export class RuleOptimizer {
             update.changes.weight,
             update.changes.confidence,
             version,
-            JSON.stringify(update.changes.metadata)
+            JSON.stringify(metadata)
           );
 
           // 创建性能记录
           const perfStmt = this.db.prepare(`
             INSERT INTO rule_performance (
               rule_id, usage_count, success_count, adoption_count, total_latency
-            ) VALUES (?, 0, 0, 0, 0)
+            ) VALUES (?, ?, ?, ?, ?)
           `);
-          perfStmt.run(update.changes.id);
+          perfStmt.run(
+            update.changes.id,
+            0, // usage_count
+            0, // success_count
+            0, // adoption_count
+            0  // total_latency
+          );
         } 
         // 更新现有规则
         else {
@@ -201,19 +214,26 @@ export class RuleOptimizer {
             params.push(version);
           }
           if (update.changes.metadata) {
+            const metadata = {
+              ...update.changes.metadata,
+              updatedAt: new Date().toISOString(),
+              lastApplied: new Date().toISOString()
+            };
             sets.push('metadata = ?');
-            params.push(JSON.stringify(update.changes.metadata));
+            params.push(JSON.stringify(metadata));
           }
 
-          sets.push('updated_at = CURRENT_TIMESTAMP');
-          params.push(update.ruleId);
+          if (sets.length > 0) {
+            sets.push('updated_at = CURRENT_TIMESTAMP');
+            params.push(update.ruleId);
 
-          const stmt = this.db.prepare(`
-            UPDATE completion_rules
-            SET ${sets.join(', ')}
-            WHERE id = ?
-          `);
-          stmt.run(...params);
+            const stmt = this.db.prepare(`
+              UPDATE completion_rules
+              SET ${sets.join(', ')}
+              WHERE id = ?
+            `);
+            stmt.run(...params);
+          }
         }
       }
 
