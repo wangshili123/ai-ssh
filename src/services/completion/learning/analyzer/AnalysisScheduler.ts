@@ -1,6 +1,80 @@
 import { PatternAnalyzer } from './PatternAnalyzer';
+import { AIAnalyzer } from './ai/AIAnalyzer';
+import { RuleOptimizer } from './optimizer/RuleOptimizer';
 import { DatabaseService } from '../../../database/DatabaseService';
 import { RuleCache } from '../cache/RuleCache';
+import { ParameterPattern, ContextPattern, SequencePattern } from './types';
+import { CommandPattern, AnalysisResult } from '../types';
+
+/**
+ * 将 CommandPattern 转换为 AI 分析所需的模式类型
+ */
+function convertToAIPatterns(patterns: CommandPattern[]): Array<ParameterPattern | ContextPattern | SequencePattern> {
+  return patterns.map(pattern => {
+    if (pattern.context === 'parameter') {
+      return {
+        command: pattern.pattern.split(' ')[0],
+        parameter: pattern.pattern.split(' ').slice(1).join(' '),
+        frequency: pattern.frequency,
+        confidence: pattern.confidence,
+        examples: []
+      } as ParameterPattern;
+    } else if (pattern.context === 'sequence') {
+      return {
+        commands: pattern.pattern.split(' && '),
+        frequency: pattern.frequency,
+        confidence: pattern.confidence,
+        timeGap: pattern.avgExecutionTime || 0,
+        successRate: pattern.successRate || 1
+      } as SequencePattern;
+    } else {
+      return {
+        command: pattern.pattern,
+        context: pattern.context,
+        frequency: pattern.frequency,
+        confidence: pattern.confidence,
+        correlation: pattern.confidence
+      } as ContextPattern;
+    }
+  });
+}
+
+/**
+ * 将 AnalysisResult 转换为 PatternAnalysisResult
+ */
+function convertToPatternAnalysisResult(result: AnalysisResult) {
+  // 将模式按类型分类
+  const parameterPatterns: ParameterPattern[] = [];
+  const contextPatterns: ContextPattern[] = [];
+  const sequencePatterns: SequencePattern[] = [];
+
+  result.patterns.forEach(pattern => {
+    const converted = convertToAIPatterns([pattern])[0];
+    if ('parameter' in converted) {
+      parameterPatterns.push(converted as ParameterPattern);
+    } else if ('commands' in converted) {
+      sequencePatterns.push(converted as SequencePattern);
+    } else {
+      contextPatterns.push(converted as ContextPattern);
+    }
+  });
+
+  // 转换指标
+  const metrics = {
+    totalCommands: result.metrics.totalCommands,
+    uniqueCommands: result.metrics.uniquePatterns, // 使用 uniquePatterns 作为 uniqueCommands
+    averageConfidence: result.metrics.averageConfidence,
+    averageFrequency: result.metrics.averageSuccessRate // 使用 averageSuccessRate 作为 averageFrequency
+  };
+
+  return {
+    parameterPatterns,
+    contextPatterns,
+    sequencePatterns,
+    metrics,
+    timestamp: result.timestamp
+  };
+}
 
 /**
  * 分析任务调度器
@@ -10,7 +84,7 @@ export class AnalysisScheduler {
   private static instance: AnalysisScheduler;
   private isAnalyzing: boolean = false;
   private lastAnalysisTime: Date | null = null;
-  private analysisInterval: number = 1000 * 60 * 0.5; // 5分钟
+  private analysisInterval: number = 1000 * 60 * 0.1; // 5分钟
   private retryCount: number = 0;
   private readonly MAX_RETRIES: number = 3;
   private schedulerTimer: NodeJS.Timeout | null = null;
@@ -57,7 +131,6 @@ export class AnalysisScheduler {
    * 调度分析任务
    */
   private async scheduleAnalysis(): Promise<void> {
-    // 如果正在分析中，跳过
     if (this.isAnalyzing) {
       console.log('[AnalysisScheduler] Analysis already in progress, skipping');
       return;
@@ -73,54 +146,75 @@ export class AnalysisScheduler {
         throw new Error('Database not initialized');
       }
 
-      // 执行分析
-      const analyzer = PatternAnalyzer.getInstance();
-      const result = await analyzer.analyze();
+      // 1. 执行模式分析
+      const patternAnalyzer = PatternAnalyzer.getInstance();
+      const patternResult = await patternAnalyzer.analyze();
       
-      if (result) {
-        console.log('[AnalysisScheduler] Analysis result:', {
-          patternsCount: result.patterns.length,
-          suggestionsCount: result.suggestions.length,
-          metrics: result.metrics
+      if (patternResult) {
+        console.log('[AnalysisScheduler] Pattern analysis completed:', {
+          patternsCount: patternResult.patterns.length,
+          suggestionsCount: patternResult.suggestions.length,
+          metrics: patternResult.metrics
         });
 
-        // 更新规则缓存
-        const ruleCache = RuleCache.getInstance();
-        const rules = result.patterns.map(pattern => ({
-          id: `${pattern.context}_${Buffer.from(pattern.pattern).toString('base64')}`,
-          type: pattern.context as 'parameter' | 'context' | 'sequence',
-          pattern: pattern.pattern,
-          weight: pattern.frequency / result.metrics.totalCommands,
-          confidence: pattern.confidence,
-          version: 1,
-          metadata: {
-            source: 'pattern_analysis' as const,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            lastApplied: new Date().toISOString(),
-            lastUsed: pattern.lastUsed || new Date().toISOString(),
-            performance: {
-              usageCount: pattern.frequency,
-              successRate: pattern.successRate || 1,
-              adoptionRate: 1,
-              averageLatency: pattern.avgExecutionTime || 0
+        // 2. 执行 AI 分析
+        const aiAnalyzer = AIAnalyzer.getInstance();
+        const aiResult = await aiAnalyzer.analyze({
+          baseAnalysis: {
+            patterns: convertToAIPatterns(patternResult.patterns),
+            metrics: patternResult.metrics,
+            timestamp: patternResult.timestamp
+          },
+          context: {
+            environmentState: {
+              currentDirectory: process.cwd(),
+              shellType: process.platform === 'win32' ? 'powershell' : 'bash',
+              osType: process.platform
+            },
+            userPreferences: {
+              favoriteCommands: [],
+              commandAliases: {},
+              customPrompts: [],
+              riskTolerance: 'medium'
+            },
+            historicalData: {
+              recentCommands: [],
+              commandFrequency: {},
+              errorPatterns: []
             }
           }
-        }));
-
-        console.log('[AnalysisScheduler] Updating rule cache with new rules:', {
-          rulesCount: rules.length,
-          sampleRules: rules.slice(0, 3)
         });
 
-        ruleCache.updateRules(rules);
+        if (aiResult) {
+          console.log('[AnalysisScheduler] AI analysis completed:', {
+            insightsCount: aiResult.insights.patternInsights.length,
+            correlationsCount: aiResult.insights.correlations.length,
+            anomaliesCount: aiResult.insights.anomalies.length
+          });
+
+          // 3. 执行规则优化
+          const ruleOptimizer = RuleOptimizer.getInstance();
+          const optimizationResult = await ruleOptimizer.optimizeRules(
+            convertToPatternAnalysisResult(patternResult),
+            aiResult
+          );
+
+          if (optimizationResult) {
+            console.log('[AnalysisScheduler] Rule optimization completed:', {
+              totalRules: optimizationResult.performance.totalRules,
+              updatedCount: optimizationResult.performance.updatedCount,
+              addedCount: optimizationResult.performance.addedCount,
+              removedCount: optimizationResult.performance.removedCount
+            });
+          }
+        }
       }
 
       // 更新最后分析时间
       this.lastAnalysisTime = new Date();
       this.retryCount = 0;
 
-      console.log('[AnalysisScheduler] Analysis completed successfully');
+      console.log('[AnalysisScheduler] Analysis pipeline completed successfully');
     } catch (error) {
       console.error('[AnalysisScheduler] Analysis failed:', error);
       

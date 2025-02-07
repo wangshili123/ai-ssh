@@ -12,7 +12,7 @@ import {
 } from './types/rule-optimizer.types';
 import { Database } from 'better-sqlite3';
 import { DatabaseService } from '../../../../database/DatabaseService';
-import { RuleCache } from '../cache/RuleCache';
+import { RuleCache } from '../../cache/RuleCache';
 
 /**
  * 规则优化器
