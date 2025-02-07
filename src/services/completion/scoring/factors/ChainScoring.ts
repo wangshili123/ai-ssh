@@ -1,34 +1,72 @@
 import { CompletionSuggestion } from '../../types/completion.types';
-import { EnhancedCompletionContext, CommandExecutionResult } from '../../analyzers/types/context.types';
+import { EnhancedContext } from '../../core/types/context.types';
+import { ScoringFactor } from './ScoringFactor';
 
-export class ChainScoring {
+/**
+ * 基于命令链的评分因子
+ */
+export class ChainScoring extends ScoringFactor {
+  /**
+   * 计算基于命令链的得分
+   * @param suggestion 补全建议
+   * @param context 上下文信息
+   * @returns 0-1之间的得分，命令链匹配度越高分数越高
+   */
   public calculateScore(
     suggestion: CompletionSuggestion,
-    context: EnhancedCompletionContext
+    context: EnhancedContext | string
   ): number {
-    let score = 0;
+    if (typeof context === 'string') {
+      return 0;
+    }
+
+    try {
+      // 1. 获取最近的命令
+      const recentCommands = this.getRecentCommands(context);
+      if (recentCommands.length < 2) {
+        return 0;
+      }
+
+      // 2. 查找命令链模式
+      const chainScore = this.findChainPattern(
+        suggestion.fullCommand,
+        recentCommands
+      );
+
+      return chainScore;
+
+    } catch (error) {
+      console.error('[ChainScoring] 计算命令链得分时出错:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * 查找命令链模式
+   */
+  private findChainPattern(
+    command: string,
+    recentCommands: Array<{ command: string; timestamp: string; success: boolean }>
+  ): number {
+    // 只考虑最近的5个命令
+    const recentChain = recentCommands.slice(0, 5);
     
-    if (context.commandHistory.recent && context.commandHistory.recent.length > 0) {
-      const lastCommand = context.commandHistory.recent[0];
-      // 如果建议的命令经常在最后一个命令之后使用，增加得分
-      if (lastCommand && this.areCommandsRelated(lastCommand, suggestion.suggestion)) {
-        score += 0.3;
+    // 检查命令是否经常出现在当前命令序列之后
+    let chainCount = 0;
+    let totalChains = 0;
+
+    for (let i = 0; i < recentChain.length - 1; i++) {
+      const currentCmd = recentChain[i].command;
+      const nextCmd = recentChain[i + 1].command;
+
+      if (currentCmd === recentChain[recentChain.length - 1].command) {
+        totalChains++;
+        if (nextCmd === command) {
+          chainCount++;
+        }
       }
     }
 
-    return score;
-  }
-
-  private areCommandsRelated(cmd1: CommandExecutionResult | string, cmd2: string): boolean {
-    // 检查命令是否属于同一类别
-    const getCommandCategory = (cmd: CommandExecutionResult | string) => {
-      const cmdStr = typeof cmd === 'string' ? cmd : cmd.command;
-      if (cmdStr.startsWith('git')) return 'git';
-      if (cmdStr.startsWith('docker')) return 'docker';
-      if (cmdStr.match(/^(ls|cd|pwd|mkdir|rm|cp|mv)/)) return 'file';
-      return 'other';
-    };
-
-    return getCommandCategory(cmd1) === getCommandCategory(cmd2);
+    return totalChains > 0 ? chainCount / totalChains : 0;
   }
 } 

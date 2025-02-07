@@ -1,5 +1,5 @@
 import { CompletionSuggestion } from '../types/completion.types';
-import { EnhancedCompletionContext } from '../analyzers/types/context.types';
+import { EnhancedContext } from '../core/types/context.types';
 import { ContextScoring } from './factors/ContextScoring';
 import { ChainScoring } from './factors/ChainScoring';
 import { TimeScoring } from './factors/TimeScoring';
@@ -53,88 +53,64 @@ export class ScoringService {
   public async adjustSuggestionScores(
     suggestions: CompletionSuggestion[],
     input: string,
-    context: EnhancedCompletionContext
+    context: EnhancedContext
   ): Promise<CompletionSuggestion[]> {
-    console.log('[ScoringService] 开始调整建议得分...');
-    
-    const adjustedSuggestions = await Promise.all(
-      suggestions.map(async (suggestion) => {
-        // 1. 计算基础得分
-        let finalScore = suggestion.score * this.weights.base;
-
-        // 2. 计算各个维度的得分
+    const scoredSuggestions = await Promise.all(
+      suggestions.map(async suggestion => {
+        // 计算各个因素的得分
         const frequencyScore = this.frequencyScoring.calculateScore(suggestion, context);
         const recencyScore = this.recencyScoring.calculateScore(suggestion, context);
         const prefixScore = this.prefixScoring.calculateScore(suggestion, input);
-        const syntaxScore = this.syntaxScoring.calculateScore(suggestion, context);
+        const syntaxScore = this.syntaxScoring.calculateScore(suggestion, input);
         const contextScore = this.contextScoring.calculateScore(suggestion, context);
         const chainScore = this.chainScoring.calculateScore(suggestion, context);
         const timeScore = this.timeScoring.calculateScore(suggestion, context);
         const envScore = this.environmentScoring.calculateScore(suggestion, context);
 
-        // 3. 计算加权总分
-        finalScore += (
-          frequencyScore * this.weights.frequency +
-          recencyScore * this.weights.recency +
-          prefixScore * this.weights.prefix +
-          syntaxScore * this.weights.syntax +
-          contextScore * this.weights.context +
-          chainScore * this.weights.chain +
-          timeScore * this.weights.time +
-          envScore * this.weights.env
-        );
+        // 计算加权总分
+        const totalScore =
+          this.weights.base +
+          this.weights.frequency * frequencyScore +
+          this.weights.recency * recencyScore +
+          this.weights.prefix * prefixScore +
+          this.weights.syntax * syntaxScore +
+          this.weights.context * contextScore +
+          this.weights.chain * chainScore +
+          this.weights.time * timeScore +
+          this.weights.env * envScore;
 
-        console.log('[ScoringService] 建议得分调整:', {
-          suggestion: suggestion.suggestion,
-          originalScore: suggestion.score,
-          adjustedScore: finalScore,
-          details: {
-            frequencyScore,
-            recencyScore,
-            prefixScore,
-            syntaxScore,
-            contextScore,
-            chainScore,
-            timeScore,
-            envScore
-          }
-        });
-
+        // 更新建议的得分和详情
         return {
           ...suggestion,
-          score: finalScore,
+          score: totalScore,
           details: {
-            frequencyScore,
-            recencyScore,
-            prefixScore,
-            syntaxScore,
-            contextScore,
-            chainScore,
-            timeScore,
-            envScore
+            frequency: frequencyScore,
+            recency: recencyScore,
+            prefix: prefixScore,
+            syntax: syntaxScore,
+            context: contextScore,
+            chain: chainScore,
+            time: timeScore,
+            env: envScore
           }
         };
       })
     );
 
-    // 4. 按最终得分排序
-    return adjustedSuggestions.sort((a, b) => b.score - a.score);
+    // 按得分降序排序
+    return scoredSuggestions.sort((a, b) => b.score - a.score);
   }
 
-  public deduplicateAndLimit(suggestions: CompletionSuggestion[], limit: number): CompletionSuggestion[] {
-    // 使用 Map 来去重，保留得分最高的
-    const uniqueMap = new Map<string, CompletionSuggestion>();
-    
-    for (const suggestion of suggestions) {
-      const existing = uniqueMap.get(suggestion.fullCommand);
-      if (!existing || existing.score < suggestion.score) {
-        uniqueMap.set(suggestion.fullCommand, suggestion);
-      }
-    }
-    
-    // 转换回数组并按得分排序
-    return Array.from(uniqueMap.values())
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
+  public deduplicateAndLimit(
+    suggestions: CompletionSuggestion[],
+    limit: number
+  ): CompletionSuggestion[] {
+    // 去重
+    const uniqueSuggestions = Array.from(
+      new Map(suggestions.map(s => [s.fullCommand, s])).values()
+    );
+
+    // 限制数量
+    return uniqueSuggestions.slice(0, limit);
   }
 } 

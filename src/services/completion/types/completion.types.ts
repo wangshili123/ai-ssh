@@ -1,7 +1,8 @@
 export enum CompletionSource {
   HISTORY = 'history',
   RELATION = 'relation',
-  LOCAL = 'local'
+  LOCAL = 'local',
+  RULE = 'rule'
 }
 
 export interface CompletionSuggestion {

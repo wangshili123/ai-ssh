@@ -1,65 +1,61 @@
 import { CompletionSuggestion } from '../../types/completion.types';
-import { EnhancedCompletionContext } from '../../analyzers/types/context.types';
-import { ShellParserTypes } from '../../../parser/ShellParserTypes';
+import { EnhancedContext } from '../../core/types/context.types';
+import { ScoringFactor } from './ScoringFactor';
 
 /**
- * 基于命令语法的匹配评分因子
+ * 基于语法的评分因子
  */
-export class SyntaxScoring {
+export class SyntaxScoring extends ScoringFactor {
   /**
-   * 常见命令选项前缀
-   */
-  private readonly OPTION_PREFIXES = ['-', '--'];
-
-  /**
-   * 计算基于语法匹配的得分
+   * 计算基于语法的得分
    * @param suggestion 补全建议
-   * @param context 增强的补全上下文
+   * @param context 输入字符串
    * @returns 0-1之间的得分，语法匹配度越高分数越高
    */
   public calculateScore(
     suggestion: CompletionSuggestion,
-    context: EnhancedCompletionContext
+    context: EnhancedContext | string
   ): number {
-    console.log('[SyntaxScoring] 开始计算语法匹配得分:', {
-      suggestion: suggestion.suggestion,
-      currentCommand: context.currentCommand
-    });
+    if (typeof context !== 'string') {
+      return 0;
+    }
 
     try {
-      let score = 0;
+      const input = context.toLowerCase();
+      const command = suggestion.fullCommand.toLowerCase();
 
-      // 1. 命令名匹配
-      if (this.isCommandNameMatch(suggestion, context)) {
-        score += 0.4;
+      // 1. 检查命令结构
+      const inputParts = input.split(' ');
+      const commandParts = command.split(' ');
+
+      // 如果输入为空，返回基础分数
+      if (!input) {
+        return 0.5;
       }
 
-      // 2. 参数位置匹配
-      if (this.isArgumentPositionMatch(suggestion, context)) {
-        score += 0.3;
-      }
+      // 2. 命令名匹配
+      if (inputParts[0] && commandParts[0]) {
+        if (commandParts[0].startsWith(inputParts[0])) {
+          // 命令名匹配得分
+          const commandScore = this.calculateMatchScore(inputParts[0], commandParts[0]);
+          
+          // 如果只有命令名，直接返回得分
+          if (inputParts.length === 1) {
+            return commandScore;
+          }
 
-      // 3. 选项匹配
-      if (this.isOptionMatch(suggestion, context)) {
-        score += 0.3;
-      }
+          // 3. 参数匹配
+          const argScore = this.calculateArgumentScore(
+            inputParts.slice(1),
+            commandParts.slice(1)
+          );
 
-      // 4. 语法上下文匹配
-      const contextScore = this.calculateSyntaxContextScore(suggestion, context);
-      score = Math.min(1, score + contextScore);
-
-      console.log('[SyntaxScoring] 语法匹配得分计算完成:', {
-        suggestion: suggestion.suggestion,
-        score,
-        details: {
-          commandMatch: this.isCommandNameMatch(suggestion, context),
-          argMatch: this.isArgumentPositionMatch(suggestion, context),
-          optionMatch: this.isOptionMatch(suggestion, context),
-          contextScore
+          // 综合得分：命令名占60%，参数占40%
+          return commandScore * 0.6 + argScore * 0.4;
         }
-      });
+      }
 
-      return score;
+      return 0;
 
     } catch (error) {
       console.error('[SyntaxScoring] 计算语法匹配得分时出错:', error);
@@ -68,134 +64,54 @@ export class SyntaxScoring {
   }
 
   /**
-   * 检查是否是命令名匹配
+   * 计算匹配得分
    */
-  private isCommandNameMatch(
-    suggestion: CompletionSuggestion,
-    context: EnhancedCompletionContext
-  ): boolean {
-    if (!context.currentCommand || context.currentCommand.type !== 'command') return false;
-    return suggestion.suggestion === context.currentCommand.name;
+  private calculateMatchScore(input: string, target: string): number {
+    if (input === target) {
+      return 1;
+    }
+    if (target.startsWith(input)) {
+      return 0.8 + (input.length / target.length) * 0.2;
+    }
+    return 0;
   }
 
   /**
-   * 检查是否是参数位置匹配
+   * 计算参数匹配得分
    */
-  private isArgumentPositionMatch(
-    suggestion: CompletionSuggestion,
-    context: EnhancedCompletionContext
-  ): boolean {
-    if (!context.currentCommand || context.currentCommand.type !== 'command') return false;
-    return context.currentCommand.args?.includes(suggestion.suggestion) || false;
-  }
-
-  /**
-   * 检查是否是选项匹配
-   */
-  private isOptionMatch(
-    suggestion: CompletionSuggestion,
-    context: EnhancedCompletionContext
-  ): boolean {
-    // 检查建议是否是选项格式
-    const isOption = this.OPTION_PREFIXES.some(prefix => 
-      suggestion.suggestion.startsWith(prefix)
-    );
-
-    if (!isOption || !context.currentCommand || context.currentCommand.type !== 'command') return false;
-
-    // 检查是否在当前命令的选项列表中
-    return context.currentCommand.options?.some(opt => 
-      opt.startsWith(suggestion.suggestion)
-    ) || false;
-  }
-
-  /**
-   * 计算语法上下文得分
-   */
-  private calculateSyntaxContextScore(
-    suggestion: CompletionSuggestion,
-    context: EnhancedCompletionContext
+  private calculateArgumentScore(
+    inputArgs: string[],
+    targetArgs: string[]
   ): number {
-    let contextScore = 0;
-
-    // 1. 检查是否在引号内
-    if (this.isInQuotes(context) && this.isValidQuoteCompletion(suggestion)) {
-      contextScore += 0.1;
+    if (!inputArgs.length || !targetArgs.length) {
+      return 0;
     }
 
-    // 2. 检查是否在管道后
-    if (this.isAfterPipe(context)) {
-      contextScore += this.calculatePipeContextScore(suggestion);
+    let matchCount = 0;
+    let totalWeight = 0;
+    const argWeight = 1 / inputArgs.length; // 平均权重
+
+    for (let i = 0; i < inputArgs.length; i++) {
+      const input = inputArgs[i];
+      
+      // 检查是否是选项参数
+      if (input.startsWith('-')) {
+        // 选项参数需要精确匹配
+        if (targetArgs.includes(input)) {
+          matchCount += argWeight;
+        }
+      } else {
+        // 普通参数可以部分匹配
+        for (const target of targetArgs) {
+          if (target.includes(input)) {
+            matchCount += argWeight * 0.8; // 部分匹配得分稍低
+            break;
+          }
+        }
+      }
+      totalWeight += argWeight;
     }
 
-    // 3. 检查是否在重定向后
-    if (this.isAfterRedirection(context)) {
-      contextScore += this.calculateRedirectionContextScore(suggestion);
-    }
-
-    return contextScore;
-  }
-
-  /**
-   * 检查是否在引号内
-   */
-  private isInQuotes(context: EnhancedCompletionContext): boolean {
-    if (!context.currentCommand || context.currentCommand.type !== 'command') return false;
-    const lastArg = context.currentCommand.args?.[context.currentCommand.args.length - 1] || '';
-    return (
-      (lastArg.startsWith('"') && !lastArg.endsWith('"')) ||
-      (lastArg.startsWith("'") && !lastArg.endsWith("'"))
-    );
-  }
-
-  /**
-   * 检查是否是有效的引号内补全
-   */
-  private isValidQuoteCompletion(suggestion: CompletionSuggestion): boolean {
-    // 引号内的补全不应该包含特殊字符
-    return !/['"\\|><]/.test(suggestion.suggestion);
-  }
-
-  /**
-   * 检查是否在管道后
-   */
-  private isAfterPipe(context: EnhancedCompletionContext): boolean {
-    if (!context.currentCommand || context.currentCommand.type !== 'command') return false;
-    const lastArg = context.currentCommand.args?.[context.currentCommand.args.length - 2] || '';
-    return lastArg === '|';
-  }
-
-  /**
-   * 计算管道上下文得分
-   */
-  private calculatePipeContextScore(suggestion: CompletionSuggestion): number {
-    // 管道后面常见的命令
-    const pipeCommands = ['grep', 'awk', 'sed', 'sort', 'uniq', 'wc', 'head', 'tail'];
-    if (pipeCommands.includes(suggestion.suggestion)) {
-      return 0.2;
-    }
-    return 0;
-  }
-
-  /**
-   * 检查是否在重定向后
-   */
-  private isAfterRedirection(context: EnhancedCompletionContext): boolean {
-    if (!context.currentCommand || context.currentCommand.type !== 'command') return false;
-    const lastArg = context.currentCommand.args?.[context.currentCommand.args.length - 2] || '';
-    return ['>', '>>', '<'].includes(lastArg);
-  }
-
-  /**
-   * 计算重定向上下文得分
-   */
-  private calculateRedirectionContextScore(suggestion: CompletionSuggestion): number {
-    // 重定向后通常是文件路径
-    if (suggestion.suggestion.includes('/') || 
-        suggestion.suggestion.endsWith('.txt') ||
-        suggestion.suggestion.endsWith('.log')) {
-      return 0.2;
-    }
-    return 0;
+    return matchCount / totalWeight;
   }
 } 

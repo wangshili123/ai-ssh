@@ -149,6 +149,7 @@ export class RuleGenerator {
       createdAt: params.timestamp,
       updatedAt: params.timestamp,
       lastApplied: params.timestamp,
+      lastUsed: params.timestamp,
       performance
     };
 

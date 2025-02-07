@@ -206,7 +206,9 @@ export class AIAnalyzer {
     if (this.cache.size >= this.config.cacheConfig.maxSize) {
       // 如果缓存已满，删除最旧的条目
       const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
+      if (oldestKey) {
+        this.cache.delete(oldestKey);
+      }
     }
 
     this.cache.set(key, {

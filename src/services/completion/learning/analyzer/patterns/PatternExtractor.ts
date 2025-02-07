@@ -20,6 +20,7 @@ export class PatternExtractor {
       command: baseCommand,
       parameter,
       frequency: 1,
+      confidence: 1,  // 初始置信度为1
       examples: [command]
     };
   }
@@ -47,9 +48,11 @@ export class PatternExtractor {
         const pattern: SequencePattern = {
           commands: sequence,
           frequency: 1,
+          confidence: successRate,  // 使用成功率作为初始置信度
           timeGap,
           successRate
         };
+
         this.updateSequencePatterns(sequences, pattern);
       }
     }
@@ -74,11 +77,13 @@ export class PatternExtractor {
       const context = this.extractContext(data, i, windowSize);
       if (!context) continue;
 
+      const correlation = this.calculateContextCorrelation(currentCommand, context);
       const pattern: ContextPattern = {
         command: currentCommand,
         context: context.join(' '),
         frequency: 1,
-        correlation: this.calculateContextCorrelation(currentCommand, context)
+        confidence: correlation,  // 使用相关性作为初始置信度
+        correlation
       };
 
       this.updateContextPatterns(patterns, pattern);
@@ -192,10 +197,35 @@ export class PatternExtractor {
     if (existingPattern) {
       existingPattern.frequency++;
       // 更新相关性（使用移动平均）
-      existingPattern.correlation = (existingPattern.correlation * (existingPattern.frequency - 1) + newPattern.correlation)
-        / existingPattern.frequency;
+      if (existingPattern.correlation !== undefined && newPattern.correlation !== undefined) {
+        existingPattern.correlation = (existingPattern.correlation * (existingPattern.frequency - 1) + newPattern.correlation)
+          / existingPattern.frequency;
+        // 同时更新置信度
+        existingPattern.confidence = existingPattern.correlation;
+      } else if (newPattern.correlation !== undefined) {
+        existingPattern.correlation = newPattern.correlation;
+        existingPattern.confidence = newPattern.correlation;
+      }
     } else {
       patterns.push(newPattern);
     }
+  }
+
+  /**
+   * 提取上下文模式
+   */
+  public static extractContextPattern(
+    command: string,
+    context: string,
+    correlation: number
+  ): ContextPattern {
+    const pattern: ContextPattern = {
+      command,
+      context,
+      frequency: 1,
+      confidence: correlation,
+      correlation
+    };
+    return pattern;
   }
 } 

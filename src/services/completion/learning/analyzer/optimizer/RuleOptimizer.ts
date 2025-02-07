@@ -7,7 +7,8 @@ import {
   CompletionRule,
   RuleUpdate,
   RuleOptimizerConfig,
-  OptimizationResult
+  OptimizationResult,
+  RuleVersion
 } from './types/rule-optimizer.types';
 
 /**
@@ -34,7 +35,7 @@ export class RuleOptimizer {
   private constructor() {
     this.ruleGenerator = new RuleGenerator();
     this.ruleApplier = new RuleApplier();
-    this.versionManager = new RuleVersionManager();
+    this.versionManager = RuleVersionManager.getInstance();
   }
 
   /**
@@ -82,7 +83,7 @@ export class RuleOptimizer {
       const updates = this.generateUpdates(existingRules, mergedRules);
 
       // 6. 创建新版本
-      const version = this.versionManager.createVersion(updates);
+      const version = await this.versionManager.createVersion(updates);
 
       // 7. 应用更新
       await this.applyRuleUpdates(updates);
@@ -209,12 +210,13 @@ export class RuleOptimizer {
     updates: RuleUpdate[],
     version: RuleVersion
   ): OptimizationResult {
+    const baseRuleKeys = ['id', 'type', 'pattern', 'weight', 'confidence', 'version', 'metadata'];
     const newRules = updates
-      .filter(update => Object.keys(update.changes).length === Object.keys(new CompletionRule()).length)
+      .filter(update => Object.keys(update.changes).length === baseRuleKeys.length)
       .map(update => update.changes as CompletionRule);
 
     const updatedRules = updates
-      .filter(update => Object.keys(update.changes).length < Object.keys(new CompletionRule()).length)
+      .filter(update => Object.keys(update.changes).length < baseRuleKeys.length)
       .map(update => update.changes as CompletionRule);
 
     const removedRules = updates

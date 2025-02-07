@@ -325,7 +325,8 @@ export const useCompletion = ({
         const sessionState: SessionState = {
           sessionId: eventBus.getCurrentSessionId(),
           currentWorkingDirectory: process.cwd(),
-          environment: process.env as { [key: string]: string }
+          environment: process.env as { [key: string]: string },
+          shellType: process.platform === 'win32' ? 'powershell' : 'bash'
         };
 
         const newSuggestions = await completionService?.getSuggestions({
@@ -338,7 +339,16 @@ export const useCompletion = ({
         
         if (newSuggestions && newSuggestions.length > 0) {
           console.log('[useCompletion] Setting suggestions and showing dropdown');
-          setSuggestions(newSuggestions);
+          // 转换 CompletionSource 类型
+          const convertedSuggestions: ICompletionSuggestion[] = newSuggestions.map(suggestion => ({
+            fullCommand: suggestion.fullCommand,
+            suggestion: suggestion.suggestion,
+            source: suggestion.source === 'rule' ? 'local' : 
+                   suggestion.source === 'history' ? 'history' : 
+                   suggestion.source === 'relation' ? 'relation' : 'local',
+            score: suggestion.score
+          }));
+          setSuggestions(convertedSuggestions);
           setSelectedIndex(0);
           // 重置 CompletionService 的 selectedIndex
           completionService?.setSelectedIndex(0);

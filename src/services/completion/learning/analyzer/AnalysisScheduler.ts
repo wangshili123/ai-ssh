@@ -12,7 +12,7 @@ export class AnalysisScheduler {
   private analysisInterval: number = 24 * 60 * 60 * 1000; // 24小时
   private retryCount: number = 0;
   private readonly MAX_RETRIES: number = 3;
-  private schedulerTimer: NodeJS.Timer | null = null;
+  private schedulerTimer: NodeJS.Timeout | null = null;
 
   private constructor() {}
 

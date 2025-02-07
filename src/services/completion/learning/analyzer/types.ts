@@ -7,6 +7,7 @@ export interface ParameterPattern {
   parameter: string;        // 参数部分
   frequency: number;        // 出现频率
   confidence: number;       // 置信度
+  examples: string[];      // 使用示例
 }
 
 /**
@@ -18,6 +19,7 @@ export interface ContextPattern {
   context: string;          // 上下文
   frequency: number;        // 出现频率
   confidence: number;       // 置信度
+  correlation?: number;     // 相关性得分
 }
 
 /**
@@ -28,6 +30,8 @@ export interface SequencePattern {
   commands: string[];       // 命令序列
   frequency: number;        // 出现频率
   confidence: number;       // 置信度
+  timeGap: number;         // 命令之间的时间间隔（毫秒）
+  successRate: number;     // 序列执行成功率
 }
 
 /**

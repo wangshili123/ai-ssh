@@ -137,8 +137,9 @@ export class AnalysisValidator {
       metadata.confidence <= 1 &&
       typeof metadata.processingTime === 'number' &&
       metadata.processingTime >= 0 &&
-      metadata.modelVersion &&
-      metadata.timestamp &&
+      typeof metadata.modelVersion === 'string' &&
+      metadata.modelVersion.length > 0 &&
+      typeof metadata.timestamp === 'string' &&
       !isNaN(Date.parse(metadata.timestamp))
     );
   }

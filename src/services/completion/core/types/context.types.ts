@@ -8,6 +8,7 @@ export interface CommandExecutionResult {
   output: string[];
   exitCode: number;
   timestamp: Date;
+  success: boolean;
 }
 
 /**
@@ -30,6 +31,7 @@ export interface EnvironmentState {
   recentFiles: string[];
   runningProcesses: string[];
   lastModifiedFiles: string[];
+  environmentVars?: Record<string, string>;
 }
 
 /**
@@ -87,26 +89,15 @@ export interface SessionState {
   sessionId: string;
   currentWorkingDirectory: string;
   environment: { [key: string]: string };
+  shellType: string;
 }
 
 /**
  * 增强的补全上下文
  */
-export interface EnhancedCompletionContext {
+export interface EnhancedCompletionContext extends EnhancedContext {
   // 当前命令解析结果
   currentCommand: ShellParserTypes.ParseResult;
-  
-  // 命令执行历史
-  commandHistory: {
-    recent: CommandExecutionResult[];
-    statistics: Array<{
-      command: string;
-      frequency: number;
-      lastUsed: Date;
-      avgExitCode: number;
-      outputs: string[];
-    }>;
-  };
   
   // 环境状态
   environment: EnvironmentState;
