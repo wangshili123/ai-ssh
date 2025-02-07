@@ -11,6 +11,8 @@ export interface Collector {
 export interface CollectorOptions {
   batchSize: number;
   flushInterval: number;  // 单位: 毫秒
+  retryAttempts?: number;
+  retryDelay?: number;
 }
 
 /**
@@ -20,6 +22,9 @@ export interface CommandUsageData {
   command: string;
   success: boolean;
   timestamp: Date;
+  context?: string;
+  executionTime?: number;
+  errorType?: string;
 }
 
 /**
@@ -30,4 +35,19 @@ export interface CompletionUsageData {
   suggestion: string;
   isSelected: boolean;
   timestamp: Date;
+  context?: string;
+  executionTime?: number;
+  errorType?: string;
+}
+
+/**
+ * 收集器统计指标
+ */
+export interface CollectorMetrics {
+  totalCollected: number;
+  successCount: number;
+  failureCount: number;
+  averageExecutionTime: number;
+  lastCollectionTime: Date;
+  errorTypes: Record<string, number>;
 } 

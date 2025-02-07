@@ -1,14 +1,21 @@
-import { aiService } from '../../../../../renderer/services/ai';
+import { AIAnalysisInput, AIAnalysisResult, AIAnalysisConfig } from './types/ai-analysis.types';
 import { PromptManager } from './PromptManager';
 import { AnalysisValidator } from './AnalysisValidator';
 import { DataPreprocessor } from './preprocessor/DataPreprocessor';
-import {
-  AIAnalysisInput,
-  AIAnalysisResult,
-  AIAnalysisConfig,
-  AIAnalysisError,
-  CacheEntry
-} from './types/ai-analysis.types';
+import { ipcRenderer } from 'electron';
+
+interface APIError {
+  error?: {
+    message: string;
+  };
+  message?: string;
+}
+
+interface CacheEntry {
+  data: AIAnalysisResult;
+  timestamp: number;
+  expiresAt: number;
+}
 
 /**
  * AI 分析器
@@ -19,7 +26,7 @@ export class AIAnalyzer {
   private promptManager: PromptManager;
   private validator: AnalysisValidator;
   private isProcessing: boolean = false;
-  private cache: Map<string, CacheEntry<AIAnalysisResult>> = new Map();
+  private cache: Map<string, CacheEntry> = new Map();
 
   // 分析配置
   private config: AIAnalysisConfig = {
@@ -40,14 +47,27 @@ export class AIAnalyzer {
     this.startCacheCleanup();
   }
 
-  /**
-   * 获取分析器实例
-   */
   public static getInstance(): AIAnalyzer {
     if (!AIAnalyzer.instance) {
       AIAnalyzer.instance = new AIAnalyzer();
     }
     return AIAnalyzer.instance;
+  }
+
+  /**
+   * 获取 AI 配置
+   */
+  private async getConfig() {
+    const response = await ipcRenderer.invoke('ai-config:load');
+    console.log('AI 配置加载结果:', response);
+    if (!response.success) {
+      throw new Error(response.error);
+    }
+    const config = response.data;
+    if (!config.baseURL) {
+      throw new Error('未配置 API 基础 URL');
+    }
+    return config;
   }
 
   /**
@@ -75,29 +95,75 @@ export class AIAnalyzer {
       const processedData = await DataPreprocessor.preprocess(input);
       console.log('[AIAnalyzer] Data preprocessing completed');
 
-      // 3. 生成分析 Prompt
-      const prompt = await this.promptManager.generateAnalysisPrompt(input, processedData);
+      // 3. 获取 AI 配置
+      const config = await this.getConfig();
 
-      // 4. 调用 AI 服务
-      const startTime = Date.now();
-      const analysisResponse = await this.callAIService(prompt);
+      // 4. 生成 Prompt
+      const { messages, config: promptConfig } = this.promptManager.generateAnalysisPrompt(input, processedData);
 
-      // 5. 解析和验证结果
-      const result = await this.parseAndValidateResponse(analysisResponse, input);
+      // 5. 调用 AI API
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`
+      };
 
-      // 6. 添加元数据
-      result.metadata.processingTime = Date.now() - startTime;
-      result.metadata.timestamp = new Date().toISOString();
+      const requestBody = {
+        model: config.model,
+        messages,
+        ...promptConfig
+      };
 
-      // 7. 缓存结果
-      this.cacheResult(cacheKey, result);
+      let result: AIAnalysisResult | null = null;
+      let retryCount = 0;
+
+      while (retryCount < this.config.maxRetries) {
+        try {
+          const response = await fetch(`${config.baseURL}/chat/completions`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(requestBody)
+          });
+
+          if (!response.ok) {
+            const apiError = await response.json() as APIError;
+            throw new Error(apiError.error?.message || apiError.message || '请求失败');
+          }
+
+          // 6. 解析和验证结果
+          const data = await response.json();
+          const content = data.choices[0]?.message?.content;
+          if (!content) {
+            throw new Error('未获取到有效响应');
+          }
+
+          result = JSON.parse(content) as AIAnalysisResult;
+          if (!this.validator.validate(result)) {
+            throw new Error('Analysis result validation failed');
+          }
+
+          // 7. 添加元数据
+          result.metadata.processingTime = Date.now() - data.created;
+          result.metadata.timestamp = new Date(data.created * 1000).toISOString();
+
+          // 8. 缓存结果
+          this.cacheResult(cacheKey, result);
+          break;
+
+        } catch (error) {
+          retryCount++;
+          if (retryCount === this.config.maxRetries) {
+            throw error;
+          }
+          // 指数退避重试
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        }
+      }
 
       console.log('[AIAnalyzer] Analysis completed successfully');
       return result;
 
     } catch (error) {
       console.error('[AIAnalyzer] Analysis failed:', error);
-      await this.handleAnalysisError(error as Error);
       return null;
     } finally {
       this.isProcessing = false;
@@ -105,87 +171,12 @@ export class AIAnalyzer {
   }
 
   /**
-   * 调用 AI 服务
-   */
-  private async callAIService(prompt: string): Promise<any> {
-    let retries = 0;
-    while (retries < this.config.maxRetries) {
-      try {
-        const response = await aiService.getAgentResponse(prompt);
-        return response;
-      } catch (error) {
-        retries++;
-        if (retries === this.config.maxRetries) {
-          throw error;
-        }
-        // 指数退避重试
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
-      }
-    }
-  }
-
-  /**
-   * 解析和验证 AI 响应
-   */
-  private async parseAndValidateResponse(
-    response: any,
-    input: AIAnalysisInput
-  ): Promise<AIAnalysisResult> {
-    try {
-      // 1. 解析响应
-      const parsedResult = this.parseResponse(response);
-      
-      // 2. 验证结果
-      if (!this.validator.validate(parsedResult)) {
-        throw new Error('Analysis result validation failed');
-      }
-
-      // 3. 过滤低置信度的结果
-      return this.filterResults(parsedResult);
-    } catch (error) {
-      const err = error as Error;
-      throw {
-        code: 'PARSE_ERROR',
-        message: `Failed to parse or validate AI response: ${err.message}`,
-        severity: 'high' as const,
-        timestamp: new Date().toISOString()
-      } as AIAnalysisError;
-    }
-  }
-
-  /**
-   * 解析 AI 响应
-   */
-  private parseResponse(response: any): AIAnalysisResult {
-    try {
-      const { description = '' } = response;
-      const resultJson = JSON.parse(description);
-      return resultJson as AIAnalysisResult;
-    } catch (error) {
-      throw new Error(`Failed to parse AI response: ${error}`);
-    }
-  }
-
-  /**
-   * 过滤分析结果
-   */
-  private filterResults(result: AIAnalysisResult): AIAnalysisResult {
-    return {
-      ...result,
-      insights: {
-        ...result.insights,
-        patternInsights: result.insights.patternInsights.filter(
-          insight => insight.confidence >= this.config.minConfidenceThreshold
-        )
-      }
-    };
-  }
-
-  /**
    * 生成缓存键
    */
   private generateCacheKey(input: AIAnalysisInput): string {
-    return `${input.baseAnalysis.timestamp}_${JSON.stringify(input.baseAnalysis.patterns)}`;
+    // 使用分析时间和模式数据的哈希作为缓存键
+    const patternsHash = JSON.stringify(input.baseAnalysis.patterns);
+    return `${input.baseAnalysis.timestamp}_${Buffer.from(patternsHash).toString('base64')}`;
   }
 
   /**
@@ -196,6 +187,9 @@ export class AIAnalyzer {
     if (cached && cached.expiresAt > Date.now()) {
       return cached.data;
     }
+    if (cached) {
+      this.cache.delete(key); // 删除过期缓存
+    }
     return null;
   }
 
@@ -203,12 +197,11 @@ export class AIAnalyzer {
    * 缓存结果
    */
   private cacheResult(key: string, result: AIAnalysisResult): void {
+    // 如果缓存已满，删除最旧的条目
     if (this.cache.size >= this.config.cacheConfig.maxSize) {
-      // 如果缓存已满，删除最旧的条目
-      const oldestKey = this.cache.keys().next().value;
-      if (oldestKey) {
-        this.cache.delete(oldestKey);
-      }
+      const oldestKey = Array.from(this.cache.entries())
+        .sort(([, a], [, b]) => a.timestamp - b.timestamp)[0][0];
+      this.cache.delete(oldestKey);
     }
 
     this.cache.set(key, {
@@ -223,25 +216,18 @@ export class AIAnalyzer {
    */
   private startCacheCleanup(): void {
     setInterval(() => {
+      console.log('[AIAnalyzer] Starting cache cleanup');
       const now = Date.now();
+      let cleanedCount = 0;
       for (const [key, entry] of this.cache.entries()) {
         if (entry.expiresAt <= now) {
           this.cache.delete(key);
+          cleanedCount++;
         }
       }
+      if (cleanedCount > 0) {
+        console.log(`[AIAnalyzer] Cleaned ${cleanedCount} expired cache entries`);
+      }
     }, this.config.cacheConfig.cleanupInterval);
-  }
-
-  /**
-   * 错误处理
-   */
-  private async handleAnalysisError(error: Error): Promise<void> {
-    const analysisError = error as unknown as AIAnalysisError;
-    console.error('[AIAnalyzer] Error during analysis:', {
-      code: analysisError.code || 'UNKNOWN_ERROR',
-      message: analysisError.message,
-      severity: analysisError.severity || 'high',
-      timestamp: new Date().toISOString()
-    });
   }
 } 

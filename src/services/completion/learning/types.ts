@@ -17,6 +17,7 @@ export interface CompletionUsage {
  * 命令模式
  */
 export interface CommandPattern {
+  id?: number;           // 数据库ID
   pattern: string;
   frequency: number;
   context: string;

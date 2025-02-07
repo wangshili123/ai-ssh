@@ -5,6 +5,7 @@ import { DatabaseService } from '../../../database/DatabaseService';
 import { RuleCache } from '../cache/RuleCache';
 import { ParameterPattern, ContextPattern, SequencePattern } from './types';
 import { CommandPattern, AnalysisResult } from '../types';
+import { AnalysisStateManager, DataCheckResult } from './AnalysisStateManager';
 
 /**
  * 将 CommandPattern 转换为 AI 分析所需的模式类型
@@ -84,12 +85,24 @@ export class AnalysisScheduler {
   private static instance: AnalysisScheduler;
   private isAnalyzing: boolean = false;
   private lastAnalysisTime: Date | null = null;
-  private analysisInterval: number = 1000 * 60 * 0.1; // 5分钟
+  private analysisInterval: number = 1000 * 60 * 0.1; // 保持6秒用于测试
   private retryCount: number = 0;
   private readonly MAX_RETRIES: number = 3;
   private schedulerTimer: NodeJS.Timeout | null = null;
+  private stateManager: AnalysisStateManager;
 
-  private constructor() {}
+  // 配置参数
+  private config = {
+    minCommandCount: 10,        // 最小命令数
+    minCompletionCount: 20,     // 最小补全数
+    minDataChangeRate: 0.2,     // 最小数据变化率
+    minAnalysisInterval: 5 * 60 * 1000,  // 最小分析间隔（5分钟）
+    optimalAnalysisInterval: 30 * 60 * 1000  // 最佳分析间隔（30分钟）
+  };
+
+  private constructor() {
+    this.stateManager = AnalysisStateManager.getInstance();
+  }
 
   /**
    * 获取调度器实例
@@ -128,6 +141,53 @@ export class AnalysisScheduler {
   }
 
   /**
+   * 判断是否应该执行分析
+   */
+  private shouldRunAnalysis(checkResult: DataCheckResult): boolean {
+    const {
+      newCommandCount,
+      newCompletionCount,
+      lastAnalysisTime,
+      dataChangeRate
+    } = checkResult.metrics;
+
+    // 检查数据量
+    if (newCommandCount < this.config.minCommandCount ||
+        newCompletionCount < this.config.minCompletionCount) {
+      console.log('[AnalysisScheduler] 数据量不足:', {
+        newCommandCount,
+        newCompletionCount,
+        required: {
+          commands: this.config.minCommandCount,
+          completions: this.config.minCompletionCount
+        }
+      });
+      return false;
+    }
+
+    // 检查时间间隔
+    const timeSinceLastAnalysis = Date.now() - lastAnalysisTime.getTime();
+    if (timeSinceLastAnalysis < this.config.minAnalysisInterval) {
+      console.log('[AnalysisScheduler] 分析间隔过短:', {
+        timeSinceLastAnalysis,
+        required: this.config.minAnalysisInterval
+      });
+      return false;
+    }
+
+    // 检查数据变化率
+    if (dataChangeRate < this.config.minDataChangeRate) {
+      console.log('[AnalysisScheduler] 数据变化率过低:', {
+        dataChangeRate,
+        required: this.config.minDataChangeRate
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * 调度分析任务
    */
   private async scheduleAnalysis(): Promise<void> {
@@ -140,13 +200,15 @@ export class AnalysisScheduler {
       this.isAnalyzing = true;
       console.log('[AnalysisScheduler] Starting analysis task');
 
-      // 获取数据库实例
-      const db = DatabaseService.getInstance().getDatabase();
-      if (!db) {
-        throw new Error('Database not initialized');
+      // 1. 检查数据充分性
+      const checkResult = await this.stateManager.checkDataSufficiency();
+      
+      if (!this.shouldRunAnalysis(checkResult)) {
+        console.log('[AnalysisScheduler] 数据量不足或变化不大，跳过分析');
+        return;
       }
 
-      // 1. 执行模式分析
+      // 2. 执行模式分析
       const patternAnalyzer = PatternAnalyzer.getInstance();
       const patternResult = await patternAnalyzer.analyze();
       
@@ -157,7 +219,7 @@ export class AnalysisScheduler {
           metrics: patternResult.metrics
         });
 
-        // 2. 执行 AI 分析
+        // 3. 执行 AI 分析
         const aiAnalyzer = AIAnalyzer.getInstance();
         const aiResult = await aiAnalyzer.analyze({
           baseAnalysis: {
@@ -192,7 +254,7 @@ export class AnalysisScheduler {
             anomaliesCount: aiResult.insights.anomalies.length
           });
 
-          // 3. 执行规则优化
+          // 4. 执行规则优化
           const ruleOptimizer = RuleOptimizer.getInstance();
           const optimizationResult = await ruleOptimizer.optimizeRules(
             convertToPatternAnalysisResult(patternResult),
@@ -206,6 +268,14 @@ export class AnalysisScheduler {
               addedCount: optimizationResult.performance.addedCount,
               removedCount: optimizationResult.performance.removedCount
             });
+
+            // 5. 更新分析状态
+            await this.stateManager.updateAnalysisState(
+              patternResult.patterns.length > 0 ? 
+                patternResult.patterns[patternResult.patterns.length - 1].id! : 0,
+              patternResult.patterns.length,
+              patternResult.metrics
+            );
           }
         }
       }
