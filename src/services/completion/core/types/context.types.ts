@@ -122,4 +122,35 @@ export interface EnhancedCompletionContext {
   
   // 增强的模式
   patterns: EnhancedPatterns;
+}
+
+/**
+ * 增强的上下文信息
+ * 包含补全所需的各种上下文数据
+ */
+export interface EnhancedContext {
+  // 当前工作目录
+  currentDirectory: string;
+  
+  // Shell类型（bash/zsh等）
+  shellType: string;
+  
+  // 命令历史
+  commandHistory?: {
+    // 最近的命令
+    recent: Array<{
+      command: string;
+      timestamp: string;
+      success: boolean;
+    }>;
+    // 命令使用统计
+    statistics: Array<{
+      command: string;
+      frequency: number;
+      lastUsed: Date;
+    }>;
+  };
+
+  // 环境变量
+  environmentVars?: Record<string, string>;
 } 
