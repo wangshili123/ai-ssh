@@ -51,6 +51,12 @@ export class PatternAnalyzer {
 
       // 获取新的补全使用数据
       const newData = await this.fetchNewCompletionData();
+      console.log('[PatternAnalyzer] Fetched completion data:', {
+        count: newData.length,
+        lastProcessedId: this.lastProcessedId,
+        samples: newData.slice(0, 3) // 只显示前3条数据
+      });
+
       if (newData.length === 0) {
         console.log('[PatternAnalyzer] No new data to analyze');
         return null;
@@ -58,12 +64,26 @@ export class PatternAnalyzer {
 
       // 1. 数据预处理
       const processedData = await DataPreprocessor.preprocess(newData, this.config);
+      console.log('[PatternAnalyzer] Preprocessed data:', {
+        uniqueCommands: processedData.uniqueCommands.size,
+        parameterPatterns: processedData.parameterPatterns.length,
+        contextPatterns: processedData.contextPatterns.length,
+        sequencePatterns: processedData.sequencePatterns.length
+      });
 
       // 2. 模式识别和指标计算
       const patterns = await this.identifyPatterns(processedData);
+      console.log('[PatternAnalyzer] Identified patterns:', {
+        count: patterns.length,
+        samples: patterns.slice(0, 3)
+      });
 
       // 3. 生成优化建议
       const suggestions = await this.generateSuggestions(patterns);
+      console.log('[PatternAnalyzer] Generated suggestions:', {
+        count: suggestions.length,
+        samples: suggestions.slice(0, 3)
+      });
 
       // 4. 生成分析结果
       const result: AnalysisResult = {
@@ -80,7 +100,9 @@ export class PatternAnalyzer {
       };
 
       this.lastProcessedId = newData[newData.length - 1].id!;
-      console.log('[PatternAnalyzer] Analysis completed successfully');
+      console.log('[PatternAnalyzer] Analysis completed successfully:', {
+        metrics: result.metrics
+      });
       return result;
 
     } catch (error) {
