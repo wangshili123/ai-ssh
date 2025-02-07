@@ -48,20 +48,25 @@ export class ContextRuleMatcher extends RuleMatcher {
     if (rule.pattern.includes('${PWD}') || rule.pattern.includes('${DIR}')) {
       // 如果规则明确指定了目录模式，进行精确匹配
       const pattern = rule.pattern
-        .replace('${PWD}', currentDir)
-        .replace('${DIR}', currentDir);
+        .replace(/\${PWD}/g, currentDir)
+        .replace(/\${DIR}/g, currentDir);
       return this.calculateStringSimilarity(currentDir, pattern);
     }
 
     // 否则进行基本的目录类型匹配
     const isGitDir = currentDir.includes('.git');
-    const isNodeDir = currentDir.includes('node_modules');
+    const isNodeDir = currentDir.includes('node_modules') || currentDir.includes('package.json');
     const isPythonDir = currentDir.includes('venv') || currentDir.includes('__pycache__');
+    const isRustDir = currentDir.includes('Cargo.toml');
+    const isGoDir = currentDir.includes('go.mod');
 
+    // 根据目录特征匹配规则
     if (
       (isGitDir && rule.pattern.includes('git')) ||
-      (isNodeDir && rule.pattern.includes('npm')) ||
-      (isPythonDir && rule.pattern.includes('pip'))
+      (isNodeDir && (rule.pattern.includes('npm') || rule.pattern.includes('node'))) ||
+      (isPythonDir && (rule.pattern.includes('pip') || rule.pattern.includes('python'))) ||
+      (isRustDir && rule.pattern.includes('cargo')) ||
+      (isGoDir && rule.pattern.includes('go'))
     ) {
       return 0.7;
     }
@@ -89,6 +94,15 @@ export class ContextRuleMatcher extends RuleMatcher {
         const age = Date.now() - new Date(cmd.timestamp).getTime();
         const ageScore = Math.max(0, 1 - age / (24 * 60 * 60 * 1000)); // 24小时衰减
         return 0.8 * ageScore;
+      }
+    }
+
+    // 检查命令使用频率
+    const statistics = context.commandHistory.statistics;
+    for (const stat of statistics) {
+      if (rule.pattern.includes(stat.command)) {
+        // 根据使用频率评分
+        return Math.min(0.7, stat.frequency / 10); // 最高0.7分
       }
     }
 

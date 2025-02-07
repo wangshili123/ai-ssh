@@ -1,5 +1,4 @@
 import { AIAnalysisResult } from '../../ai/types/ai-analysis.types';
-import { AnalysisPattern } from '../../types';
 
 /**
  * 规则类型
@@ -22,6 +21,7 @@ export interface RuleMetadata {
   createdAt: string;
   updatedAt: string;
   lastApplied: string;
+  lastUsed: string;
   performance: RulePerformance;
 }
 

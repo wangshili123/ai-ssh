@@ -48,17 +48,14 @@ export class ParameterRuleMatcher extends RuleMatcher {
    * 匹配命令名
    */
   private matchCommand(input: string, pattern: string): number {
-    if (!input) {
-      return 0;
+    // 优先使用前缀匹配
+    const prefixScore = this.checkPrefixMatch(input, pattern);
+    if (prefixScore > 0) {
+      return prefixScore;
     }
 
-    // 如果输入完全匹配模式的开头部分，给出高分
-    if (pattern.startsWith(input)) {
-      return 0.8 + (input.length / pattern.length) * 0.2;
-    }
-
-    // 否则计算相似度
-    return this.calculateStringSimilarity(input, pattern);
+    // 如果前缀不匹配，使用相似度匹配
+    return this.calculateStringSimilarity(input, pattern) * 0.8;
   }
 
   /**
@@ -112,13 +109,19 @@ export class ParameterRuleMatcher extends RuleMatcher {
 
     // 处理标志参数
     if (pattern.startsWith('-')) {
+      // 优先使用前缀匹配
+      const prefixScore = this.checkPrefixMatch(input, pattern);
+      if (prefixScore > 0) {
+        return prefixScore;
+      }
+      // 如果前缀不匹配且输入也是标志，使用相似度匹配
       if (input.startsWith('-')) {
-        return this.calculateStringSimilarity(input, pattern);
+        return this.calculateStringSimilarity(input, pattern) * 0.8;
       }
       return 0;
     }
 
     // 处理普通参数
-    return this.calculateStringSimilarity(input, pattern);
+    return this.calculateStringSimilarity(input, pattern) * 0.7;
   }
 } 

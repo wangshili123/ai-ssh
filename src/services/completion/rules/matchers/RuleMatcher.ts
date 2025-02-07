@@ -3,7 +3,7 @@ import { EnhancedContext } from '../../core/types/context.types';
 
 /**
  * 规则匹配器基类
- * 定义规则匹配的基本接口
+ * 定义规则匹配的基本接口和通用功能
  */
 export abstract class RuleMatcher {
   /**
@@ -62,5 +62,21 @@ export abstract class RuleMatcher {
     }
 
     return matrix[str1.length][str2.length];
+  }
+
+  /**
+   * 检查字符串前缀匹配
+   */
+  protected checkPrefixMatch(input: string, pattern: string): number {
+    if (!input) {
+      return 0;
+    }
+
+    // 如果输入完全匹配模式的开头部分，给出高分
+    if (pattern.toLowerCase().startsWith(input.toLowerCase())) {
+      return 0.8 + (input.length / pattern.length) * 0.2;
+    }
+
+    return 0;
   }
 } 

@@ -26,7 +26,7 @@ export class SequenceRuleMatcher extends RuleMatcher {
     }
 
     // 解析规则中的命令序列
-    const sequenceCommands = rule.pattern.split('&&').map(cmd => cmd.trim());
+    const sequenceCommands = rule.pattern.split(/\s*&&\s*|\s*;\s*|\s*\|\s*/).map(cmd => cmd.trim());
     if (sequenceCommands.length === 0) {
       return 0;
     }
@@ -60,7 +60,12 @@ export class SequenceRuleMatcher extends RuleMatcher {
 
       if (matchResult > 0.8) {
         // 如果找到高度匹配的部分序列，建议下一个命令
-        return 0.9;
+        // 检查最后一个命令是否成功执行
+        const lastCommand = recentCommands[recentCommandList.length - partialSequence.length];
+        if (lastCommand && lastCommand.success) {
+          return 0.9;
+        }
+        return 0.5; // 如果最后一个命令执行失败，降低建议的可信度
       }
     }
 
@@ -79,10 +84,16 @@ export class SequenceRuleMatcher extends RuleMatcher {
 
     // 检查输入是否匹配序列中的任何命令
     for (const command of sequenceCommands) {
-      const similarity = this.calculateStringSimilarity(input, command);
-      if (similarity > bestScore) {
-        bestScore = similarity;
+      // 优先使用前缀匹配
+      const prefixScore = this.checkPrefixMatch(input, command);
+      if (prefixScore > 0) {
+        bestScore = Math.max(bestScore, prefixScore);
+        continue;
       }
+
+      // 如果前缀不匹配，使用相似度匹配
+      const similarity = this.calculateStringSimilarity(input, command);
+      bestScore = Math.max(bestScore, similarity * 0.8);
     }
 
     // 如果有很好的匹配，检查上下文是否适合
@@ -111,6 +122,16 @@ export class SequenceRuleMatcher extends RuleMatcher {
     for (const command of partialSequence) {
       let found = false;
       for (let i = lastMatchIndex + 1; i < recentCommands.length; i++) {
+        // 优先使用前缀匹配
+        const prefixScore = this.checkPrefixMatch(command, recentCommands[i]);
+        if (prefixScore > 0.8) {
+          matchCount++;
+          lastMatchIndex = i;
+          found = true;
+          break;
+        }
+
+        // 如果前缀不匹配，使用相似度匹配
         if (this.calculateStringSimilarity(command, recentCommands[i]) > 0.8) {
           matchCount++;
           lastMatchIndex = i;
@@ -141,7 +162,18 @@ export class SequenceRuleMatcher extends RuleMatcher {
     for (let i = 1; i < sequenceCommands.length; i++) {
       const prefix = sequenceCommands.slice(0, i);
       const score = this.matchPartialSequence(prefix, recentCommandList);
-      maxScore = Math.max(maxScore, score);
+      
+      // 如果前缀匹配，检查最后一个命令的执行状态
+      if (score > 0.8) {
+        const lastCommand = recentCommands[recentCommandList.length - prefix.length];
+        if (lastCommand && lastCommand.success) {
+          maxScore = Math.max(maxScore, score);
+        } else {
+          maxScore = Math.max(maxScore, score * 0.6); // 如果命令执行失败，降低分数
+        }
+      } else {
+        maxScore = Math.max(maxScore, score);
+      }
     }
 
     return maxScore;

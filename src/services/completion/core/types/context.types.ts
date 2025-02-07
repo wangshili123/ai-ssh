@@ -153,4 +153,21 @@ export interface EnhancedContext {
 
   // 环境变量
   environmentVars?: Record<string, string>;
+}
+
+/**
+ * 补全建议
+ */
+export interface CompletionSuggestion {
+  // 完整的命令
+  fullCommand: string;
+  
+  // 建议的补全部分
+  suggestion: string;
+  
+  // 建议来源
+  source: 'history' | 'syntax' | 'rule';
+  
+  // 建议得分
+  score: number;
 } 
