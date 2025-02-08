@@ -42,9 +42,11 @@ export interface DataCheckResult {
 export class AnalysisStateManager {
   private static instance: AnalysisStateManager;
   private db: Database;
+  private dbService: DatabaseService;
 
   private constructor() {
     this.db = DatabaseService.getInstance().getDatabase();
+    this.dbService = DatabaseService.getInstance();
   }
 
   public static getInstance(): AnalysisStateManager {
@@ -334,5 +336,112 @@ export class AnalysisStateManager {
       console.error('[AnalysisStateManager] 更新分析状态失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 获取分析数据
+   */
+  public async getAnalysisData() {
+    // 1. 获取上次分析状态
+    const lastState = await this.dbService.getDatabase().prepare(`
+      SELECT * FROM analysis_state 
+      WHERE component = 'AIAnalyzer'
+      LIMIT 1
+    `).get() as { 
+      last_processed_id: number;
+      processed_count: number;
+      analysis_metrics: string;
+    } | undefined;
+
+    // 2. 获取新的命令历史(增量)
+    const newCommands = await this.dbService.getDatabase().prepare(`
+      SELECT c.*, COUNT(*) as frequency
+      FROM command_history c
+      WHERE c.id > ?
+      GROUP BY c.command
+      ORDER BY frequency  DESC
+      LIMIT 100
+    `).all(lastState?.last_processed_id || 0) as Array<{
+      id: number;
+      command: string;
+      frequency: number;
+      created_at: string;
+    }>;
+
+    return { lastState, newCommands };
+  }
+
+  /**
+   * 保存分析结果
+   */
+  public async saveAnalysisResult(result: {
+    completions: Array<{
+      command: string;
+      parts: string | null;
+      frequency: number;
+      confidence: number;
+      context: string | null;
+    }>;
+    metadata: {
+      totalCommands: number;
+      uniquePatterns: number;
+      averageConfidence: number;
+    };
+  }, newCommands: Array<{
+    id: number;
+    command: string;
+    frequency: number;
+    created_at: string;
+  }>) {
+    // 1. 保存补全结果
+    const stmt = this.dbService.getDatabase().prepare(`
+      INSERT INTO ai_completions (
+        command,
+        parts,
+        frequency,
+        confidence,
+        context,
+        created_at
+      ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `);
+
+    this.dbService.getDatabase().transaction(() => {
+      for (const completion of result.completions) {
+        stmt.run(
+          completion.command,
+          completion.parts,
+          completion.frequency,
+          completion.confidence,
+          completion.context
+        );
+      }
+    })();
+
+    // 2. 更新分析状态
+    await this.dbService.getDatabase().prepare(`
+      INSERT OR REPLACE INTO analysis_state (
+        component,
+        last_processed_id,
+        last_analysis_time,
+        processed_count,
+        analysis_metrics,
+        updated_at
+      ) VALUES (
+        'AIAnalyzer',
+        ?,
+        CURRENT_TIMESTAMP,
+        ?,
+        ?,
+        CURRENT_TIMESTAMP
+      )
+    `).run(
+      newCommands[newCommands.length - 1].id,
+      newCommands.length,
+      JSON.stringify({
+        totalCommands: result.metadata.totalCommands,
+        uniquePatterns: result.completions.length,
+        averageConfidence: result.metadata.averageConfidence
+      })
+    );
   }
 } 

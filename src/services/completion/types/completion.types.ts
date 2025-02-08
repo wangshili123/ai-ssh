@@ -2,7 +2,9 @@ export enum CompletionSource {
   HISTORY = 'history',
   RELATION = 'relation',
   LOCAL = 'local',
-  RULE = 'rule'
+  RULE = 'rule',
+  SYNTAX = 'syntax',
+  AI = 'ai'
 }
 
 export interface CompletionSuggestion {
@@ -34,4 +36,12 @@ export interface CompletionContext {
     options: string[];
     isIncomplete: boolean;
   };
+}
+
+export interface AICompletionResult {
+  command: string;
+  parts: string | null;
+  confidence: number;
+  context: string;
+  frequency: number;
 } 

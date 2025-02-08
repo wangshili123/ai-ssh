@@ -4,18 +4,16 @@ import { DatabaseService } from '../database/DatabaseService';
 import { ShellParser } from '../parser/ShellParser';
 import { ShellParserTypes } from '../parser/ShellParserTypes';
 import { FishStyleCompletion } from './FishStyleCompletion';
-import { CompletionContext, CompletionSource, CompletionSuggestion } from './types/completion.types';
+import { CompletionContext, CompletionSource, CompletionSuggestion, AICompletionResult } from './types/completion.types';
 import { EnhancedContextAnalyzer } from './analyzers/EnhancedContextAnalyzer';
 import { SessionState, EnhancedContext } from './core/types/context.types';
 import { ScoringService } from './scoring/ScoringService';
 import { SSHSession } from './SSHCompletion';
 import { SSHConnectionManager } from '../ssh/SSHConnectionManager';
 import { CompletionSSHManager } from './CompletionSSHManager';
-import { RuleEvaluator } from './rules/RuleEvaluator';
-import { RuleCache } from './learning/cache/RuleCache';
 import { SuggestionCache } from './cache/SuggestionCache';
 import { AnalysisScheduler } from './learning/analyzer/AnalysisScheduler';
-import { CompletionRule } from './learning/analyzer/optimizer/types/rule-optimizer.types';
+import { AIAnalyzer } from './learning/analyzer/ai/AIAnalyzer';
 
 export class CompletionService {
   private static instance: CompletionService;
@@ -25,21 +23,19 @@ export class CompletionService {
   private fishCompletion: FishStyleCompletion;
   private contextAnalyzer!: EnhancedContextAnalyzer;
   private scoringService: ScoringService;
-  private ruleEvaluator: RuleEvaluator;
-  private ruleCache: RuleCache;
   private suggestionCache: SuggestionCache;
   private initialized: boolean = false;
   private lastInput: string = '';
   private lastSuggestions: CompletionSuggestion[] = [];
   private selectedIndex: number = 0;
+  private dbService: DatabaseService;
 
   private constructor() {
     this.shellParser = ShellParser.getInstance();
     this.fishCompletion = FishStyleCompletion.getInstance();
     this.scoringService = ScoringService.getInstance();
-    this.ruleEvaluator = RuleEvaluator.getInstance();
-    this.ruleCache = RuleCache.getInstance();
     this.suggestionCache = SuggestionCache.getInstance();
+    this.dbService = DatabaseService.getInstance();
     this.initializeAsync();
   }
 
@@ -152,7 +148,7 @@ export class CompletionService {
     const [historySuggestions, syntaxSuggestions, ruleSuggestions] = await Promise.all([
       this.getHistorySuggestions(params.input),
       this.getSyntaxSuggestions(params.input, simplifiedContext),
-      this.getIntelligentSuggestions(params.input, simplifiedContext)
+      this.getAICompletions(params.input, simplifiedContext)
     ]);
 
     // 4. 合并所有建议
@@ -239,20 +235,40 @@ export class CompletionService {
   /**
    * 获取基于规则的智能建议
    */
-  private async getIntelligentSuggestions(
+  // private async getIntelligentSuggestions(
+  //   input: string,
+  //   context: EnhancedContext
+  // ): Promise<CompletionSuggestion[]> {
+  //    // 1. 获取匹配的规则
+  //    const { rules, scores } = this.ruleCache.getMatchingRules(input, context);
+    
+  //    // 2. 转换为补全建议
+  //    return rules.map(rule => ({
+  //      fullCommand: rule.pattern,
+  //      suggestion: rule.pattern.slice(input.length),
+  //      source: CompletionSource.RULE,
+  //      score: scores.get(rule.id) || 0
+  //    }));
+ 
+  // }
+
+  /**
+   * 获取AI分析的补全建议
+   */
+  private async getAICompletions(
     input: string,
     context: EnhancedContext
   ): Promise<CompletionSuggestion[]> {
-    // 1. 获取匹配的规则
-    const { rules, scores } = this.ruleCache.getMatchingRules(input, context);
-    
-    // 2. 转换为补全建议
-    return rules.map(rule => ({
-      fullCommand: rule.pattern,
-      suggestion: rule.pattern.slice(input.length),
-      source: CompletionSource.RULE,
-      score: scores.get(rule.id) || 0
-    }));
+    try {
+      // 获取AI补全建议
+      const aiAnalyzer = AIAnalyzer.getInstance();
+      const aiSuggestions = await aiAnalyzer.getCompletions(input, context);
+      
+      return aiSuggestions;
+    } catch (error) {
+      console.error('[CompletionService] Failed to get intelligent suggestions:', error);
+      return [];
+    }
   }
 
   public async recordCommand(

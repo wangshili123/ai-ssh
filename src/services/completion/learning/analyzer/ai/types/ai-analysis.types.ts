@@ -4,19 +4,37 @@ import { ParameterPattern, ContextPattern, SequencePattern } from '../../types';
  * AI 分析输入数据接口
  */
 export interface AIAnalysisInput {
-  // PatternAnalyzer 的基础分析结果
-  baseAnalysis: {
-    patterns: Array<ParameterPattern | ContextPattern | SequencePattern>;
-    metrics: AnalysisMetrics;
-    timestamp: string;
-  };
-  
-  // 环境上下文信息
+  messages: Array<{
+    role: 'system' | 'user' | 'assistant';
+    content: string;
+  }>;
   context: {
-    environmentState: EnvironmentState;
-    userPreferences: UserPreferences;
-    historicalData: HistoricalData;
+    totalCommands: number;
+    timeRange: {
+      start: string;
+      end: string;
+    };
+    environmentState?: {
+      shell: string;
+      platform: string;
+      version: string;
+    };
+    userPreferences?: {
+      completionStyle: string;
+      caseSensitive: boolean;
+      maxSuggestions: number;
+    };
+    historicalData?: {
+      commandCount: number;
+      uniqueCommands: number;
+      successRate: number;
+    };
   };
+  baseAnalysis: {
+    totalCommands?: number;
+    uniquePatterns?: number;
+    averageConfidence?: number;
+  } | null;
 }
 
 /**
@@ -119,22 +137,17 @@ export interface OptimizationSuggestion {
  * AI 分析结果接口
  */
 export interface AIAnalysisResult {
-  // 深度分析结果
-  insights: {
-    patternInsights: PatternInsight[];
-    correlations: PatternCorrelation[];
-    anomalies: PatternAnomaly[];
-  };
-  
-  // 优化建议
-  suggestions: {
-    immediate: OptimizationSuggestion[];
-    longTerm: OptimizationSuggestion[];
-  };
-  
-  // 元数据
-  metadata: {
+  completions: Array<{
+    command: string;
+    parts: string | null;
+    frequency: number;
     confidence: number;
+    context: string | null;
+  }>;
+  metadata: {
+    totalCommands: number;
+    uniquePatterns: number;
+    averageConfidence: number;
     processingTime: number;
     modelVersion: string;
     timestamp: string;
@@ -174,9 +187,15 @@ export interface CacheEntry<T> {
  * AI 分析配置接口
  */
 export interface AIAnalysisConfig {
-  maxBatchSize: number;
-  minConfidenceThreshold: number;
-  maxRetries: number;
-  analysisTimeout: number;
-  cacheConfig: CacheConfig;
+  analysisInterval: number;
+  batchSize: number;
+  minConfidence: number;
+  maxSuggestions: number;
+  modelConfig: {
+    temperature: number;
+    maxTokens: number;
+    topP: number;
+    frequencyPenalty: number;
+    presencePenalty: number;
+  };
 } 

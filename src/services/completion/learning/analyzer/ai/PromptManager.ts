@@ -5,124 +5,137 @@ import { AIAnalysisInput } from './types/ai-analysis.types';
  * 负责管理和生成 AI 分析所需的 Prompt
  */
 export class PromptManager {
-  private readonly SYSTEM_PROMPT = `你是一个专业的命令行补全系统优化专家，负责分析用户的命令使用模式并提供优化建议。你需要：
+  private static readonly SYSTEM_PROMPT = `你是一个专业的命令行工具使用专家。你的任务是分析用户的命令行使用历史，识别出有价值的命令模式和上下文关系。
+
+你需要:
 1. 分析命令使用模式和关联性
-2. 识别低效或风险的使用方式
-3. 提供具体的优化方案
-4. 评估优化措施的影响和风险
+2. 识别命令参数的常见组合
+3. 发现命令序列中的关联性
+4. 评估每个建议的可信度
 
-你的建议应该：
-- 聚焦于提高命令执行效率
-- 给出具体的优化措施
-- 包含详细的实施步骤
-- 评估潜在风险和防范措施
-- 避免泛泛而谈的"学习建议"
-
-请确保你的分析和建议是：
-- 具体可行的
-- 有明确的优先级
-- 包含风险评估
-- 易于实施的
-
-请以 JSON 格式返回分析结果（不要带 markdown 格式），不要带任何额外解释，格式如下：
+请以 JSON 格式返回分析结果（不要带 markdown 格式），不要在结尾带任何额外解释，固定返回json内容,格式如下:
 {
-  "insights": {
-    "patternInsights": [
-
-      {
-        "pattern": "命令模式描述",
-        "confidence": 0.95,
-        "impact": 0.8,
-        "relatedPatterns": ["相关模式1", "相关模式2"],
-        "usageContext": ["使用场景1", "使用场景2"],
-        "recommendations": ["优化建议1", "优化建议2"]
-      }
-    ],
-    "correlations": [
-      {
-        "sourcePattern": "源模式",
-        "targetPattern": "目标模式",
-        "correlationType": "sequence",
-        "strength": 0.85,
-        "evidence": ["证据1", "证据2"]
-      }
-    ],
-    "anomalies": [
-      {
-        "pattern": "异常模式描述",
-        "anomalyType": "frequency",
-        "severity": "medium",
-        "description": "异常描述信息",
-        "suggestedActions": ["改善措施1", "改善措施2"]
-      }
-    ]
-  },
-  "suggestions": {
-    "immediate": [
-      {
-        "type": "immediate",
-        "target": "优化目标",
-        "suggestion": "具体优化建议，例如增加常用命令的自动补全或命令别名配置",
-        "impact": 0.9,
-        "effort": 0.3,
-        "priority": 0.8,
-        "implementation": "具体实现步骤描述",
-        "risks": ["风险说明1", "风险说明2"]
-      }
-    ],
-    "longTerm": []
-  },
+  "patterns": [
+    {
+      "command": "完整命令",
+      "parts": ["命令", "参数"],
+      "frequency": 使用次数,
+      "confidence": 0-1之间的置信度,
+      "context": "使用场景描述"
+    }
+  ],
   "metadata": {
-    "confidence": 0.95,
-    "processingTime": 0,
-    "modelVersion": "1.0",
-    "timestamp": ""
+    "totalCommands": 总命令数,
+    "averageConfidence": 平均置信度
   }
 }`;
 
+  private static readonly USER_PROMPT_TEMPLATE = `请分析以下命令历史:
+{commands}
+
+上次分析状态:
+{lastState}
+
+请提供:
+1. 识别出的命令模式
+2. 每个模式的使用频率
+3. 相关的上下文信息
+4. 置信度评分(0-1)
+
+注意:
+- 关注命令的使用频率和场景
+- 识别参数的常见组合
+- 发现命令之间的关联
+- 评估每个建议的可信度`;
+
   /**
-   * 生成分析 Prompt
+   * 生成分析提示词
    */
-  public generateAnalysisPrompt(
-    input: AIAnalysisInput,
-    processedData: any
-  ): { messages: any[]} {
+  public generateAnalysisPrompt(params: {
+    commands: Array<{
+      command: string;
+      frequency: number;
+      created_at: string;
+      success?: boolean;
+    }>;
+    lastState: any;
+  }): AIAnalysisInput {
+    // 1. 格式化命令历史
+    const formattedCommands = params.commands.map(cmd => {
+      return `- ${cmd.command} (使用次数: ${cmd.frequency}, 成功: ${cmd.success ? '是' : '否'})`;
+    }).join('\n');
+
+    // 2. 格式化上次分析状态
+    const formattedState = params.lastState ? 
+      JSON.stringify(params.lastState.metrics, null, 2) :
+      '首次分析';
+
+    // 3. 生成用户提示词
+    const userPrompt = PromptManager.USER_PROMPT_TEMPLATE
+      .replace('{commands}', formattedCommands)
+      .replace('{lastState}', formattedState);
+
+    // 4. 构建完整的提示词输入
+    return {
+      messages: [
+        {
+          role: 'system',
+          content: PromptManager.SYSTEM_PROMPT
+        },
+        {
+          role: 'user',
+          content: userPrompt
+        }
+      ],
+      context: {
+        totalCommands: params.commands.length,
+        timeRange: {
+          start: params.commands[params.commands.length - 1]?.created_at,
+          end: params.commands[0]?.created_at
+        }
+      },
+      baseAnalysis: params.lastState?.metrics || null
+    };
+  }
+
+  /**
+   * 解析 AI 响应
+   */
+  public parseAIResponse(response: string): {
+    completions: Array<{
+      command: string;
+      parts: string | null;
+      frequency: number;
+      confidence: number;
+      context: string | null;
+    }>;
+    metadata: {
+      totalCommands: number;
+      uniquePatterns: number;
+      averageConfidence: number;
+    };
+  } {
     try {
-      const userPrompt = `请分析以下命令使用数据并提供优化建议：
-
-使用模式数据：
-${JSON.stringify(processedData.patterns, null, 2)}
-
-使用指标：
-${JSON.stringify(processedData.metrics, null, 2)}
-
-环境信息：
-${JSON.stringify({
-  baseAnalysis: input.baseAnalysis,
-  environment: input.context.environmentState,
-  preferences: input.context.userPreferences
-}, null, 2)}
-
-请提供详细的分析和优化建议，包括：
-1. 模式洞察：识别命令使用模式和关联性
-2. 效率分析：评估当前命令使用效率
-3. 异常检测：发现潜在的问题和风险
-4. 优化方案：提供具体的改进措施
-
-注意：
-- 关注命令执行效率和自动化机会
-- 提供具体的优化步骤和配置建议
-- 评估每个建议的影响和风险
-- 避免简单的"多加练习"类建议`;
-
+      // 这里需要根据实际的 AI 响应格式进行解析
+      // 示例格式:
+      const parsed = JSON.parse(response);
+      
       return {
-        messages: [
-          { role: 'system', content: this.SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt }
-        ]
+        completions: parsed.patterns.map((p: any) => ({
+          command: p.command,
+          parts: p.parts || null,
+          frequency: p.frequency || 1,
+          confidence: p.confidence || 0.5,
+          context: p.context || null
+        })),
+        metadata: {
+          totalCommands: parsed.metadata.totalCommands,
+          uniquePatterns: parsed.patterns.length,
+          averageConfidence: parsed.metadata.averageConfidence
+        }
       };
     } catch (error) {
-      console.error('[PromptManager] Failed to generate analysis prompt:', error);
+      console.error('[PromptManager] Failed to parse AI response:', error);
       throw error;
     }
   }

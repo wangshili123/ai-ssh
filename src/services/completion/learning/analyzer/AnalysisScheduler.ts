@@ -1,81 +1,6 @@
-import { PatternAnalyzer } from './PatternAnalyzer';
 import { AIAnalyzer } from './ai/AIAnalyzer';
-import { RuleOptimizer } from './optimizer/RuleOptimizer';
-import { DatabaseService } from '../../../database/DatabaseService';
-import { RuleCache } from '../cache/RuleCache';
-import { ParameterPattern, ContextPattern, SequencePattern } from './types';
-import { CommandPattern, AnalysisResult } from '../types';
+import { PromptManager } from './ai/PromptManager';
 import { AnalysisStateManager, DataCheckResult } from './AnalysisStateManager';
-
-/**
- * 将 CommandPattern 转换为 AI 分析所需的模式类型
- */
-function convertToAIPatterns(patterns: CommandPattern[]): Array<ParameterPattern | ContextPattern | SequencePattern> {
-  return patterns.map(pattern => {
-    if (pattern.context === 'parameter') {
-      return {
-        command: pattern.pattern.split(' ')[0],
-        parameter: pattern.pattern.split(' ').slice(1).join(' '),
-        frequency: pattern.frequency,
-        confidence: pattern.confidence,
-        examples: []
-      } as ParameterPattern;
-    } else if (pattern.context === 'sequence') {
-      return {
-        commands: pattern.pattern.split(' && '),
-        frequency: pattern.frequency,
-        confidence: pattern.confidence,
-        timeGap: pattern.avgExecutionTime || 0,
-        successRate: pattern.successRate || 1
-      } as SequencePattern;
-    } else {
-      return {
-        command: pattern.pattern,
-        context: pattern.context,
-        frequency: pattern.frequency,
-        confidence: pattern.confidence,
-        correlation: pattern.confidence
-      } as ContextPattern;
-    }
-  });
-}
-
-/**
- * 将 AnalysisResult 转换为 PatternAnalysisResult
- */
-function convertToPatternAnalysisResult(result: AnalysisResult) {
-  // 将模式按类型分类
-  const parameterPatterns: ParameterPattern[] = [];
-  const contextPatterns: ContextPattern[] = [];
-  const sequencePatterns: SequencePattern[] = [];
-
-  result.patterns.forEach(pattern => {
-    const converted = convertToAIPatterns([pattern])[0];
-    if ('parameter' in converted) {
-      parameterPatterns.push(converted as ParameterPattern);
-    } else if ('commands' in converted) {
-      sequencePatterns.push(converted as SequencePattern);
-    } else {
-      contextPatterns.push(converted as ContextPattern);
-    }
-  });
-
-  // 转换指标
-  const metrics = {
-    totalCommands: result.metrics.totalCommands,
-    uniqueCommands: result.metrics.uniquePatterns, // 使用 uniquePatterns 作为 uniqueCommands
-    averageConfidence: result.metrics.averageConfidence,
-    averageFrequency: result.metrics.averageSuccessRate // 使用 averageSuccessRate 作为 averageFrequency
-  };
-
-  return {
-    parameterPatterns,
-    contextPatterns,
-    sequencePatterns,
-    metrics,
-    timestamp: result.timestamp
-  };
-}
 
 /**
  * 分析任务调度器
@@ -89,23 +14,22 @@ export class AnalysisScheduler {
   private readonly MAX_RETRIES: number = 3;
   private schedulerTimer: NodeJS.Timeout | null = null;
   private stateManager: AnalysisStateManager;
+  private promptManager: PromptManager;
 
   // 配置参数
   private config = {
     minCommandCount: 10,        // 最小命令数
     minCompletionCount: 20,     // 最小补全数
     minDataChangeRate: 0.2,     // 最小数据变化率
-    minAnalysisInterval: 0.2 * 60 * 1000,  // 最小分析间隔（）
+    minAnalysisInterval: 0.2 * 60 * 1000,  // 最小分析间隔（12秒）
     optimalAnalysisInterval: 30 * 60 * 1000  // 最佳分析间隔（30分钟）
   };
 
   private constructor() {
     this.stateManager = AnalysisStateManager.getInstance();
+    this.promptManager = new PromptManager();
   }
 
-  /**
-   * 获取调度器实例
-   */
   public static getInstance(): AnalysisScheduler {
     if (!AnalysisScheduler.instance) {
       AnalysisScheduler.instance = new AnalysisScheduler();
@@ -162,6 +86,43 @@ export class AnalysisScheduler {
   }
 
   /**
+   * 执行 AI 分析
+   */
+  private async runAIAnalysis() {
+    try {
+      // 1. 获取分析状态和新命令
+      const { lastState, newCommands } = await this.stateManager.getAnalysisData();
+      
+      if (!newCommands || newCommands.length === 0) {
+        console.log('[AnalysisScheduler] No new commands to analyze');
+        return null;
+      }
+
+      // 2. 生成分析提示词
+      const prompt = this.promptManager.generateAnalysisPrompt({
+        commands: newCommands,
+        lastState: lastState
+      });
+
+      // 3. 执行 AI 分析
+      const aiAnalyzer = AIAnalyzer.getInstance();
+      const result = await aiAnalyzer.analyze(prompt);
+
+      if (!result) {
+        return null;
+      }
+
+      // 4. 保存分析结果
+      await this.stateManager.saveAnalysisResult(result, newCommands);
+
+      return result;
+    } catch (error) {
+      console.error('[AnalysisScheduler] AI analysis failed:', error);
+      return null;
+    }
+  }
+
+  /**
    * 调度分析任务
    */
   private async scheduleAnalysis(): Promise<void> {
@@ -182,76 +143,13 @@ export class AnalysisScheduler {
         return;
       }
 
-      // 2. 执行模式分析
-      const patternAnalyzer = PatternAnalyzer.getInstance();
-      const patternResult = await patternAnalyzer.analyze();
-      
-      if (patternResult) {
-        console.log('[AnalysisScheduler] Pattern analysis completed:', {
-          patternsCount: patternResult.patterns.length,
-          suggestionsCount: patternResult.suggestions.length,
-          metrics: patternResult.metrics
+      // 2. 执行 AI 分析
+      const aiResult = await this.runAIAnalysis();
+      if (aiResult) {
+        console.log('[AnalysisScheduler] AI analysis completed:', {
+          completionsCount: aiResult.completions.length,
+          averageConfidence: aiResult.metadata.averageConfidence
         });
-
-        // 3. 执行 AI 分析
-        const aiAnalyzer = AIAnalyzer.getInstance();
-        const aiResult = await aiAnalyzer.analyze({
-          baseAnalysis: {
-            patterns: convertToAIPatterns(patternResult.patterns),
-            metrics: patternResult.metrics,
-            timestamp: patternResult.timestamp
-          },
-          context: {
-            environmentState: {
-              currentDirectory: process.cwd(),
-              shellType: process.platform === 'win32' ? 'powershell' : 'bash',
-              osType: process.platform
-            },
-            userPreferences: {
-              favoriteCommands: [],
-              commandAliases: {},
-              customPrompts: [],
-              riskTolerance: 'medium'
-            },
-            historicalData: {
-              recentCommands: [],
-              commandFrequency: {},
-              errorPatterns: []
-            }
-          }
-        });
-
-        if (aiResult) {
-          console.log('[AnalysisScheduler] AI analysis completed:', {
-            insightsCount: aiResult.insights.patternInsights.length,
-            correlationsCount: aiResult.insights.correlations.length,
-            anomaliesCount: aiResult.insights.anomalies.length
-          });
-
-          // 4. 执行规则优化
-          const ruleOptimizer = RuleOptimizer.getInstance();
-          const optimizationResult = await ruleOptimizer.optimizeRules(
-            convertToPatternAnalysisResult(patternResult),
-            aiResult
-          );
-
-          if (optimizationResult) {
-            console.log('[AnalysisScheduler] Rule optimization completed:', {
-              totalRules: optimizationResult.performance.totalRules,
-              updatedCount: optimizationResult.performance.updatedCount,
-              addedCount: optimizationResult.performance.addedCount,
-              removedCount: optimizationResult.performance.removedCount
-            });
-
-            // 5. 更新分析状态
-            await this.stateManager.updateAnalysisState(
-              patternResult.patterns.length > 0 ? 
-                patternResult.patterns[patternResult.patterns.length - 1].id! : 0,
-              patternResult.patterns.length,
-              patternResult.metrics
-            );
-          }
-        }
       }
 
       // 更新最后分析时间
