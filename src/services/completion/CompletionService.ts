@@ -117,6 +117,7 @@ export class CompletionService {
 
     // 转换为简化的上下文
     const simplifiedContext: EnhancedContext = {
+      sshSession: await this.getSSHSession(params.sessionState),
       currentDirectory: enhancedContext.environment.currentDirectory,
       shellType: params.sessionState.shellType,
       commandHistory: {
@@ -164,7 +165,7 @@ export class CompletionService {
       params.input,
       simplifiedContext
     );
-
+    console.log('[CompletionService] 合并所有建议:', rankedSuggestions);
     // 6. 去重和限制数量
     const finalSuggestions = this.scoringService.deduplicateAndLimit(rankedSuggestions, 3);
 
@@ -211,11 +212,13 @@ export class CompletionService {
 
     const suggestions = await this.fishCompletion.getSuggestions(command, {
       tabId: 'default',
+      sshSession: context.sshSession,
       recentCommands: context.commandHistory?.recent.map(r => r.command) || [],
       commandHistory: {
         frequency: context.commandHistory?.statistics[0]?.frequency || 0,
         lastUsed: context.commandHistory?.statistics[0]?.lastUsed || new Date()
       },
+
       currentCommand: {
         name: command.name,
         args: command.args,
@@ -223,7 +226,7 @@ export class CompletionService {
         isIncomplete: true
       }
     });
-
+    console.log('[CompletionService] 获取语法建议:', suggestions);
     return suggestions.filter(suggestion => {
       if (input.endsWith(' ')) {
         return true;

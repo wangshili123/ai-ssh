@@ -133,7 +133,7 @@ export class FishStyleCompletion {
         fileList: [] as Array<{ name: string; isDirectory: boolean }>,
         envVars: {} as Record<string, string>
       };
-
+      console.log('[FishStyleCompletion] 获取共用数据,sshSession:', context.sshSession);
       if (context.sshSession) {
         const tabId = eventBus.getCurrentTabId();
         // 获取文件列表（如果需要的话）
@@ -226,7 +226,7 @@ export class FishStyleCompletion {
     const suggestions: CompletionSuggestion[] = [];
     
     // 1. 基本命令补全
-    const basicSuggestions = await this.getSyntaxCompletions(command, context);
+    const basicSuggestions = await this.getSyntaxCompletions(command, context, commonData);
     console.log('[FishStyleCompletion] 基本语法补全结果:', basicSuggestions);
     suggestions.push(...basicSuggestions);
 
@@ -265,11 +265,7 @@ export class FishStyleCompletion {
       isRedirectionTarget: this.isRedirectionTarget(command, command.args.length - 1)
     });
 
-    if (this.isInQuotes(lastArg)) {
-      const fileNameSuggestions = await this.getFileNameCompletions(this.stripQuotes(lastArg), context, commonData.fileList, command);
-      console.log('[FishStyleCompletion] 文件名补全结果:', fileNameSuggestions);
-      suggestions.push(...fileNameSuggestions);
-    } else if (this.isVariableExpansion(lastArg)) {
+    if (this.isVariableExpansion(lastArg)) {
       const prefix = lastArg.slice(1);  // 去掉 $ 符号
       const varSuggestions = Object.keys(commonData.envVars)
         .filter(varName => varName.startsWith(prefix))
@@ -281,11 +277,7 @@ export class FishStyleCompletion {
         }));
       console.log('[FishStyleCompletion] 变量补全结果:', varSuggestions);
       suggestions.push(...varSuggestions);
-    } else if (this.isRedirectionTarget(command, command.args.length - 1)) {
-      const redirectionSuggestions = await this.getFileNameCompletions(lastArg, context, commonData.fileList, command);
-      console.log('[FishStyleCompletion] 重定向补全结果:', redirectionSuggestions);
-      suggestions.push(...redirectionSuggestions);
-    }
+    } 
 
     console.log('[FishStyleCompletion] 智能语法补全完成, 总建议数:', suggestions.length);
     return suggestions;
@@ -414,6 +406,7 @@ export class FishStyleCompletion {
         const lastArg = command.args[command.args.length - 1];
         console.log('[FishStyleCompletion] 获取路径补全, 最后参数:', lastArg);
         const pathSuggestions = await this.getFileNameCompletions(lastArg, context, commonData.fileList, command);
+        console.log('[FishStyleCompletion] 文件名补全建议:', pathSuggestions);
         suggestions.push(...pathSuggestions);
       }
 
@@ -434,7 +427,7 @@ export class FishStyleCompletion {
 
         suggestions.push(...envSuggestions);
       }
-
+      console.log('[FishStyleCompletion] SSH补全结果:', suggestions);
       return suggestions;
     } catch (error) {
       console.error('[FishStyleCompletion] SSH补全失败:', error);
@@ -482,8 +475,10 @@ export class FishStyleCompletion {
    */
   private async getSyntaxCompletions(
     command: ShellParserTypes.Command,
-    context: CompletionContext
+    context: CompletionContext,
+    commonData: { fileList: Array<{ name: string; isDirectory: boolean }>; envVars: Record<string, string> }
   ): Promise<CompletionSuggestion[]> {
+
     console.log('[FishStyleCompletion] 开始获取语法补全, 命令:', command);
 
     // 获取命令参数信息
@@ -494,25 +489,6 @@ export class FishStyleCompletion {
       hasTrailingSpace: command.hasTrailingSpace || false
     };
     console.log('[FishStyleCompletion] 命令参数信息:', commandInfo);
-
-    // 如果是需要文件补全的命令，直接返回文件列表
-    if (this.isFileCompletionCommand(commandInfo.commandName)) {
-      console.log('[FishStyleCompletion] 检测到需要文件补全的命令:', commandInfo.commandName);
-      console.log('[FishStyleCompletion] 命令状态:', {
-        hasTrailingSpace: commandInfo.hasTrailingSpace,
-        argsLength: commandInfo.availableArgs.length,
-        lastArg: commandInfo.lastArg
-      });
-
-      // 如果命令后面有空格或者有参数，说明需要补全文件名
-      if (commandInfo.hasTrailingSpace || commandInfo.availableArgs.length > 0) {
-        console.log('[FishStyleCompletion] 需要文件补全, 最后参数:', commandInfo.lastArg);
-        const suggestions = await this.getFileNameCompletions(commandInfo.lastArg, context, []);
-        console.log('[FishStyleCompletion] 文件补全建议:', suggestions);
-        return suggestions;
-      }
-      return [];
-    }
 
     // 如果命令名为空或者是部分输入，提供命令名补全
     if (!commandInfo.commandName || !this.isFullCommand(commandInfo.commandName)) {
@@ -630,7 +606,7 @@ export class FishStyleCompletion {
     fileList: Array<{ name: string; isDirectory: boolean }>,
     currentCommand?: ShellParserTypes.Command
   ): Promise<CompletionSuggestion[]> {
-    console.log('[FishStyleCompletion] 获取文件名补全, 路径:', partialPath);
+    console.log('[FishStyleCompletion] 获取文件名补全, 路径:', partialPath,'文件列表:', fileList,'当前命令:', currentCommand);
     try {
       // 获取命令前缀（如果有）
       const commandPrefix = currentCommand ? `${currentCommand.name} ` : '';

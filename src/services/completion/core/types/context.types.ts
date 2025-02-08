@@ -120,6 +120,7 @@ export interface EnhancedCompletionContext extends EnhancedContext {
  * 包含补全所需的各种上下文数据
  */
 export interface EnhancedContext {
+  sshSession?: any;  // 根据实际SSH会话类型定义
   // 当前工作目录
   currentDirectory: string;
   
