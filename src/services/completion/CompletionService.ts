@@ -145,7 +145,7 @@ export class CompletionService {
     }
 
     // 3. 并行获取各类补全建议
-    const [historySuggestions, syntaxSuggestions, ruleSuggestions] = await Promise.all([
+    const [historySuggestions, syntaxSuggestions, aiSuggestions] = await Promise.all([
       this.getHistorySuggestions(params.input),
       this.getSyntaxSuggestions(params.input, simplifiedContext),
       this.getAICompletions(params.input, simplifiedContext)
@@ -153,9 +153,9 @@ export class CompletionService {
 
     // 4. 合并所有建议
     const allSuggestions = [
-      ...historySuggestions,
-      ...syntaxSuggestions,
-      ...ruleSuggestions
+      ...historySuggestions.map(s => ({ ...s, source: CompletionSource.HISTORY })),
+      ...syntaxSuggestions.map(s => ({ ...s, source: CompletionSource.SYNTAX })),
+      ...aiSuggestions.map(s => ({ ...s, source: CompletionSource.AI }))
     ];
 
     // 5. 使用评分服务进行评分和排序

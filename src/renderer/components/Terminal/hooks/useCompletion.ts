@@ -27,7 +27,7 @@ interface UseCompletionReturn {
 export interface ICompletionSuggestion {
   fullCommand: string;
   suggestion: string;
-  source: 'history' | 'relation' | 'local';
+  source: 'history' | 'relation' | 'local' | 'ai';
   score: number;
 }
 
@@ -343,7 +343,7 @@ export const useCompletion = ({
           const convertedSuggestions: ICompletionSuggestion[] = newSuggestions.map(suggestion => ({
             fullCommand: suggestion.fullCommand,
             suggestion: suggestion.suggestion,
-            source: suggestion.source === 'rule' ? 'local' : 
+            source: suggestion.source === 'ai' ? 'ai' : 
                    suggestion.source === 'history' ? 'history' : 
                    suggestion.source === 'relation' ? 'relation' : 'local',
             score: suggestion.score

@@ -354,14 +354,14 @@ export class AnalysisStateManager {
     } | undefined;
 
     // 2. 获取新的命令历史(增量)
-    const newCommands = await this.dbService.getDatabase().prepare(`
-      SELECT c.*, COUNT(*) as frequency
+    const stmt = this.dbService.getDatabase().prepare(`
+      SELECT c.*
       FROM command_history c
       WHERE c.id > ?
-      GROUP BY c.command
-      ORDER BY frequency  DESC
-      LIMIT 100
-    `).all(lastState?.last_processed_id || 0) as Array<{
+      ORDER BY frequency DESC
+    `);
+
+    const newCommands = stmt.all(lastState?.last_processed_id || 0) as Array<{
       id: number;
       command: string;
       frequency: number;
@@ -393,55 +393,49 @@ export class AnalysisStateManager {
     frequency: number;
     created_at: string;
   }>) {
-    // 1. 保存补全结果
-    const stmt = this.dbService.getDatabase().prepare(`
-      INSERT INTO ai_completions (
-        command,
-        parts,
-        frequency,
-        confidence,
-        context,
-        created_at
-      ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `);
+    try {
+      // 1. 保存补全结果
+      const stmt = this.dbService.getDatabase().prepare(`
+        INSERT INTO ai_completions (
+          command,
+          parts,
+          frequency,
+          confidence,
+          context,
+          created_at
+        ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `);
 
-    this.dbService.getDatabase().transaction(() => {
-      for (const completion of result.completions) {
-        stmt.run(
-          completion.command,
-          completion.parts,
-          completion.frequency,
-          completion.confidence,
-          completion.context
-        );
-      }
-    })();
+      this.dbService.getDatabase().transaction(() => {
+        for (const completion of result.completions) {
+          stmt.run(
+            completion.command,
+            completion.parts ? JSON.stringify(completion.parts) : null,
+            completion.frequency,
+            completion.confidence,
+            completion.context
+          );
+        }
+      })();
 
-    // 2. 更新分析状态
-    await this.dbService.getDatabase().prepare(`
-      INSERT OR REPLACE INTO analysis_state (
-        component,
-        last_processed_id,
-        last_analysis_time,
-        processed_count,
-        analysis_metrics,
-        updated_at
-      ) VALUES (
-        'AIAnalyzer',
-        ?,
-        CURRENT_TIMESTAMP,
-        ?,
-        ?,
-        CURRENT_TIMESTAMP
-      )
-    `).run(
-      newCommands[newCommands.length - 1].id,
-      newCommands.length,
-      JSON.stringify({
-        totalCommands: result.metadata.totalCommands,
-        uniquePatterns: result.completions.length,
-        averageConfidence: result.metadata.averageConfidence
-      })
-    );
+      // 2. 更新分析状态
+      await this.updateAnalysisState(
+        newCommands[newCommands.length - 1].id,
+        newCommands.length,
+        {
+          totalCommands: result.metadata.totalCommands,
+          uniquePatterns: result.completions.length,
+          averageConfidence: result.metadata.averageConfidence
+        }
+      );
+
+      console.log('[AnalysisStateManager] 分析结果保存成功:', {
+        completionsCount: result.completions.length,
+        lastProcessedId: newCommands[newCommands.length - 1].id
+      });
+    } catch (error) {
+      console.error('[AnalysisStateManager] 保存分析结果失败:', error);
+      throw error;
+    }
   }
 } 

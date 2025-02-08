@@ -8,6 +8,7 @@ import { FrequencyScoring } from './factors/FrequencyScoring';
 import { RecencyScoring } from './factors/RecencyScoring';
 import { PrefixScoring } from './factors/PrefixScoring';
 import { SyntaxScoring } from './factors/SyntaxScoring';
+import { CompletionSource } from '../types/completion.types';
 
 export class ScoringService {
   private static instance: ScoringService;
@@ -29,7 +30,8 @@ export class ScoringService {
     context: 0.10,   // 上下文相关度权重
     chain: 0.10,     // 命令链权重
     time: 0.05,      // 时间模式权重
-    env: 0.05        // 环境状态权重
+    env: 0.05,       // 环境状态权重
+    ai: 0.20         // AI建议权重
   };
 
   private constructor() {
@@ -68,16 +70,25 @@ export class ScoringService {
         const envScore = this.environmentScoring.calculateScore(suggestion, context);
 
         // 计算加权总分
-        const totalScore =
-          this.weights.base +
-          this.weights.frequency * frequencyScore +
-          this.weights.recency * recencyScore +
-          this.weights.prefix * prefixScore +
-          this.weights.syntax * syntaxScore +
-          this.weights.context * contextScore +
-          this.weights.chain * chainScore +
-          this.weights.time * timeScore +
-          this.weights.env * envScore;
+        let totalScore = this.weights.base;
+
+        // 如果是AI建议,使用AI权重
+        if (suggestion.source === CompletionSource.AI) {
+          totalScore += this.weights.ai * suggestion.score; // AI的score已经包含了置信度
+          totalScore += this.weights.prefix * prefixScore; // 仍然考虑前缀匹配
+          totalScore += this.weights.context * contextScore; // 仍然考虑上下文
+        } else {
+          // 其他类型的建议使用原有权重
+          totalScore +=
+            this.weights.frequency * frequencyScore +
+            this.weights.recency * recencyScore +
+            this.weights.prefix * prefixScore +
+            this.weights.syntax * syntaxScore +
+            this.weights.context * contextScore +
+            this.weights.chain * chainScore +
+            this.weights.time * timeScore +
+            this.weights.env * envScore;
+        }
 
         // 更新建议的得分和详情
         return {

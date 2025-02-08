@@ -1,27 +1,78 @@
-[DataPreprocessor] 开始数据预处理...
-DataPreprocessor.ts:35 [DataPreprocessor] 数据预处理完成: {totalSamples: 17, uniqueCommands: 7, averageFrequency: 2.4285714285714284, parameterPatterns: 2, contextPatterns: 0, …}averageFrequency: 2.4285714285714284contextPatterns: 0parameterPatterns: 2sequencePatterns: 0totalSamples: 17uniqueCommands: 7[[Prototype]]: Object
-PatternAnalyzer.ts:118 [PatternAnalyzer] Preprocessed data: {uniqueCommands: 7, parameterPatterns: 2, contextPatterns: 0, sequencePatterns: 0}
-PatternAnalyzer.ts:126 [PatternAnalyzer] Identified patterns: {count: 0, samples: Array(0)}
-PatternAnalyzer.ts:132 [PatternAnalyzer] Generated suggestions: {count: 0, samples: Array(0)}
-PatternAnalyzer.ts:83 
-        UPDATE analysis_state
-        SET last_processed_id = 17.0,
-            last_analysis_time = CURRENT_TIMESTAMP,
-            processed_count = processed_count + 0.0,
-            analysis_metrics = '{"totalCommands":17,"uniquePatte'/*+77 bytes*/,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE component = 'PatternAnalyzer'
-      
-PatternAnalyzer.ts:84 [PatternAnalyzer] 保存分析状态: {lastProcessedId: 17, processedCount: 0, metrics: {…}}lastProcessedId: 17metrics: averageConfidence: 0averageExecutionTime: 0averageSuccessRate: 0totalCommands: 17uniquePatterns: 0[[Prototype]]: ObjectprocessedCount: 0[[Prototype]]: Object
-PatternAnalyzer.ts:153 [PatternAnalyzer] Analysis completed successfully: {metrics: {…}}
-AnalysisScheduler.ts:169 [AnalysisScheduler] Pattern analysis completed: {patternsCount: 0, suggestionsCount: 0, metrics: {…}}
-AIAnalyzer.ts:63 [AIAnalyzer] Starting AI analysis
-DataPreprocessor.ts:14 [DataPreprocessor] Starting data preprocessing
-DataPreprocessor.ts:17 [DataPreprocessor] Cleaned data: {patternsCount: 0, metrics: {…}}metrics: averageConfidence: 0averageExecutionTime: 0averageSuccessRate: 0totalCommands: 17uniquePatterns: 0[[Prototype]]: ObjectpatternsCount: 0[[Prototype]]: Object
-DataPreprocessor.ts:23 [DataPreprocessor] Extracted features: {commandCount: 0, contextCount: 0, timeDistributionCount: 0, errorRateCount: 0}
-DataPreprocessor.ts:33 [DataPreprocessor] Generated basic patterns: {parameterPatterns: 0, contextPatterns: 0, sequencePatterns: 0}
-DataPreprocessor.ts:51 [DataPreprocessor] Data preprocessing completed: {totalPatterns: 0, metrics: {…}}
-AIAnalyzer.ts:73 [AIAnalyzer] Data preprocessing completed
-TerminalTabsManager.tsx:52 [TerminalTabsManager] 组件渲染: {sessionInfo: undefined, triggerNewTab: 0}
-TerminalTabsManager.tsx:182 [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined, sessionListVisible: false}
-AIAnalyzer.ts:43 AI 配置加载结果: {success: true, data: {…}}
+{
+  "patterns": [
+    {
+      "command": "ls",
+      "parts": ["ls"],
+      "frequency": 1,
+      "confidence": 0.9,
+      "context": "用于列出当前目录下的文件和目录，无额外参数时显示非隐藏项。"
+    },
+    {
+      "command": "cd ..",
+      "parts": ["cd", ".."],
+      "frequency": 1,
+      "confidence": 0.85,
+      "context": "用于返回上一级目录，常见于需要回退操作的场景。"
+    },
+    {
+      "command": "ps -ef|grep java",
+      "parts": ["ps", "-ef", "|", "grep", "java"],
+      "frequency": 1,
+      "confidence": 0.75,
+      "context": "查找系统中运行的所有Java进程，常用于监控或调试Java应用程序。"
+    },
+    {
+      "command": "pwd",
+      "parts": ["pwd"],
+      "frequency": 1,
+      "confidence": 0.9,
+      "context": "显示当前工作目录的路径，适用于需要明确所在位置的场合。"
+    },
+    {
+      "command": "jps",
+      "parts": ["jps"],
+      "frequency": 1,
+      "confidence": 0.7,
+      "context": "列出所有Java进程ID，对于管理Java应用很有用。"
+    },
+    {
+      "command": "cd cxr_cloud",
+      "parts": ["cd", "cxr_cloud"],
+      "frequency": 1,
+      "confidence": 0.8,
+      "context": "进入特定项目或目录cxr_cloud，可能与访问该项目资源有关。"
+    },
+    {
+      "command": "docker ps",
+      "parts": ["docker", "ps"],
+      "frequency": 1,
+      "confidence": 0.85,
+      "context": "列出所有运行中的Docker容器，适用于Docker环境管理和监控。"
+    },
+    {
+      "command": "ls -al",
+      "parts": ["ls", "-al"],
+      "frequency": 1,
+      "confidence": 0.8,
+      "context": "以长格式列出所有文件，包括隐藏文件，有助于详细查看目录内容。"
+    },
+    {
+      "command": "docker images",
+      "parts": ["docker", "images"],
+      "frequency": 1,
+      "confidence": 0.85,
+      "context": "列出本地所有Docker镜像，适用于管理Docker镜像。"
+    },
+    {
+      "command": "mkdir test.log",
+      "parts": ["mkdir", "test.log"],
+      "frequency": 1,
+      "confidence": 0.65,
+      "context": "创建名为test.log的新目录，可能是为了存储日志或其他类型的数据。"
+    }
+  ],
+  "metadata": {
+    "totalCommands": 19,
+    "averageConfidence": 0.8
+  }
+}

@@ -13,7 +13,7 @@ export class PromptManager {
 3. 发现命令序列中的关联性
 4. 评估每个建议的可信度
 
-请以 JSON 格式返回分析结果（不要带 markdown 格式），不要在结尾带任何额外解释，固定返回json内容,格式如下:
+请以 JSON 格式返回分析结果（不要带 markdown 格式），不要带任何额外解释，不要在结尾带任何额外解释，固定返回json内容,格式如下:
 {
   "patterns": [
     {

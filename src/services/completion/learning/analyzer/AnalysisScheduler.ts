@@ -171,7 +171,28 @@ export class AnalysisScheduler {
         }, 5 * 60 * 1000); // 5分钟后重试
       } else {
         console.error('[AnalysisScheduler] Max retries reached, giving up');
+        
+        // 达到最大重试次数,更新分析状态以避免重复分析相同数据
+        try {
+          const { lastState, newCommands } = await this.stateManager.getAnalysisData();
+          if (newCommands && newCommands.length > 0) {
+            await this.stateManager.updateAnalysisState(
+              newCommands[newCommands.length - 1].id,
+              newCommands.length,
+              {
+                totalCommands: lastState?.processed_count || 0,
+                uniquePatterns: 0,
+                averageConfidence: 0,
+                error: 'Analysis failed after max retries'
+              }
+            );
+          }
+        } catch (updateError) {
+          console.error('[AnalysisScheduler] Failed to update analysis state after max retries:', updateError);
+        }
+        
         this.retryCount = 0;
+        this.lastAnalysisTime = new Date(); // 更新最后分析时间,避免立即重试
       }
     } finally {
       this.isAnalyzing = false;
