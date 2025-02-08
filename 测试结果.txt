@@ -1,188 +1,27 @@
-<|im_start|>system
-你是一个专业的命令行补全系统优化专家，负责分析用户的命令使用模式并提供优化建议。你需要：
-1. 分析命令使用模式和关联性
-2. 识别低效或风险的使用方式
-3. 提供具体的优化方案
-4. 评估优化措施的影响和风险
-
-你的建议应该：
-- 聚焦于提高命令执行效率
-- 给出具体的优化措施
-- 包含详细的实施步骤
-- 评估潜在风险和防范措施
-- 避免泛泛而谈的"学习建议"
-
-请确保你的分析和建议是：
-- 具体可行的
-- 有明确的优先级
-- 包含风险评估
-- 易于实施的
-
-请以 JSON 格式返回分析结果（不要带 markdown 格式），格式如下：
-{
-  "insights": {
-    "patternInsights": [
-      {
-        "pattern": "命令模式描述",
-        "confidence": 0.95,
-        "impact": 0.8,
-        "relatedPatterns": ["相关模式1", "相关模式2"],
-        "usageContext": ["使用场景1", "使用场景2"],
-        "recommendations": ["优化建议1", "优化建议2"]
-      }
-    ],
-    "correlations": [
-      {
-        "sourcePattern": "源模式",
-        "targetPattern": "目标模式",
-        "correlationType": "sequence",
-        "strength": 0.85,
-        "evidence": ["证据1", "证据2"]
-      }
-    ],
-    "anomalies": [
-      {
-        "pattern": "异常模式描述",
-        "anomalyType": "frequency",
-        "severity": "medium",
-        "description": "异常描述信息",
-        "suggestedActions": ["改善措施1", "改善措施2"]
-      }
-    ]
-  },
-  "suggestions": {
-    "immediate": [
-      {
-        "type": "immediate",
-        "target": "优化目标",
-        "suggestion": "具体优化建议，例如增加常用命令的自动补全或命令别名配置",
-        "impact": 0.9,
-        "effort": 0.3,
-        "priority": 0.8,
-        "implementation": "具体实现步骤描述",
-        "risks": ["风险说明1", "风险说明2"]
-      }
-    ],
-    "longTerm": []
-  },
-  "metadata": {
-    "confidence": 0.95,
-    "processingTime": 0,
-    "modelVersion": "1.0",
-    "timestamp": ""
-  }
-}<|im_end|>
-<|im_start|>user
-请分析以下命令使用数据并提供优化建议：
-
-使用模式数据：
-{
-  "parameters": [],
-  "contexts": [],
-  "sequences": []
-}
-
-使用指标：
-{
-  "totalCommands": 1,
-  "uniquePatterns": 0,
-  "averageConfidence": 0,
-  "averageSuccessRate": 0,
-  "averageExecutionTime": 0
-}
-
-环境信息：
-{
-  "baseAnalysis": {
-    "patterns": [],
-    "metrics": {
-      "totalCommands": 1,
-      "uniquePatterns": 0,
-      "averageConfidence": 0,
-      "averageSuccessRate": 0,
-      "averageExecutionTime": 0
-    },
-    "timestamp": "2025-02-07T08:50:13.420Z"
-  },
-  "environment": {
-    "currentDirectory": "/",
-    "shellType": "bash"
-  },
-  "preferences": {
-    "favoriteCommands": [],
-    "commandAliases": {},
-    "customPrompts": [],
-    "riskTolerance": "medium"
-  }
-}
-
-请提供详细的分析和优化建议，包括：
-1. 模式洞察：识别命令使用模式和关联性
-2. 效率分析：评估当前命令使用效率
-3. 异常检测：发现潜在的问题和风险
-4. 优化方案：提供具体的改进措施
-
-注意：
-- 关注命令执行效率和自动化机会
-- 提供具体的优化步骤和配置建议
-- 评估每个建议的影响和风险
-- 避免简单的"多加练习"类建议<|im_end|>
-
-
-AI回复：
-{
-  "insights": {
-    "patternInsights": [
-      {
-        "pattern": "未检测到具体的命令模式",
-        "confidence": 0,
-        "impact": 0,
-        "relatedPatterns": [],
-        "usageContext": [],
-        "recommendations": ["由于缺乏足够的数据，建议开始收集更多关于常用命令和序列的数据以进行更深入的分析。"]
-      }
-    ],
-    "correlations": [],
-    "anomalies": [
-      {
-        "pattern": "极低的命令总量",
-        "anomalyType": "frequency",
-        "severity": "high",
-        "description": "仅执行了1个命令，无法建立有效的使用模式。",
-        "suggestedActions": ["增加命令行使用的频率和多样性来提高分析的准确性。", "考虑配置命令别名或自动补全功能以简化命令输入。"]
-      }
-    ]
-  },
-  "suggestions": {
-    "immediate": [
-      {
-        "type": "immediate",
-        "target": "提升命令输入效率",
-        "suggestion": "基于当前shell类型（bash），可以考虑为常用的命令设置别名。",
-        "impact": 0.7,
-        "effort": 0.2,
-        "priority": 0.85,
-        "implementation": "编辑~/.bashrc文件，添加如'alias ll='ls -l''的行，并运行'source ~/.bashrc'使更改生效。",
-        "risks": ["若设置不当的别名可能引起混淆或覆盖原有命令。防范措施是在设置别名前确认不会与现有命令冲突。"]
-      }
-    ],
-    "longTerm": [
-      {
-        "type": "longTerm",
-        "target": "优化命令使用模式",
-        "suggestion": "定期评估和调整命令别名及自动化脚本，根据实际使用情况不断优化。",
-        "impact": 0.6,
-        "effort": 0.5,
-        "priority": 0.7,
-        "implementation": "每月审查一次命令历史记录，识别新的模式并据此更新命令别名或创建新的脚本。",
-        "risks": ["过度定制可能导致环境复杂化，降低可移植性。建议保持适度的自定义，同时维护清晰的文档。"]
-      }
-    ]
-  },
-  "metadata": {
-    "confidence": 0.95,
-    "processingTime": 0,
-    "modelVersion": "1.0",
-    "timestamp": "2025-02-07T16:51:00Z"
-  }
-}
+[DataPreprocessor] 开始数据预处理...
+DataPreprocessor.ts:35 [DataPreprocessor] 数据预处理完成: {totalSamples: 17, uniqueCommands: 7, averageFrequency: 2.4285714285714284, parameterPatterns: 2, contextPatterns: 0, …}averageFrequency: 2.4285714285714284contextPatterns: 0parameterPatterns: 2sequencePatterns: 0totalSamples: 17uniqueCommands: 7[[Prototype]]: Object
+PatternAnalyzer.ts:118 [PatternAnalyzer] Preprocessed data: {uniqueCommands: 7, parameterPatterns: 2, contextPatterns: 0, sequencePatterns: 0}
+PatternAnalyzer.ts:126 [PatternAnalyzer] Identified patterns: {count: 0, samples: Array(0)}
+PatternAnalyzer.ts:132 [PatternAnalyzer] Generated suggestions: {count: 0, samples: Array(0)}
+PatternAnalyzer.ts:83 
+        UPDATE analysis_state
+        SET last_processed_id = 17.0,
+            last_analysis_time = CURRENT_TIMESTAMP,
+            processed_count = processed_count + 0.0,
+            analysis_metrics = '{"totalCommands":17,"uniquePatte'/*+77 bytes*/,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE component = 'PatternAnalyzer'
+      
+PatternAnalyzer.ts:84 [PatternAnalyzer] 保存分析状态: {lastProcessedId: 17, processedCount: 0, metrics: {…}}lastProcessedId: 17metrics: averageConfidence: 0averageExecutionTime: 0averageSuccessRate: 0totalCommands: 17uniquePatterns: 0[[Prototype]]: ObjectprocessedCount: 0[[Prototype]]: Object
+PatternAnalyzer.ts:153 [PatternAnalyzer] Analysis completed successfully: {metrics: {…}}
+AnalysisScheduler.ts:169 [AnalysisScheduler] Pattern analysis completed: {patternsCount: 0, suggestionsCount: 0, metrics: {…}}
+AIAnalyzer.ts:63 [AIAnalyzer] Starting AI analysis
+DataPreprocessor.ts:14 [DataPreprocessor] Starting data preprocessing
+DataPreprocessor.ts:17 [DataPreprocessor] Cleaned data: {patternsCount: 0, metrics: {…}}metrics: averageConfidence: 0averageExecutionTime: 0averageSuccessRate: 0totalCommands: 17uniquePatterns: 0[[Prototype]]: ObjectpatternsCount: 0[[Prototype]]: Object
+DataPreprocessor.ts:23 [DataPreprocessor] Extracted features: {commandCount: 0, contextCount: 0, timeDistributionCount: 0, errorRateCount: 0}
+DataPreprocessor.ts:33 [DataPreprocessor] Generated basic patterns: {parameterPatterns: 0, contextPatterns: 0, sequencePatterns: 0}
+DataPreprocessor.ts:51 [DataPreprocessor] Data preprocessing completed: {totalPatterns: 0, metrics: {…}}
+AIAnalyzer.ts:73 [AIAnalyzer] Data preprocessing completed
+TerminalTabsManager.tsx:52 [TerminalTabsManager] 组件渲染: {sessionInfo: undefined, triggerNewTab: 0}
+TerminalTabsManager.tsx:182 [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined, sessionListVisible: false}
+AIAnalyzer.ts:43 AI 配置加载结果: {success: true, data: {…}}

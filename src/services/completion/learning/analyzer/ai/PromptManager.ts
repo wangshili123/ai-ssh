@@ -24,10 +24,11 @@ export class PromptManager {
 - 包含风险评估
 - 易于实施的
 
-请以 JSON 格式返回分析结果（不要带 markdown 格式），格式如下：
+请以 JSON 格式返回分析结果（不要带 markdown 格式），不要带任何额外解释，格式如下：
 {
   "insights": {
     "patternInsights": [
+
       {
         "pattern": "命令模式描述",
         "confidence": 0.95,
@@ -85,7 +86,7 @@ export class PromptManager {
   public generateAnalysisPrompt(
     input: AIAnalysisInput,
     processedData: any
-  ): { messages: any[], config: any } {
+  ): { messages: any[]} {
     try {
       const userPrompt = `请分析以下命令使用数据并提供优化建议：
 
@@ -118,12 +119,7 @@ ${JSON.stringify({
         messages: [
           { role: 'system', content: this.SYSTEM_PROMPT },
           { role: 'user', content: userPrompt }
-        ],
-        config: {
-          temperature: 0.7,
-          max_tokens: 2000,
-          response_format: { type: 'json_object' }
-        }
+        ]
       };
     } catch (error) {
       console.error('[PromptManager] Failed to generate analysis prompt:', error);

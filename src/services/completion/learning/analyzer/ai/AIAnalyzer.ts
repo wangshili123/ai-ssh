@@ -99,7 +99,7 @@ export class AIAnalyzer {
       const config = await this.getConfig();
 
       // 4. 生成 Prompt
-      const { messages, config: promptConfig } = this.promptManager.generateAnalysisPrompt(input, processedData);
+      const { messages} = this.promptManager.generateAnalysisPrompt(input, processedData);
 
       // 5. 调用 AI API
       const headers: Record<string, string> = {
@@ -110,7 +110,9 @@ export class AIAnalyzer {
       const requestBody = {
         model: config.model,
         messages,
-        ...promptConfig
+        temperature: config.temperature,
+        max_tokens: config.maxTokens,
+        response_format: { type: 'json_object' }
       };
 
       let result: AIAnalysisResult | null = null;
