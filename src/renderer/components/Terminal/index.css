@@ -27,21 +27,23 @@
   right: 0;
   bottom: 0;
   pointer-events: none;
-  /* 创建新的堆叠上下文 */
   isolation: isolate;
   z-index: 100;
 }
 
+/* 终端基础样式 */
 .terminal .xterm {
-  height: 100%;
-  width: 100%;
   padding: 0;
+}
+
+.xterm-viewport {
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* 自定义滚动条样式 */
 .terminal ::-webkit-scrollbar {
   width: 8px;
-  height: 8px;
 }
 
 .terminal ::-webkit-scrollbar-track {
@@ -55,13 +57,4 @@
 
 .terminal ::-webkit-scrollbar-thumb:hover {
   background: #888;
-}
-
-/* 确保 xterm.js 的容器正确定位 */
-.xterm {
-  height: 100%;
-}
-
-.xterm-viewport {
-  overflow-y: auto !important;
 } 

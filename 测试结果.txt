@@ -1,3 +1,438 @@
-[CompletionService] 获取语法建议: (6) [{…}, {…}, {…}, {…}, {…}, {…}]0: {fullCommand: 'cat t.txt', suggestion: '.txt', source: 'local', score: 0.7}1: {fullCommand: 'cat t.log', suggestion: '.log', source: 'local', score: 0.7}2: {fullCommand: 'cat t.conf', suggestion: '.conf', source: 'local', score: 0.7}3: {fullCommand: 'cat t.md', suggestion: '.md', source: 'local', score: 0.7}4: {fullCommand: 'cat', suggestion: '', source: 'history', score: 0.99}5: {fullCommand: 'cat test.log', suggestion: 'test.log', source: 'local', score: 0.9}length: 6[[Prototype]]: Array(0)
-CompletionService.ts:128 [CompletionService] 合并所有建议: (5) [{…}, {…}, {…}, {…}, {…}]0: {fullCommand: 'cat t.md', suggestion: '.md', source: 'syntax', score: 0.35112499999999996, details: {…}}details: {frequency: 0, recency: 0, prefix: 0.8875, syntax: 0.92, context: 0.3, …}fullCommand: "cat t.md"score: 0.35112499999999996source: "syntax"suggestion: ".md"[[Prototype]]: Object1: {fullCommand: 'cat t.txt', suggestion: '.txt', source: 'syntax', score: 0.34800000000000003, details: {…}}2: {fullCommand: 'cat t.log', suggestion: '.log', source: 'syntax', score: 0.34800000000000003, details: {…}}3: {fullCommand: 'cat t.conf', suggestion: '.conf', source: 'syntax', score: 0.3455, details: {…}}4: {fullCommand: 'cat test.log', suggestion: 'test.log', source: 'syntax', score: 0.34174999999999994, details: {…}}length: 5[[Prototype]]: Array(0)
-useCompletion.ts:271 [useCompletion] Got suggestions: 
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1
+useCompletion.ts:204 [useCompletion] Input changed from:  to: 1
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12
+useCompletion.ts:204 [useCompletion] Input changed from: 1 to: 12
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123
+useCompletion.ts:204 [useCompletion] Input changed from: 12 to: 123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231
+useCompletion.ts:204 [useCompletion] Input changed from: 123 to: 1231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231 to: 12312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312 to: 123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123 to: 1231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231 to: 12312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312 to: 123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123 to: 1231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231 to: 12312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312 to: 123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123 to: 1231231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231 to: 12312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312 to: 123123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123 to: 1231231231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231 to: 12312312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312 to: 123123123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123 to: 1231231231231231232
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232 to: 12312312312312312321
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321 to: 123123123123123123213
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213 to: 1231231231231231232131
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131 to: 12312312312312312321312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312 to: 123123123123123123213123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123 to: 1231231231231231232131231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231 to: 12312312312312312321312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312 to: 123123123123123123213123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123 to: 1231231231231231232131231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231 to: 12312312312312312321312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312 to: 123123123123123123213123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123 to: 1231231231231231232131231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231 to: 12312312312312312321312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312 to: 123123123123123123213123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123 to: 1231231231231231232131231231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231 to: 12312312312312312321312312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312 to: 123123123123123123213123123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123 to: 1231231231231231232131231231231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231 to: 12312312312312312321312312312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312 to: 123123123123123123213123123123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123123 to: 1231231231231231232131231231231231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231231 to: 12312312312312312321312312312312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312312 to: 123123123123123123213123123123123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123123123 to: 1231231231231231232131231231231231231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231231231 to: 12312312312312312321312312312312312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312312312 to: 123123123123123123213123123123123123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123123123123 to: 1231231231231231232131231231231231231231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231231231231 to: 12312312312312312321312312312312312312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312312312312 to: 123123123123123123213123123123123123123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231231231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123123123123123 to: 1231231231231231232131231231231231231231231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231231231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231231231231231 to: 12312312312312312321312312312312312312312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312312312312312 to: 123123123123123123213123123123123123123123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231231231231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123123123123123123 to: 1231231231231231232131231231231231231231231231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231231231231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312312312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231231231231231231 to: 12312312312312312321312312312312312312312312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312312312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123123123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312312312312312312 to: 123123123123123123213123123123123123123123123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123123123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231231231231231231232
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123123123123123123123 to: 1231231231231231232131231231231231231231231231231231232
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231231231231231231232
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312312312312312312321
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231231231231231231232 to: 12312312312312312321312312312312312312312312312312312321
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312312312312312312321
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123123123123123123213
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312312312312312312321 to: 123123123123123123213123123123123123123123123123123123213
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123123123123123123213
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231231231231231231232131
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123123123123123123123213 to: 1231231231231231232131231231231231231231231231231231232131
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231231231231231231232131
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312312312312312312321312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231231231231231231232131 to: 12312312312312312321312312312312312312312312312312312321312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312312312312312312321312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123123123123123123213123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312312312312312312321312 to: 123123123123123123213123123123123123123123123123123123213123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123123123123123123213123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231231231231231231232131231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123123123123123123123213123 to: 1231231231231231232131231231231231231231231231231231232131231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231231231231231231232131231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312312312312312312321312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231231231231231231232131231 to: 12312312312312312321312312312312312312312312312312312321312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312312312312312312321312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123123123123123123213123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312312312312312312321312312 to: 123123123123123123213123123123123123123123123123123123213123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123123123123123123213123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231231231231231231232131231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123123123123123123123213123123 to: 1231231231231231232131231231231231231231231231231231232131231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231231231231231231232131231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312312312312312312321312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231231231231231231232131231231 to: 12312312312312312321312312312312312312312312312312312321312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312312312312312312321312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123123123123123123213123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312312312312312312321312312312 to: 123123123123123123213123123123123123123123123123123123213123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123123123123123123213123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231231231231231231232131231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123123123123123123123213123123123 to: 1231231231231231232131231231231231231231231231231231232131231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231231231231231231232131231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312312312312312312321312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231231231231231231232131231231231 to: 12312312312312312321312312312312312312312312312312312321312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312312312312312312321312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123123123123123123213123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312312312312312312321312312312312 to: 123123123123123123213123123123123123123123123123123123213123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123123123123123123213123123123123
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 1
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 1231231231231231232131231231231231231231231231231231232131231231231231
+useCompletion.ts:204 [useCompletion] Input changed from: 123123123123123123213123123123123123123123123123123123213123123123123 to: 1231231231231231232131231231231231231231231231231231232131231231231231
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 1231231231231231232131231231231231231231231231231231232131231231231231
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 2
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 12312312312312312321312312312312312312312312312312312321312312312312312
+useCompletion.ts:204 [useCompletion] Input changed from: 1231231231231231232131231231231231231231231231231231232131231231231231 to: 12312312312312312321312312312312312312312312312312312321312312312312312
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 12312312312312312321312312312312312312312312312312312321312312312312312
+useCommandHandler.ts:10 [useCommandHandler] handleInput called with data: 3
+useCommandHandler.ts:13 [useCommandHandler] terminalRef.current: d {_disposables: Array(3), _isDisposed: false, _core: P, _addonManager: t.AddonManager, _publicOptions: {…}, …}
+useCompletion.ts:153 [useCompletion] Updating pending command to: 123123123123123123213123123123123123123123123123123123213123123123123123
+useCompletion.ts:204 [useCompletion] Input changed from: 12312312312312312321312312312312312312312312312312312321312312312312312 to: 123123123123123123213123123123123123123123123123123123213123123123123123
+useCompletion.ts:215 [useCompletion] Setting up suggestion timer for input: 123123123123123123213123123123123123123123123123123123213123123123123123
+useCompletion.ts:225 [useCompletion] Suggestion timer triggered for input: 123123123123123123213123123123123123123123123123123123213123123123123123
+useCompletion.ts:227 [useCompletion] Getting suggestions from service
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739080222578
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1739080222578
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1739080222578
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1739080222578' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739080222578', shellId: '1737016726289-1739080222578', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739080222578
+EnhancedContextAnalyzer.ts:116 [EnhancedContextAnalyzer] 开始获取补全上下文: {input: '123123123123123123213123123123123123123123123123123123213123123123123123', cursorPosition: 0, sessionState: {…}}
+ShellParser.ts:182 处理命令节点: {type: 'command', text: '123123123123123123213123123123123123123123123123123123213123123123123123', children: Array(1)}
+ShellParser.ts:212 处理子节点: {type: 'command_name', text: '123123123123123123213123123123123123123123123123123123213123123123123123'}
+EnhancedContextAnalyzer.ts:125 [EnhancedContextAnalyzer] 命令解析耗时: 2.30 ms
+EnhancedContextAnalyzer.ts:126 [EnhancedContextAnalyzer] 命令解析结果: {type: 'program', commands: Array(1)}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739080222578
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1739080222578
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1739080222578
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1739080222578' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739080222578', shellId: '1737016726289-1739080222578', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+ssh.ts:22 [SSH] 未找到连接: 1737016726289
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739080222578
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1739080222578
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1739080222578
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1739080222578' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739080222578', shellId: '1737016726289-1739080222578', sessionInfo: {…}}
+ssh.ts:35 SSHService.connect called with: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:37 Connecting to SSH server with config: {host: '172.16.3.226', port: 22, username: 'root', authType: 'password', hasPassword: true, …}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739080222578
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1739080222578
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1739080222578
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1739080222578' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739080222578', shellId: '1737016726289-1739080222578', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+ssh.ts:22 [SSH] 未找到连接: 1737016726289
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739080222578
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1739080222578
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1739080222578
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1739080222578' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739080222578', shellId: '1737016726289-1739080222578', sessionInfo: {…}}
+ssh.ts:35 SSHService.connect called with: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:37 Connecting to SSH server with config: {host: '172.16.3.226', port: 22, username: 'root', authType: 'password', hasPassword: true, …}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739080222578
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1739080222578
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1739080222578
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1739080222578' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739080222578', shellId: '1737016726289-1739080222578', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+ssh.ts:22 [SSH] 未找到连接: 1737016726289
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739080222578
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1739080222578
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1739080222578
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1739080222578' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739080222578', shellId: '1737016726289-1739080222578', sessionInfo: {…}}
+ssh.ts:35 SSHService.connect called with: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:37 Connecting to SSH server with config: {host: '172.16.3.226', port: 22, username: 'root', authType: 'password', hasPassword: true, …}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739080222578
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1739080222578
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1739080222578
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1739080222578' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739080222578', shellId: '1737016726289-1739080222578', sessionInfo: {…}}
+eventBus.ts:114 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+ssh.ts:22 [SSH] 未找到连接: 1737016726289
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739080222578
+eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1739080222578
+eventBus.ts:80 [EventBus] 获取标签页信息: tab-1739080222578
+eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1739080222578' => {…}}
+eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739080222578', shellId: '1737016726289-1739080222578', sessionInfo: {…}}
+ssh.ts:35 SSHService.connect called with: {id: '1737016726289', name: '252', host: '172.16.3.226', port: 22, username: 'root', …}
+ssh.ts:37 Connecting to SSH server with config: {host: '172.16.3.226', port: 22, username: 'root', authType: 'password', hasPassword: true, …}
+ssh.ts:48 SSH connection ready
+ssh.ts:19 [SSH] 获取连接: 1737016726289
+ssh.ts:48 SSH connection ready
+ssh.ts:19 [SSH] 获取连接: 1737016726289

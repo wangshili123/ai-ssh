@@ -21,7 +21,7 @@ export class AnalysisScheduler {
     minCommandCount: 10,        // 最小命令数
     minCompletionCount: 20,     // 最小补全数
     minDataChangeRate: 0.2,     // 最小数据变化率
-    minAnalysisInterval: 0.2 * 60 * 1000,  // 最小分析间隔（12秒）
+    minAnalysisInterval: 5 * 60 * 1000,  // 最小分析间隔（12秒）
     optimalAnalysisInterval: 30 * 60 * 1000  // 最佳分析间隔（30分钟）
   };
 

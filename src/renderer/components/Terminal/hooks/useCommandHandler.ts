@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { CompletionService } from '../../../../services/completion/CompletionService';
 import { sshService } from '../../../services/ssh';
@@ -10,7 +10,7 @@ interface UseCommandHandlerProps {
   shellIdRef: React.MutableRefObject<string | null>;
   completionService: CompletionService | null;
   onSuggestionClear: () => void;
-  updatePendingCommand: (newCommand: string) => void;
+  updatePendingCommand: (command: string) => void;
   pendingCommandRef: React.MutableRefObject<string>;
   acceptSuggestion: () => string | null | undefined;
 }
@@ -29,132 +29,104 @@ export const useCommandHandler = ({
   pendingCommandRef,
   acceptSuggestion,
 }: UseCommandHandlerProps): UseCommandHandlerReturn => {
-  // 处理命令输入
   const handleInput = useCallback(async (data: string) => {
     console.log('[useCommandHandler] handleInput called with data:', data);
-    if (!terminalRef.current) return;
-    console.log('[useCommandHandler] terminalRef.current:', terminalRef.current);
-    const terminal = terminalRef.current;
-
-    // 如果是回车键，直接返回（现在由 onKey 事件处理）
-    if (data === '\r' || data === '\n' || data === '') {
+    if (!terminalRef.current) {
+      console.log('[useCommandHandler] terminalRef.current is null');
       return;
     }
 
-    // 处理 Alt + / 的特殊序列
-    if (data === '\x1b/') {
-      console.log('[useCommandHandler] Alt+/ pressed, current pendingCommand:', pendingCommandRef.current);
-      const suggestion = acceptSuggestion();
-      console.log('[useCommandHandler] Got suggestion:', suggestion);
+    const terminal = terminalRef.current;
+    const shellId = shellIdRef.current;
+
+    // 处理特殊键
+    if (data === '\r') { // 回车键
+      // 清除建议
+      onSuggestionClear();
       
-      if (suggestion && suggestion !== pendingCommandRef.current) {
-        console.log('[useCommandHandler] Suggestion differs from current input');
-        // 确保建议不是当前输入的一部分
-        if (suggestion.startsWith(pendingCommandRef.current)) {
-          // 只写入补全的部分
-          const completionPart = suggestion.slice(pendingCommandRef.current.length);
-          console.log('[useCommandHandler] Completion part:', completionPart);
-          
-          if (completionPart) {
-            // 先清除当前建议
-            onSuggestionClear();
-            
-            // 更新状态
-            console.log('[useCommandHandler] Updating pendingCommand from', pendingCommandRef.current, 'to', suggestion);
-            updatePendingCommand(suggestion);
-            
-            // 清除补全提示（空格和暗色字符）
-            terminal.write(' '.repeat(completionPart.length + 1)); // 用空格覆盖补全提示和分隔空格
-            terminal.write('\b'.repeat(completionPart.length + 1)); // 移回光标位置
-            
-            // 发送到SSH
-            if (shellIdRef.current) {
-              // 写入补全部分
-              console.log('[useCommandHandler] Writing completion part to SSH');
-              sshService.write(shellIdRef.current, completionPart).catch((error) => {
-                console.error('[useCommandHandler] Failed to write to shell:', error);
-                terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
-              });
-            }
+      // 获取当前命令
+      const command = pendingCommandRef.current.trim();
+      console.log('[useCommandHandler] Executing command:', command);
+      
+      // 发送命令到SSH服务
+      if (shellId) {
+        try {
+          if (command) {
+            // 如果有命令，发送命令加回车
+            await sshService.write(shellId, command + '\r');
+            // 记录命令输出
+            CommandOutputAnalyzer.getInstance().startCommand(shellId, command);
+          } else {
+            // 如果是空命令，只发送回车
+            await sshService.write(shellId, '\r');
+          }
+        } catch (error: any) {
+          console.error('[useCommandHandler] Failed to send command:', error);
+          if (terminalRef.current) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            terminalRef.current.write('\r\n\x1b[31m写入失败: ' + errorMessage + '\x1b[0m\r\n');
+          }
+          if (command) {
+            CommandOutputAnalyzer.getInstance().clearCache(shellId);
           }
         }
       }
-      return;
-    }
-
-    // 如果是控制字符（箭头键等），直接发送到 SSH
-    if (data.charCodeAt(0) < 32 || data.charCodeAt(0) === 127) {
-      // 如果是退格键，需要更新命令状态
-      if (data === '\b' || data === '\x7f') {
-        if (pendingCommandRef.current.length > 0) {
-          // 更新待处理的命令
-          const newInput = pendingCommandRef.current.slice(0, -1);
-          console.log('[useCommandHandler] Updated pending command (backspace):', newInput);
-          updatePendingCommand(newInput);
-          
-          // 清除当前建议
-          onSuggestionClear();
-        }
-      }
       
-      // 发送到SSH
-      if (shellIdRef.current) {
-        await sshService.write(shellIdRef.current, data).catch((error) => {
-          console.error('[useCommandHandler] Failed to write to shell:', error);
-          terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
-        });
+      // 清空当前命令
+      updatePendingCommand('');
+      return;
+    }
+
+    // 处理退格键
+    if (data === '\x7f') { // Backspace
+      const currentCommand = pendingCommandRef.current;
+      if (currentCommand.length > 0) {
+        // 删除最后一个字符
+        const newCommand = currentCommand.slice(0, -1);
+        updatePendingCommand(newCommand);
+        terminal.write('\b \b'); // 删除一个字符
       }
       return;
     }
 
-    // 普通字符输入
-    // 先更新待处理的命令
-    const newInput = pendingCommandRef.current + data;
-    updatePendingCommand(newInput);
-    
-    // 清除当前建议
-    onSuggestionClear();
-    
-    // 然后发送到SSH
-    if (shellIdRef.current) {
-      await sshService.write(shellIdRef.current, data).catch((error) => {
-        console.error('[useCommandHandler] Failed to write to shell:', error);
-        terminal.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
-      });
+    // 处理制表符
+    if (data === '\t') { // Tab
+      const suggestion = acceptSuggestion();
+      if (suggestion) {
+        // 补全建议已经被接受，不需要额外处理
+        return;
+      }
     }
-  }, [terminalRef, shellIdRef, completionService, onSuggestionClear, updatePendingCommand, pendingCommandRef, acceptSuggestion]);
 
-  // 处理回车键
+    // 处理普通输入
+    // 检查输入是否会导致行溢出
+    const core = (terminal as any)._core;
+    if (core && core._renderService) {
+      const dims = core._renderService.dimensions.css.cell;
+      const currentCol = terminal.buffer.active.cursorX;
+      const terminalWidth = Math.floor(terminal.cols);
+      
+      // 如果当前行加上新输入会超出终端宽度，先输出换行
+      if (currentCol + data.length >= terminalWidth) {
+        terminal.write('\r\n');
+      }
+    }
+
+    // 更新命令并显示
+    const newCommand = pendingCommandRef.current + data;
+    updatePendingCommand(newCommand);
+    terminal.write(data);
+  }, [terminalRef, shellIdRef, onSuggestionClear, updatePendingCommand, pendingCommandRef, acceptSuggestion]);
+
+  // handleEnterKey 现在只是一个空函数，因为回车已经在 onData 中处理了
   const handleEnterKey = useCallback(async () => {
-    console.log('[useCommandHandler] Enter key handler called, current pendingCommand:', pendingCommandRef.current);
-    const commandToRecord = pendingCommandRef.current.trim();
-    
-    if (shellIdRef.current && commandToRecord) {
-      console.log('[useCommandHandler] Processing Enter key, command to record:', commandToRecord);
-      
-      try {
-        // 开始记录命令输出
-        CommandOutputAnalyzer.getInstance().startCommand(shellIdRef.current, commandToRecord);
-        
-        // 发送回车到SSH
-        await sshService.write(shellIdRef.current, '\r');
-        
-        // 清除状态
-        updatePendingCommand('');
-        onSuggestionClear();
-      } catch (error: any) {
-        console.error('[useCommandHandler] Failed to write to shell:', error);
-        if (terminalRef.current) {
-          terminalRef.current.write('\r\n\x1b[31m写入失败: ' + error.message + '\x1b[0m\r\n');
-        }
-        // 清理分析器缓存
-        CommandOutputAnalyzer.getInstance().clearCache(shellIdRef.current);
-      }
-    }
-  }, [terminalRef, shellIdRef, onSuggestionClear, updatePendingCommand, pendingCommandRef]);
+    // 不做任何事情，因为回车已经被 onData 处理了
+  }, []);
 
   return {
     handleInput,
     handleEnterKey,
   };
-}; 
+};
+
+export default useCommandHandler; 

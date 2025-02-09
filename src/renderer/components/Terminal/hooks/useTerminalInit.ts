@@ -12,6 +12,7 @@ import { waitForConnection } from '../utils/terminal.utils';
 import { CompletionSSHManager } from '@/services/completion/CompletionSSHManager';
 import { CommandOutputAnalyzer } from '../../../../services/terminal/analysis/CommandOutputAnalyzer';
 import { CompletionService } from '@/services/completion/CompletionService';
+import { debounce } from 'lodash';
 
 export interface UseTerminalInitProps {
   sessionInfo?: SessionInfo;
@@ -107,7 +108,19 @@ export const useTerminalInit = ({
       cursorBlink: true,
       cursorStyle: 'block',
       allowTransparency: true,
+      scrollback: 1000,
+      convertEol: true,
+      disableStdin: false,
+      cols: 120,
+      rows: 30,
+      wordSeparator: ' ()[]{}\'"',
+      windowsMode: process.platform === 'win32',
+      lineHeight: 1.2,
+      rightClickSelectsWord: false,
     });
+
+    // 设置终端选项
+    (terminal as any)._core.wraparoundMode = true;
 
     // 创建插件
     const fitAddon = new FitAddon();
@@ -144,14 +157,10 @@ export const useTerminalInit = ({
         return;
       }
       
-      // 处理回车键
+      // 处理回车键 - 不再在这里处理回车，让onData处理
       if (ev.key === 'Enter') {
         // 使用pendingCommandRef获取完整命令
         const command = pendingCommandRef.current.trim();
-        console.log('[useTerminalInit] Executing command:', command);
-        
-        // 先执行命令
-        await callbacksRef.current.handleEnterKey();
         
         // 如果是 cd 命令则发送事件
         if (command.startsWith('cd ') || command === 'cd' || command === '..' || command === '.') {
@@ -174,19 +183,52 @@ export const useTerminalInit = ({
       }
     });
 
-    // 处理窗口大小变化
+    // 优化resize处理函数
     const resizeHandler = () => {
-      fitAddon.fit();
-      // 如果已连接，发送新的尺寸
-      if (shellIdRef.current) {
-        const { rows, cols } = terminal;
-        sshService.resize(shellIdRef.current, rows, cols).catch((error) => {
-          console.error('[useTerminalInit] Failed to resize terminal:', error);
+      if (!containerRef.current || !terminal || !fitAddon) return;
+      
+      try {
+        // 获取容器尺寸
+        const { width, height } = containerRef.current.getBoundingClientRect();
+        console.log('[useTerminalInit] Container size:', { width, height });
+        
+        // 先执行fit
+        fitAddon.fit();
+        
+        // 获取新的尺寸
+        const newCols = terminal.cols;
+        const newRows = terminal.rows;
+        
+        // 确保自动换行模式开启
+        (terminal as any)._core.wraparoundMode = true;
+        
+        console.log('[useTerminalInit] New dimensions:', { 
+          width,
+          height,
+          cols: newCols,
+          rows: newRows,
+          wraparoundMode: (terminal as any)._core.wraparoundMode
         });
+        
+        // 如果已连接，发送新的尺寸到SSH服务
+        if (shellIdRef.current) {
+          sshService.resize(shellIdRef.current, newRows, newCols).catch((error) => {
+            console.error('[useTerminalInit] Failed to resize terminal:', error);
+          });
+        }
+      } catch (error) {
+        console.error('[useTerminalInit] Error in resize handler:', error);
       }
     };
 
-    window.addEventListener('resize', resizeHandler);
+    // 添加防抖处理
+    const debouncedResize = debounce(resizeHandler, 100);
+
+    // 注册resize事件
+    window.addEventListener('resize', debouncedResize);
+    terminal.onResize(({ cols, rows }) => {
+      console.log('[useTerminalInit] Terminal resized:', { cols, rows });
+    });
 
     // 如果有会话信息，创建 SSH 连接
     if (configRef.current.sessionInfo) {
@@ -264,7 +306,7 @@ export const useTerminalInit = ({
     // 清理函数
     return () => {
       console.log('[useTerminalInit] Cleaning up terminal...');
-      window.removeEventListener('resize', resizeHandler);
+      window.removeEventListener('resize', debouncedResize);
 
       // 断开 SSH 连接
       if (shellIdRef.current) {
