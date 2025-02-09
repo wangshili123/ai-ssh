@@ -396,14 +396,22 @@ export class AnalysisStateManager {
     try {
       // 1. 保存补全结果
       const stmt = this.dbService.getDatabase().prepare(`
-        INSERT INTO ai_completions (
+        INSERT OR REPLACE INTO ai_completions (
           command,
           parts,
           frequency,
           confidence,
           context,
           created_at
-        ) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ) 
+        VALUES (
+          ?,
+          ?,
+          COALESCE((SELECT frequency + ? FROM ai_completions WHERE command = ?), ?),
+          ?,
+          ?,
+          CURRENT_TIMESTAMP
+        )
       `);
 
       this.dbService.getDatabase().transaction(() => {
@@ -412,6 +420,8 @@ export class AnalysisStateManager {
             completion.command,
             completion.parts ? JSON.stringify(completion.parts) : null,
             completion.frequency,
+            completion.command,  // 用于 COALESCE 查询
+            completion.frequency, // 如果不存在则使用新的频率
             completion.confidence,
             completion.context
           );
