@@ -52,7 +52,7 @@ export class CommandOutputAnalyzer {
     }
 
     const analysis = this.analyzeOutput(cached);
-
+    console.log('[CommandOutputAnalyzer] Analyze command output:', analysis);
     // 如果命令有效，进行数据收集
     if (analysis.isValid) {
       try {

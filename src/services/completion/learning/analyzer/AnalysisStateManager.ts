@@ -213,7 +213,7 @@ export class AnalysisStateManager {
     const stmt = this.db.prepare(`
       SELECT last_processed_id, last_analysis_time, processed_count, analysis_metrics
       FROM analysis_state
-      WHERE component = 'PatternAnalyzer'
+      WHERE component = 'AIAnalyzer'
     `);
     return stmt.get() as any;
   }
@@ -318,7 +318,7 @@ export class AnalysisStateManager {
             processed_count = processed_count + ?,
             analysis_metrics = ?,
             updated_at = CURRENT_TIMESTAMP
-        WHERE component = 'PatternAnalyzer'
+        WHERE component = 'AIAnalyzer'
       `);
 
       stmt.run(

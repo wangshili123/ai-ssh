@@ -68,7 +68,7 @@ export class AIAnalyzer {
         headers,
         body: JSON.stringify(requestBody)
       });
-
+      console.log('[AIAnalyzer] AI API response:', response);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error?.message || error.message || '请求失败');

@@ -13,7 +13,6 @@ interface UseCompletionReturn {
   completionService: CompletionService | null;
   clearSuggestion: () => void;
   acceptSuggestion: () => string | null | undefined;
-  recordCommand: (command: string) => Promise<void>;
   pendingCommandRef: React.MutableRefObject<string>;
   updatePendingCommand: (newCommand: string) => void;
   dropdownVisible: boolean;
@@ -190,15 +189,6 @@ export const useCompletion = ({
     return suggestion.fullCommand;
   }, [dropdownVisible, suggestions, selectedIndex, currentInput]);
 
-  const recordCommand = useCallback(async (command: string) => {
-    if (!command.trim()) return;
-    try {
-      await completionService?.recordCommand(command);
-      console.log('[useCompletion] Command recorded successfully:', command);
-    } catch (error) {
-      console.error('[useCompletion] Failed to record command:', error);
-    }
-  }, [completionService]);
 
   const updatePendingCommand = useCallback((newCommand: string) => {
     console.log('[useCompletion] Updating pending command to:', newCommand);
@@ -349,7 +339,6 @@ export const useCompletion = ({
     completionService,
     clearSuggestion,
     acceptSuggestion,
-    recordCommand,
     pendingCommandRef,
     updatePendingCommand,
     dropdownVisible,

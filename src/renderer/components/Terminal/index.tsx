@@ -31,7 +31,6 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     completionService,
     clearSuggestion,
     acceptSuggestion,
-    recordCommand,
     pendingCommandRef,
     updatePendingCommand,
     dropdownVisible,
