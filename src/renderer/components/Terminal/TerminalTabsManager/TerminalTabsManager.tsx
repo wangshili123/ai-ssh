@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Tabs, Badge, Button } from 'antd';
-import { FolderOutlined } from '@ant-design/icons';
+import { Tabs, Badge } from 'antd';
 import TerminalTabContent from '../TerminalTabContent/TerminalTabContent';
-import SessionListModal from '../../SessionListModal';
 import { eventBus, TabInfo } from '../../../services/eventBus';
 import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
 import { FileBrowserConnectionManager } from '../../FileBrowser/FileBrowserMain/FileBrowserConnectionManager';
@@ -23,7 +21,6 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
 
   const [tabs, setTabs] = useState<TerminalTab[]>([]);
   const [activeKey, setActiveKey] = useState<string>();
-  const [sessionListVisible, setSessionListVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
   const prevTriggerRef = useRef<number>();
 
@@ -89,7 +86,6 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
     };
     eventBus.addTabInfo(tabInfo);
    
-    
     console.log('[TerminalTabsManager] 新标签页创建完成:', { tabId, shellId, sessionInfo });
     
   }, [triggerNewTab, sessionInfo, mounted, tabs.length]);
@@ -134,7 +130,9 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
     console.log('[TerminalTabsManager] 编辑标签页:', { targetKey, action });
     if (action === 'add') {
       // 打开会话列表
-      setSessionListVisible(true);
+      if (onTabChange) {
+        onTabChange({} as SessionInfo); // 传递一个空的会话信息来触发打开会话列表
+      }
     } else if (action === 'remove' && typeof targetKey === 'string') {
       const tabToRemove = tabs.find(tab => tab.key === targetKey);
       if (tabToRemove) {
@@ -162,13 +160,6 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
     }
   };
 
-  // 处理会话选择
-  const handleSessionSelect = (session: SessionInfo) => {
-    console.log('[TerminalTabsManager] 选择会话:', session);
-    setSessionListVisible(false);
-    onTabChange?.(session);
-  };
-
   if (!mounted) {
     console.log('[TerminalTabsManager] 组件未挂载，返回null');
     return null;
@@ -176,22 +167,12 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
 
   console.log('[TerminalTabsManager] 渲染组件:', { 
     tabs, 
-    activeKey, 
-    sessionListVisible 
+    activeKey
   });
   
   return (
     <div className="terminal-tabs-manager">
       <div className="terminal-tabs-header">
-        <Button
-          type="text"
-          icon={<FolderOutlined />}
-          onClick={() => {
-            console.log('[TerminalTabsManager] 点击会话列表按钮');
-            setSessionListVisible(true);
-          }}
-          className="session-list-btn"
-        />
         <Tabs
           type="editable-card"
           onChange={handleTabChange}
@@ -218,14 +199,6 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
           }))}
         />
       </div>
-      <SessionListModal
-        visible={sessionListVisible}
-        onClose={() => {
-          console.log('[TerminalTabsManager] 关闭会话列表');
-          setSessionListVisible(false);
-        }}
-        onSelect={handleSessionSelect}
-      />
     </div>
   );
 };

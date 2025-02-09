@@ -5,6 +5,8 @@ import TerminalTabsManager from './components/Terminal/TerminalTabsManager/Termi
 import FileBrowserMain from './components/FileBrowser/FileBrowserMain/FileBrowserMain';
 import AIAssistant from './components/AIAssistant';
 import AppStatusBar from './components/StatusBar/AppStatusBar';
+import AppToolbar from './components/Toolbar/AppToolbar';
+import SessionListModal from './components/SessionListModal';
 import type { SessionInfo } from '../main/services/storage';
 import { eventBus } from './services/eventBus';
 import { DatabaseService } from '../services/database/DatabaseService';
@@ -19,6 +21,7 @@ const App: React.FC = () => {
   const [aiSiderWidth, setAiSiderWidth] = useState(400);
   const [currentTabId, setCurrentTabId] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [sessionListVisible, setSessionListVisible] = useState(false);
 
   // 初始化数据库和基础服务
   useEffect(() => {
@@ -49,8 +52,9 @@ const App: React.FC = () => {
   }, []);
 
   // 处理会话选择
-  const handleTabChange = useCallback((session: SessionInfo) => {
+  const handleSessionSelect = useCallback((session: SessionInfo) => {
     console.log('[App] 会话选择:', session);
+    setSessionListVisible(false);
     setActiveSession(session);
     setTriggerNewTab(prev => prev + 1);
   }, []);
@@ -62,12 +66,15 @@ const App: React.FC = () => {
 
   return (
     <Layout className="app-container">
+      <AppToolbar 
+        onSessionListOpen={() => setSessionListVisible(true)}
+      />
       <Layout>
         <Content className="main-content">
           <TerminalTabsManager 
             sessionInfo={activeSession}
             triggerNewTab={triggerNewTab}
-            onTabChange={handleTabChange}
+            onTabChange={handleSessionSelect}
           />
         </Content>
         
@@ -113,6 +120,11 @@ const App: React.FC = () => {
         </Sider>
       </Layout>
       <AppStatusBar />
+      <SessionListModal
+        visible={sessionListVisible}
+        onClose={() => setSessionListVisible(false)}
+        onSelect={handleSessionSelect}
+      />
     </Layout>
   );
 };

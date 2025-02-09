@@ -79,17 +79,17 @@
 
 .resize-handle {
   position: absolute;
-  width: 6px;
-  height: 100%;
-  left: -3px;
+  left: 0;
   top: 0;
+  bottom: 0;
+  width: 4px;
   cursor: col-resize;
   background: transparent;
-  z-index: 1000;
+  transition: background-color 0.3s;
 }
 
 .resize-handle:hover {
-  background: rgba(24, 144, 255, 0.1);
+  background: var(--resize-handle-hover, rgba(0, 0, 0, 0.1));
 }
 
 .ai-sider.ant-layout-sider-collapsed .resize-handle {
@@ -126,4 +126,20 @@
 /* 确保状态栏在最底部 */
 .app-status-bar {
   flex: none;
+}
+
+/* 工具栏样式 */
+.app-toolbar {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-color, #e8e8e8);
+}
+
+/* 确保内容区域正确填充 */
+.ant-layout {
+  height: 100%;
+}
+
+.ant-layout-content {
+  display: flex;
+  flex-direction: column;
 } 
