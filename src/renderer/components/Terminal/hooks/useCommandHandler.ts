@@ -75,19 +75,23 @@ export const useCommandHandler = ({
 
     // 处理退格键
     if (data === '\x7f') { // Backspace
+      console.log('[useCommandHandler] Backspace key pressed');
       const currentCommand = pendingCommandRef.current;
       if (currentCommand.length > 0) {
         // 删除最后一个字符
         const newCommand = currentCommand.slice(0, -1);
+        console.log('[useCommandHandler] Deleting last character:', newCommand);
         updatePendingCommand(newCommand);
         // terminal.write('\b \b'); // 删除一个字符
       }
       // return;
+    }else{
+      // 处理普通输入
+      const newCommand = pendingCommandRef.current + data;
+      updatePendingCommand(newCommand);
     }
 
-    // 处理普通输入
-    const newCommand = pendingCommandRef.current + data;
-    updatePendingCommand(newCommand);
+ 
     
     // 发送到 SSH 服务
     if (shellId) {
