@@ -179,7 +179,7 @@ export class EnhancedContextAnalyzer {
     // 3. 实时从数据库获取最近的命令历史
     const historyStartTime = performance.now();
     console.log('[EnhancedContextAnalyzer] 从数据库获取的历史记录...');
-    const recentHistory = await this.commandHistory.search('', 100);
+    const recentHistory = await this.commandHistory.search('', 50);
     const historyEndTime = performance.now();
     console.log('[EnhancedContextAnalyzer] 获取历史记录耗时:', (historyEndTime - historyStartTime).toFixed(2), 'ms');
     console.log('[EnhancedContextAnalyzer] 从数据库获取的历史记录:', recentHistory);
