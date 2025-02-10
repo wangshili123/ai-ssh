@@ -105,6 +105,29 @@ class SSHService {
     }
   }
 
+  /**
+   * 清理指定会话的连接
+   */
+  async cleanupConnection(sessionId: string) {
+    console.log(`[SSH] 清理连接: ${sessionId}`);
+    console.log(this.connections);
+    const conn = this.connections.get(sessionId);
+    if (conn) {
+      // 关闭连接
+      conn.end();
+      // 从Map中删除
+      this.connections.delete(sessionId);
+      // 清理相关的shells
+      for (const [shellId, shell] of this.shells.entries()) {
+        if (shellId.startsWith(sessionId + '-')) {
+          shell.end();
+          this.shells.delete(shellId);
+        }
+      }
+      console.log(`[SSH] 连接已清理: ${sessionId}`);
+    }
+  }
+
   async createShell(
     shellId: string,
     initialSize?: { rows: number; cols: number }

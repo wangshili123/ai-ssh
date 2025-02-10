@@ -1,10 +1,21 @@
 import { sshService } from '@/main/services/ssh';
-import { eventBus } from '@/renderer/services/eventBus';
+import { eventBus, TabInfo } from '@/renderer/services/eventBus';
 
 export class CommandExecutor {
   private static instance: CommandExecutor = CommandExecutor.getInstance();
 
-  private constructor() {}
+  private constructor() {
+    // 监听标签页删除事件
+    eventBus.on('completion:tab-remove', (tabInfo: TabInfo) => {
+      //todo 清理之前先判断同一个sessionId的tab是否存在
+      
+      console.log('[CommandExecutor] 标签页被删除，清理连接:', tabInfo.tabId);
+      if (tabInfo.sessionInfo?.id) {
+        sshService.cleanupConnection(tabInfo.sessionInfo.id);
+      }
+
+    });
+  }
 
   public static getInstance(): CommandExecutor {
     if (!CommandExecutor.instance) {

@@ -20,7 +20,7 @@ export interface EventMap {
   'terminal-close': string;
   'tabIdChanged': string;
   'shellIdChanged': string;
-  'completion:tab-remove': string;
+  'completion:tab-remove': TabInfo;
   'ssh:directory-change': { shellId: string; directory: string };
   'terminal:directory-change': {
     tabId: string;

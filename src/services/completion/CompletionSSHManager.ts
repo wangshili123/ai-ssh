@@ -1,5 +1,5 @@
 import { Client, ClientChannel } from 'ssh2';
-import { eventBus } from '@/renderer/services/eventBus';
+import { eventBus, TabInfo } from '@/renderer/services/eventBus';
 import { sshService } from '@/renderer/services/ssh';
 import type { SessionInfo } from '@/main/services/storage';
 
@@ -47,9 +47,9 @@ export class CompletionSSHManager {
     });
 
     // 监听标签页移除事件
-    eventBus.on('completion:tab-remove', (tabId: string) => {
-      console.log(`[CompletionSSHManager] Tab removed, cleaning up connection for tab: ${tabId}`);
-      this.closeConnectionForTab(tabId);
+    eventBus.on('completion:tab-remove', (tabInfo: TabInfo) => {
+      console.log(`[CompletionSSHManager] Tab removed, cleaning up connection for tab: ${tabInfo.tabId}`);
+      this.closeConnectionForTab(tabInfo.tabId);
     });
   }
 
