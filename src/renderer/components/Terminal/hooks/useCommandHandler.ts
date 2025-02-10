@@ -50,16 +50,12 @@ export const useCommandHandler = ({
       
       // 发送命令到SSH服务
       if (shellId) {
+        await sshService.write(shellId, '\r');
         try {
           if (command) {
-            // 如果有命令，发送命令加回车
-            await sshService.write(shellId, command + '\r');
             // 记录命令输出
             CommandOutputAnalyzer.getInstance().startCommand(shellId, command);
-          } else {
-            // 如果是空命令，只发送回车
-            await sshService.write(shellId, '\r');
-          }
+          } 
         } catch (error: any) {
           console.error('[useCommandHandler] Failed to send command:', error);
           if (terminalRef.current) {
@@ -84,38 +80,23 @@ export const useCommandHandler = ({
         // 删除最后一个字符
         const newCommand = currentCommand.slice(0, -1);
         updatePendingCommand(newCommand);
-        terminal.write('\b \b'); // 删除一个字符
+        // terminal.write('\b \b'); // 删除一个字符
       }
-      return;
-    }
-
-    // 处理制表符
-    if (data === '\t') { // Tab
-      const suggestion = acceptSuggestion();
-      if (suggestion) {
-        // 补全建议已经被接受，不需要额外处理
-        return;
-      }
+      // return;
     }
 
     // 处理普通输入
-    // 检查输入是否会导致行溢出
-    const core = (terminal as any)._core;
-    if (core && core._renderService) {
-      const dims = core._renderService.dimensions.css.cell;
-      const currentCol = terminal.buffer.active.cursorX;
-      const terminalWidth = Math.floor(terminal.cols);
-      
-      // 如果当前行加上新输入会超出终端宽度，先输出换行
-      if (currentCol + data.length >= terminalWidth) {
-        terminal.write('\r\n');
-      }
-    }
-
-    // 更新命令并显示
     const newCommand = pendingCommandRef.current + data;
     updatePendingCommand(newCommand);
-    terminal.write(data);
+    
+    // 发送到 SSH 服务
+    if (shellId) {
+      try {
+        await sshService.write(shellId, data);
+      } catch (error) {
+        console.error('[useCommandHandler] Failed to send input:', error);
+      }
+    }
   }, [terminalRef, shellIdRef, onSuggestionClear, updatePendingCommand, pendingCommandRef, acceptSuggestion]);
 
   // handleEnterKey 现在只是一个空函数，因为回车已经在 onData 中处理了

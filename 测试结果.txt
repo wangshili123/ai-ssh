@@ -1,92 +1,94 @@
-{
-  "patterns": [
-    {
-      "command": "cd ..",
-      "parts": ["cd", ".."],
-      "frequency": 9,
-      "confidence": 1.0,
-      "context": ""
-    },
-    {
-      "command": "ps -ef|grep java",
-      "parts": ["ps", "-ef|grep", "java"],
-      "frequency": 8,
-      "confidence": 1.0,
-      "context": ""
-    },
-    {
-      "command": "pwd",
-      "parts": ["pwd"],
-      "frequency": 7,
-      "confidence": 1.0,
-      "context": ""
-    },
-    {
-      "command": "jps",
-      "parts": ["jps"],
-      "frequency": 6,
-      "confidence": 1.0,
-      "context": ""
-    },
-    {
-      "command": "cd cxr_cloud",
-      "parts": ["cd", "cxr_cloud"],
-      "frequency": 4,
-      "confidence": 1.0,
-      "context": ""
-    },
-    {
-      "command": "cd cx",
-      "parts": ["cd", "cx"],
-      "frequency": 3,
-      "confidence": 1.0,
-      "context": ""
-    },
-    {
-      "command": "git commit -m 'update'",
-      "parts": ["git", "commit", "-m", "'update'"],
-      "frequency": 1,
-      "confidence": 0.9,
-      "context": "预测依据：用户使用了git命令，推测可能的后续操作为提交代码"
-    },
-    {
-      "command": "docker run -d --name myapp myimage",
-      "parts": ["docker", "run", "-d", "--name", "myapp", "myimage"],
-      "frequency": 0,
-      "confidence": 0.85,
-      "context": "预测依据：用户尝试了docker的基本命令，推测下一步可能是运行容器"
-    },
-    {
-      "command": "mkdir new_folder",
-      "parts": ["mkdir", "new_folder"],
-      "frequency": 0,
-      "confidence": 0.8,
-      "context": "预测依据：用户创建了一个名为test.log的文件，推测可能需要创建新目录"
-    },
-    {
-      "command": "vim new_file.java",
-      "parts": ["vim", "new_file.java"],
-      "frequency": 0,
-      "confidence": 0.82,
-      "context": "预测依据：基于用户对项目文件的操作习惯，推测可能需要编辑新的Java文件"
-    },
-    {
-      "command": "chmod +x script.sh",
-      "parts": ["chmod", "+x", "script.sh"],
-      "frequency": 0,
-      "confidence": 0.83,
-      "context": "预测依据：考虑到用户的项目开发活动，推测需要修改脚本权限"
-    }
-  ],
-  "metadata": {
-    "totalCommands": 22,
-    "averageConfidence": 0.9
-  }
-}
+[useTerminalInit] Initializing terminal...
+useTerminalInit.ts:81 Uncaught TypeError: Cannot read properties of undefined (reading 'decPrivateModes')
+    at useTerminalInit.ts:81:1
+    at commitHookEffectListMount (react-dom.development.js:23189:1)
+    at commitPassiveMountOnFiber (react-dom.development.js:24970:1)
+    at commitPassiveMountEffects_complete (react-dom.development.js:24930:1)
+    at commitPassiveMountEffects_begin (react-dom.development.js:24917:1)
+    at commitPassiveMountEffects (react-dom.development.js:24905:1)
+    at flushPassiveEffectsImpl (react-dom.development.js:27078:1)
+    at flushPassiveEffects (react-dom.development.js:27023:1)
+    at performSyncWorkOnRoot (react-dom.development.js:26115:1)
+    at flushSyncCallbacks (react-dom.development.js:12042:1)
+（匿名） @ useTerminalInit.ts:81
+commitHookEffectListMount @ react-dom.development.js:23189
+commitPassiveMountOnFiber @ react-dom.development.js:24970
+commitPassiveMountEffects_complete @ react-dom.development.js:24930
+commitPassiveMountEffects_begin @ react-dom.development.js:24917
+commitPassiveMountEffects @ react-dom.development.js:24905
+flushPassiveEffectsImpl @ react-dom.development.js:27078
+flushPassiveEffects @ react-dom.development.js:27023
+performSyncWorkOnRoot @ react-dom.development.js:26115
+flushSyncCallbacks @ react-dom.development.js:12042
+commitRootImpl @ react-dom.development.js:26998
+commitRoot @ react-dom.development.js:26721
+finishConcurrentRender @ react-dom.development.js:26020
+performConcurrentWorkOnRoot @ react-dom.development.js:25848
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+processImmediate @ node:internal/timers:476
+react-dom.development.js:18704 The above error occurred in the <Terminal> component:
 
-AnalysisStateManager.ts:315 [AnalysisStateManager] 保存分析结果失败: RangeError: Too many parameter values were provided
-    at AnalysisStateManager.ts:296:1
-    at sqliteTransaction (E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\transaction.js:65:24)
-    at AnalysisStateManager.saveAnalysisResult (AnalysisStateManager.ts:302:14)
-    at AnalysisScheduler.runAIAnalysis (AnalysisScheduler.ts:99:1)
-    at async AnalysisScheduler.scheduleAnalysis (AnalysisScheduler.ts:125:1)
+    at Terminal (http://localhost:3000/renderer.js:365177:21)
+    at div
+    at div
+    at TerminalTabContent (http://localhost:3000/renderer.js:363995:31)
+    at div
+    at http://localhost:3000/renderer.js:244164:24
+    at DomWrapper (http://localhost:3000/renderer.js:224021:90)
+    at http://localhost:3000/renderer.js:223721:32
+    at div
+    at div
+    at TabPanelList (http://localhost:3000/renderer.js:244222:17)
+    at div
+    at Tabs (http://localhost:3000/renderer.js:244327:17)
+    at Tabs (http://localhost:3000/renderer.js:75531:17)
+    at div
+    at div
+    at TerminalTabsManager (http://localhost:3000/renderer.js:364091:32)
+    at main
+    at http://localhost:3000/renderer.js:65136:25
+    at http://localhost:3000/renderer.js:65119:66
+    at section
+    at http://localhost:3000/renderer.js:65149:63
+    at http://localhost:3000/renderer.js:65119:66
+    at section
+    at http://localhost:3000/renderer.js:65149:63
+    at http://localhost:3000/renderer.js:65119:66
+    at App (http://localhost:3000/renderer.js:360531:68)
+    at Provider (http://localhost:3000/renderer.js:383163:11)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ react-dom.development.js:18704
+update.callback @ react-dom.development.js:18737
+callCallback @ react-dom.development.js:15036
+commitUpdateQueue @ react-dom.development.js:15057
+commitLayoutEffectOnFiber @ react-dom.development.js:23430
+commitLayoutMountEffects_complete @ react-dom.development.js:24727
+commitLayoutEffects_begin @ react-dom.development.js:24713
+commitLayoutEffects @ react-dom.development.js:24651
+commitRootImpl @ react-dom.development.js:26862
+commitRoot @ react-dom.development.js:26721
+performSyncWorkOnRoot @ react-dom.development.js:26156
+flushSyncCallbacks @ react-dom.development.js:12042
+commitRootImpl @ react-dom.development.js:26998
+commitRoot @ react-dom.development.js:26721
+finishConcurrentRender @ react-dom.development.js:26020
+performConcurrentWorkOnRoot @ react-dom.development.js:25848
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+processImmediate @ node:internal/timers:476
+useTerminalInit.ts:81 Uncaught TypeError: Cannot read properties of undefined (reading 'decPrivateModes')
+    at useTerminalInit.ts:81:1
+    at commitHookEffectListMount (react-dom.development.js:23189:1)
+    at commitPassiveMountOnFiber (react-dom.development.js:24970:1)
+    at commitPassiveMountEffects_complete (react-dom.development.js:24930:1)
+    at commitPassiveMountEffects_begin (react-dom.development.js:24917:1)
+    at commitPassiveMountEffects (react-dom.development.js:24905:1)
+    at flushPassiveEffectsImpl (react-dom.development.js:27078:1)
+    at flushPassiveEffects (react-dom.development.js:27023:1)
+    at performSyncWorkOnRoot (react-dom.development.js:26115:1)
+    at flushSyncCallbacks (react-dom.development.js:12042:1)

@@ -109,18 +109,13 @@ export const useTerminalInit = ({
       cursorStyle: 'block',
       allowTransparency: true,
       scrollback: 1000,
-      convertEol: true,
+      convertEol: false,
       disableStdin: false,
-      cols: 120,
-      rows: 30,
       wordSeparator: ' ()[]{}\'"',
       windowsMode: process.platform === 'win32',
       lineHeight: 1.2,
-      rightClickSelectsWord: false,
+      rightClickSelectsWord: false
     });
-
-    // 设置终端选项
-    (terminal as any)._core.wraparoundMode = true;
 
     // 创建插件
     const fitAddon = new FitAddon();
@@ -134,7 +129,17 @@ export const useTerminalInit = ({
 
     // 打开终端
     terminal.open(containerRef.current);
-    fitAddon.fit();
+    
+    // 立即执行一次 fit 来设置正确的大小
+    try {
+      fitAddon.fit();
+      console.log('[useTerminalInit] Initial terminal size:', { 
+        cols: terminal.cols, 
+        rows: terminal.rows 
+      });
+    } catch (error) {
+      console.error('[useTerminalInit] Failed to fit terminal:', error);
+    }
 
     // 保存引用
     terminalRef.current = terminal;
@@ -199,15 +204,11 @@ export const useTerminalInit = ({
         const newCols = terminal.cols;
         const newRows = terminal.rows;
         
-        // 确保自动换行模式开启
-        (terminal as any)._core.wraparoundMode = true;
-        
         console.log('[useTerminalInit] New dimensions:', { 
           width,
           height,
           cols: newCols,
-          rows: newRows,
-          wraparoundMode: (terminal as any)._core.wraparoundMode
+          rows: newRows
         });
         
         // 如果已连接，发送新的尺寸到SSH服务
@@ -221,11 +222,17 @@ export const useTerminalInit = ({
       }
     };
 
-    // 添加防抖处理
-    const debouncedResize = debounce(resizeHandler, 100);
+    // 添加防抖处理，但减少延迟时间以提高响应速度
+    const debouncedResize = debounce(resizeHandler, 50);
 
     // 注册resize事件
     window.addEventListener('resize', debouncedResize);
+    // 监听容器大小变化
+    const resizeObserver = new ResizeObserver(debouncedResize);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
     terminal.onResize(({ cols, rows }) => {
       console.log('[useTerminalInit] Terminal resized:', { cols, rows });
     });
@@ -307,6 +314,7 @@ export const useTerminalInit = ({
     return () => {
       console.log('[useTerminalInit] Cleaning up terminal...');
       window.removeEventListener('resize', debouncedResize);
+      resizeObserver.disconnect();
 
       // 断开 SSH 连接
       if (shellIdRef.current) {

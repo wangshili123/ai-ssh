@@ -128,13 +128,10 @@ class SSHService {
       // 设置 PTY 选项，启用正确的终端模式
       const ptyConfig = {
         term: 'xterm-256color',
-        rows: 24,
-        cols: 80,
-        // 启用 PTY 模式
-        pty: true
+        pty: true,
       };
 
-      conn.shell(ptyConfig, (err, stream) => {
+      conn.shell((err, stream) => {
         if (err) {
           console.error('Failed to create shell:', err);
           reject(err);
