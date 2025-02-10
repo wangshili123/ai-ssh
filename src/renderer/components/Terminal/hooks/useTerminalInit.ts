@@ -282,6 +282,10 @@ export const useTerminalInit = ({
                 shellId: shellIdRef.current || '', 
                 connected: false 
               });
+            },
+            {
+              cols: terminal.cols,
+              rows: terminal.rows
             }
           );
         })

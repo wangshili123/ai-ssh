@@ -29,9 +29,9 @@ export function initSSHHandlers() {
   });
 
   // 创建Shell会话
-  ipcMain.handle('ssh:create-shell', async (_, sessionId: string) => {
+  ipcMain.handle('ssh:create-shell', async (_, sessionId: string, initialSize?: { rows: number; cols: number }) => {
     try {
-      await sshService.createShell(sessionId);
+      await sshService.createShell(sessionId, initialSize);
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };

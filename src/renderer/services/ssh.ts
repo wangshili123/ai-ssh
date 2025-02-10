@@ -35,7 +35,12 @@ class SSHService {
     }
   }
 
-  async createShell(sessionId: string, onData: (data: string) => void, onClose?: () => void) {
+  async createShell(
+    sessionId: string, 
+    onData: (data: string) => void,
+    onClose?: () => void,
+    initialSize?: { rows: number; cols: number }
+  ) {
     const dataChannel = `ssh:data:${sessionId}`;
     const closeChannel = `ssh:close:${sessionId}`;
     
@@ -55,7 +60,7 @@ class SSHService {
       });
     }
 
-    const result = await ipcRenderer.invoke('ssh:create-shell', sessionId);
+    const result = await ipcRenderer.invoke('ssh:create-shell', sessionId, initialSize);
     if (!result.success) {
       ipcRenderer.removeAllListeners(dataChannel);
       ipcRenderer.removeAllListeners(closeChannel);

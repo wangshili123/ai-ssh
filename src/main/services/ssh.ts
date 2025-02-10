@@ -105,7 +105,10 @@ class SSHService {
     }
   }
 
-  async createShell(shellId: string) {
+  async createShell(
+    shellId: string,
+    initialSize?: { rows: number; cols: number }
+  ) {
     // 从 shellId 中提取 sessionId
     const sessionId = shellId.split('-')[0];
     const conn = this.connections.get(sessionId);
@@ -123,15 +126,19 @@ class SSHService {
         this.shells.delete(shellId);
       }
     }
-
+    console.log(`[SSH] Creating shell with config:`, initialSize);
     return new Promise<void>((resolve, reject) => {
       // 设置 PTY 选项，启用正确的终端模式
       const ptyConfig = {
         term: 'xterm-256color',
         pty: true,
+        rows: initialSize?.rows || 24,  // 使用传入的尺寸或默认值
+        cols: initialSize?.cols || 80    // 使用传入的尺寸或默认值
       };
 
-      conn.shell((err, stream) => {
+      console.log(`[SSH] Creating shell with config:`, ptyConfig);
+
+      conn.shell(ptyConfig, (err, stream) => {
         if (err) {
           console.error('Failed to create shell:', err);
           reject(err);
