@@ -159,6 +159,19 @@ class EventBus extends EventEmitter {
   }
 
   /**
+   * 检查是否还有其他标签页使用相同的sessionId
+   */
+  hasOtherTabsWithSession(currentTabId: string, sessionId: string): boolean {
+    console.log('[EventBus] 检查其他标签页:', { currentTabId, sessionId });
+    for (const [tabId, tabInfo] of this.tabMap.entries()) {
+      if (tabId !== currentTabId && tabInfo.sessionInfo?.id === sessionId) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * 获取当前会话ID
    */
   getCurrentSessionId(): string {

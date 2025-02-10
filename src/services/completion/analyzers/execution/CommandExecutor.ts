@@ -7,13 +7,18 @@ export class CommandExecutor {
   private constructor() {
     // 监听标签页删除事件
     eventBus.on('completion:tab-remove', (tabInfo: TabInfo) => {
-      //todo 清理之前先判断同一个sessionId的tab是否存在
-      
-      console.log('[CommandExecutor] 标签页被删除，清理连接:', tabInfo.tabId);
-      if (tabInfo.sessionInfo?.id) {
-        sshService.cleanupConnection(tabInfo.sessionInfo.id);
+      console.log('[CommandExecutor] 标签页被删除，准备清理连接:', tabInfo);
+      if (tabInfo?.sessionInfo?.id) {
+        const sessionId = tabInfo.sessionInfo.id;
+        
+        // 检查是否还有其他标签页使用相同的sessionId
+        if (!eventBus.hasOtherTabsWithSession(tabInfo.tabId, sessionId)) {
+          console.log(`[CommandExecutor] 没有其他标签页使用此连接，清理连接: ${sessionId}`);
+          sshService.cleanupConnection(sessionId);
+        } else {
+          console.log(`[CommandExecutor] 还有其他标签页使用此连接，保持连接: ${sessionId}`);
+        }
       }
-
     });
   }
 
