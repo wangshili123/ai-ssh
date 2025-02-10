@@ -60,7 +60,8 @@ export class AIAnalyzer {
         messages: input.messages,
         temperature: config.temperature,
         max_tokens: config.maxTokens,
-        response_format: { type: 'json_object' }
+        response_format: { type: 'json_object' },
+        stream: false
       };
 
       const response = await fetch(`${config.baseURL}/chat/completions`, {

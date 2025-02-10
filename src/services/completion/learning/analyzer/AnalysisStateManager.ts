@@ -395,8 +395,17 @@ export class AnalysisStateManager {
   }>) {
     try {
       // 1. 保存补全结果
-      const stmt = this.dbService.getDatabase().prepare(`
-        INSERT OR REPLACE INTO ai_completions (
+      const updateStmt = this.dbService.getDatabase().prepare(`
+        UPDATE ai_completions 
+        SET frequency = frequency + ?,
+            confidence = ?,
+            context = ?,
+            created_at = CURRENT_TIMESTAMP
+        WHERE command = ?
+      `);
+
+      const insertStmt = this.dbService.getDatabase().prepare(`
+        INSERT INTO ai_completions (
           command,
           parts,
           frequency,
@@ -404,27 +413,29 @@ export class AnalysisStateManager {
           context,
           created_at
         ) 
-        VALUES (
-          ?,
-          ?,
-          COALESCE((SELECT frequency + ? FROM ai_completions WHERE command = ?), ?),
-          ?,
-          ?,
-          CURRENT_TIMESTAMP
-        )
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `);
 
       this.dbService.getDatabase().transaction(() => {
         for (const completion of result.completions) {
-          stmt.run(
-            completion.command,
-            completion.parts ? JSON.stringify(completion.parts) : null,
+          // 先尝试更新
+          const updateResult = updateStmt.run(
             completion.frequency,
-            completion.command,  // 用于 COALESCE 查询
-            completion.frequency, // 如果不存在则使用新的频率
             completion.confidence,
-            completion.context
+            completion.context,
+            completion.command
           );
+
+          // 如果没有更新到任何记录，则插入新记录
+          if (updateResult.changes === 0) {
+            insertStmt.run(
+              completion.command,
+              completion.parts ? JSON.stringify(completion.parts) : null,
+              completion.frequency,
+              completion.confidence,
+              completion.context
+            );
+          }
         }
       })();
 
