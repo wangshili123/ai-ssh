@@ -108,13 +108,17 @@ export const useTerminalInit = ({
       cursorBlink: true,
       cursorStyle: 'block',
       allowTransparency: true,
-      scrollback: 1000,
+      scrollback: 3000,
       convertEol: false,
       disableStdin: false,
       wordSeparator: ' ()[]{}\'"',
       windowsMode: process.platform === 'win32',
       lineHeight: 1.2,
-      rightClickSelectsWord: false
+      rightClickSelectsWord: false,
+      scrollSensitivity: 0.3,
+      fastScrollModifier: 'alt',
+      fastScrollSensitivity: 3,
+      smoothScrollDuration: 200
     });
 
     // 创建插件
