@@ -45,67 +45,101 @@ export const useCompletion = ({
   const [dropdownPosition, setDropdownPosition] = useState({ left: 0, top: 0 });
   const cursorPositionRef = useRef({ x: 0, y: 0 });
 
-  // 计算光标位置
-  const calculateCursorPosition = useCallback(() => {
-    if (!terminalRef.current) {
-      console.log('[useCompletion] calculateCursorPosition: terminalRef.current is null');
+  
+ // 计算光标位置
+ const calculateCursorPosition = useCallback(() => {
+  if (!terminalRef.current) {
+    console.log('[useCompletion] calculateCursorPosition: terminalRef.current is null');
+    return { left: 0, top: 0 };
+  }
+
+  const terminal = terminalRef.current;
+  
+  try {
+    // 获取终端元素的位置
+    const rect = terminal.element?.getBoundingClientRect();
+    console.log('[useCompletion] rect:', {rect});
+    if (!rect) {
+      console.log('[useCompletion] Terminal element rect is null');
       return { left: 0, top: 0 };
     }
 
-    const terminal = terminalRef.current;
+    // 使用 xterm.js 的 buffer 属性获取光标位置
+    const cursorRow = terminal.buffer.active.cursorY;
+    const cursorCol = terminal.buffer.active.cursorX;
+    console.log('[useCompletion] terminal:', {terminal});
+    // 获取字符单元格尺寸
+    const core = (terminal as any)._core;
+    if (!core || !core._renderService || !core._renderService.dimensions) {
+      console.log('[useCompletion] Render service not found');
+      return { left: 0, top: 0 };
+    }
+
+    const dims = core._renderService.dimensions;
+    const cellWidth = dims.css.cell.width;
+    const cellHeight = dims.css.cell.height;
+    console.log('[useCompletion] dims:', {dims});
+    console.log('[useCompletion] cell:', {cellWidth,cellHeight});
     
+    // 计算下拉框位置
+    const left = ((cursorCol+1) * cellWidth);
+    
+    // 计算下拉框的预期高度（包括内边距和边框）
+    const dropdownHeight = Math.min(suggestions.length * 44, 300); // 每个选项约28px，最大高度300px
+    
+    // 获取终端的实际滚动位置和可见行数
+    let viewportY = 0;
     try {
-      // 获取终端元素的位置
-      const rect = terminal.element?.getBoundingClientRect();
-      if (!rect) {
-        console.log('[useCompletion] Terminal element rect is null');
-        return { left: 0, top: 0 };
+      // 尝试获取viewport的滚动位置
+      if (core._renderService.viewportElement) {
+        viewportY = core._renderService.viewportElement.scrollTop;
+      } else if (core._renderService.viewport?._viewportElement) {
+        // 备选路径
+        viewportY = core._renderService.viewport._viewportElement.scrollTop;
       }
-
-      // 获取终端的核心渲染服务
-      const core = (terminal as any)._core;
-      if (!core || !core._renderService || !core._renderService.dimensions) {
-        console.log('[useCompletion] Render service not found');
-        return { left: 0, top: 0 };
-      }
-
-      // 获取字符单元格尺寸
-      const dims = core._renderService.dimensions;
-      const cellWidth = dims.css.cell.width;
-      const cellHeight = dims.css.cell.height;
-
-      // 获取光标位置
-      const cursorRow = terminal.buffer.active.cursorY;
-      const cursorCol = terminal.buffer.active.cursorX;
-
-      // 获取终端的滚动位置
-      const viewportElement = core._renderService.viewportElement;
-      const scrollTop = viewportElement ? viewportElement.scrollTop : 0;
-
-      // 计算实际可见行
-      const visibleRow = cursorRow - Math.floor(scrollTop / cellHeight);
-
-      // 计算光标的绝对位置
-      const left = rect.left + (cursorCol * cellWidth);
-      const top = rect.top + (visibleRow * cellHeight);
-
-      console.log('[useCompletion] Position calculation:', {
-        cursorRow,
-        cursorCol,
-        scrollTop,
-        visibleRow,
-        cellWidth,
-        cellHeight,
-        left,
-        top
-      });
-
-      return { left, top };
-    } catch (error) {
-      console.error('[useCompletion] Error calculating cursor position:', error);
-      return { left: 0, top: 0 };
+    } catch (e) {
+      console.warn('[useCompletion] Unable to get viewport scroll position:', e);
     }
-  }, [terminalRef]);
+
+    // 计算实际可见行
+    const rowInView = cursorRow - Math.floor(viewportY / cellHeight);
+    
+    // 计算在光标下方显示时的位置（考虑滚动位置）+1是因为cursorRow从0开始。+5是因为拉开一点，看情况
+    const bottomPosition = ((cursorRow+1) * cellHeight)+5;
+    console.log('[useCompletion] bottomPosition:', {bottomPosition,rowInView,cellHeight});
+    // 检查是否会超出终端底部,用终端可视行数的高度来判断
+    const terminalBottom = terminal.rows * cellHeight;
+    const wouldExceedBottom = (bottomPosition + dropdownHeight) > terminalBottom;
+
+    console.log('[useCompletion] Scroll info:', { 
+      viewportY,
+      rowInView,
+      actualRow: cursorRow,
+      bottomPosition,
+      terminalBottom,
+      dropdownHeight,
+      wouldExceedBottom
+    });
+    
+    // 如果会超出底部，则显示在光标上方
+    const top = wouldExceedBottom
+      ? bottomPosition - dropdownHeight // 上移一行高度
+      : bottomPosition;
+
+    console.log('[useCompletion] Terminal rect:', rect);
+    console.log('[useCompletion] Current cursor:', { row: cursorRow, col: cursorCol });
+    console.log('[useCompletion] Cell dimensions:', { cellWidth, cellHeight });
+    console.log('[useCompletion] Dropdown dimensions:', { height: dropdownHeight });
+    console.log('[useCompletion] Would exceed bottom:', wouldExceedBottom);
+    console.log('[useCompletion] Calculated position:', { left, top });
+
+    return { left, top };
+  } catch (error) {
+    console.error('[useCompletion] Error calculating cursor position:', error);
+    return { left: 0, top: 0 };
+  }
+}, [terminalRef, suggestions.length]);
+
 
   // 更新下拉框位置
   const updatePosition = useCallback(() => {

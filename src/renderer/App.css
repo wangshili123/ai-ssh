@@ -52,6 +52,7 @@
   background: #fff !important;
   transition: all 0.3s cubic-bezier(0.2, 0, 0, 1) !important;
   position: relative;
+  z-index: 2;
 }
 
 /* 修改折叠方向 */
@@ -86,6 +87,7 @@
   cursor: col-resize;
   background: transparent;
   transition: background-color 0.3s;
+  z-index: 10;
 }
 
 .resize-handle:hover {

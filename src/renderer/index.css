@@ -27,8 +27,8 @@ body {
   z-index: 1;
 }
 
-/* 处理 xterm.js 的测量容器 */
-body > div:not(#root) {
+/* 专门处理 xterm.js 的测量容器 */
+body > div[style*="-50000px"] {
   position: fixed !important;
   visibility: hidden;
 }
