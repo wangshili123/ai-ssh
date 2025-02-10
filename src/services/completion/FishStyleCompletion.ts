@@ -86,8 +86,7 @@ export class FishStyleCompletion {
     return JSON.stringify({
       name: command.name,
       args: command.args,
-      options: command.options,
-      hasSSH: !!context.sshSession
+      options: command.options
     });
   }
 
@@ -133,25 +132,24 @@ export class FishStyleCompletion {
         fileList: [] as Array<{ name: string; isDirectory: boolean }>,
         envVars: {} as Record<string, string>
       };
-      console.log('[FishStyleCompletion] 获取共用数据,sshSession:', context.sshSession);
-      if (context.sshSession) {
-        const tabId = eventBus.getCurrentTabId();
-        // 获取文件列表（如果需要的话）
-        if (this.needsFileCompletion(command)) {
-          try {
-            const lsResult = await this.sshManager.executeCommandForTab(tabId, 'ls -1aU | cat');
-            commonData.fileList = lsResult.stdout.split('\n')
-              .map(line => line.trim())
-              .filter(line => line && line !== '.' && line !== '..')
-              .map(name => ({
-                name,
-                isDirectory: name.endsWith('/')
-              }));
-            console.log('[FishStyleCompletion] 预加载的文件列表:', commonData.fileList);
-          } catch (error) {
-            console.error('[FishStyleCompletion] 获取文件列表失败:', error);
-          }
+
+      const tabId = eventBus.getCurrentTabId();
+      // 获取文件列表（如果需要的话）
+      if (this.needsFileCompletion(command)) {
+        try {
+          const lsResult = await this.sshManager.executeCommandForTab(tabId, 'ls -1aU | cat');
+          commonData.fileList = lsResult.stdout.split('\n')
+            .map(line => line.trim())
+            .filter(line => line && line !== '.' && line !== '..')
+            .map(name => ({
+              name,
+              isDirectory: name.endsWith('/')
+            }));
+          console.log('[FishStyleCompletion] 预加载的文件列表:', commonData.fileList);
+        } catch (error) {
+          console.error('[FishStyleCompletion] 获取文件列表失败:', error);
         }
+      }
 
         // 获取环境变量（如果需要的话）
         if (this.needsEnvCompletion(command)) {
@@ -166,7 +164,7 @@ export class FishStyleCompletion {
             console.error('[FishStyleCompletion] 获取环境变量失败:', error);
           }
         }
-      }
+      
 
       // 1. 获取智能语法补全
       const syntaxSuggestions = await this.getIntelligentSyntaxCompletions(command, context, commonData);
@@ -177,10 +175,8 @@ export class FishStyleCompletion {
       suggestions.push(...historySuggestions);
 
       // 3. 获取 SSH 补全（如果在 SSH 会话中）
-      if (context.sshSession) {
-        const sshSuggestions = await this.getSSHCompletions(command, context, commonData);
+      const sshSuggestions = await this.getSSHCompletions(command, context, commonData);
         suggestions.push(...sshSuggestions);
-      }
 
       // 缓存结果
       this.cacheSuggestions(command, context, suggestions);

@@ -25,7 +25,6 @@ export interface CompletionSuggestion {
 export interface CompletionContext {
   tabId: string;
   recentCommands: string[];
-  sshSession?: any;  // 根据实际SSH会话类型定义
   commandHistory: {
     frequency: number;
     lastUsed: Date;

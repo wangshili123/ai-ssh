@@ -9,7 +9,6 @@ import { EnhancedContextAnalyzer } from './analyzers/EnhancedContextAnalyzer';
 import { SessionState, EnhancedContext } from './core/types/context.types';
 import { ScoringService } from './scoring/ScoringService';
 import { SSHSession } from './SSHCompletion';
-import { SSHConnectionManager } from '../ssh/SSHConnectionManager';
 import { CompletionSSHManager } from './CompletionSSHManager';
 import { SuggestionCache } from './cache/SuggestionCache';
 import { AnalysisScheduler } from './learning/analyzer/AnalysisScheduler';
@@ -117,7 +116,6 @@ export class CompletionService {
 
     // 转换为简化的上下文
     const simplifiedContext: EnhancedContext = {
-      sshSession: await this.getSSHSession(params.sessionState),
       currentDirectory: enhancedContext.environment.currentDirectory,
       shellType: params.sessionState.shellType,
       commandHistory: {
@@ -212,7 +210,6 @@ export class CompletionService {
 
     const suggestions = await this.fishCompletion.getSuggestions(command, {
       tabId: 'default',
-      sshSession: context.sshSession,
       recentCommands: context.commandHistory?.recent.map(r => r.command) || [],
       commandHistory: {
         frequency: context.commandHistory?.statistics[0]?.frequency || 0,
@@ -352,37 +349,4 @@ export class CompletionService {
     });
   }
 
-  private async getSSHSession(sessionState: SessionState): Promise<SSHSession | undefined> {
-    try {
-      const sshManager = SSHConnectionManager.getInstance();
-
-      return {
-        execute: async (command: string) => {
-          const result = await sshManager.executeCurrentSessionCommand(command);
-          return {
-            stdout: result.stdout,
-            stderr: result.stderr
-          };
-        },
-        getCurrentDirectory: async () => {
-          const currentDirectory = CompletionSSHManager.getInstance().getCurrentDirectoryN();
-          console.log('[CompletionService] 当前目录:', currentDirectory);
-          return currentDirectory;
-        },
-        getEnvironmentVars: async () => {
-          const result = await sshManager.executeCurrentSessionCommand('env');
-          const vars: Record<string, string> = {};
-          result.stdout.split('\n').forEach((line: string) => {
-            const [key, ...values] = line.split('=');
-            if (key) vars[key] = values.join('=');
-          });
-          console.log('[CompletionService] 环境变量:', vars);
-          return vars;
-        }
-      };
-    } catch (error) {
-      console.error('[CompletionService] 获取 SSH 会话失败:', error);
-      return undefined;
-    }
-  }
 } 
