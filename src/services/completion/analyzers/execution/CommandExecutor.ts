@@ -2,7 +2,7 @@ import { sshService } from '@/main/services/ssh';
 import { eventBus } from '@/renderer/services/eventBus';
 
 export class CommandExecutor {
-  private static instance: CommandExecutor;
+  private static instance: CommandExecutor = CommandExecutor.getInstance();
 
   private constructor() {}
 
@@ -11,6 +11,30 @@ export class CommandExecutor {
       CommandExecutor.instance = new CommandExecutor();
     }
     return CommandExecutor.instance;
+  }
+
+  public static async initializeConnection(): Promise<void> {
+    console.log('[CommandExecutor] 开始初始化补全执行命令的SSH连接');
+    try {
+      const sessionId = eventBus.getCurrentSessionId();
+      if (!sessionId) {
+        return;
+      }
+
+      let connection = sshService.getConnection(sessionId);
+      if (!connection) {
+        const sessionInfo = eventBus.getCurrentSessionInfo();
+        if (!sessionInfo) {
+          return;
+        }
+
+        console.log('[CommandExecutor] 正在预初始化SSH连接...');
+        await sshService.connect(sessionInfo);
+        console.log('[CommandExecutor] SSH连接预初始化完成');
+      }
+    } catch (error) {
+      console.error('[CommandExecutor] 初始化SSH连接失败:', error);
+    }
   }
 
   public async executeCommand(command: string): Promise<string> {

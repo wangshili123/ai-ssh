@@ -85,7 +85,14 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
       sessionInfo
     };
     eventBus.addTabInfo(tabInfo);
-   
+    eventBus.emit('tab-create', tabInfo as TabInfo & { isNew: boolean });
+
+    // 预初始化SSH连接
+    void (async () => {
+      const { CommandExecutor } = await import('@/services/completion/analyzers/execution/CommandExecutor');
+      await CommandExecutor.initializeConnection();
+    })();
+
     console.log('[TerminalTabsManager] 新标签页创建完成:', { tabId, shellId, sessionInfo });
     
   }, [triggerNewTab, sessionInfo, mounted, tabs.length]);
