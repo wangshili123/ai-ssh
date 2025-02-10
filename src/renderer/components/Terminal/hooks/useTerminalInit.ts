@@ -189,7 +189,7 @@ export const useTerminalInit = ({
     });
 
     // 优化resize处理函数
-    const resizeHandler = () => {
+    const resizeHandler = async () => {
       if (!containerRef.current || !terminal || !fitAddon) return;
       
       try {
@@ -197,32 +197,43 @@ export const useTerminalInit = ({
         const { width, height } = containerRef.current.getBoundingClientRect();
         console.log('[useTerminalInit] Container size:', { width, height });
         
-        // 先执行fit
+        // 先获取当前尺寸
+        const oldCols = terminal.cols;
+        const oldRows = terminal.rows;
+        
+        // 执行fit
         fitAddon.fit();
         
         // 获取新的尺寸
         const newCols = terminal.cols;
         const newRows = terminal.rows;
         
-        console.log('[useTerminalInit] New dimensions:', { 
-          width,
-          height,
-          cols: newCols,
-          rows: newRows
-        });
-        
-        // 如果已连接，发送新的尺寸到SSH服务
-        if (shellIdRef.current) {
-          sshService.resize(shellIdRef.current, newRows, newCols).catch((error) => {
-            console.error('[useTerminalInit] Failed to resize terminal:', error);
+        // 只有当尺寸真的变化时才进行处理
+        if (oldCols !== newCols || oldRows !== newRows) {
+          console.log('[useTerminalInit] Size changed:', { 
+            old: { cols: oldCols, rows: oldRows },
+            new: { cols: newCols, rows: newRows }
           });
+          
+          // 如果已连接，先发送新的尺寸到SSH服务
+          if (shellIdRef.current) {
+            try {
+              await sshService.resize(shellIdRef.current, newCols, newRows);
+              console.log('[useTerminalInit] SSH resize successful');
+            } catch (error) {
+              console.error('[useTerminalInit] Failed to resize SSH:', error);
+            }
+          }
+          
+          // 刷新终端显示
+          terminal.refresh(0, terminal.rows - 1);
         }
       } catch (error) {
         console.error('[useTerminalInit] Error in resize handler:', error);
       }
     };
 
-    // 添加防抖处理，但减少延迟时间以提高响应速度
+    // 添加防抖处理，使用较短的延迟时间
     const debouncedResize = debounce(resizeHandler, 50);
 
     // 注册resize事件
@@ -233,8 +244,15 @@ export const useTerminalInit = ({
       resizeObserver.observe(containerRef.current);
     }
     
+    // 监听终端大小变化
     terminal.onResize(({ cols, rows }) => {
       console.log('[useTerminalInit] Terminal resized:', { cols, rows });
+      if (shellIdRef.current) {
+        // 直接调用 resizeHandler 而不是单独发送 resize 命令
+        resizeHandler().catch(error => {
+          console.error('[useTerminalInit] Failed to handle terminal resize:', error);
+        });
+      }
     });
 
     // 如果有会话信息，创建 SSH 连接
