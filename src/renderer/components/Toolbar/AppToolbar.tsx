@@ -1,14 +1,19 @@
 import React from 'react';
 import { Button, Tooltip } from 'antd';
 import { FolderOutlined } from '@ant-design/icons';
+import AIToolbarButton from './AIToolbarButton';
 import './AppToolbar.css';
 
 interface AppToolbarProps {
   onSessionListOpen: () => void;
+  isAICollapsed: boolean;
+  onAICollapse: (collapsed: boolean) => void;
 }
 
 const AppToolbar: React.FC<AppToolbarProps> = ({
   onSessionListOpen,
+  isAICollapsed,
+  onAICollapse,
 }) => {
   return (
     <div className="app-toolbar">
@@ -21,6 +26,10 @@ const AppToolbar: React.FC<AppToolbarProps> = ({
             className="toolbar-button"
           />
         </Tooltip>
+        <AIToolbarButton 
+          isVisible={!isAICollapsed}
+          onClick={() => onAICollapse(!isAICollapsed)}
+        />
       </div>
     </div>
   );

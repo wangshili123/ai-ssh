@@ -70,14 +70,6 @@
   position: relative !important;
 }
 
-.ai-sider.ant-layout-sider-collapsed {
-  width: 40px !important;
-  min-width: 40px !important;
-  max-width: 40px !important;
-  flex: 0 0 40px !important;
-  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1) !important;
-}
-
 .resize-handle {
   position: absolute;
   left: 0;
@@ -92,10 +84,6 @@
 
 .resize-handle:hover {
   background: var(--resize-handle-hover, rgba(0, 0, 0, 0.1));
-}
-
-.ai-sider.ant-layout-sider-collapsed .resize-handle {
-  display: none;
 }
 
 .ai-assistant-container {
