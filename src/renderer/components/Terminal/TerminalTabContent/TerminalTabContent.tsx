@@ -28,7 +28,8 @@ function throttle<T extends (...args: any[]) => void>(func: T, limit: number): T
 const TerminalTabContent: React.FC<TerminalTabContentProps> = ({ 
   sessionInfo, 
   instanceId, 
-  tabId
+  tabId,
+  isFileBrowserVisible
 }) => {
   // 仅用于布局的状态
   const [splitHeight, setSplitHeight] = useState(300);
@@ -77,23 +78,24 @@ const TerminalTabContent: React.FC<TerminalTabContentProps> = ({
         />
       </div>
       
-      {/* 分隔条 */}
-      <Resizable
-        size={{ height: splitHeight, width: '100%' }}
-        onResize={handleResize}
-        onResizeStop={handleResizeStop}
-        minHeight={100}
-        maxHeight={800}
-        enable={{ top: true }}
-      >
-        {/* 文件浏览器区域 */}
-        <div className="file-browser-area">
-          <FileBrowserMain
-            sessionInfo={sessionInfo}
-            tabId={tabId}
-          />
-        </div>
-      </Resizable>
+      {isFileBrowserVisible && (
+        <Resizable
+          size={{ height: splitHeight, width: '100%' }}
+          onResize={handleResize}
+          onResizeStop={handleResizeStop}
+          minHeight={100}
+          maxHeight={800}
+          enable={{ top: true }}
+        >
+          {/* 文件浏览器区域 */}
+          <div className="file-browser-area">
+            <FileBrowserMain
+              sessionInfo={sessionInfo}
+              tabId={tabId}
+            />
+          </div>
+        </Resizable>
+      )}
     </div>
   );
 };

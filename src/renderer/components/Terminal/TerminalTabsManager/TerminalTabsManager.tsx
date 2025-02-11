@@ -15,7 +15,8 @@ import './TerminalTabsManager.css';
 const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({ 
   sessionInfo, 
   triggerNewTab,
-  onTabChange 
+  onTabChange,
+  isFileBrowserVisible
 }) => {
   console.log('[TerminalTabsManager] 组件渲染:', { sessionInfo, triggerNewTab });
 
@@ -206,6 +207,7 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
                 sessionInfo={tab.sessionInfo}
                 instanceId={tab.instanceId}
                 tabId={tab.tabId}
+                isFileBrowserVisible={isFileBrowserVisible}
               />
             )
           }))}

@@ -35,7 +35,7 @@
 .toolbar-button:hover,
 .ai-toolbar-button:hover {
   background-color: var(--button-hover-bg, #e6f4ff) !important;
-  color: var(--primary-color, #1890ff) !important;
+  color: var(--primary-color, #1890ffbd) !important;
 }
 
 /* 按钮激活状态 */

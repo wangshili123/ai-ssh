@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [currentTabId, setCurrentTabId] = useState<string>('');
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [sessionListVisible, setSessionListVisible] = useState(false);
+  const [isFileBrowserVisible, setIsFileBrowserVisible] = useState(true);
 
   // 初始化数据库和基础服务
   useEffect(() => {
@@ -70,6 +71,8 @@ const App: React.FC = () => {
         onSessionListOpen={() => setSessionListVisible(true)}
         isAICollapsed={isCollapsed}
         onAICollapse={setIsCollapsed}
+        isFileBrowserVisible={isFileBrowserVisible}
+        onFileBrowserVisibleChange={setIsFileBrowserVisible}
       />
       <Layout>
         <Content className="main-content">
@@ -77,6 +80,7 @@ const App: React.FC = () => {
             sessionInfo={activeSession}
             triggerNewTab={triggerNewTab}
             onTabChange={handleSessionSelect}
+            isFileBrowserVisible={isFileBrowserVisible}
           />
         </Content>
         

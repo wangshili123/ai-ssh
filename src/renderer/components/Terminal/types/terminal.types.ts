@@ -13,12 +13,14 @@ export interface TerminalTabsManagerProps {
   sessionInfo?: SessionInfo;
   triggerNewTab?: number;
   onTabChange?: (session: SessionInfo) => void;
+  isFileBrowserVisible: boolean;
 }
 
 export interface TerminalTabContentProps {
   sessionInfo: SessionInfo;
   instanceId: string;
   tabId: string;
+  isFileBrowserVisible: boolean;
 }
 
 export interface TerminalProps {
