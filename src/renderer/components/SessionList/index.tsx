@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { List, Button, Modal, Form, Input, Tree, Card, Typography, Dropdown, Badge, message, Select, InputNumber, Radio, Upload, Checkbox } from 'antd';
+import { List, Button, Modal, Form, Input, Tree, Card, Typography, Dropdown, Badge, message, Select, InputNumber, Radio, Upload, Checkbox, Divider, Space } from 'antd';
 import type { MenuProps } from 'antd';
 import { PlusOutlined, FolderOutlined, FolderOpenOutlined, EditOutlined, DeleteOutlined, CopyOutlined, UploadOutlined } from '@ant-design/icons';
 import { debounce } from 'lodash';
@@ -199,41 +199,52 @@ const SessionList: React.FC<SessionListProps> = ({
         }
       />
       <div className="session-actions">
-        <Button
-          type="primary"
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            // 直接触发选择事件，不创建tabId
-            onSelect?.(session);
-          }}
-        >
-          连接
-        </Button>
-        <Button
-          type="text"
-          icon={<EditOutlined />}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleEditSession(session);
-          }}
-        />
-        <Button
-          type="text"
-          icon={<CopyOutlined />}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleCopySession(session);
-          }}
-        />
-        <Button
-          type="text"
-          icon={<DeleteOutlined />}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDeleteSession(session);
-          }}
-        />
+        <Space>
+          <Button
+            type="primary"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect?.({...session, type: 'terminal'});
+            }}
+          >
+            终端连接
+          </Button>
+          <Button
+            type="default"
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect?.({...session, type: 'monitor'});
+            }}
+          >
+            监控连接
+          </Button>
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditSession(session);
+            }}
+          />
+          <Button
+            type="text"
+            icon={<CopyOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCopySession(session);
+            }}
+          />
+          <Button
+            type="text"
+            icon={<DeleteOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteSession(session);
+            }}
+          />
+        </Space>
       </div>
     </div>
   );
@@ -414,16 +425,17 @@ const SessionList: React.FC<SessionListProps> = ({
       const values = await sessionForm.validateFields();
       let newSessions: SessionInfo[];
       
-      // 处理监控类型特殊配置
+      // 处理会话数据
       const sessionData = {
         ...values,
         status: 'disconnected',
-        type: values.type || 'terminal',
-        // 如果是监控类型，转换刷新间隔为毫秒
-        ...(values.type === 'monitor' ? {
+        config: {
           refreshInterval: (values.refreshInterval || 5) * 1000,
-          autoRefresh: values.autoRefresh ?? true
-        } : {})
+          autoRefresh: values.autoRefresh ?? true,
+          defaultPage: values.defaultPage || 'process',
+          collectServiceInfo: values.collectServiceInfo ?? false,
+          recordHistory: values.recordHistory ?? false
+        }
       };
       
       if (editingSession) {
@@ -589,24 +601,22 @@ const SessionList: React.FC<SessionListProps> = ({
           open={isSessionModalVisible}
           onOk={handleSessionModalOk}
           onCancel={handleSessionModalCancel}
-          width={500}
+          width={600}
         >
           <Form
             form={sessionForm}
             layout="vertical"
-            initialValues={{ port: 22, authType: 'password', type: 'terminal' }}
+            initialValues={{
+              port: 22,
+              authType: 'password',
+              refreshInterval: 5,
+              autoRefresh: true,
+              defaultPage: 'process',
+              collectServiceInfo: false,
+              recordHistory: false
+            }}
           >
-            <Form.Item
-              name="type"
-              label="会话类型"
-              rules={[{ required: true, message: '请选择会话类型' }]}
-            >
-              <Radio.Group>
-                <Radio value="terminal">终端会话</Radio>
-                <Radio value="monitor">系统监控</Radio>
-              </Radio.Group>
-            </Form.Item>
-
+            <Typography.Title level={5}>基本配置</Typography.Title>
             <Form.Item
               name="name"
               label="会话名称"
@@ -704,31 +714,40 @@ const SessionList: React.FC<SessionListProps> = ({
               </Select>
             </Form.Item>
 
+            <Divider />
+            <Typography.Title level={5}>监控配置</Typography.Title>
+            
             <Form.Item
-              noStyle
-              shouldUpdate={(prevValues, currentValues) => prevValues.type !== currentValues.type}
+              name="defaultPage"
+              label="默认页面"
             >
-              {({ getFieldValue }) => {
-                const type = getFieldValue('type');
-                return type === 'monitor' ? (
-                  <>
-                    <Form.Item
-                      name="refreshInterval"
-                      label="刷新间隔(秒)"
-                      initialValue={5}
-                    >
-                      <InputNumber min={1} max={3600} style={{ width: '100%' }} />
-                    </Form.Item>
-                    <Form.Item
-                      name="autoRefresh"
-                      valuePropName="checked"
-                      initialValue={true}
-                    >
-                      <Checkbox>自动刷新</Checkbox>
-                    </Form.Item>
-                  </>
-                ) : null;
-              }}
+              <Select>
+                <Select.Option value="process">进程</Select.Option>
+                <Select.Option value="performance">性能</Select.Option>
+                <Select.Option value="service">服务</Select.Option>
+                <Select.Option value="user">用户</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item
+              name="refreshInterval"
+              label="刷新间隔(秒)"
+            >
+              <InputNumber min={1} max={3600} style={{ width: '100%' }} />
+            </Form.Item>
+
+            <Form.Item
+              name="collectServiceInfo"
+              valuePropName="checked"
+            >
+              <Checkbox>启动时获取服务信息</Checkbox>
+            </Form.Item>
+
+            <Form.Item
+              name="recordHistory"
+              valuePropName="checked"
+            >
+              <Checkbox>记录历史数据</Checkbox>
             </Form.Item>
           </Form>
         </Modal>

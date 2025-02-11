@@ -40,16 +40,19 @@ export interface SessionInfo {
   privateKey?: string;
   authType: 'password' | 'privateKey';
   status: 'connected' | 'disconnected' | 'connecting' | 'error' | 'refreshing';
-  type: 'terminal' | 'monitor';  // 会话类型
+  type?: 'terminal' | 'monitor';  // 连接时指定的类型
   group?: string;
   currentDirectory?: string;  // 当前工作目录
   groupOrder?: number;
-  // 监控会话特有配置
+  // 通用配置
   config?: {
-    refreshInterval: number;  // 刷新间隔(毫秒)
-    autoRefresh: boolean;    // 是否自动刷新
-    enableCache?: boolean;   // 是否启用缓存
-    cacheExpiration?: number; // 缓存过期时间(毫秒)
+    refreshInterval: number;     // 刷新间隔(毫秒)
+    autoRefresh: boolean;       // 是否自动刷新
+    defaultPage?: 'process' | 'performance' | 'service' | 'user';  // 默认页面
+    collectServiceInfo?: boolean;  // 启动时获取服务信息
+    recordHistory?: boolean;      // 记录历史数据
+    enableCache?: boolean;       // 是否启用缓存
+    cacheExpiration?: number;    // 缓存过期时间(毫秒)
   };
   lastUpdated?: number;     // 最后更新时间
   error?: string;          // 错误信息
