@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from 'antd';
 import SessionList from '../SessionList';
-import type { SessionInfo } from '../../../main/services/storage';
+import type { SessionInfo } from '../../../renderer/types/index';
 import './style.css';
 
 interface SessionListModalProps {

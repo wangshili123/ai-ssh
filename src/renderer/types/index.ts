@@ -39,7 +39,20 @@ export interface SessionInfo {
   password?: string;
   privateKey?: string;
   authType: 'password' | 'privateKey';
-  status?: 'connected' | 'disconnected' | 'connecting' | 'error';
+  status: 'connected' | 'disconnected' | 'connecting' | 'error' | 'refreshing';
+  type: 'terminal' | 'monitor';  // 会话类型
+  group?: string;
+  currentDirectory?: string;  // 当前工作目录
+  groupOrder?: number;
+  // 监控会话特有配置
+  config?: {
+    refreshInterval: number;  // 刷新间隔(毫秒)
+    autoRefresh: boolean;    // 是否自动刷新
+    enableCache?: boolean;   // 是否启用缓存
+    cacheExpiration?: number; // 缓存过期时间(毫秒)
+  };
+  lastUpdated?: number;     // 最后更新时间
+  error?: string;          // 错误信息
 }
 
 /**
@@ -49,5 +62,5 @@ export interface GroupInfo {
   id: string;
   name: string;
   expanded?: boolean;
-  order?: number;
+  order: number;  // 改为必需字段
 } 

@@ -5,7 +5,7 @@ import { WebLinksAddon } from 'xterm-addon-web-links';
 import { SearchAddon } from 'xterm-addon-search';
 import { Dropdown } from 'antd';
 import { eventBus } from '../../services/eventBus';
-import type { SessionInfo } from '../../../main/services/storage';
+import type { SessionInfo } from '../../../renderer/types/index';
 import { TerminalProps } from './types/terminal.types';
 import { useTerminalInit } from './hooks/useTerminalInit';
 import { useCommandHandler } from './hooks/useCommandHandler';

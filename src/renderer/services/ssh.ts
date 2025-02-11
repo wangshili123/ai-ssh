@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import type { SessionInfo } from '../../main/services/storage';
+import type { SessionInfo } from '../../renderer/types/index';
 import { terminalOutputService } from './terminalOutput';
 import { eventBus } from './eventBus';
 

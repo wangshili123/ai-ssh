@@ -5,7 +5,7 @@ import type { MenuProps } from 'antd';
 import { sshService } from '../../../services/ssh';
 import { eventBus } from '../../../services/eventBus';
 import { terminalOutputService } from '../../../services/terminalOutput';
-import type { SessionInfo } from '../../../../main/services/storage';
+import type { SessionInfo } from '../../../../renderer/types/index';
 import { waitForConnection } from '../utils/terminal.utils';
 
 interface UseContextMenuProps {

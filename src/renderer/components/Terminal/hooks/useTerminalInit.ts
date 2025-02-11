@@ -6,7 +6,7 @@ import { SearchAddon } from 'xterm-addon-search';
 import { sshService } from '../../../services/ssh';
 import { eventBus } from '../../../services/eventBus';
 import { terminalOutputService } from '../../../services/terminalOutput';
-import type { SessionInfo } from '../../../../main/services/storage';
+import type { SessionInfo } from '../../../../renderer/types/index';
 import type { TerminalProps } from '../types/terminal.types';
 import { waitForConnection } from '../utils/terminal.utils';
 import { CompletionSSHManager } from '@/services/completion/CompletionSSHManager';

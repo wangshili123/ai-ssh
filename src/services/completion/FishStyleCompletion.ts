@@ -2,7 +2,7 @@ import { ShellParserTypes } from '../parser/ShellParserTypes';
 import { CompletionContext, CompletionSource, CompletionSuggestion } from './types/completion.types';
 import { eventBus } from '@/renderer/services/eventBus';
 import { CompletionSSHManager } from './CompletionSSHManager';
-import { SessionInfo } from '@/main/services/storage';
+import type { SessionInfo } from '../../renderer/types/index';
 
 /**
  * Fish-shell风格的补全算法实现

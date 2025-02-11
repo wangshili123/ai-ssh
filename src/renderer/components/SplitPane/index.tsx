@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from 'antd';
 import { BorderHorizontalOutlined } from '@ant-design/icons';
 import Terminal from '../Terminal';
-import type { SessionInfo } from '../../../main/services/storage';
+import type { SessionInfo } from '@/renderer/types/index';
 import './index.css';
 
 interface SplitPaneProps {

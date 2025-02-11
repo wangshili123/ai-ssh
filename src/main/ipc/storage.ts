@@ -1,5 +1,6 @@
 import { ipcMain, dialog } from 'electron';
-import { storageService, SessionInfo, GroupInfo, UISettings } from '../services/storage';
+import { storageService, GroupInfo, UISettings } from '../services/storage';
+import type { SessionInfo } from '../../renderer/types/index';
 
 interface IPCResponse<T = void> {
   success: boolean;

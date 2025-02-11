@@ -1,5 +1,5 @@
 import { Client } from 'ssh2';
-import type { SessionInfo } from '../types/storage';
+import type { SessionInfo } from '../../renderer/types';
 import type { FileEntry } from '../types/file';
 import { convertPermissionsToOctal, isDirectory, isSymlink, shouldFilterRegularFile } from '../../renderer/utils/fileUtils';
 

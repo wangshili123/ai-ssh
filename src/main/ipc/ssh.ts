@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { sshService } from '../services/ssh';
-import type { SessionInfo } from '../services/storage';
+import type { SessionInfo } from '../../renderer/types';
 
 // 初始化SSH相关的IPC处理器
 export function initSSHHandlers() {

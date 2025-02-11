@@ -2,6 +2,7 @@ import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import type { SessionInfo } from '../../renderer/types/index';
 
 // 分组信息接口
 export interface GroupInfo {
@@ -11,22 +12,7 @@ export interface GroupInfo {
   order: number;
 }
 
-// 会话信息接口
-export interface SessionInfo {
-  id: string;
-  name: string;
-  host: string;
-  port: number;
-  username: string;
-  authType: 'password' | 'privateKey';
-  password?: string;
-  privateKey?: string;
-  group?: string;
-  groupOrder?: number;  // 在分组内的排序
-  status: 'disconnected' | 'connecting' | 'connected' | 'error';
-  lastError?: string;
-  currentDirectory?: string;  // 当前工作目录
-}
+
 
 // UI设置接口
 export interface UISettings {

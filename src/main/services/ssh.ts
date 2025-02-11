@@ -1,5 +1,5 @@
 import { Client, Channel } from 'ssh2';
-import type { SessionInfo } from './storage';
+import type { SessionInfo } from '../../renderer/types';
 import { BrowserWindow } from 'electron';
 import { sftpManager } from './sftp';
 import { storageService } from './storage';

@@ -1,5 +1,5 @@
 import { sshService } from '../../../services/ssh';
-import type { SessionInfo } from '../../../../main/services/storage';
+import type { SessionInfo } from '../../../../renderer/types/index';
 
 // 等待 SSH 连接就绪
 export const waitForConnection = async (sessionInfo: SessionInfo): Promise<void> => {

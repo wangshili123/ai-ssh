@@ -1,5 +1,6 @@
 import { ipcRenderer } from 'electron';
-import type { SessionInfo, GroupInfo, UISettings } from '../../main/services/storage';
+import type { GroupInfo, UISettings } from '../../main/services/storage';
+import type { SessionInfo } from '../../renderer/types/index';
 
 // 会话存储服务
 class StorageService {

@@ -1,7 +1,7 @@
 import { Client, ClientChannel } from 'ssh2';
 import { eventBus, TabInfo } from '@/renderer/services/eventBus';
 import { sshService } from '@/renderer/services/ssh';
-import type { SessionInfo } from '@/main/services/storage';
+import type { SessionInfo } from '@/renderer/types/index';
 
 interface CommandResult {
   exitCode: number;

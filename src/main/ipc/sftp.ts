@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import { sftpManager } from '../services/sftp';
 import { Result } from '../types/common';
 import type { FileEntry } from '../types/file';
-import type { SessionInfo } from '../types/storage';
+import type { SessionInfo } from '../../renderer/types';
 
 /**
  * 注册SFTP相关的IPC处理器

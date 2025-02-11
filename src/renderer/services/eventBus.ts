@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import type { SessionInfo } from '../../main/services/storage';
+import type { SessionInfo } from '../../renderer/types/index';
 
 export interface TabInfo {
   tabId: string;

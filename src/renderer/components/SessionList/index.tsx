@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { List, Button, Modal, Form, Input, Tree, Card, Typography, Dropdown, Badge, message, Select, InputNumber, Radio, Upload } from 'antd';
+import { List, Button, Modal, Form, Input, Tree, Card, Typography, Dropdown, Badge, message, Select, InputNumber, Radio, Upload, Checkbox } from 'antd';
 import type { MenuProps } from 'antd';
 import { PlusOutlined, FolderOutlined, FolderOpenOutlined, EditOutlined, DeleteOutlined, CopyOutlined, UploadOutlined } from '@ant-design/icons';
 import { debounce } from 'lodash';
 import { storageService } from '../../services/storage';
-import type { SessionInfo, GroupInfo } from '../../../main/services/storage';
+import type { SessionInfo, GroupInfo } from '../../../renderer/types/index';
 import './index.css';
 import { eventBus } from '../../services/eventBus';
+import { v4 as uuidv4 } from 'uuid';
 
 const { Title } = Typography;
 const { Search } = Input;
@@ -69,9 +70,13 @@ const SessionList: React.FC<SessionListProps> = ({
 
   // 处理新建分组
   const handleAddGroup = () => {
-    setEditingGroup(null);
-    groupForm.resetFields();
-    setIsGroupModalVisible(true);
+    const newGroup: GroupInfo = {
+      id: uuidv4(),
+      name: '新分组',
+      order: groups.length,
+      expanded: true
+    };
+    setGroups([...groups, newGroup]);
   };
 
   // 处理编辑分组
@@ -124,10 +129,10 @@ const SessionList: React.FC<SessionListProps> = ({
         message.success('分组已更新');
       } else {
         const newGroup: GroupInfo = {
-          id: Date.now().toString(),
+          id: uuidv4(),
           name: values.name,
-          expanded: true,
-          order: groups.length
+          order: groups.length,
+          expanded: true
         };
         newGroups = [...groups, newGroup];
         message.success('分组已创建');
@@ -139,10 +144,8 @@ const SessionList: React.FC<SessionListProps> = ({
       groupForm.resetFields();
       setEditingGroup(null);
     } catch (error) {
-      if (error instanceof Error) {
-        message.error('保存分组失败');
-        console.error('保存分组失败:', error);
-      }
+      message.error('保存分组失败');
+      console.error('保存分组失败:', error);
     }
   };
 
@@ -188,7 +191,7 @@ const SessionList: React.FC<SessionListProps> = ({
         status={getSessionBadgeStatus(session.status)} 
         text={
           <span className="session-title">
-            {session.name}
+            {session.name || '未命名会话'}
             <span className="session-subtitle">
               {`${session.username}@${session.host}:${session.port}`}
             </span>
@@ -290,7 +293,7 @@ const SessionList: React.FC<SessionListProps> = ({
         children: (groupedSessions.get(undefined) || [])
           .filter(session => 
             !searchText || 
-            session.name.toLowerCase().includes(searchText.toLowerCase()) ||
+            session.name?.toLowerCase().includes(searchText.toLowerCase()) ||
             session.host.toLowerCase().includes(searchText.toLowerCase()) ||
             session.username.toLowerCase().includes(searchText.toLowerCase())
           )
@@ -309,7 +312,7 @@ const SessionList: React.FC<SessionListProps> = ({
           children: (groupedSessions.get(group.id) || [])
             .filter(session => 
               !searchText || 
-              session.name.toLowerCase().includes(searchText.toLowerCase()) ||
+              session.name?.toLowerCase().includes(searchText.toLowerCase()) ||
               session.host.toLowerCase().includes(searchText.toLowerCase()) ||
               session.username.toLowerCase().includes(searchText.toLowerCase())
             )
@@ -375,6 +378,7 @@ const SessionList: React.FC<SessionListProps> = ({
     const [removed] = newGroups.splice(dragIndex, 1);
     newGroups.splice(dropPosition < 0 ? dropIndex : dropIndex + 1, 0, removed);
     
+    // 重新计算所有分组的order
     return newGroups.map((group, index) => ({
       ...group,
       order: index
@@ -410,18 +414,29 @@ const SessionList: React.FC<SessionListProps> = ({
       const values = await sessionForm.validateFields();
       let newSessions: SessionInfo[];
       
+      // 处理监控类型特殊配置
+      const sessionData = {
+        ...values,
+        status: 'disconnected',
+        type: values.type || 'terminal',
+        // 如果是监控类型，转换刷新间隔为毫秒
+        ...(values.type === 'monitor' ? {
+          refreshInterval: (values.refreshInterval || 5) * 1000,
+          autoRefresh: values.autoRefresh ?? true
+        } : {})
+      };
+      
       if (editingSession) {
         newSessions = sessions.map(s => 
           s.id === editingSession.id 
-            ? { ...s, ...values, status: 'disconnected' }
+            ? { ...s, ...sessionData }
             : s
         );
         message.success('会话已更新');
       } else {
         const newSession: SessionInfo = {
           id: Date.now().toString(),
-          ...values,
-          status: 'disconnected'
+          ...sessionData
         };
         newSessions = [...sessions, newSession];
         message.success('会话已创建');
@@ -560,7 +575,8 @@ const SessionList: React.FC<SessionListProps> = ({
           onExpand={(expandedKeys) => {
             const newGroups = groups.map(g => ({
               ...g,
-              expanded: expandedKeys.includes(g.id)
+              expanded: expandedKeys.includes(g.id),
+              order: g.order || groups.indexOf(g)
             }));
             setGroups(newGroups);
             storageService.saveGroups(newGroups).catch(console.error);
@@ -578,8 +594,19 @@ const SessionList: React.FC<SessionListProps> = ({
           <Form
             form={sessionForm}
             layout="vertical"
-            initialValues={{ port: 22, authType: 'password' }}
+            initialValues={{ port: 22, authType: 'password', type: 'terminal' }}
           >
+            <Form.Item
+              name="type"
+              label="会话类型"
+              rules={[{ required: true, message: '请选择会话类型' }]}
+            >
+              <Radio.Group>
+                <Radio value="terminal">终端会话</Radio>
+                <Radio value="monitor">系统监控</Radio>
+              </Radio.Group>
+            </Form.Item>
+
             <Form.Item
               name="name"
               label="会话名称"
@@ -675,6 +702,33 @@ const SessionList: React.FC<SessionListProps> = ({
                   </Select.Option>
                 ))}
               </Select>
+            </Form.Item>
+
+            <Form.Item
+              noStyle
+              shouldUpdate={(prevValues, currentValues) => prevValues.type !== currentValues.type}
+            >
+              {({ getFieldValue }) => {
+                const type = getFieldValue('type');
+                return type === 'monitor' ? (
+                  <>
+                    <Form.Item
+                      name="refreshInterval"
+                      label="刷新间隔(秒)"
+                      initialValue={5}
+                    >
+                      <InputNumber min={1} max={3600} style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item
+                      name="autoRefresh"
+                      valuePropName="checked"
+                      initialValue={true}
+                    >
+                      <Checkbox>自动刷新</Checkbox>
+                    </Form.Item>
+                  </>
+                ) : null;
+              }}
             </Form.Item>
           </Form>
         </Modal>

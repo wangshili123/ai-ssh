@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, Badge } from 'antd';
 import TerminalTabContent from '../TerminalTabContent/TerminalTabContent';
+import { MonitorTab } from '../../Monitor/MonitorTab';
 import { eventBus, TabInfo } from '../../../services/eventBus';
 import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
 import { FileBrowserConnectionManager } from '../../FileBrowser/FileBrowserMain/FileBrowserConnectionManager';
-import type { SessionInfo } from '../../../../main/services/storage';
+import type { SessionInfo } from '../../../types';
 import type { TerminalTab, TerminalTabsManagerProps } from '../types/terminal.types';
 import './TerminalTabsManager.css';
 
@@ -173,6 +174,30 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
     }
   };
 
+  // 修改渲染标签页内容的逻辑
+  const renderTabContent = (tab: TerminalTab) => {
+    if (!tab.sessionInfo) return null;
+
+    // 根据会话类型渲染不同的内容
+    if (tab.sessionInfo.type === 'monitor') {
+      return (
+        <MonitorTab
+          sessionId={tab.sessionInfo.id}
+          onClose={() => handleEdit(tab.key, 'remove')}
+        />
+      );
+    }
+
+    return (
+      <TerminalTabContent
+        sessionInfo={tab.sessionInfo}
+        instanceId={tab.instanceId}
+        tabId={tab.tabId}
+        isFileBrowserVisible={isFileBrowserVisible}
+      />
+    );
+  };
+
   if (!mounted) {
     console.log('[TerminalTabsManager] 组件未挂载，返回null');
     return null;
@@ -202,14 +227,7 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
                 className="tab-badge"
               />
             ),
-            children: tab.sessionInfo && (
-              <TerminalTabContent
-                sessionInfo={tab.sessionInfo}
-                instanceId={tab.instanceId}
-                tabId={tab.tabId}
-                isFileBrowserVisible={isFileBrowserVisible}
-              />
-            )
+            children: renderTabContent(tab)
           }))}
         />
       </div>

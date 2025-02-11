@@ -7,7 +7,7 @@ import AIAssistant from './components/AIAssistant';
 import AppStatusBar from './components/StatusBar/AppStatusBar';
 import AppToolbar from './components/Toolbar/AppToolbar';
 import SessionListModal from './components/SessionListModal';
-import type { SessionInfo } from '../main/services/storage';
+import type { SessionInfo } from '../renderer/types/index';
 import { eventBus } from './services/eventBus';
 import { DatabaseService } from '../services/database/DatabaseService';
 import { storageService } from './services/storage';
