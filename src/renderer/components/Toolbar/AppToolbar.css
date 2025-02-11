@@ -11,28 +11,53 @@
 .toolbar-group {
   display: flex;
   align-items: center;
-  gap: 2px;
 }
 
-.toolbar-button {
+/* 按钮基础样式 */
+.toolbar-button,
+.ai-toolbar-button {
   padding: 0 8px !important;
   height: 28px !important;
   width: 32px !important;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative; /* 为分隔线定位做准备 */
+  margin: 0 1px !important; /* 为分隔线留出空间 */
 }
 
-.toolbar-button .anticon {
+.toolbar-button .anticon,
+.ai-toolbar-button .anticon {
   font-size: 14px;
 }
 
-/* 鼠标悬停效果 */
-.toolbar-button:hover {
-  background-color: var(--button-hover-bg, #e6e6e6);
+/* 鼠标悬停效果 - 使用蓝色 */
+.toolbar-button:hover,
+.ai-toolbar-button:hover {
+  background-color: var(--button-hover-bg, #e6f4ff) !important;
+  color: var(--primary-color, #1890ff) !important;
 }
 
 /* 按钮激活状态 */
-.toolbar-button:active {
-  background-color: var(--button-active-bg, #d9d9d9);
+.toolbar-button:active,
+.ai-toolbar-button:active {
+  background-color: var(--button-active-bg, #bae0ff) !important;
+}
+
+/* 分隔线样式 */
+.toolbar-button::after,
+.ai-toolbar-button::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background-color: var(--border-color, #e8e8e8);
+}
+
+/* 最后一个按钮不显示分隔线 */
+.toolbar-group > *:last-child .toolbar-button::after,
+.toolbar-group > *:last-child .ai-toolbar-button::after {
+  display: none;
 } 
