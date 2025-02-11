@@ -10,6 +10,7 @@ import SessionListModal from './components/SessionListModal';
 import type { SessionInfo } from '../main/services/storage';
 import { eventBus } from './services/eventBus';
 import { DatabaseService } from '../services/database/DatabaseService';
+import { storageService } from './services/storage';
 import './App.css';
 
 const { Content, Sider } = Layout;
@@ -30,6 +31,13 @@ const App: React.FC = () => {
       try {
         console.log('[App] 开始初始化基础服务...');
         await DatabaseService.getInstance().init();
+        
+        // 加载UI设置
+        const settings = await storageService.loadUISettings();
+        console.log('[App] 加载UI设置:', settings);
+        setIsFileBrowserVisible(settings.isFileBrowserVisible);
+        setIsCollapsed(!settings.isAIVisible);
+        
         console.log('[App] 基础服务初始化完成');
       } catch (error) {
         console.error('[App] 基础服务初始化失败:', error);
@@ -38,6 +46,27 @@ const App: React.FC = () => {
 
     initializeServices();
   }, []);
+
+  // 保存UI设置
+  useEffect(() => {
+    const saveSettings = async () => {
+      try {
+        // 添加延迟以避免过于频繁的保存
+        const settings = {
+          isFileBrowserVisible,
+          isAIVisible: !isCollapsed
+        };
+        console.log('[App] 保存UI设置:', settings);
+        await storageService.saveUISettings(settings);
+      } catch (error) {
+        console.error('[App] 保存UI设置失败:', error);
+      }
+    };
+
+    // 使用延迟来避免过于频繁的保存
+    const timeoutId = setTimeout(saveSettings, 500);
+    return () => clearTimeout(timeoutId);
+  }, [isFileBrowserVisible, isCollapsed]);
 
   // 监听标签页ID变化
   useEffect(() => {

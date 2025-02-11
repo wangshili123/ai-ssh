@@ -28,6 +28,12 @@ export interface SessionInfo {
   currentDirectory?: string;  // 当前工作目录
 }
 
+// UI设置接口
+export interface UISettings {
+  isFileBrowserVisible: boolean;
+  isAIVisible: boolean;
+}
+
 // 加密密钥，实际应用中应该使用更安全的方式存储
 const ENCRYPTION_KEY = 'your-secret-key-32-chars-long!!!';
 const IV_LENGTH = 16;
@@ -35,6 +41,7 @@ const IV_LENGTH = 16;
 class StorageService {
   private storagePath: string;
   private groupsPath: string;
+  private uiSettingsPath: string;  // 新增UI设置存储路径
 
   constructor() {
     try {
@@ -42,12 +49,14 @@ class StorageService {
       const userDataPath = app.getPath('userData');
       this.storagePath = path.join(userDataPath, 'sessions.json');
       this.groupsPath = path.join(userDataPath, 'groups.json');
+      this.uiSettingsPath = path.join(userDataPath, 'ui-settings.json');  // 新增
     } catch (error) {
       // 如果在渲染进程中，提供一个默认路径
       console.warn('无法获取 app.getPath，使用默认路径', error);
       const defaultPath = path.join(process.cwd(), '.storage');
       this.storagePath = path.join(defaultPath, 'sessions.json');
       this.groupsPath = path.join(defaultPath, 'groups.json');
+      this.uiSettingsPath = path.join(defaultPath, 'ui-settings.json');  // 新增
       
       // 确保目录存在
       if (!fs.existsSync(defaultPath)) {
@@ -209,6 +218,41 @@ class StorageService {
     } catch (error) {
       console.error('备份配置失败:', error);
       throw error;
+    }
+  }
+
+  // 保存UI设置
+  async saveUISettings(settings: UISettings): Promise<void> {
+    try {
+      await fs.promises.writeFile(
+        this.uiSettingsPath,
+        JSON.stringify(settings, null, 2)
+      );
+    } catch (error) {
+      console.error('保存UI设置失败:', error);
+      throw error;
+    }
+  }
+
+  // 加载UI设置
+  async loadUISettings(): Promise<UISettings> {
+    try {
+      if (!fs.existsSync(this.uiSettingsPath)) {
+        // 默认设置
+        return {
+          isFileBrowserVisible: true,
+          isAIVisible: false
+        };
+      }
+      const data = await fs.promises.readFile(this.uiSettingsPath, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('加载UI设置失败:', error);
+      // 发生错误时返回默认设置
+      return {
+        isFileBrowserVisible: true,
+        isAIVisible: false
+      };
     }
   }
 }

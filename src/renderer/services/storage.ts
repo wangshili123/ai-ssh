@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import type { SessionInfo, GroupInfo } from '../../main/services/storage';
+import type { SessionInfo, GroupInfo, UISettings } from '../../main/services/storage';
 
 // 会话存储服务
 class StorageService {
@@ -59,6 +59,23 @@ class StorageService {
     if (!response.success) {
       throw new Error(response.error);
     }
+  }
+
+  // 保存UI设置
+  async saveUISettings(settings: UISettings): Promise<void> {
+    const response = await ipcRenderer.invoke('storage:save-ui-settings', settings);
+    if (!response.success) {
+      throw new Error(response.error);
+    }
+  }
+
+  // 加载UI设置
+  async loadUISettings(): Promise<UISettings> {
+    const response = await ipcRenderer.invoke('storage:load-ui-settings');
+    if (!response.success) {
+      throw new Error(response.error);
+    }
+    return response.data || { isFileBrowserVisible: true, isAIVisible: false };
   }
 }
 

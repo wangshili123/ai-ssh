@@ -1,5 +1,5 @@
 import { ipcMain, dialog } from 'electron';
-import { storageService, SessionInfo, GroupInfo } from '../services/storage';
+import { storageService, SessionInfo, GroupInfo, UISettings } from '../services/storage';
 
 interface IPCResponse<T = void> {
   success: boolean;
@@ -109,6 +109,30 @@ export function registerStorageHandlers(): void {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       console.error('加载分组失败:', error);
+      return { success: false, error: errorMessage };
+    }
+  });
+
+  // 保存UI设置
+  ipcMain.handle('storage:save-ui-settings', async (_, settings: UISettings): Promise<IPCResponse> => {
+    try {
+      await storageService.saveUISettings(settings);
+      return { success: true };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      console.error('保存UI设置失败:', error);
+      return { success: false, error: errorMessage };
+    }
+  });
+
+  // 加载UI设置
+  ipcMain.handle('storage:load-ui-settings', async (): Promise<IPCResponse<UISettings>> => {
+    try {
+      const settings = await storageService.loadUISettings();
+      return { success: true, data: settings };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      console.error('加载UI设置失败:', error);
       return { success: false, error: errorMessage };
     }
   });

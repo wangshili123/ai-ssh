@@ -30,12 +30,12 @@ const AppToolbar: React.FC<AppToolbarProps> = ({
             className="toolbar-button"
           />
         </Tooltip>
-        <Tooltip title="文件浏览器">
+        <Tooltip title="启用文件浏览器">
           <Button
-            type={isFileBrowserVisible ? "primary" : "text"}
+            type="text"
             icon={<FolderOpenOutlined />}
             onClick={() => onFileBrowserVisibleChange(!isFileBrowserVisible)}
-            className="toolbar-button"
+            className={`toolbar-button ${isFileBrowserVisible ? 'active' : ''}`}
           />
         </Tooltip>
         <AIToolbarButton 

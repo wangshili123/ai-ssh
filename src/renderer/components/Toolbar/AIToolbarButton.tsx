@@ -14,14 +14,14 @@ const AIToolbarButton: React.FC<AIToolbarButtonProps> = ({
 }) => {
   return (
     <Tooltip 
-      title={isVisible ? "关闭AI助手" : "打开AI助手"} 
+      title={isVisible ? "关闭AI助手" : "启用AI助手"} 
       placement="bottom"
     >
       <Button
-        type={isVisible ? "primary" : "text"}
+        type="text"
         icon={<RobotOutlined />}
         onClick={onClick}
-        className="ai-toolbar-button"
+        className={`ai-toolbar-button ${isVisible ? 'active' : ''}`}
       />
     </Tooltip>
   );
