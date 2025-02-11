@@ -1,6 +1,6 @@
 .app-toolbar {
-  height: 40px;
-  padding: 0 16px;
+  height: 36px;
+  padding: 0 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -11,14 +11,20 @@
 .toolbar-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
 }
 
 .toolbar-button {
-  padding: 4px 8px;
+  padding: 0 8px !important;
+  height: 28px !important;
+  width: 32px !important;
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+}
+
+.toolbar-button .anticon {
+  font-size: 14px;
 }
 
 /* 鼠标悬停效果 */

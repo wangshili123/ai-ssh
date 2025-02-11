@@ -1,14 +1,14 @@
 /* AI助手工具栏按钮样式 */
 .ai-toolbar-button {
-  margin-left: 8px;
-  padding: 4px 8px;
-  height: 32px;
+  margin-left: 4px !important;
+  padding: 0 8px !important;
+  height: 28px !important;
+  width: 32px !important;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .ai-toolbar-button .anticon {
-  font-size: 16px;
-  margin-right: 4px;
+  font-size: 14px;
 } 

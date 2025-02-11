@@ -22,9 +22,7 @@ const AIToolbarButton: React.FC<AIToolbarButtonProps> = ({
         icon={<RobotOutlined />}
         onClick={onClick}
         className="ai-toolbar-button"
-      >
-        AI助手
-      </Button>
+      />
     </Tooltip>
   );
 };
