@@ -1,43 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, Progress } from 'antd';
-import { getServiceManager } from '../../../../services/monitor/serviceManager';
-import { NetworkInfo } from '../../../../types/monitor';
+import type { MonitorData } from '../../../../types/monitor';
 import { formatBitRate } from '../../../../utils/format';
 import './NetworkTrafficCard.css';
 
 interface NetworkTrafficCardProps {
   sessionId: string;
+  monitorData?: MonitorData;
   simple?: boolean;
   detailed?: boolean;
 }
 
-export const NetworkTrafficCard: React.FC<NetworkTrafficCardProps> = ({ sessionId, simple, detailed }) => {
-  const [networkInfo, setNetworkInfo] = useState<NetworkInfo>({
+export const NetworkTrafficCard: React.FC<NetworkTrafficCardProps> = ({ 
+  sessionId, 
+  monitorData,
+  simple, 
+  detailed 
+}) => {
+  const networkInfo = monitorData?.network || {
     interfaces: [],
     totalRx: 0,
     totalTx: 0,
     rxSpeed: 0,
     txSpeed: 0
-  });
-
-  useEffect(() => {
-    const monitorManager = getServiceManager().getMonitorManager();
-    const session = monitorManager.getSession(sessionId);
-    if (!session) return;
-
-    if (session.monitorData?.network) {
-      setNetworkInfo(session.monitorData.network);
-    }
-
-    const updateInterval = setInterval(() => {
-      const currentSession = monitorManager.getSession(sessionId);
-      if (currentSession?.monitorData?.network) {
-        setNetworkInfo(currentSession.monitorData.network);
-      }
-    }, session.config?.refreshInterval || 5000);
-
-    return () => clearInterval(updateInterval);
-  }, [sessionId]);
+  };
 
   if (simple) {
     return (

@@ -58,5 +58,15 @@ export function initSSHHandlers() {
     }
   });
 
+  // 直接执行命令
+  ipcMain.handle('ssh:execute-command', async (_, sessionId: string, command: string) => {
+    try {
+      const result = await sshService.executeCommandDirect(sessionId, command);
+      return { success: true, data: result };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
   console.log('SSH handlers initialized.');
 } 

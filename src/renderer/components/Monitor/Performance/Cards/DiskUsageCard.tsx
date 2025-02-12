@@ -1,45 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, Progress } from 'antd';
-import ReactECharts from 'echarts-for-react';
-import { getServiceManager } from '../../../../services/monitor/serviceManager';
-import { DiskInfo } from '../../../../types/monitor';
-import type { ECOption } from '../../../../types/echarts';
+import type { MonitorData } from '../../../../types/monitor';
 import { formatBytes } from '../../../../utils/format';
 import './DiskUsageCard.css';
 
 interface DiskUsageCardProps {
   sessionId: string;
+  monitorData?: MonitorData;
   simple?: boolean;
   detailed?: boolean;
 }
 
-export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({ sessionId, simple, detailed }) => {
-  const [diskInfo, setDiskInfo] = useState<DiskInfo>({
+export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({ 
+  sessionId, 
+  monitorData,
+  simple, 
+  detailed 
+}) => {
+  const diskInfo = monitorData?.disk || {
     devices: [],
     total: 0,
     used: 0,
     free: 0,
     usagePercent: 0
-  });
-
-  useEffect(() => {
-    const monitorManager = getServiceManager().getMonitorManager();
-    const session = monitorManager.getSession(sessionId);
-    if (!session) return;
-
-    if (session.monitorData?.disk) {
-      setDiskInfo(session.monitorData.disk);
-    }
-
-    const updateInterval = setInterval(() => {
-      const currentSession = monitorManager.getSession(sessionId);
-      if (currentSession?.monitorData?.disk) {
-        setDiskInfo(currentSession.monitorData.disk);
-      }
-    }, session.config?.refreshInterval || 5000);
-
-    return () => clearInterval(updateInterval);
-  }, [sessionId]);
+  };
 
   if (simple) {
     return (

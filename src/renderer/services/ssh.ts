@@ -112,6 +112,21 @@ class SSHService {
     }
   }
 
+  // 新增：直接执行命令（不依赖shell session）
+  async executeCommandDirect(sessionId: string, command: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      ipcRenderer.invoke('ssh:execute-command', sessionId, command)
+        .then((result: any) => {
+          if (result.success) {
+            resolve(result.data);
+          } else {
+            reject(new Error(result.error));
+          }
+        })
+        .catch(reject);
+    });
+  }
+
   async resize(sessionId: string, cols: number, rows: number) {
     const result = await ipcRenderer.invoke('ssh:resize', sessionId, cols, rows);
     if (!result.success) {

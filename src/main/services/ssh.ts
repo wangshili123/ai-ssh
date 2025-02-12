@@ -19,7 +19,6 @@ class SSHService {
    * 获取SSH连接
    */
   getConnection(sessionId: string): Client | undefined {
-    console.log(`[SSH] 获取连接: ${sessionId}`);
     const conn = this.connections.get(sessionId);
     if (!conn) {
       console.log(`[SSH] 未找到连接: ${sessionId}`);
@@ -306,6 +305,44 @@ class SSHService {
     const directory = this.currentDirectories.get(shellId);
     console.log('[SSH] Getting current directory:', { shellId, directory });
     return directory || '~';
+  }
+
+  /**
+   * 直接执行命令（不依赖shell session）
+   */
+  async executeCommandDirect(sessionId: string, command: string): Promise<string> {
+    const connection = await this.getConnection(sessionId);
+    if (!connection) {
+      throw new Error('SSH connection not found');
+    }
+
+    return new Promise((resolve, reject) => {
+      connection.exec(command, (err, stream) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        let stdout = '';
+        let stderr = '';
+
+        stream.on('data', (data: Buffer) => {
+          stdout += data.toString();
+        });
+
+        stream.stderr?.on('data', (data: Buffer) => {
+          stderr += data.toString();
+        });
+
+        stream.on('close', () => {
+          resolve(stdout || stderr);
+        });
+
+        stream.on('error', (err: Error) => {
+          reject(err);
+        });
+      });
+    });
   }
 }
 

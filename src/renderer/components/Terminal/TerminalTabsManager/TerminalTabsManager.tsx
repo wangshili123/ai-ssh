@@ -181,7 +181,7 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
     // 根据会话类型渲染不同的内容
     if (tab.sessionInfo.type === 'monitor') {
       return (
-        <MonitorPage sessionId={tab.sessionInfo.id} />
+        <MonitorPage sessionInfo={tab.sessionInfo} />
       );
     }
 

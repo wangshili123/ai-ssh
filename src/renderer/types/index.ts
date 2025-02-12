@@ -26,6 +26,7 @@ export interface SSHService {
   write: (sessionId: string, data: string) => Promise<void>;
   resize: (sessionId: string, cols: number, rows: number) => Promise<void>;
   executeCommand: (sessionId: string, command: string) => Promise<string>;
+  executeCommandDirect: (sessionId: string, command: string) => Promise<string>;
 }
 
 /**

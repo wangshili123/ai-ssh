@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { Row, Col, Card } from 'antd';
 import { CpuUsageCard } from './Cards/CpuUsageCard';
 import { MemoryUsageCard } from './Cards/MemoryUsageCard';
 import { DiskUsageCard } from './Cards/DiskUsageCard';
 import { NetworkTrafficCard } from './Cards/NetworkTrafficCard';
+import { MonitorData } from '../../../types/monitor';
 import './PerformancePage.css';
 
 interface PerformancePageProps {
   sessionId: string;
+  monitorData?: MonitorData;
 }
 
-export const PerformancePage: React.FC<PerformancePageProps> = ({ sessionId }) => {
+export const PerformancePage: React.FC<PerformancePageProps> = ({ 
+  sessionId,
+  monitorData
+}) => {
   const [selectedResource, setSelectedResource] = useState<'cpu' | 'memory' | 'disk' | 'network'>('cpu');
 
   return (
@@ -18,46 +22,46 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({ sessionId }) =
       {/* 左侧资源列表 */}
       <div className="performance-sidebar">
         <div className="resource-list">
-          <Card 
-            className={`resource-item ${selectedResource === 'cpu' ? 'selected' : ''}`}
+          <div 
+            className={`resource-summary ${selectedResource === 'cpu' ? 'selected' : ''}`}
             onClick={() => setSelectedResource('cpu')}
           >
-            <CpuUsageCard sessionId={sessionId} simple />
-          </Card>
-          <Card 
-            className={`resource-item ${selectedResource === 'memory' ? 'selected' : ''}`}
+            <CpuUsageCard sessionId={sessionId} monitorData={monitorData} simple />
+          </div>
+          <div 
+            className={`resource-summary ${selectedResource === 'memory' ? 'selected' : ''}`}
             onClick={() => setSelectedResource('memory')}
           >
-            <MemoryUsageCard sessionId={sessionId} simple />
-          </Card>
-          <Card 
-            className={`resource-item ${selectedResource === 'disk' ? 'selected' : ''}`}
+            <MemoryUsageCard sessionId={sessionId} monitorData={monitorData} simple />
+          </div>
+          <div 
+            className={`resource-summary ${selectedResource === 'disk' ? 'selected' : ''}`}
             onClick={() => setSelectedResource('disk')}
           >
-            <DiskUsageCard sessionId={sessionId} simple />
-          </Card>
-          <Card 
-            className={`resource-item ${selectedResource === 'network' ? 'selected' : ''}`}
+            <DiskUsageCard sessionId={sessionId} monitorData={monitorData} simple />
+          </div>
+          <div 
+            className={`resource-summary ${selectedResource === 'network' ? 'selected' : ''}`}
             onClick={() => setSelectedResource('network')}
           >
-            <NetworkTrafficCard sessionId={sessionId} simple />
-          </Card>
+            <NetworkTrafficCard sessionId={sessionId} monitorData={monitorData} simple />
+          </div>
         </div>
       </div>
 
       {/* 右侧详细信息 */}
       <div className="performance-details">
         {selectedResource === 'cpu' && (
-          <CpuUsageCard sessionId={sessionId} detailed />
+          <CpuUsageCard sessionId={sessionId} monitorData={monitorData} detailed />
         )}
         {selectedResource === 'memory' && (
-          <MemoryUsageCard sessionId={sessionId} detailed />
+          <MemoryUsageCard sessionId={sessionId} monitorData={monitorData} detailed />
         )}
         {selectedResource === 'disk' && (
-          <DiskUsageCard sessionId={sessionId} detailed />
+          <DiskUsageCard sessionId={sessionId} monitorData={monitorData} detailed />
         )}
         {selectedResource === 'network' && (
-          <NetworkTrafficCard sessionId={sessionId} detailed />
+          <NetworkTrafficCard sessionId={sessionId} monitorData={monitorData} detailed />
         )}
       </div>
     </div>

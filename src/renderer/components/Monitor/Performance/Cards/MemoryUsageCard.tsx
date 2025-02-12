@@ -1,44 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, Progress } from 'antd';
-import { getServiceManager } from '../../../../services/monitor/serviceManager';
-import { MemoryInfo } from '../../../../types/monitor';
+import type { MonitorData } from '../../../../types/monitor';
 import { formatBytes } from '../../../../utils/format';
 import './MemoryUsageCard.css';
 
 interface MemoryUsageCardProps {
   sessionId: string;
+  monitorData?: MonitorData;
   simple?: boolean;
   detailed?: boolean;
 }
 
-export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({ sessionId, simple, detailed }) => {
-  const [memoryInfo, setMemoryInfo] = useState<MemoryInfo>({
+export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({ 
+  sessionId, 
+  monitorData,
+  simple, 
+  detailed 
+}) => {
+  const memoryInfo = monitorData?.memory || {
     total: 0,
     used: 0,
     free: 0,
     cached: 0,
     buffers: 0,
     usagePercent: 0
-  });
-
-  useEffect(() => {
-    const monitorManager = getServiceManager().getMonitorManager();
-    const session = monitorManager.getSession(sessionId);
-    if (!session) return;
-
-    if (session.monitorData?.memory) {
-      setMemoryInfo(session.monitorData.memory);
-    }
-
-    const updateInterval = setInterval(() => {
-      const currentSession = monitorManager.getSession(sessionId);
-      if (currentSession?.monitorData?.memory) {
-        setMemoryInfo(currentSession.monitorData.memory);
-      }
-    }, session.config?.refreshInterval || 5000);
-
-    return () => clearInterval(updateInterval);
-  }, [sessionId]);
+  };
 
   if (simple) {
     return (

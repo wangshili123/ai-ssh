@@ -62,11 +62,11 @@ export class CpuMetricsService {
     try {
       // 获取CPU型号、核心数等基本信息
       const cpuInfoCmd = 'cat /proc/cpuinfo';
-      const cpuInfoResult = await this.sshService.executeCommand(sessionId, cpuInfoCmd);
+      const cpuInfoResult = await this.sshService.executeCommandDirect(sessionId, cpuInfoCmd);
       
       // 获取CPU温度
       const tempCmd = 'sensors 2>/dev/null | grep "Core"';
-      const tempResult = await this.sshService.executeCommand(sessionId, tempCmd);
+      const tempResult = await this.sshService.executeCommandDirect(sessionId, tempCmd);
       
       // 解析CPU信息
       const info = this.parseCpuInfo(cpuInfoResult || '');
@@ -147,11 +147,11 @@ export class CpuMetricsService {
     try {
       // 获取总体CPU使用率
       const totalCmd = "top -bn1 | grep 'Cpu(s)' | awk '{print $2}'";
-      const totalResult = await this.sshService.executeCommand(sessionId, totalCmd);
+      const totalResult = await this.sshService.executeCommandDirect(sessionId, totalCmd);
       
       // 获取每个核心的使用率
       const coresCmd = "mpstat -P ALL 1 1 | awk '/^[0-9]/ {print 100-$NF}'";
-      const coresResult = await this.sshService.executeCommand(sessionId, coresCmd);
+      const coresResult = await this.sshService.executeCommandDirect(sessionId, coresCmd);
       
       return {
         usage: parseFloat(totalResult || '0'),
@@ -183,11 +183,11 @@ export class CpuMetricsService {
     try {
       // 获取当前频率
       const currentCmd = "cat /proc/cpuinfo | grep 'cpu MHz' | head -n1 | awk '{print $4}'";
-      const currentResult = await this.sshService.executeCommand(sessionId, currentCmd);
+      const currentResult = await this.sshService.executeCommandDirect(sessionId, currentCmd);
       
       // 获取最大和最小频率
       const freqCmd = "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_*_freq 2>/dev/null";
-      const freqResult = await this.sshService.executeCommand(sessionId, freqCmd);
+      const freqResult = await this.sshService.executeCommandDirect(sessionId, freqCmd);
       
       return this.parseFrequency(currentResult || '', freqResult || '');
     } catch (error) {
