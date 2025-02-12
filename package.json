@@ -28,6 +28,7 @@
     "better-sqlite3": "^8.7.0",
     "dayjs": "^1.11.13",
     "echarts": "^5.6.0",
+    "echarts-for-react": "^3.0.2",
     "electron": "^25.3.1",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.6",

@@ -1,200 +1,224 @@
-import { commandService } from './commandService';
-import { CPUInfo, CPUUsage, CPULoad } from './metricsTypes';
 import { EventEmitter } from 'events';
-
-export interface CpuDataPoint {
-  timestamp: number;
-  usage: number;
-}
-
-export interface CpuInfo {
-  usage: number;
-  speed: number;
-  processes: number;
-  threads: number;
-  uptime: string;
-  history: CpuDataPoint[];
-}
+import { CpuInfo as MonitorCpuInfo } from '../../../types/monitor';
+import { SSHService } from '../../../types';
 
 /**
  * CPU数据采集服务
  */
-export class CPUService extends EventEmitter {
-  private static instance: CPUService;
-  private history: CpuDataPoint[] = [];
-  private maxHistoryLength = 60; // 保存最近60秒的数据
+export class CpuMetricsService {
+  private static instance: CpuMetricsService;
+  private sshService: SSHService;
 
-  private constructor() {
-    super();
-    this.startCollecting();
+  private constructor(sshService: SSHService) {
+    this.sshService = sshService;
   }
 
   /**
    * 获取单例实例
    */
-  static getInstance(): CPUService {
-    if (!CPUService.instance) {
-      CPUService.instance = new CPUService();
+  static getInstance(sshService: SSHService): CpuMetricsService {
+    if (!CpuMetricsService.instance) {
+      CpuMetricsService.instance = new CpuMetricsService(sshService);
     }
-    return CPUService.instance;
+    return CpuMetricsService.instance;
   }
 
-  private startCollecting() {
-    setInterval(() => {
-      // 模拟数据采集
-      const now = Date.now();
-      const usage = Math.random() * 100;
-      
-      this.history.push({ timestamp: now, usage });
-      if (this.history.length > this.maxHistoryLength) {
-        this.history.shift();
-      }
+  /**
+   * 采集CPU所有指标数据
+   */
+  async collectMetrics(sessionId: string): Promise<MonitorCpuInfo> {
+    try {
+      const [basicInfo, usage, freq] = await Promise.all([
+        this.getCpuInfo(sessionId),
+        this.getCpuUsage(sessionId),
+        this.getCpuFrequency(sessionId)
+      ]);
 
-      const info: CpuInfo = {
-        usage,
-        speed: 3.2,
-        processes: 120,
-        threads: 1500,
-        uptime: '1:23:45',
-        history: this.history
+      return {
+        ...basicInfo,
+        usage: usage.usage,
+        cores: usage.cores,
+        speed: basicInfo.speed || 0,
+        currentSpeed: freq.current,
+        maxSpeed: freq.max,
+        minSpeed: freq.min,
+        usageHistory: [],  // 历史数据由 MonitorManager 维护
+        coreUsageHistory: []
       };
-
-      this.emit('update', info);
-    }, 1000);
+    } catch (error) {
+      console.error('采集CPU指标失败:', error);
+      throw error;
+    }
   }
 
   /**
    * 获取CPU基本信息
    */
-  async getCPUInfo(): Promise<CPUInfo> {
-    // 使用lscpu命令获取CPU信息
-    const result = await commandService.executeCommand('lscpu');
-    if (!result.success || !result.data) {
-      throw new Error('Failed to get CPU info');
+  private async getCpuInfo(sessionId: string): Promise<Partial<MonitorCpuInfo>> {
+    try {
+      // 获取CPU型号、核心数等基本信息
+      const cpuInfoCmd = 'cat /proc/cpuinfo';
+      const cpuInfoResult = await this.sshService.executeCommand(sessionId, cpuInfoCmd);
+      
+      // 获取CPU温度
+      const tempCmd = 'sensors 2>/dev/null | grep "Core"';
+      const tempResult = await this.sshService.executeCommand(sessionId, tempCmd);
+      
+      // 解析CPU信息
+      const info = this.parseCpuInfo(cpuInfoResult || '');
+      const temp = this.parseTemperature(tempResult || '');
+      
+      return {
+        ...info,
+        temperature: temp
+      };
+    } catch (error) {
+      console.error('获取CPU信息失败:', error);
+      throw error;
     }
+  }
 
-    const lines = result.data.split('\n');
-    const info: CPUInfo = {
+  /**
+   * 解析CPU基本信息
+   */
+  private parseCpuInfo(output: string): Partial<MonitorCpuInfo> {
+    const info: Partial<MonitorCpuInfo> = {
       model: '',
-      cores: 0,
-      threads: 0,
-      frequency: {
-        current: 0,
-        min: 0,
-        max: 0
-      },
-      cache: {
-        l1d: 0,
-        l1i: 0,
-        l2: 0,
-        l3: 0
-      }
+      physicalCores: 0,
+      logicalCores: 0,
+      vendor: '',
+      cache: {}
     };
 
-    // 解析lscpu输出
+    const lines = output.split('\n');
+    let physicalId = new Set();
+    let coreId = new Set();
+
     for (const line of lines) {
-      const [key, value] = line.split(':').map(s => s.trim());
-      switch (key) {
-        case 'Model name':
-          info.model = value;
-          break;
-        case 'CPU(s)':
-          info.cores = parseInt(value);
-          break;
-        case 'Thread(s) per core':
-          info.threads = parseInt(value) * (info.cores || 1);
-          break;
-        case 'CPU MHz':
-          info.frequency.current = parseFloat(value);
-          break;
-        case 'CPU min MHz':
-          info.frequency.min = parseFloat(value);
-          break;
-        case 'CPU max MHz':
-          info.frequency.max = parseFloat(value);
-          break;
-        case 'L1d cache':
-          info.cache.l1d = parseInt(value);
-          break;
-        case 'L1i cache':
-          info.cache.l1i = parseInt(value);
-          break;
-        case 'L2 cache':
-          info.cache.l2 = parseInt(value);
-          break;
-        case 'L3 cache':
-          info.cache.l3 = parseInt(value);
-          break;
+      if (line.includes('model name')) {
+        info.model = line.split(':')[1].trim();
+      } else if (line.includes('vendor_id')) {
+        info.vendor = line.split(':')[1].trim();
+      } else if (line.includes('physical id')) {
+        physicalId.add(line.split(':')[1].trim());
+      } else if (line.includes('core id')) {
+        coreId.add(line.split(':')[1].trim());
+      } else if (line.includes('cache size')) {
+        info.cache = {
+          ...info.cache,
+          l3: parseInt(line.split(':')[1].trim())
+        };
       }
     }
+
+    info.physicalCores = coreId.size * physicalId.size;
+    info.logicalCores = lines.filter(line => line.includes('processor')).length;
 
     return info;
   }
 
   /**
+   * 解析CPU温度信息
+   */
+  private parseTemperature(output: string): number | undefined {
+    if (!output) return undefined;
+
+    const temps = output.split('\n')
+      .filter(line => line.includes('Core'))
+      .map(line => {
+        const match = line.match(/\+(\d+\.\d+)°C/);
+        return match ? parseFloat(match[1]) : 0;
+      });
+
+    return temps.length > 0 ? Math.max(...temps) : undefined;
+  }
+
+  /**
    * 获取CPU使用率
    */
-  async getCPUUsage(): Promise<CPUUsage> {
-    // 使用top命令获取CPU使用率
-    const result = await commandService.executeCommand('top -bn1');
-    if (!result.success || !result.data) {
-      throw new Error('Failed to get CPU usage');
+  private async getCpuUsage(sessionId: string): Promise<{
+    usage: number;
+    cores: number[];
+  }> {
+    try {
+      // 获取总体CPU使用率
+      const totalCmd = "top -bn1 | grep 'Cpu(s)' | awk '{print $2}'";
+      const totalResult = await this.sshService.executeCommand(sessionId, totalCmd);
+      
+      // 获取每个核心的使用率
+      const coresCmd = "mpstat -P ALL 1 1 | awk '/^[0-9]/ {print 100-$NF}'";
+      const coresResult = await this.sshService.executeCommand(sessionId, coresCmd);
+      
+      return {
+        usage: parseFloat(totalResult || '0'),
+        cores: this.parseCoreUsage(coresResult || '')
+      };
+    } catch (error) {
+      console.error('获取CPU使用率失败:', error);
+      throw error;
     }
+  }
 
-    const lines = result.data.split('\n');
-    const cpuLine = lines.find(line => line.includes('%Cpu(s)'));
-    if (!cpuLine) {
-      throw new Error('CPU usage data not found');
+  /**
+   * 解析CPU核心使用率
+   */
+  private parseCoreUsage(output: string): number[] {
+    return output.split('\n')
+      .filter(line => line.trim())
+      .map(line => parseFloat(line));
+  }
+
+  /**
+   * 获取CPU频率信息
+   */
+  private async getCpuFrequency(sessionId: string): Promise<{
+    current: number;
+    min: number;
+    max: number;
+  }> {
+    try {
+      // 获取当前频率
+      const currentCmd = "cat /proc/cpuinfo | grep 'cpu MHz' | head -n1 | awk '{print $4}'";
+      const currentResult = await this.sshService.executeCommand(sessionId, currentCmd);
+      
+      // 获取最大和最小频率
+      const freqCmd = "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_*_freq 2>/dev/null";
+      const freqResult = await this.sshService.executeCommand(sessionId, freqCmd);
+      
+      return this.parseFrequency(currentResult || '', freqResult || '');
+    } catch (error) {
+      console.error('获取CPU频率失败:', error);
+      throw error;
     }
+  }
 
-    // 解析CPU使用率数据
-    const matches = cpuLine.match(/(\d+\.\d+)\s+us,\s+(\d+\.\d+)\s+sy,\s+(\d+\.\d+)\s+ni,\s+(\d+\.\d+)\s+id,\s+(\d+\.\d+)\s+wa/);
-    if (!matches) {
-      throw new Error('Failed to parse CPU usage data');
-    }
+  /**
+   * 解析CPU频率信息
+   */
+  private parseFrequency(current: string, freq: string): {
+    current: number;
+    min: number;
+    max: number;
+  } {
+    const currentFreq = parseFloat(current);
+    const freqLines = freq.split('\n').filter(line => line.trim());
+    
+    let min = currentFreq;
+    let max = currentFreq;
 
-    const [, user, system, , idle, iowait] = matches.map(parseFloat);
-    const total = 100 - idle;
-
-    // 获取每个核心的使用率
-    const mpstatResult = await commandService.executeCommand('mpstat -P ALL 1 1');
-    const perCore: number[] = [];
-    if (mpstatResult.success && mpstatResult.data) {
-      const lines = mpstatResult.data.split('\n');
-      for (const line of lines) {
-        if (line.startsWith('Average:') && !line.includes('CPU')) {
-          const parts = line.trim().split(/\s+/);
-          const idle = parseFloat(parts[parts.length - 1]);
-          perCore.push(100 - idle);
-        }
+    for (const line of freqLines) {
+      const value = parseInt(line) / 1000; // 转换为MHz
+      if (line.includes('scaling_min_freq')) {
+        min = value;
+      } else if (line.includes('scaling_max_freq')) {
+        max = value;
       }
     }
 
     return {
-      total,
-      user,
-      system,
-      idle,
-      iowait,
-      perCore
-    };
-  }
-
-  /**
-   * 获取CPU负载
-   */
-  async getCPULoad(): Promise<CPULoad> {
-    // 读取/proc/loadavg获取负载信息
-    const result = await commandService.executeCommand('cat /proc/loadavg');
-    if (!result.success || !result.data) {
-      throw new Error('Failed to get CPU load');
-    }
-
-    const [last1min, last5min, last15min] = result.data.split(' ').map(parseFloat);
-    return {
-      last1min,
-      last5min,
-      last15min
+      current: currentFreq,
+      min,
+      max
     };
   }
 
@@ -202,9 +226,6 @@ export class CPUService extends EventEmitter {
    * 销毁实例
    */
   destroy(): void {
-    CPUService.instance = null as any;
+    CpuMetricsService.instance = null as any;
   }
-}
-
-// 导出单例
-export const cpuService = CPUService.getInstance(); 
+} 

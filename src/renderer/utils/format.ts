@@ -35,13 +35,13 @@ export function formatDateTime(timestamp: number): string {
 }
 
 /**
- * 格式化数字为百分比
- * @param value 数值
- * @param decimals 小数位数
+ * 格式化百分比数字
+ * @param value 要格式化的数字
+ * @param precision 精度，默认为1
  * @returns 格式化后的百分比字符串
  */
-export function formatPercent(value: number, decimals: number = 1): string {
-  return `${value.toFixed(decimals)}%`;
+export function formatPercent(value: number, precision: number = 1): string {
+  return `${value.toFixed(precision)}%`;
 }
 
 /**
@@ -54,25 +54,23 @@ export function formatNumber(num: number): string {
 }
 
 /**
- * 格式化持续时间（毫秒）
- * @param ms 毫秒数
- * @returns 格式化后的持续时间字符串
+ * 格式化持续时间
+ * @param seconds 秒数
+ * @returns 格式化后的字符串
  */
-export function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
+export function formatDuration(seconds: number): string {
+  const days = Math.floor(seconds / (24 * 60 * 60));
+  const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+  const minutes = Math.floor((seconds % (60 * 60)) / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
 
-  if (days > 0) {
-    return `${days}天${hours % 24}小时`;
-  } else if (hours > 0) {
-    return `${hours}小时${minutes % 60}分钟`;
-  } else if (minutes > 0) {
-    return `${minutes}分钟${seconds % 60}秒`;
-  } else {
-    return `${seconds}秒`;
-  }
+  const parts = [];
+  if (days > 0) parts.push(`${days}天`);
+  if (hours > 0) parts.push(`${hours}小时`);
+  if (minutes > 0) parts.push(`${minutes}分钟`);
+  if (remainingSeconds > 0 || parts.length === 0) parts.push(`${remainingSeconds}秒`);
+
+  return parts.join(' ');
 }
 
 /**
@@ -90,4 +88,32 @@ export function formatFrequency(hz: number): string {
   } else {
     return `${hz.toFixed(2)} Hz`;
   }
+}
+
+/**
+ * 格式化网络速率
+ * @param bytesPerSecond 每秒字节数
+ * @returns 格式化后的字符串
+ */
+export function formatBitRate(bytesPerSecond: number): string {
+  const bitsPerSecond = bytesPerSecond * 8;
+  const units = ['bps', 'Kbps', 'Mbps', 'Gbps'];
+  let value = bitsPerSecond;
+  let unitIndex = 0;
+
+  while (value >= 1000 && unitIndex < units.length - 1) {
+    value /= 1000;
+    unitIndex++;
+  }
+
+  return `${value.toFixed(2)} ${units[unitIndex]}`;
+}
+
+/**
+ * 格式化时间戳为本地时间字符串
+ * @param timestamp 时间戳
+ * @returns 格式化后的时间字符串
+ */
+export function formatTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString();
 } 

@@ -1,0 +1,27 @@
+.performance-page {
+  padding: 16px;
+  height: 100%;
+  overflow-y: auto;
+  background-color: #f0f2f5;
+}
+
+.performance-card {
+  height: 100%;
+  min-height: 360px;
+}
+
+.performance-card .ant-card-head {
+  min-height: 48px;
+  padding: 0 16px;
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 500;
+  font-size: 16px;
+  background: transparent;
+  border-bottom: 1px solid #f0f0f0;
+  border-radius: 2px 2px 0 0;
+}
+
+.performance-card .ant-card-body {
+  padding: 16px;
+  height: calc(100% - 48px);
+} 

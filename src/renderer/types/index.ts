@@ -1,4 +1,5 @@
 import { CommandSuggestion } from '../services/ai';
+import { MonitorData } from './monitor';
 
 export interface Message {
   id: string;
@@ -56,6 +57,7 @@ export interface SessionInfo {
   };
   lastUpdated?: number;     // 最后更新时间
   error?: string;          // 错误信息
+  monitorData?: MonitorData;  // 监控数据
 }
 
 /**

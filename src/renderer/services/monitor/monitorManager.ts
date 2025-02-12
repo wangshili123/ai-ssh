@@ -1,4 +1,8 @@
 import { SessionInfo } from '../../types';
+import { CpuInfo, MemoryInfo, DiskInfo, NetworkInfo, MonitorData } from '../../types/monitor';
+import { RefreshService } from './metrics/refreshService';
+import { CpuMetricsService } from './metrics/cpuService';
+import { SSHService } from '../../types';
 
 /**
  * 监控管理器
@@ -7,17 +11,34 @@ import { SessionInfo } from '../../types';
 export class MonitorManager {
   private static instance: MonitorManager;
   private sessions: Map<string, SessionInfo> = new Map();
+  private refreshService: RefreshService;
+  private cpuMetricsService: CpuMetricsService;
+  private sshService: SSHService;
 
-  private constructor() {}
+  private constructor(sshService: SSHService) {
+    this.sshService = sshService;
+    this.refreshService = RefreshService.getInstance();
+    this.cpuMetricsService = CpuMetricsService.getInstance(sshService);
+    this.setupRefreshListener();
+  }
 
   /**
    * 获取单例实例
    */
-  static getInstance(): MonitorManager {
+  static getInstance(sshService: SSHService): MonitorManager {
     if (!MonitorManager.instance) {
-      MonitorManager.instance = new MonitorManager();
+      MonitorManager.instance = new MonitorManager(sshService);
     }
     return MonitorManager.instance;
+  }
+
+  /**
+   * 设置刷新监听器
+   */
+  private setupRefreshListener(): void {
+    this.refreshService.on('refresh', async (sessionId: string) => {
+      await this.refreshSession(sessionId);
+    });
   }
 
   /**
@@ -34,7 +55,7 @@ export class MonitorManager {
       authType: config.authType || 'password',
       ...config,
       config: {
-        refreshInterval: 5000,
+        refreshInterval: 1000, // 默认1秒更新一次
         autoRefresh: true,
         enableCache: true,
         cacheExpiration: 30000,
@@ -55,20 +76,14 @@ export class MonitorManager {
       throw new Error('Session not found');
     }
 
-    // 更新状态为连接中
     session.status = 'connecting';
 
     try {
-      // TODO: 实现SSH连接
-      // 临时模拟连接成功
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // 更新状态为已连接
+      await this.sshService.connect(session);
       session.status = 'connected';
 
-      // 如果配置了自动刷新，启动刷新任务
       if (session.config?.autoRefresh) {
-        this.startAutoRefresh(sessionId);
+        this.refreshService.startRefresh(session);
       }
     } catch (error) {
       session.status = 'error';
@@ -84,10 +99,8 @@ export class MonitorManager {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
-    // 停止自动刷新
-    this.stopAutoRefresh(sessionId);
-
-    // 更新状态
+    this.refreshService.stopRefresh(sessionId);
+    this.sshService.disconnect(sessionId);
     session.status = 'disconnected';
   }
 
@@ -100,46 +113,51 @@ export class MonitorManager {
 
     try {
       session.status = 'refreshing';
-      // TODO: 实现数据刷新
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 采集CPU指标
+      const cpuInfo = await this.cpuMetricsService.collectMetrics(sessionId);
+
+      // TODO: 采集其他指标
+      const memoryInfo: MemoryInfo = {
+        total: 0,
+        used: 0,
+        free: 0,
+        cached: 0,
+        buffers: 0,
+        usagePercent: 0
+      };
+
+      const diskInfo: DiskInfo = {
+        devices: [],
+        total: 0,
+        used: 0,
+        free: 0,
+        usagePercent: 0
+      };
+
+      const networkInfo: NetworkInfo = {
+        interfaces: [],
+        totalRx: 0,
+        totalTx: 0,
+        rxSpeed: 0,
+        txSpeed: 0
+      };
+
+      // 更新会话数据
+      session.monitorData = {
+        cpu: cpuInfo,
+        memory: memoryInfo,
+        disk: diskInfo,
+        network: networkInfo,
+        timestamp: Date.now()
+      };
+
       session.status = 'connected';
       session.lastUpdated = Date.now();
     } catch (error) {
       session.status = 'error';
       session.error = (error as Error).message;
       throw error;
-    }
-  }
-
-  private refreshTasks: Map<string, number> = new Map();
-
-  /**
-   * 启动自动刷新
-   */
-  private startAutoRefresh(sessionId: string): void {
-    const session = this.sessions.get(sessionId);
-    if (!session || !session.config?.autoRefresh) return;
-
-    // 停止现有的刷新任务
-    this.stopAutoRefresh(sessionId);
-
-    // 创建新的刷新任务
-    const timerId = window.setInterval(
-      () => this.refreshSession(sessionId),
-      session.config.refreshInterval
-    );
-
-    this.refreshTasks.set(sessionId, timerId);
-  }
-
-  /**
-   * 停止自动刷新
-   */
-  private stopAutoRefresh(sessionId: string): void {
-    const timerId = this.refreshTasks.get(sessionId);
-    if (timerId) {
-      clearInterval(timerId);
-      this.refreshTasks.delete(sessionId);
     }
   }
 
@@ -170,15 +188,18 @@ export class MonitorManager {
    * 销毁管理器
    */
   destroy(): void {
-    // 停止所有刷新任务
-    for (const [sessionId] of this.refreshTasks) {
-      this.stopAutoRefresh(sessionId);
+    this.refreshService.destroy();
+    this.cpuMetricsService.destroy();
+    for (const [sessionId] of this.sessions) {
+      this.disconnectSession(sessionId);
     }
-
-    // 清除所有会话
     this.sessions.clear();
-
-    // 清除单例
     MonitorManager.instance = null as any;
   }
-} 
+}
+
+// 导出类定义
+export { MonitorManager };
+
+// 不在这里导出实例，而是在使用时创建
+// 因为需要传入 sshService 参数 

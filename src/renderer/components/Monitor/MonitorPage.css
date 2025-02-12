@@ -1,6 +1,35 @@
 .monitor-page {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #f0f2f5;
+}
+
+.monitor-page .ant-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.monitor-page .ant-tabs-content {
+  flex: 1;
+  height: 0;
+}
+
+.monitor-page .ant-tabs-tabpane {
+  height: 100%;
+}
+
+.monitor-page .ant-tabs-nav {
+  margin: 0;
   background-color: #fff;
+  padding: 0 16px;
+}
+
+.monitor-page .ant-tabs-tab {
+  padding: 12px 0;
+  font-size: 14px;
+  margin: 0 16px 0 0;
 }
 
 .performance-container {
