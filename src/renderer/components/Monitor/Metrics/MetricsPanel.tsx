@@ -72,183 +72,141 @@ export const MetricsPanel: React.FC<MetricsPanelProps> = ({ sessionId }) => {
 
   return (
     <div className="metrics-panel">
-      <Space direction="vertical" style={{ width: '100%' }} size="middle">
-        {/* 控制栏 */}
-        <div className="metrics-control">
-          <Space>
-            <Tooltip title={isRefreshing ? '暂停刷新' : '开始刷新'}>
-              <Button
-                type="text"
-                icon={isRefreshing ? <PauseOutlined /> : <PlayCircleOutlined />}
-                onClick={handleRefreshToggle}
+      {/* 控制栏 */}
+      <div className="metrics-control">
+        <Space>
+          <Tooltip title={isRefreshing ? '暂停刷新' : '开始刷新'}>
+            <Button
+              type="text"
+              icon={isRefreshing ? <PauseOutlined /> : <PlayCircleOutlined />}
+              onClick={handleRefreshToggle}
+            />
+          </Tooltip>
+          <Tooltip title="手动刷新">
+            <Button
+              type="text"
+              icon={<ReloadOutlined />}
+              onClick={handleManualRefresh}
+            />
+          </Tooltip>
+        </Space>
+      </div>
+
+      <Row gutter={16}>
+        {/* 左侧资源列表 */}
+        <Col span={6}>
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            {/* CPU */}
+            <Card bordered={false}>
+              <Progress
+                type="dashboard"
+                percent={Math.round(cpuUsage?.total || 0)}
+                format={percent => `${percent}%`}
               />
-            </Tooltip>
-            <Tooltip title="手动刷新">
-              <Button
-                type="text"
-                icon={<ReloadOutlined />}
-                onClick={handleManualRefresh}
+              <div className="resource-title">CPU</div>
+              <div className="resource-subtitle">
+                {cpuInfo?.frequency?.current || 0} MHz
+              </div>
+            </Card>
+
+            {/* 内存 */}
+            <Card bordered={false}>
+              <Progress
+                type="dashboard"
+                percent={getMemoryUsagePercent()}
+                format={percent => `${percent}%`}
               />
-            </Tooltip>
+              <div className="resource-title">内存</div>
+              <div className="resource-subtitle">
+                {formatBytes(memoryInfo?.used || 0)} / {formatBytes(memoryInfo?.total || 0)}
+              </div>
+            </Card>
+
+            {/* 磁盘 */}
+            <Card bordered={false}>
+              <Progress
+                type="dashboard"
+                percent={0}
+                format={() => '0%'}
+              />
+              <div className="resource-title">磁盘</div>
+              <div className="resource-subtitle">
+                暂无数据
+              </div>
+            </Card>
+
+            {/* 网络 */}
+            <Card bordered={false}>
+              <Progress
+                type="dashboard"
+                percent={0}
+                format={() => '0%'}
+              />
+              <div className="resource-title">网络</div>
+              <div className="resource-subtitle">
+                暂无数据
+              </div>
+            </Card>
           </Space>
-        </div>
+        </Col>
 
-        {/* 图表 */}
-        <div className="metrics-chart">
-          <MetricsChart sessionId={sessionId} />
-        </div>
+        {/* 右侧详细信息 */}
+        <Col span={18}>
+          {/* 图表区域 */}
+          <Card title="资源使用趋势" bordered={false}>
+            <div style={{ height: 300 }}>
+              <MetricsChart sessionId={sessionId} />
+            </div>
+          </Card>
 
-        {/* CPU信息卡片 */}
-        <Card title="CPU 监控" bordered={false}>
-          <Row gutter={[16, 16]}>
-            <Col span={8}>
-              <div className="metrics-statistic">
-                <Statistic
-                  title="CPU型号"
-                  value={cpuInfo?.model || 'N/A'}
-                  valueStyle={{ fontSize: '14px' }}
-                />
-              </div>
-            </Col>
-            <Col span={8}>
-              <div className="metrics-statistic">
-                <Statistic
-                  title="核心数"
-                  value={cpuInfo?.cores || 0}
-                  suffix={`/ ${cpuInfo?.threads || 0} 线程`}
-                />
-              </div>
-            </Col>
-            <Col span={8}>
-              <div className="metrics-statistic">
-                <Statistic
-                  title="当前频率"
-                  value={cpuInfo?.frequency?.current || 0}
-                  suffix="MHz"
-                />
-              </div>
-            </Col>
-          </Row>
-          <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
-            <Col span={12}>
-              <div className="metrics-progress">
-                <Progress
-                  type="dashboard"
-                  percent={Math.round(cpuUsage?.total || 0)}
-                  format={percent => `${percent}%`}
-                />
-                <div className="progress-label">CPU使用率</div>
-              </div>
-            </Col>
-            <Col span={12}>
-              <Row>
-                <Col span={12}>
-                  <div className="metrics-statistic">
-                    <Statistic
-                      title="用户空间"
-                      value={cpuUsage?.user || 0}
-                      suffix="%"
-                      precision={1}
-                    />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="metrics-statistic">
-                    <Statistic
-                      title="系统空间"
-                      value={cpuUsage?.system || 0}
-                      suffix="%"
-                      precision={1}
-                    />
-                  </div>
-                </Col>
-              </Row>
-              <Row style={{ marginTop: '16px' }}>
-                <Col span={12}>
-                  <div className="metrics-statistic">
-                    <Statistic
-                      title="IO等待"
-                      value={cpuUsage?.iowait || 0}
-                      suffix="%"
-                      precision={1}
-                    />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="metrics-statistic">
-                    <Statistic
-                      title="空闲"
-                      value={cpuUsage?.idle || 0}
-                      suffix="%"
-                      precision={1}
-                    />
-                  </div>
-                </Col>
-              </Row>
-            </Col>
-          </Row>
-        </Card>
+          {/* CPU详细信息 */}
+          <Card title="CPU详细信息" bordered={false} style={{ marginTop: 16 }}>
+            <Row gutter={[16, 16]}>
+              <Col span={6}>
+                <Statistic title="型号" value={cpuInfo?.model || 'N/A'} />
+              </Col>
+              <Col span={6}>
+                <Statistic title="核心数" value={cpuInfo?.cores || 0} suffix={`/ ${cpuInfo?.threads || 0} 线程`} />
+              </Col>
+              <Col span={6}>
+                <Statistic title="用户空间" value={cpuUsage?.user || 0} suffix="%" precision={1} />
+              </Col>
+              <Col span={6}>
+                <Statistic title="系统空间" value={cpuUsage?.system || 0} suffix="%" precision={1} />
+              </Col>
+            </Row>
+          </Card>
 
-        {/* 内存信息卡片 */}
-        <Card title="内存监控" bordered={false}>
-          <Row gutter={[16, 16]}>
-            <Col span={12}>
-              <div className="metrics-progress">
-                <Progress
-                  type="dashboard"
-                  percent={getMemoryUsagePercent()}
-                  format={percent => `${percent}%`}
-                />
-                <div className="progress-label">内存使用率</div>
-              </div>
-            </Col>
-            <Col span={12}>
-              <Row>
-                <Col span={12}>
-                  <div className="metrics-statistic">
-                    <Statistic
-                      title="总内存"
-                      value={formatBytes(memoryInfo?.total || 0)}
-                    />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="metrics-statistic">
-                    <Statistic
-                      title="已用内存"
-                      value={formatBytes(memoryInfo?.used || 0)}
-                    />
-                  </div>
-                </Col>
-              </Row>
-              <Row style={{ marginTop: '16px' }}>
-                <Col span={12}>
-                  <div className="metrics-statistic">
-                    <Statistic
-                      title="可用内存"
-                      value={formatBytes(memoryInfo?.available || 0)}
-                    />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="metrics-statistic">
-                    <Statistic
-                      title="缓存"
-                      value={formatBytes((memoryInfo?.buffers || 0) + (memoryInfo?.cached || 0))}
-                    />
-                  </div>
-                </Col>
-              </Row>
-            </Col>
-          </Row>
-        </Card>
-      </Space>
+          {/* 内存详细信息 */}
+          <Card title="内存详细信息" bordered={false} style={{ marginTop: 16 }}>
+            <Row gutter={[16, 16]}>
+              <Col span={6}>
+                <Statistic title="总内存" value={formatBytes(memoryInfo?.total || 0)} />
+              </Col>
+              <Col span={6}>
+                <Statistic title="已用内存" value={formatBytes(memoryInfo?.used || 0)} />
+              </Col>
+              <Col span={6}>
+                <Statistic title="可用内存" value={formatBytes(memoryInfo?.available || 0)} />
+              </Col>
+              <Col span={6}>
+                <Statistic title="缓存" value={formatBytes((memoryInfo?.buffers || 0) + (memoryInfo?.cached || 0))} />
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+      </Row>
 
       <style>{`
-        .metrics-panel {
-          padding: 16px;
-          background: #f0f2f5;
-          min-height: 100%;
+        .resource-title {
+          text-align: center;
+          font-size: 16px;
+          margin-top: 8px;
+        }
+        .resource-subtitle {
+          text-align: center;
+          font-size: 12px;
+          color: rgba(0, 0, 0, 0.45);
         }
       `}</style>
     </div>

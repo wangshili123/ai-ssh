@@ -10,71 +10,129 @@ interface MetricsChartProps {
 }
 
 interface ChartData {
-  timestamp: string;
+  time: string;
   value: number;
-  metric: string;
+  type: string;
 }
 
 export const MetricsChart: React.FC<MetricsChartProps> = ({ sessionId }) => {
   const [data, setData] = useState<ChartData[]>([]);
 
   useEffect(() => {
+    console.log('[MetricsChart] 初始化监听, sessionId:', sessionId);
+
     const handleDataUpdate = (metricsData: any) => {
+      console.log('[MetricsChart] 原始数据:', JSON.stringify(metricsData, null, 2));
       const newData: ChartData[] = [];
+      const currentTime = formatDateTime(Date.now());
 
       // 处理CPU使用率数据
-      metricsData.cpu.usage.forEach((item: TimeSeriesData<CPUUsage>) => {
-        newData.push({
-          timestamp: formatDateTime(item.timestamp),
-          value: item.value.total,
-          metric: 'CPU使用率'
-        });
-      });
-
-      // 处理内存使用率数据
-      if (metricsData.memory.info) {
-        const memInfo = metricsData.memory.info as MemoryInfo;
-        const memoryUsage = (memInfo.used / memInfo.total) * 100;
-        newData.push({
-          timestamp: formatDateTime(Date.now()),
-          value: memoryUsage,
-          metric: '内存使用率'
-        });
+      if (metricsData.cpu?.usage?.length > 0) {
+        const cpuData = metricsData.cpu.usage[metricsData.cpu.usage.length - 1];
+        console.log('[MetricsChart] CPU原始数据:', cpuData);
+        if (cpuData?.value?.total != null) {
+          const cpuValue = Number(cpuData.value.total);
+          console.log('[MetricsChart] CPU处理后的值:', cpuValue);
+          newData.push({
+            time: currentTime,
+            value: cpuValue,
+            type: 'CPU使用率'
+          });
+        }
       }
 
-      setData(newData);
+      // 处理内存使用率数据
+      if (metricsData.memory?.info) {
+        const memInfo = metricsData.memory.info;
+        console.log('[MetricsChart] 内存原始数据:', memInfo);
+        if (memInfo.total > 0) {
+          const memoryUsage = (memInfo.used / memInfo.total) * 100;
+          console.log('[MetricsChart] 内存处理后的值:', memoryUsage);
+          newData.push({
+            time: currentTime,
+            value: memoryUsage,
+            type: '内存使用率'
+          });
+        }
+      }
+
+      console.log('[MetricsChart] 新数据点:', JSON.stringify(newData, null, 2));
+
+      // 更新状态
+      setData(prevData => {
+        console.log('[MetricsChart] 之前的数据:', JSON.stringify(prevData, null, 2));
+        
+        // 合并新旧数据，每种类型保留最新的10个点
+        const maxPoints = 10;
+        const types = ['CPU使用率', '内存使用率'];
+        const result: ChartData[] = [];
+
+        types.forEach(type => {
+          // 获取当前类型的所有数据点
+          const typeData = [...prevData.filter(d => d.type === type), 
+                          ...newData.filter(d => d.type === type)];
+          
+          // 按时间排序
+          typeData.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+          
+          // 只保留最新的点
+          const latestData = typeData.slice(-maxPoints);
+          result.push(...latestData);
+        });
+
+        console.log('[MetricsChart] 更新后的数据:', JSON.stringify(result, null, 2));
+        return result;
+      });
     };
+
+    // 立即获取一次数据
+    const initData = metricsManager.getData();
+    console.log('[MetricsChart] 初始数据:', JSON.stringify(initData, null, 2));
+    handleDataUpdate(initData);
 
     metricsManager.on('dataUpdated', handleDataUpdate);
 
     return () => {
+      console.log('[MetricsChart] 清理监听');
       metricsManager.off('dataUpdated', handleDataUpdate);
     };
   }, [sessionId]);
 
+  // 确保数据有效
+  const validData = data.filter(item => 
+    item && 
+    typeof item.value === 'number' && 
+    !isNaN(item.value) && 
+    typeof item.time === 'string' && 
+    typeof item.type === 'string'
+  );
+
+  console.log('[MetricsChart] 最终渲染数据:', JSON.stringify(validData, null, 2));
+
   const config = {
-    data,
-    xField: 'timestamp',
+    data: validData,
+    xField: 'time',
     yField: 'value',
-    seriesField: 'metric',
-    yAxis: {
-      label: {
-        formatter: (v: string) => formatPercent(parseFloat(v)),
-      },
-      min: 0,
-      max: 100,
-    },
+    seriesField: 'type',
     xAxis: {
       type: 'time',
+      mask: 'HH:mm:ss',
+    },
+    yAxis: {
+      min: 0,
+      max: 100,
+      label: {
+        formatter: (v: string) => `${Math.round(parseFloat(v))}%`,
+      },
     },
     tooltip: {
-      showMarkers: false,
-      formatter: (datum: any) => {
-        return {
-          name: datum.metric,
-          value: formatPercent(datum.value),
-        };
-      },
+      showMarkers: true,
+      shared: true,
+      showCrosshairs: true,
+      formatter: (datum: any) => ({
+        name: datum.type,
+        value: `${Math.round(datum.value)}%`,
+      }),
     },
     legend: {
       position: 'top' as const,
@@ -82,44 +140,36 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ sessionId }) => {
     smooth: true,
     animation: {
       appear: {
-        animation: 'path-in',
-        duration: 1000,
+        duration: 0,
       },
+    },
+    color: ['#1890ff', '#2fc25b'],
+    lineStyle: (datum: any) => {
+      return {
+        lineWidth: 2,
+      };
     },
     point: {
-      size: 3,
+      size: 4,
       shape: 'circle',
       style: {
-        opacity: 0.5,
-        stroke: '#fff',
-        lineWidth: 1,
+        fill: '#fff',
+        stroke: '#5B8FF9',
+        lineWidth: 2,
       },
     },
-    state: {
-      active: {
-        style: {
-          shadowBlur: 4,
-          stroke: '#000',
-          fill: 'red',
-        },
+    interactions: [
+      {
+        type: 'element-active',
       },
-    },
-    theme: {
-      geometries: {
-        line: {
-          line: {
-            style: {
-              lineWidth: 2,
-            },
-          },
-        },
-      },
-    },
+    ],
   };
 
   return (
     <Card title="资源使用趋势" bordered={false}>
-      <Line {...config} />
+      <div style={{ height: 300 }}>
+        <Line {...config} />
+      </div>
     </Card>
   );
 }; 

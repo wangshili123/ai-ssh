@@ -724,8 +724,11 @@ const SessionList: React.FC<SessionListProps> = ({
               <Select>
                 <Select.Option value="process">进程</Select.Option>
                 <Select.Option value="performance">性能</Select.Option>
-                <Select.Option value="service">服务</Select.Option>
+                <Select.Option value="history">应用历史记录</Select.Option>
+                <Select.Option value="startup">启动</Select.Option>
                 <Select.Option value="user">用户</Select.Option>
+                <Select.Option value="detail">详细信息</Select.Option>
+                <Select.Option value="service">服务</Select.Option>
               </Select>
             </Form.Item>
 
