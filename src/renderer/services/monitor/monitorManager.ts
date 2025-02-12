@@ -8,7 +8,7 @@ import { SSHService } from '../../types';
  * 监控管理器
  * 用于统一管理所有监控相关服务
  */
-export class MonitorManager {
+class MonitorManager {
   private static instance: MonitorManager;
   private sessions: Map<string, SessionInfo> = new Map();
   private refreshService: RefreshService;
@@ -198,8 +198,5 @@ export class MonitorManager {
   }
 }
 
-// 导出类定义
-export { MonitorManager };
-
-// 不在这里导出实例，而是在使用时创建
-// 因为需要传入 sshService 参数 
+// 只在底部导出
+export { MonitorManager }; 

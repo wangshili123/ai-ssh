@@ -9,11 +9,12 @@ import './CpuUsageCard.css';
 interface CpuUsageCardProps {
   sessionId: string;
   simple?: boolean;
+  detailed?: boolean;
 }
 
 const MAX_HISTORY_POINTS = 60; // 保存60个历史数据点
 
-export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({ sessionId, simple }) => {
+export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({ sessionId, simple, detailed }) => {
   const [cpuInfo, setCpuInfo] = useState<CpuInfo>({
     usage: 0,
     cores: [],
@@ -31,9 +32,11 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({ sessionId, simple })
     const session = monitorManager.getSession(sessionId);
     if (!session) return;
 
-    if (session.monitorData?.cpu) {
+    // 初始化数据
+    const initialData = session.monitorData?.cpu;
+    if (initialData) {
       setCpuInfo(prev => {
-        const newInfo = { ...session.monitorData.cpu };
+        const newInfo = { ...initialData };
         const now = Date.now();
 
         // 更新总体使用率历史
@@ -55,11 +58,14 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({ sessionId, simple })
       });
     }
 
+    // 定时更新数据
     const updateInterval = setInterval(() => {
-      const session = monitorManager.getSession(sessionId);
-      if (session?.monitorData?.cpu) {
+      const currentSession = monitorManager.getSession(sessionId);
+      const currentData = currentSession?.monitorData?.cpu;
+      
+      if (currentData) {
         setCpuInfo(prev => {
-          const newInfo = { ...session.monitorData.cpu };
+          const newInfo = { ...currentData };
           const now = Date.now();
 
           // 更新总体使用率历史

@@ -38,10 +38,14 @@ export class CpuMetricsService {
         ...basicInfo,
         usage: usage.usage,
         cores: usage.cores,
-        speed: basicInfo.speed || 0,
+        model: basicInfo.model || 'Unknown',
+        speed: basicInfo.speed || freq.current,
         currentSpeed: freq.current,
         maxSpeed: freq.max,
         minSpeed: freq.min,
+        physicalCores: basicInfo.physicalCores || usage.cores.length / 2,
+        logicalCores: basicInfo.logicalCores || usage.cores.length,
+        cache: basicInfo.cache || {},
         usageHistory: [],  // 历史数据由 MonitorManager 维护
         coreUsageHistory: []
       };

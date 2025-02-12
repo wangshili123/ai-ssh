@@ -1,4 +1,32 @@
- ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\components\Monitor\Performance\PerformancePage.tsx
-[0] ./src/renderer/components/Monitor/Performance/PerformancePage.tsx 6:35-63   
-[0] [tsl] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\components\Monitor\Performance\PerformancePage.tsx(6,36)
-[0]       TS2306: File 'E:\me\ai\ai-ssh\ai-ssh\src\renderer\components\Monitor\Performance\Cards\NetworkTrafficCard.tsx' is not a module.
+ ERROR in ./src/renderer/components/Monitor/Performance/Cards/DiskUsageCard.tsx 41:0-30       
+[0] Module not found: Error: Can't resolve './DiskUsageCard.css' in 'E:\me\ai\ai-ssh\ai-ssh\src\renderer\components\Monitor\Performance\Cards'
+[0]  @ ./src/renderer/components/Monitor/Performance/PerformancePage.tsx 41:24-56
+[0]  @ ./src/renderer/components/Monitor/MonitorPage.tsx 9:26-66
+[0]  @ ./src/renderer/components/Terminal/TerminalTabsManager/TerminalTabsManager.tsx 42:22-58   
+[0]  @ ./src/renderer/App.tsx 41:46-118
+[0]  @ ./src/renderer/index.tsx 10:30-46
+[0]
+[0] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\components\Monitor\Performance\Cards\MemoryUsageCard.tsx
+[0] ./src/renderer/components/Monitor/Performance/Cards/MemoryUsageCard.tsx 3:9-23
+[0] [tsl] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\components\Monitor\Performance\Cards\MemoryUsageCard.tsx(3,10)
+[0]       TS2724: '"../../../../services/monitor/monitorManager"' has no exported member named 'monitorManager'. Did you mean 'MonitorManager'?
+[0]  @ ./src/renderer/components/Monitor/Performance/PerformancePage.tsx 40:26-60
+[0]  @ ./src/renderer/components/Monitor/MonitorPage.tsx 9:26-66
+[0]  @ ./src/renderer/components/Terminal/TerminalTabsManager/TerminalTabsManager.tsx 42:22-58   
+[0]  @ ./src/renderer/App.tsx 41:46-118
+[0]  @ ./src/renderer/index.tsx 10:30-46
+[0]
+[0] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\components\Monitor\Performance\Cards\NetworkTrafficCard.tsx
+[0] ./src/renderer/components/Monitor/Performance/Cards/NetworkTrafficCard.tsx 3:9-23
+[0] [tsl] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\components\Monitor\Performance\Cards\NetworkTrafficCard.tsx(3,10)
+[0]       TS2724: '"../../../../services/monitor/monitorManager"' has no exported member named 'monitorManager'. Did you mean 'MonitorManager'?
+[0]  @ ./src/renderer/components/Monitor/Performance/PerformancePage.tsx 42:29-66
+[0]  @ ./src/renderer/components/Monitor/MonitorPage.tsx 9:26-66
+[0]  @ ./src/renderer/components/Terminal/TerminalTabsManager/TerminalTabsManager.tsx 42:22-58   
+[0]  @ ./src/renderer/App.tsx 41:46-118
+[0]  @ ./src/renderer/index.tsx 10:30-46
+[0]
+[0] 3 errors have detailed information that is not shown.
+[0] Use 'stats.errorDetails: true' resp. '--stats-error-details' to show it.
+[0]
+[0] webpack 5.97.1 compiled with 3 errors in 4288 ms

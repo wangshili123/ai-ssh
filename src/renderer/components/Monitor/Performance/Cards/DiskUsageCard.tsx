@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Progress } from 'antd';
-import { monitorManager } from '../../../../services/monitor/monitorManager';
+import ReactECharts from 'echarts-for-react';
+import { getServiceManager } from '../../../../services/monitor/serviceManager';
 import { DiskInfo } from '../../../../types/monitor';
+import type { ECOption } from '../../../../types/echarts';
 import { formatBytes } from '../../../../utils/format';
+import './DiskUsageCard.css';
 
 interface DiskUsageCardProps {
   sessionId: string;
@@ -20,6 +23,7 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({ sessionId, simple,
   });
 
   useEffect(() => {
+    const monitorManager = getServiceManager().getMonitorManager();
     const session = monitorManager.getSession(sessionId);
     if (!session) return;
 
@@ -28,9 +32,9 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({ sessionId, simple,
     }
 
     const updateInterval = setInterval(() => {
-      const session = monitorManager.getSession(sessionId);
-      if (session?.monitorData?.disk) {
-        setDiskInfo(session.monitorData.disk);
+      const currentSession = monitorManager.getSession(sessionId);
+      if (currentSession?.monitorData?.disk) {
+        setDiskInfo(currentSession.monitorData.disk);
       }
     }, session.config?.refreshInterval || 5000);
 
@@ -57,7 +61,7 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({ sessionId, simple,
               <Progress
                 type="circle"
                 percent={Math.round(diskInfo.usagePercent)}
-                format={(percent) => `${percent}%`}
+                format={percent => percent ? `${percent}%` : '0%'}
               />
             </div>
             <div className="basic-info">
@@ -94,7 +98,7 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({ sessionId, simple,
       <Progress
         type="circle"
         percent={Math.round(diskInfo.usagePercent)}
-        format={(percent) => `${percent}%`}
+        format={percent => percent ? `${percent}%` : '0%'}
       />
       <div style={{ marginTop: 16 }}>
         <p>总容量: {formatBytes(diskInfo.total)}</p>

@@ -1,0 +1,92 @@
+.resource-summary {
+  padding: 12px;
+  text-align: center;
+}
+
+.resource-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.resource-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1890ff;
+  margin-bottom: 4px;
+}
+
+.resource-details {
+  padding: 20px;
+}
+
+.resource-header {
+  margin-bottom: 24px;
+}
+
+.resource-header h2 {
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.resource-summary {
+  display: flex;
+  gap: 24px;
+}
+
+.network-speeds {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.speed-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.speed-label {
+  color: #666;
+  font-size: 14px;
+}
+
+.speed-value {
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.interfaces-list {
+  margin-top: 24px;
+}
+
+.interfaces-list h3 {
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.interface-item {
+  background: #fafafa;
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.interface-header {
+  margin-bottom: 8px;
+  color: #333;
+  font-weight: 500;
+}
+
+.interface-speeds {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.network-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+} 

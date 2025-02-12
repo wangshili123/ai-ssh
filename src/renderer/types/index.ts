@@ -25,7 +25,7 @@ export interface SSHService {
   createShell: (sessionId: string, onData: (data: string) => void, onClose?: () => void) => Promise<void>;
   write: (sessionId: string, data: string) => Promise<void>;
   resize: (sessionId: string, cols: number, rows: number) => Promise<void>;
-  executeCommand: (sessionId: string, command: string) => Promise<void>;
+  executeCommand: (sessionId: string, command: string) => Promise<string>;
 }
 
 /**

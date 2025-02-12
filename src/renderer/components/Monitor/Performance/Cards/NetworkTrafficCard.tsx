@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Progress } from 'antd';
-import { monitorManager } from '../../../../services/monitor/monitorManager';
+import { getServiceManager } from '../../../../services/monitor/serviceManager';
 import { NetworkInfo } from '../../../../types/monitor';
 import { formatBitRate } from '../../../../utils/format';
+import './NetworkTrafficCard.css';
 
 interface NetworkTrafficCardProps {
   sessionId: string;
@@ -20,6 +21,7 @@ export const NetworkTrafficCard: React.FC<NetworkTrafficCardProps> = ({ sessionI
   });
 
   useEffect(() => {
+    const monitorManager = getServiceManager().getMonitorManager();
     const session = monitorManager.getSession(sessionId);
     if (!session) return;
 
@@ -28,9 +30,9 @@ export const NetworkTrafficCard: React.FC<NetworkTrafficCardProps> = ({ sessionI
     }
 
     const updateInterval = setInterval(() => {
-      const session = monitorManager.getSession(sessionId);
-      if (session?.monitorData?.network) {
-        setNetworkInfo(session.monitorData.network);
+      const currentSession = monitorManager.getSession(sessionId);
+      if (currentSession?.monitorData?.network) {
+        setNetworkInfo(currentSession.monitorData.network);
       }
     }, session.config?.refreshInterval || 5000);
 

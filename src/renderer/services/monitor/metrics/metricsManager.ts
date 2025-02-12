@@ -1,54 +1,42 @@
-import { cpuService } from './cpuService';
-import { memoryService } from './memoryService';
-import type { CpuInfo } from './cpuService';
-import type { MemoryInfo as RealTimeMemoryInfo } from './memoryService';
-import EventEmitter from 'events';
+import { CpuMetricsService } from './cpuService';
+import { SSHService } from '../../../types';
+import { CpuInfo, MemoryInfo } from '../../../types/monitor';
 
-export class MetricsManager extends EventEmitter {
+export class MetricsManager {
   private static instance: MetricsManager | null = null;
-  private cpuSubscribers = new Map<string, (info: CpuInfo) => void>();
-  private memorySubscribers = new Map<string, (info: RealTimeMemoryInfo) => void>();
+  private cpuMetricsService: CpuMetricsService;
+  private sshService: SSHService;
 
-  constructor() {
-    super();
-
-    // 监听 CPU 数据更新
-    cpuService.on('update', (info: CpuInfo) => {
-      this.cpuSubscribers.forEach(callback => callback(info));
-    });
-
-    // 监听内存数据更新
-    memoryService.on('update', (info: RealTimeMemoryInfo) => {
-      this.memorySubscribers.forEach(callback => callback(info));
-    });
+  private constructor(sshService: SSHService) {
+    this.sshService = sshService;
+    this.cpuMetricsService = CpuMetricsService.getInstance(sshService);
   }
 
-  static getInstance(): MetricsManager {
+  static getInstance(sshService: SSHService): MetricsManager {
     if (!MetricsManager.instance) {
-      MetricsManager.instance = new MetricsManager();
+      MetricsManager.instance = new MetricsManager(sshService);
     }
     return MetricsManager.instance;
   }
 
-  subscribeCpuInfo(sessionId: string, callback: (info: CpuInfo) => void) {
-    this.cpuSubscribers.set(sessionId, callback);
-    return () => {
-      this.cpuSubscribers.delete(sessionId);
-    };
+  async collectCpuMetrics(sessionId: string): Promise<CpuInfo> {
+    return this.cpuMetricsService.collectMetrics(sessionId);
   }
 
-  subscribeMemoryInfo(sessionId: string, callback: (info: RealTimeMemoryInfo) => void) {
-    this.memorySubscribers.set(sessionId, callback);
-    return () => {
-      this.memorySubscribers.delete(sessionId);
+  // TODO: 实现内存指标采集
+  async collectMemoryMetrics(sessionId: string): Promise<MemoryInfo> {
+    return {
+      total: 0,
+      used: 0,
+      free: 0,
+      cached: 0,
+      buffers: 0,
+      usagePercent: 0
     };
   }
 
   destroy() {
-    this.cpuSubscribers.clear();
-    this.memorySubscribers.clear();
+    this.cpuMetricsService.destroy();
     MetricsManager.instance = null;
   }
-}
-
-export const metricsManager = MetricsManager.getInstance(); 
+} 
