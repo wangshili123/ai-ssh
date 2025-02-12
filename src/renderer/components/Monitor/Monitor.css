@@ -1,0 +1,108 @@
+/* 监控页面布局 */
+.monitor-page {
+  height: 100%;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.monitor-page .ant-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.monitor-page .ant-tabs-content {
+  flex: 1;
+  height: 0;
+  overflow: auto;
+}
+
+.monitor-page .ant-tabs-tabpane {
+  height: 100%;
+  padding: 16px;
+}
+
+/* 监控面板样式 */
+.metrics-panel {
+  padding: 16px;
+  background: #f0f2f5;
+  min-height: 100%;
+}
+
+.metrics-panel .ant-card {
+  margin-bottom: 16px;
+}
+
+.metrics-panel .ant-card:last-child {
+  margin-bottom: 0;
+}
+
+/* 图表样式 */
+.metrics-chart {
+  height: 400px;
+  margin-bottom: 16px;
+}
+
+.metrics-chart .ant-card-body {
+  padding: 12px;
+}
+
+/* 统计数据样式 */
+.metrics-statistic {
+  text-align: center;
+}
+
+.metrics-statistic .ant-statistic-title {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 14px;
+}
+
+.metrics-statistic .ant-statistic-content {
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 24px;
+}
+
+/* 进度条和仪表盘样式 */
+.metrics-progress {
+  text-align: center;
+}
+
+.metrics-progress .ant-progress-text {
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 16px;
+}
+
+.metrics-progress .progress-label {
+  margin-top: 8px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+/* 控制栏样式 */
+.metrics-control {
+  text-align: right;
+  margin-bottom: 16px;
+}
+
+.metrics-control .ant-btn {
+  margin-left: 8px;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .monitor-page .ant-tabs-tabpane {
+    padding: 8px;
+  }
+
+  .metrics-panel {
+    padding: 8px;
+  }
+
+  .metrics-chart {
+    height: 300px;
+  }
+
+  .metrics-statistic .ant-statistic-content {
+    font-size: 20px;
+  }
+} 

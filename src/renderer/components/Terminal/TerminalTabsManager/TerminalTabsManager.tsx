@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Tabs, Badge } from 'antd';
 import TerminalTabContent from '../TerminalTabContent/TerminalTabContent';
-import { MonitorTab } from '../../Monitor/MonitorTab';
+import { MonitorPage } from '../../Monitor/MonitorPage';
 import { eventBus, TabInfo } from '../../../services/eventBus';
 import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
 import { FileBrowserConnectionManager } from '../../FileBrowser/FileBrowserMain/FileBrowserConnectionManager';
@@ -181,9 +181,8 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
     // 根据会话类型渲染不同的内容
     if (tab.sessionInfo.type === 'monitor') {
       return (
-        <MonitorTab
-          sessionId={tab.sessionInfo.id}
-          onClose={() => handleEdit(tab.key, 'remove')}
+        <MonitorPage
+          session={tab.sessionInfo}
         />
       );
     }
