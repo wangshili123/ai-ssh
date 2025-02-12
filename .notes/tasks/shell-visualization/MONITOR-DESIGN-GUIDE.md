@@ -29,21 +29,44 @@
 src/renderer/
 ├── components/
 │   └── Monitor/                    # 监控相关组件
-│       ├── Base/                   # 基础组件
-│       ├── Charts/                 # 图表组件
-│       ├── Process/                # 进程管理组件
-│       ├── Service/                # 服务管理组件
-│       ├── User/                   # 用户管理组件
-│       └── Export/                 # 数据导出组件
+│       ├── Process/                # 进程管理
+│       │   ├── List/              # 进程列表
+│       │   ├── Details/           # 进程详情
+│       │   └── ProcessPage.tsx    # 进程页面
+│       ├── Performance/           # 性能监控
+│       │   ├── Cards/            # 资源卡片
+│       │   ├── Details/          # 资源详情
+│       │   └── PerformancePage.tsx # 性能页面
+│       ├── AppHistory/           # 应用历史
+│       │   └── HistoryPage.tsx   # 历史页面
+│       ├── Startup/              # 启动项
+│       │   └── StartupPage.tsx   # 启动页面
+│       ├── Users/                # 用户管理
+│       │   └── UserPage.tsx      # 用户页面
+│       ├── Services/             # 服务管理
+│       │   └── ServicePage.tsx   # 服务页面
+│       ├── Common/               # 公共组件
+│       │   ├── StatusBar/       # 状态栏
+│       │   ├── ControlPanel/    # 控制面板
+│       │   └── Layout/          # 布局组件
+│       └── MonitorPage.tsx       # 监控主页面
 ├── services/
-│   └── monitor/                    # 监控相关服务
-│       ├── metrics/                # 指标采集服务
-│       ├── process/                # 进程管理服务
-│       ├── service/                # 服务管理服务
-│       ├── user/                   # 用户管理服务
-│       └── export/                 # 数据导出服务
+│   └── monitor/                  # 监控相关服务
+│       ├── metrics/              # 指标采集服务
+│       │   ├── cpu/             # CPU监控
+│       │   ├── memory/          # 内存监控
+│       │   ├── disk/            # 磁盘监控
+│       │   └── network/         # 网络监控
+│       ├── process/             # 进程管理服务
+│       ├── service/             # 服务管理服务
+│       ├── user/                # 用户管理服务
+│       └── history/             # 历史记录服务
 └── types/
-    └── monitor/                    # 监控相关类型定义
+    └── monitor/                 # 监控相关类型定义
+        ├── metrics.ts          # 监控指标类型
+        ├── process.ts         # 进程相关类型
+        ├── service.ts         # 服务相关类型
+        └── user.ts           # 用户相关类型
 ```
 
 ## 2. 开发规范
