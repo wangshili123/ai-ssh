@@ -76,7 +76,7 @@ class SSHService {
     }
   }
 
-  async executeCommand(command: string) {
+  async executeCommand(command: string): Promise<string> {
     const currentShellId = eventBus.getCurrentShellId();
     if (!currentShellId) {
       throw new Error('No active shell session found');
@@ -87,18 +87,18 @@ class SSHService {
     try {
       await this.write(currentShellId, command + '\n');
 
-      return new Promise<void>((resolve, reject) => {
+      return new Promise<string>((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error('Command execution timeout'));
         }, 360000);
 
         const checkOutput = () => {
           const output = terminalOutputService.getHistory();
-          const lastOutput = output[output.length - 1]?.output;
+          const lastOutput = output[output.length - 1]?.output || '';
           
           if (lastOutput && (lastOutput.includes('$ ') || lastOutput.includes('# '))) {
             clearTimeout(timeout);
-            resolve();
+            resolve(lastOutput);
           } else {
             setTimeout(checkOutput, 10);
           }

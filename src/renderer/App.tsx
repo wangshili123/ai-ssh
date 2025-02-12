@@ -7,10 +7,12 @@ import AIAssistant from './components/AIAssistant';
 import AppStatusBar from './components/StatusBar/AppStatusBar';
 import AppToolbar from './components/Toolbar/AppToolbar';
 import SessionListModal from './components/SessionListModal';
-import type { SessionInfo } from '../renderer/types/index';
+import type { SessionInfo, SSHService } from './types';
 import { eventBus } from './services/eventBus';
 import { DatabaseService } from '../services/database/DatabaseService';
 import { storageService } from './services/storage';
+import { sshService } from './services/ssh';
+import { initializeServices } from './services/monitor/serviceManager';
 import './App.css';
 
 const { Content, Sider } = Layout;
@@ -27,10 +29,13 @@ const App: React.FC = () => {
 
   // 初始化数据库和基础服务
   useEffect(() => {
-    const initializeServices = async () => {
+    const initializeApp = async () => {
       try {
         console.log('[App] 开始初始化基础服务...');
         await DatabaseService.getInstance().init();
+        
+        // 初始化监控服务
+        initializeServices(sshService as SSHService);
         
         // 加载UI设置
         const settings = await storageService.loadUISettings();
@@ -44,7 +49,7 @@ const App: React.FC = () => {
       }
     };
 
-    initializeServices();
+    initializeApp();
   }, []);
 
   // 保存UI设置
