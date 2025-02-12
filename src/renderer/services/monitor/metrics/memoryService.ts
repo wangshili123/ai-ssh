@@ -1,13 +1,34 @@
 import { commandService } from './commandService';
-import { MemoryInfo, MemoryStats, VMStats } from './metricsTypes';
+import { SystemMemoryInfo, MemoryStats, VMStats } from './metricsTypes';
+import { EventEmitter } from 'events';
+
+export interface MemoryDataPoint {
+  timestamp: number;
+  used: number;
+  total: number;
+}
+
+export interface MemoryInfo {
+  used: number;
+  available: number;
+  total: number;
+  committed: number;
+  history: MemoryDataPoint[];
+}
 
 /**
  * 内存数据采集服务
  */
-export class MemoryService {
+export class MemoryService extends EventEmitter {
   private static instance: MemoryService;
+  private history: MemoryDataPoint[] = [];
+  private maxHistoryLength = 60; // 保存最近60秒的数据
+  private totalMemory = 16 * 1024 * 1024 * 1024; // 16GB
 
-  private constructor() {}
+  private constructor() {
+    super();
+    this.startCollecting();
+  }
 
   /**
    * 获取单例实例
@@ -19,10 +40,33 @@ export class MemoryService {
     return MemoryService.instance;
   }
 
+  private startCollecting() {
+    setInterval(() => {
+      // 模拟数据采集
+      const now = Date.now();
+      const used = Math.random() * this.totalMemory * 0.8;
+      
+      this.history.push({ timestamp: now, used, total: this.totalMemory });
+      if (this.history.length > this.maxHistoryLength) {
+        this.history.shift();
+      }
+
+      const info: MemoryInfo = {
+        used,
+        available: this.totalMemory - used,
+        total: this.totalMemory,
+        committed: used + Math.random() * (this.totalMemory - used) * 0.5,
+        history: this.history
+      };
+
+      this.emit('update', info);
+    }, 1000);
+  }
+
   /**
    * 获取内存使用情况
    */
-  async getMemoryInfo(): Promise<MemoryInfo> {
+  async getMemoryInfo(): Promise<SystemMemoryInfo> {
     try {
       // 使用free命令获取内存使用情况
       const result = await commandService.executeCommand('free -k');
@@ -101,7 +145,7 @@ export class MemoryService {
         throw new Error('Failed to get memory stats');
       }
 
-      const stats: Partial<MemoryStats> = {
+      const stats: MemoryStats = {
         activeAnon: 0,
         inactiveAnon: 0,
         activeFile: 0,
@@ -159,7 +203,7 @@ export class MemoryService {
         }
       }
 
-      return stats as MemoryStats;
+      return stats;
     } catch (error) {
       console.error('Failed to get memory stats:', error);
       return {

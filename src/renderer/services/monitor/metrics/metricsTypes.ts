@@ -42,7 +42,7 @@ export interface CPULoad {
  */
 
 // 内存使用情况
-export interface MemoryInfo {
+export interface SystemMemoryInfo {
   total: number;          // 总内存(KB)
   used: number;          // 已使用内存(KB)
   free: number;          // 空闲内存(KB)
@@ -79,9 +79,9 @@ export interface VMStats {
 /**
  * 监控数据时间序列
  */
-export interface TimeSeriesData<T> {
-  timestamp: number;     // 时间戳
-  value: T;             // 数据值
+export interface TimeSeriesData {
+  timestamp: number;
+  value: number;
 }
 
 /**
@@ -89,6 +89,26 @@ export interface TimeSeriesData<T> {
  */
 export interface RefreshOptions {
   interval: number;      // 刷新间隔(ms)
-  maxDataPoints: number; // 最大数据点数
-  autoRefresh: boolean;  // 是否自动刷新
+  enabled: boolean;      // 是否启用自动刷新
+}
+
+export interface LegacyCPUInfo {
+  model: string;
+  speed: number;
+  cores: number;
+  physicalCores: number;
+}
+
+export interface LegacyMemoryInfo {
+  total: number;
+  free: number;
+  used: number;
+  active: number;
+  available: number;
+  buffers: number;
+  cached: number;
+  slab: number;
+  swapTotal: number;
+  swapUsed: number;
+  swapFree: number;
 } 

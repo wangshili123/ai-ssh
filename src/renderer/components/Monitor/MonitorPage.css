@@ -1,0 +1,28 @@
+.monitor-page {
+  height: 100%;
+  background-color: #fff;
+}
+
+.performance-container {
+  display: flex;
+  height: calc(100vh - 48px); /* 减去顶部 Tab 栏的高度 */
+  overflow: hidden;
+}
+
+.performance-sidebar {
+  width: 280px;
+  border-right: 1px solid #e8e8e8;
+  overflow-y: auto;
+  background-color: #f5f5f5;
+}
+
+.resource-list {
+  padding: 16px;
+}
+
+.performance-details {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background-color: #fff;
+} 

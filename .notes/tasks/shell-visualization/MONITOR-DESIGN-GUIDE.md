@@ -92,7 +92,7 @@ src/renderer/
 - React 18+
 - TypeScript 4+
 - Ant Design 5+
-- ECharts 5+ (图表可视化)
+- ECharts 5+ (图表可视化，关键)
 
 #### 2.3.2 数据流
 - 使用 React Context 管理监控状态

@@ -1,13 +1,33 @@
 import { commandService } from './commandService';
 import { CPUInfo, CPUUsage, CPULoad } from './metricsTypes';
+import { EventEmitter } from 'events';
+
+export interface CpuDataPoint {
+  timestamp: number;
+  usage: number;
+}
+
+export interface CpuInfo {
+  usage: number;
+  speed: number;
+  processes: number;
+  threads: number;
+  uptime: string;
+  history: CpuDataPoint[];
+}
 
 /**
  * CPU数据采集服务
  */
-export class CPUService {
+export class CPUService extends EventEmitter {
   private static instance: CPUService;
+  private history: CpuDataPoint[] = [];
+  private maxHistoryLength = 60; // 保存最近60秒的数据
 
-  private constructor() {}
+  private constructor() {
+    super();
+    this.startCollecting();
+  }
 
   /**
    * 获取单例实例
@@ -17,6 +37,30 @@ export class CPUService {
       CPUService.instance = new CPUService();
     }
     return CPUService.instance;
+  }
+
+  private startCollecting() {
+    setInterval(() => {
+      // 模拟数据采集
+      const now = Date.now();
+      const usage = Math.random() * 100;
+      
+      this.history.push({ timestamp: now, usage });
+      if (this.history.length > this.maxHistoryLength) {
+        this.history.shift();
+      }
+
+      const info: CpuInfo = {
+        usage,
+        speed: 3.2,
+        processes: 120,
+        threads: 1500,
+        uptime: '1:23:45',
+        history: this.history
+      };
+
+      this.emit('update', info);
+    }, 1000);
   }
 
   /**
@@ -30,7 +74,10 @@ export class CPUService {
     }
 
     const lines = result.data.split('\n');
-    const info: Partial<CPUInfo> = {
+    const info: CPUInfo = {
+      model: '',
+      cores: 0,
+      threads: 0,
       frequency: {
         current: 0,
         min: 0,
@@ -58,30 +105,30 @@ export class CPUService {
           info.threads = parseInt(value) * (info.cores || 1);
           break;
         case 'CPU MHz':
-          if (info.frequency) info.frequency.current = parseFloat(value);
+          info.frequency.current = parseFloat(value);
           break;
         case 'CPU min MHz':
-          if (info.frequency) info.frequency.min = parseFloat(value);
+          info.frequency.min = parseFloat(value);
           break;
         case 'CPU max MHz':
-          if (info.frequency) info.frequency.max = parseFloat(value);
+          info.frequency.max = parseFloat(value);
           break;
         case 'L1d cache':
-          if (info.cache) info.cache.l1d = parseInt(value);
+          info.cache.l1d = parseInt(value);
           break;
         case 'L1i cache':
-          if (info.cache) info.cache.l1i = parseInt(value);
+          info.cache.l1i = parseInt(value);
           break;
         case 'L2 cache':
-          if (info.cache) info.cache.l2 = parseInt(value);
+          info.cache.l2 = parseInt(value);
           break;
         case 'L3 cache':
-          if (info.cache) info.cache.l3 = parseInt(value);
+          info.cache.l3 = parseInt(value);
           break;
       }
     }
 
-    return info as CPUInfo;
+    return info;
   }
 
   /**

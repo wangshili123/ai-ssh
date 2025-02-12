@@ -106,6 +106,62 @@ declare module '@ant-design/plots' {
     };
   }
 
+  interface AreaConfig {
+    data: any[];
+    xField: string;
+    yField: string;
+    appendPadding?: number[];
+    autoFit?: boolean;
+    height?: number;
+    animation?: boolean | object;
+    xAxis?: boolean | object;
+    yAxis?: boolean | object;
+    tooltip?: boolean | object;
+    line?: boolean | object;
+    smooth?: boolean;
+    areaStyle?: {
+      fill?: string;
+      fillOpacity?: number;
+    };
+    meta?: {
+      [key: string]: {
+        min?: number;
+        max?: number;
+      };
+    };
+  }
+
+  interface TinyAreaConfig {
+    data: number[];
+    height?: number;
+    autoFit?: boolean;
+    smooth?: boolean;
+    areaStyle?: {
+      fill?: string;
+      fillOpacity?: number;
+    };
+  }
+
+  interface TinyLineConfig {
+    data: number[];
+    height?: number;
+    autoFit?: boolean;
+    smooth?: boolean;
+    areaStyle?: {
+      fill?: string;
+      fillOpacity?: number;
+    };
+    lineStyle?: {
+      stroke?: string;
+      lineWidth?: number;
+    };
+    color?: string;
+    padding?: number[];
+  }
+
   export const Line: React.FC<LineConfig>;
   export const DualAxes: React.FC<DualAxesConfig>;
+  export class Area extends React.Component<AreaConfig> {}
+  export const TinyArea: React.FC<TinyAreaConfig>;
+  export const TinyLine: React.FC<TinyLineConfig>;
 } 
