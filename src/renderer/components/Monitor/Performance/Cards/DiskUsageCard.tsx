@@ -98,9 +98,9 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
     },
     yAxis: {
       type: 'value',
-      name: 'MB/s',
+      name: '速率',
       axisLabel: {
-        formatter: (value: number) => formatBytes(value * 1024 * 1024).replace('B', '')
+        formatter: (value: number) => formatBytes(value).replace('iB', 'B')
       }
     },
     series: [
@@ -110,7 +110,13 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
         smooth: true,
         data: ioHistory.map(item => [item.timestamp, item.readSpeed]),
         lineStyle: { width: 2 },
-        itemStyle: { color: '#1890ff' }
+        itemStyle: { color: '#1890ff' },
+        emphasis: {
+          focus: 'series'
+        },
+        areaStyle: {
+          opacity: 0.1
+        }
       },
       {
         name: '写入速度',
@@ -121,7 +127,13 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
           width: 2,
           type: 'dashed'
         },
-        itemStyle: { color: '#52c41a' }
+        itemStyle: { color: '#52c41a' },
+        emphasis: {
+          focus: 'series'
+        },
+        areaStyle: {
+          opacity: 0.1
+        }
       }
     ]
   });
