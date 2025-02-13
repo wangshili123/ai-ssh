@@ -43,66 +43,89 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
   };
 
   // 生成内存使用环形图配置
-  const getMemoryChartOption = (): ECOption => ({
-    tooltip: {
-      trigger: 'item',
-      formatter: (params: any) => {
-        const value = params.value as number;
-        const name = params.name as string;
-        return `${name}: ${formatBytes(value)} (${params.percent}%)`;
-      }
-    },
-    legend: {
-      orient: 'vertical',
-      right: 0,
-      top: 'center',
-      itemWidth: 12,
-      itemHeight: 12,
-      icon: 'circle',
-      formatter: (name: string) => {
-        const value = {
-          '已用内存': memoryInfo.used - memoryInfo.cached - memoryInfo.buffers,
-          '缓存': memoryInfo.cached,
-          '缓冲区': memoryInfo.buffers,
-          '可用内存': memoryInfo.free
-        }[name];
-        return `${name}: ${formatBytes(value || 0)}`;
-      }
-    },
-    series: [
-      {
-        type: 'pie',
-        radius: ['40%', '70%'],
-        center: ['35%', '50%'],
-        avoidLabelOverlap: false,
-        label: {
-          show: false
-        },
-        data: [
-          {
-            name: '已用内存',
-            value: memoryInfo.used - memoryInfo.cached - memoryInfo.buffers,
-            itemStyle: { color: '#1890ff' }
-          },
-          {
-            name: '缓存',
-            value: memoryInfo.cached,
-            itemStyle: { color: '#52c41a' }
-          },
-          {
-            name: '缓冲区',
-            value: memoryInfo.buffers,
-            itemStyle: { color: '#722ed1' }
-          },
-          {
-            name: '可用内存',
-            value: memoryInfo.free,
-            itemStyle: { color: '#f0f0f0' }
+  const getMemoryChartOption = (): ECOption => {
+    const usagePercent = memoryInfo.usagePercent;
+    const getProgressColor = (percent: number) => {
+      if (percent >= 80) return '#ff4d4f';
+      if (percent >= 30) return '#faad14';
+      return '#52c41a';
+    };
+
+    return {
+      tooltip: {
+        trigger: 'item',
+        formatter: (params: any) => {
+          if (params.seriesName === 'usage') {
+            return `内存使用率: ${Math.round(usagePercent)}%`;
           }
-        ]
-      }
-    ]
-  });
+          return '';
+        }
+      },
+      series: [
+        {
+          name: 'track',
+          type: 'pie',
+          radius: ['55%', '70%'],
+          center: ['50%', '50%'],
+          silent: true,
+          label: {
+            show: false
+          },
+          data: [
+            {
+              value: 100,
+              itemStyle: {
+                color: '#f0f0f0'
+              }
+            }
+          ]
+        },
+        {
+          name: 'usage',
+          type: 'pie',
+          radius: ['55%', '70%'],
+          center: ['50%', '50%'],
+          startAngle: 90,
+          label: {
+            show: true,
+            position: 'center',
+            formatter: () => {
+              return [
+                `{value|${Math.round(usagePercent)}%}`,
+                '{label|内存使用率}'
+              ].join('\n');
+            },
+            rich: {
+              value: {
+                fontSize: 24,
+                fontWeight: 500,
+                color: getProgressColor(usagePercent),
+                padding: [0, 0, 5, 0]
+              },
+              label: {
+                fontSize: 12,
+                color: '#666'
+              }
+            }
+          },
+          data: [
+            {
+              value: usagePercent,
+              itemStyle: {
+                color: getProgressColor(usagePercent)
+              }
+            },
+            {
+              value: 100 - usagePercent,
+              itemStyle: {
+                color: 'transparent'
+              }
+            }
+          ]
+        }
+      ]
+    };
+  };
 
   // 进程列表列定义
   const columns = [
@@ -166,7 +189,7 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
           <div className="memory-chart">
             <ReactECharts 
               option={getMemoryChartOption()} 
-              style={{ height: '100%', minHeight: '200px' }}
+              style={{ height: '100%', minHeight: '160px' }}
               notMerge={true}
             />
           </div>
