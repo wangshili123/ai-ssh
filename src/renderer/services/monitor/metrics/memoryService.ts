@@ -67,8 +67,8 @@ export class MemoryMetricsService {
    */
   private async getTopProcesses(sessionId: string): Promise<MemoryInfo['topProcesses']> {
     try {
-      // 获取内存占用前10的进程
-      const cmd = "ps -eo pid,comm,%mem,rss --sort=-rss | head -n 11";  // 11是因为要去掉标题行
+      // 获取内存占用前10的进程，增加 cmd 字段显示完整命令行
+      const cmd = "ps -eo pid,comm,%mem,rss,args --sort=-rss | head -n 11";
       const result = await this.sshService.executeCommandDirect(sessionId, cmd);
       
       return this.parseProcessInfo(result || '');
@@ -131,12 +131,21 @@ export class MemoryMetricsService {
       .slice(1)  // 跳过标题行
       .filter(line => line.trim())
       .map(line => {
-        const [pid, name, memPercent, rss] = line.trim().split(/\s+/);
+        // 由于args可能包含空格，需要特殊处理
+        const parts = line.trim().split(/\s+/);
+        const pid = parseInt(parts[0]);
+        const name = parts[1];
+        const memPercent = parseFloat(parts[2]);
+        const rss = parts[3];  // 保持为字符串
+        // 从第5个字段开始到最后都是命令行
+        const command = parts.slice(4).join(' ');
+
         return {
-          pid: parseInt(pid),
+          pid,
           name,
-          memoryUsed: parseInt(rss) * 1024,  // rss是以KB为单位，转换为bytes
-          memoryPercent: parseFloat(memPercent)
+          command,
+          memoryUsed: parseInt(rss) * 1024,  // 现在 rss 是字符串，可以正确解析
+          memoryPercent: memPercent
         };
       });
   }

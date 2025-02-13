@@ -51,6 +51,7 @@ export interface MemoryInfo {
   topProcesses: Array<{
     pid: number;       // 进程ID
     name: string;      // 进程名
+    command: string;   // 完整命令行
     memoryUsed: number; // 内存使用量(bytes)
     memoryPercent: number; // 内存使用百分比(%)
   }>;

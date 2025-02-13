@@ -133,26 +133,33 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
       title: '进程名',
       dataIndex: 'name',
       key: 'name',
-      width: '30%'
+      width: '15%'
     },
     {
       title: 'PID',
       dataIndex: 'pid',
       key: 'pid',
-      width: '20%'
+      width: '10%'
+    },
+    {
+      title: '命令行',
+      dataIndex: 'command',
+      key: 'command',
+      width: '40%',
+      ellipsis: true,  // 文本过长时显示省略号
     },
     {
       title: '内存占用',
       dataIndex: 'memoryUsed',
       key: 'memoryUsed',
-      width: '25%',
+      width: '20%',
       render: (value: number) => formatBytes(value)
     },
     {
       title: '占比',
       dataIndex: 'memoryPercent',
       key: 'memoryPercent',
-      width: '25%',
+      width: '15%',
       render: (value: number) => `${value.toFixed(1)}%`
     }
   ];
@@ -237,7 +244,7 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
 
         {/* 进程列表 */}
         <div className="memory-processes">
-          <h3>内存占用TOP进程</h3>
+          <h3>内存占用TOP10进程</h3>
           <Table 
             dataSource={memoryInfo.topProcesses.map(p => ({ ...p, key: p.pid }))}
             columns={columns}
