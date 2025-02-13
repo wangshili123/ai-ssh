@@ -1,56 +1,61 @@
-App.tsx:116 [App] 会话选择: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
-TerminalTabsManager.tsx:51 [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 1}
-TerminalTabsManager.tsx:196 [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
-TerminalTabsManager.tsx:65 [TerminalTabsManager] triggerNewTab变化: {triggerNewTab: 1, prevTrigger: undefined, mounted: true, sessionInfo: {…}}
-TerminalTabsManager.tsx:78 [TerminalTabsManager] 触发新标签页创建: {sessionInfo: {…}}
-TerminalTabsManager.tsx:92 [TerminalTabsManager] 新标签页数据: {key: '1739375732046', title: '252-1234', sessionInfo: {…}, instanceId: '1739375732046', tabId: 'tab-1739375732046', …}
-TerminalTabsManager.tsx:95 [TerminalTabsManager] 更新标签页列表: {prev: Array(0), newTab: {…}}
-eventBus.ts:37 [EventBus] 设置当前 tabId: tab-1739375732046
-eventBus.ts:55 [EventBus] 触发事件: tabIdChanged ['tab-1739375732046']
-App.tsx:106 [App] 标签页ID变化: tab-1739375732046
-eventBus.ts:30 [EventBus] 设置当前 shellId: 1737016726289-1739375732046
-eventBus.ts:55 [EventBus] 触发事件: shellIdChanged ['1737016726289-1739375732046']
-eventBus.ts:55 [EventBus] 触发事件: tab-create [{…}]
-TerminalTabsManager.tsx:114 [TerminalTabsManager] 新标签页创建完成: {tabId: 'tab-1739375732046', shellId: '1737016726289-1739375732046', sessionInfo: {…}}
-CommandExecutor.ts:31 [CommandExecutor] 开始初始化补全执行命令的SSH连接
-eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739375732046
-eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1739375732046
-eventBus.ts:80 [EventBus] 获取标签页信息: tab-1739375732046
-eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1739375732046' => {…}}
-eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739375732046', shellId: '1737016726289-1739375732046', sessionInfo: {…}}
-eventBus.ts:126 [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
-ssh.ts:19 [SSH] 获取连接: 1737016726289
-ssh.ts:22 [SSH] 未找到连接: 1737016726289
-eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739375732046
-eventBus.ts:97 [EventBus] getCurrentSessionInfo - currentTabId: tab-1739375732046
-eventBus.ts:80 [EventBus] 获取标签页信息: tab-1739375732046
-eventBus.ts:81 [EventBus] 当前标签页映射: Map(1) {'tab-1739375732046' => {…}}
-eventBus.ts:103 [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739375732046', shellId: '1737016726289-1739375732046', sessionInfo: {…}}
-CommandExecutor.ts:43 [CommandExecutor] 正在预初始化SSH连接...
-ssh.ts:35 SSHService.connect called with: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
-ssh.ts:37 Connecting to SSH server with config: {host: '172.16.3.226', port: 22, username: 'root', authType: 'password', hasPassword: true, …}
-TerminalTabsManager.tsx:51 [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 1}
-TerminalTabsManager.tsx:196 [TerminalTabsManager] 渲染组件: {tabs: Array(1), activeKey: '1739375732046'}
-warning.js:30 Warning: [antd: Tabs] Tabs.TabPane is deprecated. Please use `items` directly.
-warning @ warning.js:30
-call @ warning.js:51
-warningOnce @ warning.js:58
-warning @ warning.js:8
-useLegacyItems @ useLegacyItems.js:22
-Tabs @ index.js:58
-renderWithHooks @ react-dom.development.js:15486
-mountIndeterminateComponent @ react-dom.development.js:20103
-beginWork @ react-dom.development.js:21626
-beginWork$1 @ react-dom.development.js:27465
-performUnitOfWork @ react-dom.development.js:26599
-workLoopSync @ react-dom.development.js:26505
-renderRootSync @ react-dom.development.js:26473
-performConcurrentWorkOnRoot @ react-dom.development.js:25777
-workLoop @ scheduler.development.js:266
-flushWork @ scheduler.development.js:239
-performWorkUntilDeadline @ scheduler.development.js:533
-processImmediate @ node:internal/timers:476
-TerminalTabsManager.tsx:65 [TerminalTabsManager] triggerNewTab变化: {triggerNewTab: 1, prevTrigger: 1, mounted: true, sessionInfo: {…}}
-TerminalTabsManager.tsx:73 [TerminalTabsManager] 跳过创建新标签页
-ssh.ts:48 SSH connection ready
-CommandExecutor.ts:45 [CommandExecutor] SSH连接预初始化完成
+[MonitorManager] CPU信息: {physicalCores: 12, logicalCores: 24, coresLength: 0, cores: Array(0)}
+cpuService.ts:135 [CpuService] 总体CPU使用率: 1.1
+
+cpuService.ts:139 [CpuService] mpstat原始输出: Linux 3.10.0-1160.88.1.el7.x86_64 (localhost.localdomain) 	02/13/2025 	_x86_64_	(24 CPU)
+
+04:03:53 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+04:03:54 PM  all    0.38    0.00    0.50    0.00    0.00    0.00    0.00    0.00    0.00   99.12
+04:03:54 PM    0    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM    1    0.00    0.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00   99.00
+04:03:54 PM    2    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM    3    1.00    0.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00   98.00
+04:03:54 PM    4    0.00    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   98.99
+04:03:54 PM    5    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM    6    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM    7    0.00    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   98.99
+04:03:54 PM    8    1.01    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.99
+04:03:54 PM    9    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM   10    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM   11    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM   12    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM   13    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM   14    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM   15    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM   16    0.99    0.00    0.99    0.00    0.00    0.00    0.00    0.00    0.00   98.02
+04:03:54 PM   17    2.00    0.00    2.00    0.00    0.00    0.00    0.00    0.00    0.00   96.00
+04:03:54 PM   18    0.99    0.00    0.99    0.00    0.00    0.00    0.00    0.00    0.00   98.02
+04:03:54 PM   19    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM   20    1.01    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   97.98
+04:03:54 PM   21    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+04:03:54 PM   22    1.01    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.99
+04:03:54 PM   23    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+
+Average:     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+Average:     all    0.38    0.00    0.50    0.00    0.00    0.00    0.00    0.00    0.00   99.12
+Average:       0    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:       1    0.00    0.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00   99.00
+Average:       2    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:       3    1.00    0.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00   98.00
+Average:       4    0.00    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   98.99
+Average:       5    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:       6    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:       7    0.00    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   98.99
+Average:       8    1.01    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.99
+Average:       9    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:      10    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:      11    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:      12    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:      13    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:      14    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:      15    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:      16    0.99    0.00    0.99    0.00    0.00    0.00    0.00    0.00    0.00   98.02
+Average:      17    2.00    0.00    2.00    0.00    0.00    0.00    0.00    0.00    0.00   96.00
+Average:      18    0.99    0.00    0.99    0.00    0.00    0.00    0.00    0.00    0.00   98.02
+Average:      19    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:      20    1.01    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   97.98
+Average:      21    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+Average:      22    1.01    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.99
+Average:      23    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+
+CpuService] 解析后的核心使用率: {count: 0, rates: Array(0), hasNaN: false}count: 0hasNaN: falserates: [][[Prototype]]: Object
+monitorManager.ts:103 [MonitorManager] CPU信息: {physicalCores: 12, logicalCores: 24, coresLength: 0, cores: Array(0)}

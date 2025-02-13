@@ -116,6 +116,12 @@ class MonitorManager {
       
       // 采集CPU指标
       const cpuInfo = await this.cpuMetricsService.collectMetrics(sessionId);
+      console.log('[MonitorManager] CPU信息:', {
+        physicalCores: cpuInfo.physicalCores,
+        logicalCores: cpuInfo.logicalCores,
+        coresLength: cpuInfo.cores.length,
+        cores: cpuInfo.cores
+      });
 
       // TODO: 采集其他指标
       const memoryInfo: MemoryInfo = {

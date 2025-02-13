@@ -148,28 +148,56 @@ export class CpuMetricsService {
       // 获取总体CPU使用率
       const totalCmd = "top -bn1 | grep 'Cpu(s)' | awk '{print $2}'";
       const totalResult = await this.sshService.executeCommandDirect(sessionId, totalCmd);
+      console.log('[CpuService] 总体CPU使用率:', totalResult);
       
       // 获取每个核心的使用率
-      const coresCmd = "mpstat -P ALL 1 1 | awk '/^[0-9]/ {print 100-$NF}'";
+      const coresCmd = "mpstat -P ALL 1 1";
       const coresResult = await this.sshService.executeCommandDirect(sessionId, coresCmd);
+      console.log('[CpuService] mpstat原始输出:', coresResult);
+      
+      // 解析每个核心的使用率
+      const lines = coresResult.split('\n');
+      // 找到第一个数据块的开始位置（跳过头部信息）
+      const startIndex = lines.findIndex(line => line.includes('CPU    %usr'));
+      if (startIndex === -1) {
+        console.error('[CpuService] 未找到CPU数据块');
+        return { usage: 0, cores: [] };
+      }
+
+      // 提取数据行（跳过'all'行）
+      const coresData = lines.slice(startIndex + 2)  // 跳过标题行和'all'行
+        .filter(line => line.trim() && !line.includes('Average'))  // 排除空行和Average行
+        .map(line => {
+          const parts = line.trim().split(/\s+/);
+          if (parts.length < 11) return 0;  // 确保有足够的列
+          
+          // 计算使用率：%usr + %nice + %sys + %irq + %soft + %steal
+          const usr = parseFloat(parts[3]) || 0;    // %usr
+          const nice = parseFloat(parts[4]) || 0;   // %nice
+          const sys = parseFloat(parts[5]) || 0;    // %sys
+          const irq = parseFloat(parts[7]) || 0;    // %irq
+          const soft = parseFloat(parts[8]) || 0;   // %soft
+          const steal = parseFloat(parts[9]) || 0;  // %steal
+          
+          const usage = usr + nice + sys + irq + soft + steal;
+          return isNaN(usage) ? 0 : usage;
+        })
+        .filter(usage => usage !== undefined);  // 过滤掉无效值
+
+      console.log('[CpuService] 解析后的核心使用率:', {
+        count: coresData.length,
+        rates: coresData,
+        hasNaN: coresData.some(rate => isNaN(rate))
+      });
       
       return {
         usage: parseFloat(totalResult || '0'),
-        cores: this.parseCoreUsage(coresResult || '')
+        cores: coresData
       };
     } catch (error) {
       console.error('获取CPU使用率失败:', error);
       throw error;
     }
-  }
-
-  /**
-   * 解析CPU核心使用率
-   */
-  private parseCoreUsage(output: string): number[] {
-    return output.split('\n')
-      .filter(line => line.trim())
-      .map(line => parseFloat(line));
   }
 
   /**
