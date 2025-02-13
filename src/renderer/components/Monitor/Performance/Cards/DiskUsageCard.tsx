@@ -198,7 +198,7 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
           {/* 分区列表 */}
           <div className="partitions-list">
             {diskInfo.partitions.map((partition, index) => (
-              <div key={index} className="partition-item">
+              <div key={index} className={`partition-item ${partition.diskType === '虚拟分区' ? 'virtual' : ''}`}>
                 <div className="partition-header">
                   <div className="partition-info">
                     <span className="mountpoint">
@@ -211,7 +211,10 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
                     <span className="disk-type">{partition.diskType}</span>
                   </div>
                   <span className="io-speed">
-                    ↑ {formatBytes(partition.readSpeed)}/s ↓ {formatBytes(partition.writeSpeed)}/s
+                    {partition.diskType !== '虚拟分区' ? 
+                      `↑ ${formatBytes(partition.readSpeed)}/s ↓ ${formatBytes(partition.writeSpeed)}/s` :
+                      '虚拟文件系统'
+                    }
                   </span>
                 </div>
                 <div className="usage-row">

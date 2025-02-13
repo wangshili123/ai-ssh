@@ -122,15 +122,15 @@ export class DiskMetricsService {
       
       const [device, mountpoint, fstype, size, used, free, usageStr] = line.trim().split(/\s+/);
       
-      // 跳过特殊文件系统
-      if (['tmpfs', 'devtmpfs', 'squashfs'].includes(fstype)) continue;
-      
       const usagePercent = parseInt(usageStr.replace('%', ''));
       
       // 获取设备名和磁盘类型
       const deviceName = device.split('/').pop() || '';
       const baseDevice = deviceName.replace(/[0-9]+$/, ''); // 移除分区号以获取基础设备名
-      const diskType = diskTypes.get(baseDevice) || '未知';
+      
+      // 根据文件系统类型判断是否为虚拟分区
+      const isVirtual = ['tmpfs', 'devtmpfs', 'sysfs', 'proc', 'devpts', 'securityfs', 'cgroup', 'pstore', 'hugetlbfs', 'mqueue', 'debugfs'].includes(fstype);
+      const diskType = isVirtual ? '虚拟分区' : (diskTypes.get(baseDevice) || '未知');
       
       partitions.push({
         device,
@@ -145,9 +145,12 @@ export class DiskMetricsService {
         writeSpeed: 0  // 将在IO数据中更新
       });
 
-      totalSize += parseInt(size);
-      totalUsed += parseInt(used);
-      totalFree += parseInt(free);
+      // 只将物理分区计入总量
+      if (!isVirtual) {
+        totalSize += parseInt(size);
+        totalUsed += parseInt(used);
+        totalFree += parseInt(free);
+      }
     }
 
     return {
