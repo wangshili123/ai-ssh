@@ -93,68 +93,52 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
       <div className="cpu-top-section">
         {/* CPU信息面板 */}
         <div className="cpu-info-panel">
-          <div className="info-section">
-            <div className="info-item">
-              <span className="info-label">处理器型号</span>
+          <div className="info-row">
+            <span className="info-item">
+              <span className="info-label">处理器型号:</span>
               <span className="info-value">{cpuInfo.model}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">制造商</span>
+            </span>
+            <span className="info-item">
+              <span className="info-label">制造商:</span>
               <span className="info-value">{cpuInfo.vendor || '未知'}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">基本速度</span>
+            </span>
+            <span className="info-item">
+              <span className="info-label">基本速度:</span>
               <span className="info-value">{formatFrequency(cpuInfo.speed)}</span>
-            </div>
-            {cpuInfo.currentSpeed && (
-              <div className="info-item">
-                <span className="info-label">当前速度</span>
-                <span className="info-value">{formatFrequency(cpuInfo.currentSpeed)}</span>
-              </div>
-            )}
-            {cpuInfo.maxSpeed && (
-              <div className="info-item">
-                <span className="info-label">最大速度</span>
-                <span className="info-value">{formatFrequency(cpuInfo.maxSpeed)}</span>
-              </div>
-            )}
-            <div className="info-item">
-              <span className="info-label">物理核心数</span>
+            </span>
+          </div>
+          <div className="info-row">
+            <span className="info-item">
+              <span className="info-label">当前速度:</span>
+              <span className="info-value">{formatFrequency(cpuInfo.currentSpeed || cpuInfo.speed)}</span>
+            </span>
+            <span className="info-item">
+              <span className="info-label">物理核心:</span>
               <span className="info-value">{cpuInfo.physicalCores}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">逻辑处理器</span>
+            </span>
+            <span className="info-item">
+              <span className="info-label">逻辑处理器:</span>
               <span className="info-value">{cpuInfo.logicalCores}</span>
-            </div>
-            {cpuInfo.temperature !== undefined && (
-              <div className="info-item">
-                <span className="info-label">温度</span>
-                <span className="info-value">{cpuInfo.temperature}°C</span>
-              </div>
-            )}
+            </span>
+          </div>
+          <div className="info-row">
             {cpuInfo.cache.l1 && (
-              <div className="info-item">
-                <span className="info-label">L1 缓存</span>
+              <span className="info-item">
+                <span className="info-label">L1缓存:</span>
                 <span className="info-value">{cpuInfo.cache.l1} KB</span>
-              </div>
+              </span>
             )}
             {cpuInfo.cache.l2 && (
-              <div className="info-item">
-                <span className="info-label">L2 缓存</span>
+              <span className="info-item">
+                <span className="info-label">L2缓存:</span>
                 <span className="info-value">{cpuInfo.cache.l2} KB</span>
-              </div>
+              </span>
             )}
             {cpuInfo.cache.l3 && (
-              <div className="info-item">
-                <span className="info-label">L3 缓存</span>
+              <span className="info-item">
+                <span className="info-label">L3缓存:</span>
                 <span className="info-value">{cpuInfo.cache.l3} KB</span>
-              </div>
-            )}
-            {cpuInfo.virtualization !== undefined && (
-              <div className="info-item">
-                <span className="info-label">虚拟化</span>
-                <span className="info-value">{cpuInfo.virtualization ? '已启用' : '未启用'}</span>
-              </div>
+              </span>
             )}
           </div>
         </div>
