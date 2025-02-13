@@ -3,6 +3,7 @@ import { CpuInfo, MemoryInfo, DiskInfo, NetworkInfo, MonitorData } from '../../t
 import { RefreshService } from './metrics/refreshService';
 import { CpuMetricsService } from './metrics/cpuService';
 import { MemoryMetricsService } from './metrics/memoryService';
+import { DiskMetricsService } from './metrics/diskService';
 import { SSHService } from '../../types';
 
 /**
@@ -15,6 +16,7 @@ class MonitorManager {
   private refreshService: RefreshService;
   private cpuMetricsService: CpuMetricsService;
   private memoryMetricsService: MemoryMetricsService;
+  private diskMetricsService: DiskMetricsService;
   private sshService: SSHService;
 
   private constructor(sshService: SSHService) {
@@ -22,6 +24,7 @@ class MonitorManager {
     this.refreshService = RefreshService.getInstance();
     this.cpuMetricsService = CpuMetricsService.getInstance(sshService);
     this.memoryMetricsService = MemoryMetricsService.getInstance(sshService);
+    this.diskMetricsService = DiskMetricsService.getInstance(sshService);
     this.setupRefreshListener();
   }
 
@@ -117,21 +120,14 @@ class MonitorManager {
     try {
       session.status = 'refreshing';
       
-      // 采集CPU指标
-      const cpuInfo = await this.cpuMetricsService.collectMetrics(sessionId);
-      
-      // 采集内存指标
-      const memoryInfo = await this.memoryMetricsService.collectMetrics(sessionId);
+      // 并行采集所有指标
+      const [cpuInfo, memoryInfo, diskInfo] = await Promise.all([
+        this.cpuMetricsService.collectMetrics(sessionId),
+        this.memoryMetricsService.collectMetrics(sessionId),
+        this.diskMetricsService.collectMetrics(sessionId)
+      ]);
 
-      // TODO: 采集其他指标
-      const diskInfo: DiskInfo = {
-        devices: [],
-        total: 0,
-        used: 0,
-        free: 0,
-        usagePercent: 0
-      };
-
+      // TODO: 采集网络指标
       const networkInfo: NetworkInfo = {
         interfaces: [],
         totalRx: 0,
@@ -188,6 +184,7 @@ class MonitorManager {
     this.refreshService.destroy();
     this.cpuMetricsService.destroy();
     this.memoryMetricsService.destroy();
+    this.diskMetricsService.destroy();
     for (const [sessionId] of this.sessions) {
       this.disconnectSession(sessionId);
     }

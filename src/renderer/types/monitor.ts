@@ -58,18 +58,35 @@ export interface MemoryInfo {
 }
 
 export interface DiskInfo {
-  devices: Array<{
-    device: string;
-    mountpoint: string;
-    total: number;
-    used: number;
-    free: number;
-    usagePercent: number;
+  // 基础信息
+  total: number;        // 总容量(bytes)
+  used: number;         // 已使用(bytes)
+  free: number;         // 可用空间(bytes)
+  usagePercent: number; // 使用率(%)
+  
+  // IO信息
+  readSpeed: number;    // 读取速度(bytes/s)
+  writeSpeed: number;   // 写入速度(bytes/s)
+  
+  // 分区信息
+  partitions: Array<{
+    device: string;     // 设备名
+    mountpoint: string; // 挂载点
+    fstype: string;     // 文件系统类型
+    total: number;      // 总容量(bytes)
+    used: number;       // 已使用(bytes)
+    free: number;       // 可用空间(bytes)
+    usagePercent: number; // 使用率(%)
+    readSpeed: number;  // 读取速度(bytes/s)
+    writeSpeed: number; // 写入速度(bytes/s)
   }>;
-  total: number;
-  used: number;
-  free: number;
-  usagePercent: number;
+  
+  // IO历史数据
+  ioHistory: Array<{
+    timestamp: number;  // 时间戳
+    readSpeed: number;  // 读取速度
+    writeSpeed: number; // 写入速度
+  }>;
 }
 
 export interface NetworkInfo {
