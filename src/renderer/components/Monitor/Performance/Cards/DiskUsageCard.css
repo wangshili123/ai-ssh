@@ -112,13 +112,20 @@
   text-align: left;
 }
 
-.partition-info .fstype {
+.partition-info .fstype,
+.partition-info .disk-type {
   font-size: 12px;
   color: #999;
   background: #f0f0f0;
   padding: 2px 6px;
   border-radius: 4px;
   flex-shrink: 0; /* 防止收缩 */
+}
+
+.partition-info .disk-type {
+  background: #e6f7ff;
+  color: #1890ff;
+  margin-left: 4px;
 }
 
 .usage-row {

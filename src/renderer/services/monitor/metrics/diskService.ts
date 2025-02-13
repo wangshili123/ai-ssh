@@ -65,7 +65,11 @@ export class DiskMetricsService {
       const dfCmd = 'df -B1 --output=source,target,fstype,size,used,avail,pcent';
       const dfResult = await this.sshService.executeCommandDirect(sessionId, dfCmd);
       
-      return this.parseDiskUsage(dfResult || '');
+      // 获取磁盘类型信息
+      const rotationalCmd = "find /sys/block/*/queue/rotational -type f -exec sh -c 'echo $(dirname $(dirname {})) $(cat {})' \\;";
+      const rotationalResult = await this.sshService.executeCommandDirect(sessionId, rotationalCmd);
+      
+      return this.parseDiskUsage(dfResult || '', rotationalResult || '');
     } catch (error) {
       console.error('获取磁盘使用情况失败:', error);
       throw error;
@@ -97,7 +101,16 @@ export class DiskMetricsService {
   /**
    * 解析磁盘使用情况
    */
-  private parseDiskUsage(output: string): Omit<DiskInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory'> {
+  private parseDiskUsage(output: string, rotationalOutput: string): Omit<DiskInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory'> {
+    // 解析磁盘类型信息
+    const diskTypes = new Map<string, string>();
+    rotationalOutput.split('\n').forEach(line => {
+      if (!line.trim()) return;
+      const [path, rotational] = line.trim().split(' ');
+      const device = path.split('/').pop() || '';
+      diskTypes.set(device, rotational === '0' ? 'SSD' : 'HDD');
+    });
+
     const lines = output.split('\n').slice(1); // 跳过标题行
     const partitions = [];
     let totalSize = 0;
@@ -114,10 +127,16 @@ export class DiskMetricsService {
       
       const usagePercent = parseInt(usageStr.replace('%', ''));
       
+      // 获取设备名和磁盘类型
+      const deviceName = device.split('/').pop() || '';
+      const baseDevice = deviceName.replace(/[0-9]+$/, ''); // 移除分区号以获取基础设备名
+      const diskType = diskTypes.get(baseDevice) || '未知';
+      
       partitions.push({
         device,
         mountpoint,
         fstype,
+        diskType,
         total: parseInt(size),
         used: parseInt(used),
         free: parseInt(free),
@@ -137,7 +156,7 @@ export class DiskMetricsService {
       free: totalFree,
       usagePercent: totalSize > 0 ? (totalUsed / totalSize) * 100 : 0,
       partitions,
-      deviceStats: {} // 添加空的deviceStats
+      deviceStats: {}
     };
   }
 

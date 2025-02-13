@@ -81,6 +81,7 @@ export interface DiskInfo {
     device: string;     // 设备名
     mountpoint: string; // 挂载点
     fstype: string;     // 文件系统类型
+    diskType: string;   // 磁盘类型(SSD/HDD)
     total: number;      // 总容量(bytes)
     used: number;       // 已使用(bytes)
     free: number;       // 可用空间(bytes)

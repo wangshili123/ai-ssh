@@ -208,6 +208,7 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
                       }
                     </span>
                     <span className="fstype">{partition.fstype}</span>
+                    <span className="disk-type">{partition.diskType}</span>
                   </div>
                   <span className="io-speed">
                     ↑ {formatBytes(partition.readSpeed)}/s ↓ {formatBytes(partition.writeSpeed)}/s
