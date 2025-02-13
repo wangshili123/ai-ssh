@@ -148,12 +148,12 @@ export class CpuMetricsService {
       // 获取总体CPU使用率
       const totalCmd = "top -bn1 | grep 'Cpu(s)' | awk '{print $2}'";
       const totalResult = await this.sshService.executeCommandDirect(sessionId, totalCmd);
-      console.log('[CpuService] 总体CPU使用率:', totalResult);
+      // console.log('[CpuService] 总体CPU使用率:', totalResult);
       
       // 获取每个核心的使用率
       const coresCmd = "mpstat -P ALL 1 1";
       const coresResult = await this.sshService.executeCommandDirect(sessionId, coresCmd);
-      console.log('[CpuService] mpstat原始输出:', coresResult);
+      // console.log('[CpuService] mpstat原始输出:', coresResult);
       
       // 解析每个核心的使用率
       const lines = coresResult.split('\n');
@@ -184,11 +184,11 @@ export class CpuMetricsService {
         })
         .filter(usage => usage !== undefined);  // 过滤掉无效值
 
-      console.log('[CpuService] 解析后的核心使用率:', {
-        count: coresData.length,
-        rates: coresData,
-        hasNaN: coresData.some(rate => isNaN(rate))
-      });
+      // console.log('[CpuService] 解析后的核心使用率:', {
+      //   count: coresData.length,
+      //   rates: coresData,
+      //   hasNaN: coresData.some(rate => isNaN(rate))
+      // });
       
       return {
         usage: parseFloat(totalResult || '0'),

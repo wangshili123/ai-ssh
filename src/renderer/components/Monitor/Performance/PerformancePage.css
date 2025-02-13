@@ -29,6 +29,7 @@
 .performance-container {
   display: flex;
   height: 100%;
+  overflow: hidden;
   background-color: #f5f5f5;
 }
 
