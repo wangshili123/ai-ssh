@@ -31,12 +31,29 @@ export interface CpuInfo {
 }
 
 export interface MemoryInfo {
-  total: number;
-  used: number;
-  free: number;
-  cached: number;
-  buffers: number;
-  usagePercent: number;
+  // 基础内存信息
+  total: number;        // 总内存(bytes)
+  used: number;        // 已使用(bytes)
+  free: number;        // 空闲内存(bytes)
+  cached: number;      // 缓存大小(bytes)
+  buffers: number;     // 缓冲区大小(bytes)
+  usagePercent: number; // 使用率(%)
+  
+  // 虚拟内存信息
+  swap: {
+    total: number;     // 交换空间总量(bytes)
+    used: number;      // 已使用交换空间(bytes)
+    free: number;      // 空闲交换空间(bytes)
+    usagePercent: number; // 交换空间使用率(%)
+  };
+  
+  // 内存占用TOP进程
+  topProcesses: Array<{
+    pid: number;       // 进程ID
+    name: string;      // 进程名
+    memoryUsed: number; // 内存使用量(bytes)
+    memoryPercent: number; // 内存使用百分比(%)
+  }>;
 }
 
 export interface DiskInfo {

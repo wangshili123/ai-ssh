@@ -1,61 +1,8 @@
-[MonitorManager] CPU信息: {physicalCores: 12, logicalCores: 24, coresLength: 0, cores: Array(0)}
-cpuService.ts:135 [CpuService] 总体CPU使用率: 1.1
-
-cpuService.ts:139 [CpuService] mpstat原始输出: Linux 3.10.0-1160.88.1.el7.x86_64 (localhost.localdomain) 	02/13/2025 	_x86_64_	(24 CPU)
-
-04:03:53 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
-04:03:54 PM  all    0.38    0.00    0.50    0.00    0.00    0.00    0.00    0.00    0.00   99.12
-04:03:54 PM    0    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM    1    0.00    0.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00   99.00
-04:03:54 PM    2    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM    3    1.00    0.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00   98.00
-04:03:54 PM    4    0.00    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   98.99
-04:03:54 PM    5    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM    6    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM    7    0.00    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   98.99
-04:03:54 PM    8    1.01    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.99
-04:03:54 PM    9    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM   10    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM   11    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM   12    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM   13    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM   14    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM   15    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM   16    0.99    0.00    0.99    0.00    0.00    0.00    0.00    0.00    0.00   98.02
-04:03:54 PM   17    2.00    0.00    2.00    0.00    0.00    0.00    0.00    0.00    0.00   96.00
-04:03:54 PM   18    0.99    0.00    0.99    0.00    0.00    0.00    0.00    0.00    0.00   98.02
-04:03:54 PM   19    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM   20    1.01    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   97.98
-04:03:54 PM   21    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-04:03:54 PM   22    1.01    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.99
-04:03:54 PM   23    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-
-Average:     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
-Average:     all    0.38    0.00    0.50    0.00    0.00    0.00    0.00    0.00    0.00   99.12
-Average:       0    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:       1    0.00    0.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00   99.00
-Average:       2    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:       3    1.00    0.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00   98.00
-Average:       4    0.00    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   98.99
-Average:       5    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:       6    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:       7    0.00    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   98.99
-Average:       8    1.01    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.99
-Average:       9    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:      10    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:      11    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:      12    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:      13    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:      14    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:      15    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:      16    0.99    0.00    0.99    0.00    0.00    0.00    0.00    0.00    0.00   98.02
-Average:      17    2.00    0.00    2.00    0.00    0.00    0.00    0.00    0.00    0.00   96.00
-Average:      18    0.99    0.00    0.99    0.00    0.00    0.00    0.00    0.00    0.00   98.02
-Average:      19    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:      20    1.01    0.00    1.01    0.00    0.00    0.00    0.00    0.00    0.00   97.98
-Average:      21    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-Average:      22    1.01    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.99
-Average:      23    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-
-CpuService] 解析后的核心使用率: {count: 0, rates: Array(0), hasNaN: false}count: 0hasNaN: falserates: [][[Prototype]]: Object
-monitorManager.ts:103 [MonitorManager] CPU信息: {physicalCores: 12, logicalCores: 24, coresLength: 0, cores: Array(0)}
+Compiled with problems:
+×
+ERROR in ./src/renderer/services/monitor/monitorManager.ts (E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\monitorManager.ts) 127:12-22
+[tsl] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\monitorManager.ts(127,13)
+      TS2739: Type '{ total: number; used: number; free: number; cached: number; buffers: number; usagePercent: number; }' is missing the following properties from type 'MemoryInfo': swap, topProcesses
+ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\metricsManager.ts 28:4-10
+[tsl] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\metricsManager.ts(28,5)
+      TS2739: Type '{ total: number; used: number; free: number; cached: number; buffers: number; usagePercent: number; }' is missing the following properties from type 'MemoryInfo': swap, topProcesses

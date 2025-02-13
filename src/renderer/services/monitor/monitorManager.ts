@@ -2,6 +2,7 @@ import { SessionInfo } from '../../types';
 import { CpuInfo, MemoryInfo, DiskInfo, NetworkInfo, MonitorData } from '../../types/monitor';
 import { RefreshService } from './metrics/refreshService';
 import { CpuMetricsService } from './metrics/cpuService';
+import { MemoryMetricsService } from './metrics/memoryService';
 import { SSHService } from '../../types';
 
 /**
@@ -13,12 +14,14 @@ class MonitorManager {
   private sessions: Map<string, SessionInfo> = new Map();
   private refreshService: RefreshService;
   private cpuMetricsService: CpuMetricsService;
+  private memoryMetricsService: MemoryMetricsService;
   private sshService: SSHService;
 
   private constructor(sshService: SSHService) {
     this.sshService = sshService;
     this.refreshService = RefreshService.getInstance();
     this.cpuMetricsService = CpuMetricsService.getInstance(sshService);
+    this.memoryMetricsService = MemoryMetricsService.getInstance(sshService);
     this.setupRefreshListener();
   }
 
@@ -116,23 +119,11 @@ class MonitorManager {
       
       // 采集CPU指标
       const cpuInfo = await this.cpuMetricsService.collectMetrics(sessionId);
-      console.log('[MonitorManager] CPU信息:', {
-        physicalCores: cpuInfo.physicalCores,
-        logicalCores: cpuInfo.logicalCores,
-        coresLength: cpuInfo.cores.length,
-        cores: cpuInfo.cores
-      });
+      
+      // 采集内存指标
+      const memoryInfo = await this.memoryMetricsService.collectMetrics(sessionId);
 
       // TODO: 采集其他指标
-      const memoryInfo: MemoryInfo = {
-        total: 0,
-        used: 0,
-        free: 0,
-        cached: 0,
-        buffers: 0,
-        usagePercent: 0
-      };
-
       const diskInfo: DiskInfo = {
         devices: [],
         total: 0,
@@ -196,6 +187,7 @@ class MonitorManager {
   destroy(): void {
     this.refreshService.destroy();
     this.cpuMetricsService.destroy();
+    this.memoryMetricsService.destroy();
     for (const [sessionId] of this.sessions) {
       this.disconnectSession(sessionId);
     }

@@ -2,11 +2,136 @@
   width: 100%;
 }
 
+.memory-usage-card .resource-value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.memory-usage-card .usage-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1890ff;
+}
+
 .memory-usage-card .memory-details {
   font-size: 13px;
   color: #666;
-  margin-top: 4px;
+}
+
+/* 进度条样式 */
+.memory-usage-card .ant-progress {
+  margin-top: 8px;
+}
+
+.memory-usage-card .ant-progress-line {
+  margin: 0;
+}
+
+/* 当内存使用率超过阈值时的警告样式 */
+.memory-usage-card.warning .usage-value {
+  color: #faad14;
+}
+
+.memory-usage-card.critical .usage-value {
+  color: #ff4d4f;
+}
+
+/* 详细视图样式 */
+.memory-details-view {
+  padding: 24px;
+  background: #fff;
+  border-radius: 8px;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 24px;
+}
+
+.memory-overview {
+  display: flex;
+  gap: 32px;
+  padding: 24px;
+  background: #fafafa;
+  border-radius: 8px;
+  min-height: 280px;
+}
+
+.memory-chart {
+  flex: 1;
+  max-width: 320px;
+  height: 280px;
+}
+
+.memory-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.info-label {
+  color: #666;
+  width: 100px;
+}
+
+.info-value {
+  color: #333;
+  font-weight: 500;
+}
+
+.section-divider {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* 进程列表样式 */
+.memory-processes {
+  flex: 1;
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 24px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.memory-processes h3 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.memory-processes .ant-table-wrapper {
+  flex: 1;
+}
+
+.memory-processes .ant-table {
+  background: #fff;
+  border-radius: 4px;
+}
+
+.memory-processes .ant-table-thead > tr > th {
+  background: #fafafa;
+  color: #666;
+  font-weight: 500;
+  padding: 12px 16px;
+}
+
+.memory-processes .ant-table-tbody > tr > td {
+  padding: 12px 16px;
+}
+
+.memory-processes .ant-table-tbody > tr:hover > td {
+  background: #f5f5f5;
 }
