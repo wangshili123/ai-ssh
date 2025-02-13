@@ -80,8 +80,10 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
     return (
       <div className="resource-summary cpu-usage-card">
         <div className="resource-title">CPU</div>
-        <div className="resource-value">{Math.round(cpuInfo.usage)}%</div>
-        <div className="resource-speed">{formatFrequency(cpuInfo.currentSpeed || cpuInfo.speed)}</div>
+        <div className="resource-value">
+          <span className="usage-value">{Math.round(cpuInfo.usage)}%</span>
+          <span className="resource-speed">{formatFrequency(cpuInfo.currentSpeed || cpuInfo.speed)}</span>
+        </div>
       </div>
     );
   }

@@ -133,8 +133,19 @@
   width: 100%;
 }
 
+.cpu-usage-card .resource-value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cpu-usage-card .usage-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1890ff;
+}
+
 .cpu-usage-card .resource-speed {
   font-size: 13px;
   color: #666;
-  margin-top: 4px;
 } 
