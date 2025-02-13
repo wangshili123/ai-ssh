@@ -51,7 +51,21 @@ export class CpuMetricsService {
       };
     } catch (error) {
       console.error('采集CPU指标失败:', error);
-      throw error;
+      return {
+        model: '',
+        physicalCores: 0,
+        logicalCores: 0,
+        vendor: '',
+        cache: {},
+        usage: 0,
+        cores: [],
+        speed: 0,
+        currentSpeed: 0,
+        maxSpeed: 0,
+        minSpeed: 0,
+        usageHistory: [],
+        coreUsageHistory: []
+      };
     }
   }
 
@@ -78,7 +92,13 @@ export class CpuMetricsService {
       };
     } catch (error) {
       console.error('获取CPU信息失败:', error);
-      throw error;
+      return {
+        model: '',
+        physicalCores: 0,
+        logicalCores: 0,
+        vendor: '',
+        cache: {}
+      };
     }
   }
 
@@ -196,7 +216,10 @@ export class CpuMetricsService {
       };
     } catch (error) {
       console.error('获取CPU使用率失败:', error);
-      throw error;
+      return {
+        usage: 0,
+        cores: []
+      };
     }
   }
 
@@ -220,7 +243,11 @@ export class CpuMetricsService {
       return this.parseFrequency(currentResult || '', freqResult || '');
     } catch (error) {
       console.error('获取CPU频率失败:', error);
-      throw error;
+      return {
+        current: 0,
+        min: 0,
+        max: 0
+      };
     }
   }
 

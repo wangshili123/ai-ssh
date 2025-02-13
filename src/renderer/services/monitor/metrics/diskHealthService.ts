@@ -51,9 +51,11 @@ export class DiskHealthService {
     try {
       // 检查smartctl命令是否可用
       const result = await this.sshService.executeCommandDirect(sessionId, 'which smartctl');
-      if (!result) {
+      // which命令如果找不到会返回类似 "no smartctl in (...)" 的错误信息
+      if (result.includes('no smartctl in')) {
         console.log('smartctl 工具未安装，跳过磁盘健康检查:', {
           sessionId,
+          result,
           timestamp: new Date().toISOString()
         });
         return false;
@@ -197,6 +199,11 @@ export class DiskHealthService {
       // 获取SMART详细信息
       const smartctlCmd = `smartctl -a /dev/${device}`;
       const output = await this.sshService.executeCommandDirect(sessionId, smartctlCmd);
+      console.log('获取SMART信息:', {
+        sessionId,
+        device,
+        output
+      });
       if (!output) return null;
 
       return this.parseSmartOutput(device, output);
@@ -212,6 +219,7 @@ export class DiskHealthService {
   private parseSmartOutput(device: string, output: string): SmartInfo {
     const lines = output.split('\n');
     const info: Partial<SmartInfo> = { device };
+    let smartValues: { [key: string]: number } = {};
 
     for (const line of lines) {
       if (line.includes('SMART overall-health self-assessment test result:')) {
@@ -221,25 +229,88 @@ export class DiskHealthService {
         info.model = line.split(':')[1]?.trim() || 'Unknown';
       } else if (line.includes('Serial Number')) {
         info.serial = line.split(':')[1]?.trim() || 'Unknown';
-      } else if (line.includes('Temperature')) {
-        const match = line.match(/\d+/);
-        info.temperature = match ? parseInt(match[0]) : 0;
+      } else if (line.includes('Temperature_Celsius') || line.includes('Airflow_Temperature_Cel')) {
+        const parts = line.trim().split(/\s+/);
+        const tempMatch = parts[9]?.match(/\d+/);
+        if (tempMatch) {
+          info.temperature = parseInt(tempMatch[0]);
+        }
       } else if (line.includes('Power_On_Hours')) {
-        const match = line.match(/\d+/);
-        info.powerOnHours = match ? parseInt(match[0]) : 0;
+        const parts = line.trim().split(/\s+/);
+        const hoursMatch = parts[9]?.match(/\d+/);
+        if (hoursMatch) {
+          info.powerOnHours = parseInt(hoursMatch[0]);
+        }
       } else if (line.includes('Reallocated_Sector_Ct')) {
-        const match = line.match(/\d+/);
+        const parts = line.trim().split(/\s+/);
+        const match = parts[9]?.match(/\d+/);
         info.reallocatedSectors = match ? parseInt(match[0]) : 0;
       } else if (line.includes('Current_Pending_Sector')) {
-        const match = line.match(/\d+/);
+        const parts = line.trim().split(/\s+/);
+        const match = parts[9]?.match(/\d+/);
         info.pendingSectors = match ? parseInt(match[0]) : 0;
       } else if (line.includes('Offline_Uncorrectable')) {
-        const match = line.match(/\d+/);
+        const parts = line.trim().split(/\s+/);
+        const match = parts[9]?.match(/\d+/);
         info.uncorrectableSectors = match ? parseInt(match[0]) : 0;
-      } else if (line.includes('Remaining_Lifetime_Perc')) {
-        const match = line.match(/\d+/);
-        info.remainingLife = match ? parseInt(match[0]) : undefined;
       }
+
+      // 收集其他SMART属性的值
+      if (line.match(/^\s*\d+\s+\w+/)) {
+        const parts = line.trim().split(/\s+/);
+        const attrId = parts[0];
+        const value = parseInt(parts[3]); // 使用normalized value
+        if (!isNaN(value)) {
+          smartValues[attrId] = value;
+        }
+      }
+    }
+
+    // 评估磁盘寿命
+    let lifeScore = 100;
+    const criticalAttrs = {
+      '5': { weight: 30, maxValue: 100 },   // Reallocated_Sector_Ct
+      '196': { weight: 10, maxValue: 100 }, // Reallocation_Event_Count
+      '197': { weight: 10, maxValue: 100 }, // Current_Pending_Sector
+      '198': { weight: 20, maxValue: 100 }, // Offline_Uncorrectable
+      '199': { weight: 10, maxValue: 100 }, // UDMA_CRC_Error_Count
+      '187': { weight: 10, maxValue: 100 }, // Reported_Uncorrect
+      '188': { weight: 10, maxValue: 100 }  // Command_Timeout
+    };
+
+    let totalWeight = 0;
+    let weightedSum = 0;
+
+    // 计算加权平均值
+    for (const [attrId, config] of Object.entries(criticalAttrs)) {
+      if (attrId in smartValues) {
+        // 确保值在0-100之间
+        const normalizedValue = Math.min(100, Math.max(0, smartValues[attrId]));
+        weightedSum += normalizedValue * config.weight;
+        totalWeight += config.weight;
+      }
+    }
+
+    // 如果有足够的属性来评估
+    if (totalWeight > 0) {
+      lifeScore = Math.round(weightedSum / totalWeight);
+      // 确保寿命值在0-100之间
+      info.remainingLife = Math.min(100, Math.max(0, lifeScore));
+    } else if (info.status === 'PASSED') {
+      // 如果没有足够的属性但状态是PASSED，给一个基础评分
+      info.remainingLife = 76;
+    }
+
+    // 如果有坏道，额外扣分
+    const totalBadSectors = (info.reallocatedSectors || 0) + (info.pendingSectors || 0) + (info.uncorrectableSectors || 0);
+    if (totalBadSectors > 0) {
+      const badSectorPenalty = Math.min(50, totalBadSectors);
+      info.remainingLife = Math.max(0, Math.min(100, (info.remainingLife || 100) - badSectorPenalty));
+    }
+
+    // 最后确保一次寿命值在0-100之间
+    if (info.remainingLife !== undefined) {
+      info.remainingLife = Math.min(100, Math.max(0, info.remainingLife));
     }
 
     return {

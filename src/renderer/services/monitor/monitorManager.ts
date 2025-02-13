@@ -202,7 +202,7 @@ class MonitorManager {
       });
       session.status = 'error';
       session.error = (error as Error).message;
-      throw error;
+      return;
     }
   }
 
