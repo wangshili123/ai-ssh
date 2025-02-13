@@ -123,10 +123,18 @@
   font-size: 14px;
 }
 
-
-
 /* 图表容器样式 */
 .echarts-container {
   width: 100%;
   height: calc(100% - 40px); /* 减去标题高度 */
+}
+
+.cpu-usage-card {
+  width: 100%;
+}
+
+.cpu-usage-card .resource-speed {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
 } 

@@ -1,0 +1,17 @@
+.network-traffic-card {
+  width: 100%;
+}
+
+.network-traffic-card .network-speed {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.network-traffic-card .speed-item {
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

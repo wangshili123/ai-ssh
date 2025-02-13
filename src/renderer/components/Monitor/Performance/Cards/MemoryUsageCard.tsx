@@ -28,8 +28,8 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
 
   if (simple) {
     return (
-      <div className="resource-summary">
-        <div className="resource-title">内 存</div>
+      <div className="resource-summary memory-usage-card">
+        <div className="resource-title">内存</div>
         <div className="resource-value">{Math.round(memoryInfo.usagePercent)}%</div>
         <Progress percent={Math.round(memoryInfo.usagePercent)} showInfo={false} size="small" />
       </div>

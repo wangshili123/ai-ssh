@@ -1,0 +1,12 @@
+.memory-usage-card {
+  width: 100%;
+}
+
+.memory-usage-card .memory-details {
+  font-size: 13px;
+  color: #666;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

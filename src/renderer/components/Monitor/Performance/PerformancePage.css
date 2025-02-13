@@ -71,15 +71,14 @@
   background: #fff;
   border-radius: 6px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  padding: 8px;
+  padding: 12px;
   cursor: pointer;
   transition: all 0.3s;
   display: flex;
-  gap: 24px;
+  flex-direction: column;
   margin-bottom: 6px;
+  min-height: 90px;
 }
-
-
 
 .resource-summary:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -92,18 +91,31 @@
 .resource-title {
   font-size: 13px;
   color: #666;
-  margin-bottom: 2px;
+  margin-bottom: 8px;
+  width: 100%;
 }
 
 .resource-value {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
   color: #1890ff;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+  flex: 1;
+  display: flex;
+  align-items: center;
 }
 
 .resource-subtitle {
   font-size: 12px;
   color: #999;
   margin-bottom: 0;
+}
+
+/* 进度条样式 */
+.resource-summary .ant-progress {
+  margin-top: 4px;
+}
+
+.resource-summary .ant-progress-line {
+  margin: 0;
 } 

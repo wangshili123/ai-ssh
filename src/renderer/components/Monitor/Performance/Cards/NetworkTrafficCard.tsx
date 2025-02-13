@@ -27,12 +27,13 @@ export const NetworkTrafficCard: React.FC<NetworkTrafficCardProps> = ({
 
   if (simple) {
     return (
-      <div className="resource-summary">
-        <div className="resource-title">网 络</div>
+      <div className="resource-summary network-traffic-card">
+        <div className="resource-title">网络</div>
         <div className="resource-value">
-          ↑ {formatBitRate(networkInfo.txSpeed)}
-          <br />
-          ↓ {formatBitRate(networkInfo.rxSpeed)}
+          <div className="network-speed">
+            <div className="speed-item">↑ {formatBitRate(networkInfo.txSpeed)}</div>
+            <div className="speed-item">↓ {formatBitRate(networkInfo.rxSpeed)}</div>
+          </div>
         </div>
       </div>
     );

@@ -78,7 +78,7 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
   // 简单视图用于左侧资源列表
   if (simple) {
     return (
-      <div className="resource-summary">
+      <div className="resource-summary cpu-usage-card">
         <div className="resource-title">CPU</div>
         <div className="resource-value">{Math.round(cpuInfo.usage)}%</div>
         <div className="resource-speed">{formatFrequency(cpuInfo.currentSpeed || cpuInfo.speed)}</div>

@@ -27,8 +27,8 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
 
   if (simple) {
     return (
-      <div className="resource-summary">
-        <div className="resource-title">磁 盘</div>
+      <div className="resource-summary disk-usage-card">
+        <div className="resource-title">磁盘</div>
         <div className="resource-value">{Math.round(diskInfo.usagePercent)}%</div>
         <Progress percent={Math.round(diskInfo.usagePercent)} showInfo={false} size="small" />
       </div>
