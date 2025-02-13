@@ -34,9 +34,21 @@ export class DiskMetricsService {
         this.getDiskIO(sessionId)
       ]);
 
+      // 更新分区的IO速度
+      const partitions = diskUsage.partitions.map(partition => {
+        const deviceName = partition.device.split('/').pop() || '';
+        const deviceStats = diskIO.deviceStats?.[deviceName] || { readSpeed: 0, writeSpeed: 0 };
+        return {
+          ...partition,
+          readSpeed: deviceStats.readSpeed,
+          writeSpeed: deviceStats.writeSpeed
+        };
+      });
+
       return {
         ...diskUsage,
-        ...diskIO
+        ...diskIO,
+        partitions
       };
     } catch (error) {
       console.error('采集磁盘指标失败:', error);
@@ -63,7 +75,7 @@ export class DiskMetricsService {
   /**
    * 获取磁盘IO情况
    */
-  private async getDiskIO(sessionId: string): Promise<Pick<DiskInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory'>> {
+  private async getDiskIO(sessionId: string): Promise<Pick<DiskInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory' | 'deviceStats'>> {
     try {
       // 使用 /proc/diskstats 获取IO统计
       const cmd = 'cat /proc/diskstats';
@@ -76,7 +88,8 @@ export class DiskMetricsService {
       return {
         readSpeed: 0,
         writeSpeed: 0,
-        ioHistory: []
+        ioHistory: [],
+        deviceStats: {}
       };
     }
   }
@@ -123,18 +136,20 @@ export class DiskMetricsService {
       used: totalUsed,
       free: totalFree,
       usagePercent: totalSize > 0 ? (totalUsed / totalSize) * 100 : 0,
-      partitions
+      partitions,
+      deviceStats: {} // 添加空的deviceStats
     };
   }
 
   /**
    * 解析磁盘IO情况
    */
-  private parseDiskIO(output: string, timestamp: number): Pick<DiskInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory'> {
+  private parseDiskIO(output: string, timestamp: number): Pick<DiskInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory' | 'deviceStats'> {
     const lines = output.split('\n');
     let totalRead = 0;
     let totalWrite = 0;
     const currentStats: { [key: string]: { time: number; read: number; write: number } } = {};
+    const deviceStats: { [key: string]: { readSpeed: number; writeSpeed: number } } = {};
 
     for (const line of lines) {
       if (!line.trim()) continue;
@@ -143,12 +158,8 @@ export class DiskMetricsService {
       // 跳过非物理设备
       if (parts[2].startsWith('loop') || parts[2].startsWith('ram')) continue;
       
-      // /proc/diskstats 格式:
-      // 字段3: 设备名
-      // 字段6: 读取的扇区数
-      // 字段10: 写入的扇区数
       const device = parts[2];
-      const sectorsRead = parseInt(parts[5]) * 512; // 扇区大小是512字节
+      const sectorsRead = parseInt(parts[5]) * 512;
       const sectorsWritten = parseInt(parts[9]) * 512;
       
       currentStats[device] = {
@@ -157,15 +168,23 @@ export class DiskMetricsService {
         write: sectorsWritten
       };
 
-      // 计算速率
+      // 计算每个设备的速率
       if (this.lastDiskStats[device]) {
-        const timeDiff = (timestamp - this.lastDiskStats[device].time) / 1000; // 转换为秒
+        const timeDiff = (timestamp - this.lastDiskStats[device].time) / 1000;
         if (timeDiff > 0) {
           const readDiff = sectorsRead - this.lastDiskStats[device].read;
           const writeDiff = sectorsWritten - this.lastDiskStats[device].write;
           
-          totalRead += readDiff / timeDiff;
-          totalWrite += writeDiff / timeDiff;
+          const readSpeed = readDiff / timeDiff;
+          const writeSpeed = writeDiff / timeDiff;
+          
+          deviceStats[device] = {
+            readSpeed: Math.max(0, readSpeed),
+            writeSpeed: Math.max(0, writeSpeed)
+          };
+          
+          totalRead += readSpeed;
+          totalWrite += writeSpeed;
         }
       }
     }
@@ -176,6 +195,7 @@ export class DiskMetricsService {
     return {
       readSpeed: Math.max(0, totalRead),
       writeSpeed: Math.max(0, totalWrite),
+      deviceStats,
       ioHistory: [{
         timestamp,
         readSpeed: Math.max(0, totalRead),

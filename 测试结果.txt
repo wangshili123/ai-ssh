@@ -1,8 +1,8 @@
-Compiled with problems:
+ompiled with problems:
 ×
-ERROR in ./src/renderer/services/monitor/monitorManager.ts (E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\monitorManager.ts) 127:12-22
-[tsl] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\monitorManager.ts(127,13)
-      TS2739: Type '{ total: number; used: number; free: number; cached: number; buffers: number; usagePercent: number; }' is missing the following properties from type 'MemoryInfo': swap, topProcesses
-ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\metricsManager.ts 28:4-10
-[tsl] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\metricsManager.ts(28,5)
-      TS2739: Type '{ total: number; used: number; free: number; cached: number; buffers: number; usagePercent: number; }' is missing the following properties from type 'MemoryInfo': swap, topProcesses
+ERROR in ./src/renderer/services/monitor/metrics/diskService.ts (E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\diskService.ts) 78:127-128
+[tsl] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\diskService.ts(78,128)
+      TS1005: '>' expected.
+ERROR in ./src/renderer/services/monitor/metrics/diskService.ts (E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\diskService.ts) 134:4-10
+[tsl] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\diskService.ts(134,5)
+      TS2741: Property 'deviceStats' is missing in type '{ total: number; used: number; free: number; usagePercent: number; partitions: { device: string; mountpoint: string; fstype: string; total: number; used: number; free: number; usagePercent: number; readSpeed: number; writeSpeed: number; }[]; }' but required in type 'Omit<DiskInfo, "ioHistory" | "readSpeed" | "writeSpeed">'.

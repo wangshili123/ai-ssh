@@ -68,6 +68,14 @@ export interface DiskInfo {
   readSpeed: number;    // 读取速度(bytes/s)
   writeSpeed: number;   // 写入速度(bytes/s)
   
+  // 设备IO统计
+  deviceStats: {
+    [key: string]: {
+      readSpeed: number;  // 设备读取速度(bytes/s)
+      writeSpeed: number; // 设备写入速度(bytes/s)
+    }
+  };
+  
   // 分区信息
   partitions: Array<{
     device: string;     // 设备名
