@@ -52,7 +52,17 @@ export class DiskMetricsService {
       };
     } catch (error) {
       console.error('采集磁盘指标失败:', error);
-      throw error;
+      return {
+        total: 0,
+        used: 0,
+        free: 0,
+        usagePercent: 0,
+        partitions: [],
+        deviceStats: {},
+        readSpeed: 0,
+        writeSpeed: 0,
+        ioHistory: []
+      };
     }
   }
 
@@ -72,7 +82,14 @@ export class DiskMetricsService {
       return this.parseDiskUsage(dfResult || '', rotationalResult || '');
     } catch (error) {
       console.error('获取磁盘使用情况失败:', error);
-      throw error;
+      return {
+        total: 0,
+        used: 0,
+        free: 0,
+        usagePercent: 0,
+        partitions: [],
+        deviceStats: {}
+      };
     }
   }
 

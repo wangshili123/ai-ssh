@@ -1,0 +1,147 @@
+.disk-detail {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.disk-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.disk-tabs .ant-tabs-content {
+  flex: 1;
+  height: 0;
+}
+
+.disk-tabs .ant-tabs-tabpane {
+  height: 100%;
+  overflow: auto;
+}
+
+/* 概览页样式 */
+.disk-content {
+  padding: 16px;
+}
+
+.partitions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.partition-item {
+  background: #fff;
+  border-radius: 4px;
+  padding: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.partition-item.virtual {
+  background: #fafafa;
+  opacity: 0.9;
+}
+
+.partition-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.partition-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mountpoint {
+  font-weight: 500;
+}
+
+.fstype {
+  background: #f9f0ff;
+  color: #722ed1;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.disk-type {
+  background: #f6ffed;
+  color: #52c41a;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.io-speed {
+  color: #8c8c8c;
+  font-size: 12px;
+}
+
+.usage-row {
+  margin-top: 8px;
+}
+
+.usage-details {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+/* 健康状态页样式 */
+.disk-health {
+  padding: 16px;
+}
+
+.last-check {
+  margin-bottom: 16px;
+  color: #8c8c8c;
+}
+
+.text-warning {
+  color: #ff4d4f;
+}
+
+.text-caution {
+  color: #faad14;
+}
+
+/* 空间分析页样式 */
+.disk-space {
+  padding: 16px;
+}
+
+.last-scan {
+  margin-bottom: 16px;
+  color: #8c8c8c;
+}
+
+.analysis-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.analysis-card {
+  flex: 1;
+}
+
+/* IO分析页样式 */
+.disk-io {
+  padding: 16px;
+}
+
+.io-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.io-card {
+  flex: 1;
+} 

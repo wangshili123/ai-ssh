@@ -57,6 +57,63 @@ export interface MemoryInfo {
   }>;
 }
 
+export interface DiskHealth {
+  devices: Array<{
+    device: string;
+    status: 'PASSED' | 'FAILED' | 'UNKNOWN';
+    temperature: number;
+    powerOnHours: number;
+    reallocatedSectors: number;
+    pendingSectors: number;
+    uncorrectableSectors: number;
+    model: string;
+    serial: string;
+    remainingLife?: number;
+  }>;
+  lastCheck: number;
+}
+
+export interface DiskSpaceAnalysis {
+  largeDirectories: Array<{
+    path: string;
+    size: number;
+    lastModified?: number;
+  }>;
+  largeFiles: Array<{
+    path: string;
+    size: number;
+    lastModified?: number;
+  }>;
+  fileTypes: Array<{
+    extension: string;
+    count: number;
+    totalSize: number;
+  }>;
+  lastScan: number;
+}
+
+export interface DiskIoAnalysis {
+  topProcesses: Array<{
+    pid: number;
+    name: string;
+    command: string;
+    readBytes: number;
+    writeBytes: number;
+    readSpeed: number;
+    writeSpeed: number;
+  }>;
+  deviceStats: Array<{
+    device: string;
+    tps: number;
+    readSpeed: number;
+    writeSpeed: number;
+    await: number;
+    svctm: number;
+    util: number;
+  }>;
+  timestamp: number;
+}
+
 export interface DiskInfo {
   // 基础信息
   total: number;        // 总容量(bytes)
@@ -96,6 +153,11 @@ export interface DiskInfo {
     readSpeed: number;  // 读取速度
     writeSpeed: number; // 写入速度
   }>;
+  
+  // 新增的分析数据
+  health?: DiskHealth;
+  spaceAnalysis?: DiskSpaceAnalysis;
+  ioAnalysis?: DiskIoAnalysis;
 }
 
 export interface NetworkInfo {

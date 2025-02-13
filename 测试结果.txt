@@ -1,8 +1,626 @@
-ompiled with problems:
-×
-ERROR in ./src/renderer/services/monitor/metrics/diskService.ts (E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\diskService.ts) 78:127-128
-[tsl] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\diskService.ts(78,128)
-      TS1005: '>' expected.
-ERROR in ./src/renderer/services/monitor/metrics/diskService.ts (E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\diskService.ts) 134:4-10
-[tsl] ERROR in E:\me\ai\ai-ssh\ai-ssh\src\renderer\services\monitor\metrics\diskService.ts(134,5)
-      TS2741: Property 'deviceStats' is missing in type '{ total: number; used: number; free: number; usagePercent: number; partitions: { device: string; mountpoint: string; fstype: string; total: number; used: number; free: number; usagePercent: number; readSpeed: number; writeSpeed: number; }[]; }' but required in type 'Omit<DiskInfo, "ioHistory" | "readSpeed" | "writeSpeed">'.
+ [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.
+ [HMR] Waiting for update signal from WDS...
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ Loading renderer SSH service...
+ Creating renderer SSH service instance...
+ Initializing renderer SSHService...
+ Renderer SSH service instance created.
+ 无法获取 app.getPath，使用默认路径 TypeError: Cannot read properties of undefined (reading 'getPath')
+    at new StorageService (renderer.js:427827:49)
+    at ./src/main/services/storage.ts (renderer.js:428006:26)
+    at __webpack_require__ (renderer.js:599516:32)
+    at fn (renderer.js:599741:21)
+    at ./src/main/services/ssh.ts (renderer.js:427470:19)
+    at __webpack_require__ (renderer.js:599516:32)
+    at fn (renderer.js:599741:21)
+    at ./src/services/completion/analyzers/patterns/DirectoryPatternAnalyzer.ts (renderer.js:440306:15)
+    at __webpack_require__ (renderer.js:599516:32)
+    at fn (renderer.js:599741:21)
+StorageService @ renderer.js:427834
+./src/main/services/storage.ts @ renderer.js:428006
+__webpack_require__ @ renderer.js:599516
+fn @ renderer.js:599741
+./src/main/services/ssh.ts @ renderer.js:427470
+__webpack_require__ @ renderer.js:599516
+fn @ renderer.js:599741
+./src/services/completion/analyzers/patterns/DirectoryPatternAnalyzer.ts @ renderer.js:440306
+__webpack_require__ @ renderer.js:599516
+fn @ renderer.js:599741
+./src/services/completion/analyzers/EnhancedContextAnalyzer.ts @ renderer.js:439718
+__webpack_require__ @ renderer.js:599516
+fn @ renderer.js:599741
+./src/services/completion/CompletionService.ts @ renderer.js:438736
+__webpack_require__ @ renderer.js:599516
+fn @ renderer.js:599741
+./src/services/terminal/analysis/CommandOutputAnalyzer.ts @ renderer.js:444256
+__webpack_require__ @ renderer.js:599516
+fn @ renderer.js:599741
+./src/renderer/components/Terminal/hooks/useTerminalInit.ts @ renderer.js:434069
+__webpack_require__ @ renderer.js:599516
+fn @ renderer.js:599741
+./src/renderer/components/Terminal/index.tsx @ renderer.js:434404
+__webpack_require__ @ renderer.js:599516
+fn @ renderer.js:599741
+./src/renderer/components/Terminal/TerminalTabContent/TerminalTabContent.tsx @ renderer.js:433116
+__webpack_require__ @ renderer.js:599516
+fn @ renderer.js:599741
+./src/renderer/components/Terminal/TerminalTabsManager/TerminalTabsManager.tsx @ renderer.js:433226
+__webpack_require__ @ renderer.js:599516
+fn @ renderer.js:599741
+./src/renderer/App.tsx @ renderer.js:428058
+__webpack_require__ @ renderer.js:599516
+fn @ renderer.js:599741
+./src/renderer/index.tsx @ renderer.js:434611
+__webpack_require__ @ renderer.js:599516
+（匿名） @ renderer.js:600599
+（匿名） @ renderer.js:600601
+ Loading SSH service...
+ Creating SSH service instance...
+ Initializing SSHService...
+ SSH service instance created.
+ [TerminalTabsManager] 组件渲染: {sessionInfo: undefined, triggerNewTab: 0}
+ [TerminalTabsManager] 组件未挂载，返回null
+node:electron/js2c/renderer_init:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ node:electron/js2c/renderer_init:2
+logSecurityWarnings @ node:electron/js2c/renderer_init:2
+（匿名） @ node:electron/js2c/renderer_init:2
+load（异步）
+securityWarnings @ node:electron/js2c/renderer_init:2
+./lib/renderer/common-init.ts @ node:electron/js2c/renderer_init:2
+__webpack_require__ @ node:electron/js2c/renderer_init:2
+（匿名） @ node:electron/js2c/renderer_init:2
+（匿名） @ node:electron/js2c/renderer_init:2
+___electron_webpack_init__ @ node:electron/js2c/renderer_init:2
+（匿名） @ node:electron/js2c/renderer_init:2
+compileForInternalLoader @ node:internal/bootstrap/loaders:334
+compileForPublicLoader @ node:internal/bootstrap/loaders:270
+loadBuiltinModule @ node:internal/modules/cjs/helpers:56
+Module._load @ node:internal/modules/cjs/loader:941
+f._load @ node:electron/js2c/asar_bundle:2
+executeUserEntryPoint @ node:internal/modules/run_main:96
+（匿名） @ node:internal/main/run_main_module:23
+ [TerminalTabsManager] mounted状态: false
+ [TerminalTabsManager] triggerNewTab变化: {triggerNewTab: 0, prevTrigger: undefined, mounted: false, sessionInfo: undefined}
+ [TerminalTabsManager] 跳过创建新标签页
+ [App] 开始初始化基础服务...
+ [DatabaseService] 开始初始化数据库...
+ [DatabaseService] 数据库路径: C:\Users\admin\AppData\Roaming\ai-ssh-tool\ai-ssh.db
+ [DatabaseService] Running migrations...
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE TABLE IF NOT EXISTS command_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      command TEXT NOT NULL,
+      context TEXT,
+      frequency INTEGER DEFAULT 1,
+      last_used DATETIME DEFAULT CURRENT_TIMESTAMP,
+      success BOOLEAN DEFAULT 1,
+      outputs TEXT
+    );
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 -- 命令历史索引
+    CREATE INDEX IF NOT EXISTS idx_command_history_command ON command_history(command);
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE INDEX IF NOT EXISTS idx_command_history_last_used ON command_history(last_used);
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE INDEX IF NOT EXISTS idx_command_history_frequency ON command_history(frequency);
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE TABLE IF NOT EXISTS command_relations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      command1_id INTEGER NOT NULL,
+      command2_id INTEGER NOT NULL,
+      relation_type TEXT NOT NULL,
+      frequency INTEGER DEFAULT 0,
+      last_used DATETIME DEFAULT CURRENT_TIMESTAMP,
+      success_rate REAL DEFAULT 0,
+      avg_time_gap INTEGER DEFAULT 0,
+      FOREIGN KEY (command1_id) REFERENCES command_history(id),
+      FOREIGN KEY (command2_id) REFERENCES command_history(id),
+      UNIQUE(command1_id, command2_id)
+    );
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 -- 命令关系索引
+    CREATE INDEX IF NOT EXISTS idx_command_relations_prev ON command_relations(command1_id);
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE INDEX IF NOT EXISTS idx_command_relations_next ON command_relations(command2_id);
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE INDEX IF NOT EXISTS idx_command_relations_type ON command_relations(relation_type);
+ [DatabaseService] Initial schema migration completed
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE TABLE IF NOT EXISTS command_usage (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      command TEXT NOT NULL,
+      context TEXT,
+      frequency INTEGER DEFAULT 1,
+      success_count INTEGER DEFAULT 0,
+      fail_count INTEGER DEFAULT 0,
+      last_used DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(command)
+    );
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE INDEX IF NOT EXISTS idx_command_usage_command ON command_usage(command);
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE INDEX IF NOT EXISTS idx_command_usage_frequency ON command_usage(frequency DESC);
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE TABLE IF NOT EXISTS completion_usage (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      input TEXT NOT NULL,
+      suggestion TEXT NOT NULL,
+      is_selected BOOLEAN DEFAULT 0,
+      context TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE INDEX IF NOT EXISTS idx_completion_usage_input ON completion_usage(input);
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE INDEX IF NOT EXISTS idx_completion_usage_suggestion ON completion_usage(suggestion);
+ [DatabaseService] Learning tables migration completed
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE TABLE IF NOT EXISTS analysis_state (
+      id INTEGER PRIMARY KEY,
+      component TEXT NOT NULL,
+      last_processed_id INTEGER,
+      last_analysis_time TIMESTAMP,
+      processed_count INTEGER,
+      analysis_metrics TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP,
+      UNIQUE(component)
+    );
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE INDEX IF NOT EXISTS idx_analysis_state_component ON analysis_state(component);
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE TABLE IF NOT EXISTS ai_completions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      command TEXT NOT NULL,
+      parts TEXT,
+      frequency INTEGER NOT NULL,
+      confidence REAL NOT NULL,
+      context TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE INDEX IF NOT EXISTS idx_ai_completions_command ON ai_completions(command);
+E:\me\ai\ai-ssh\ai-ssh\node_modules\better-sqlite3\lib\methods\wrappers.js:9 CREATE INDEX IF NOT EXISTS idx_ai_completions_confidence ON ai_completions(confidence);
+ [DatabaseService] Analysis tables migration completed
+ [DatabaseService] 数据库初始化完成
+ [DataCleaner] 清理任务已启动
+ [CollectorMonitor] 监控已启动
+ [CollectorService] 所有服务已启动
+ [CollectorService] 收集器服务初始化成功
+ [DatabaseService] 收集器服务初始化完成
+ [AnalysisScheduler] Starting scheduler
+ [AnalysisScheduler] Starting analysis task
+ 
+      SELECT last_processed_id, last_analysis_time, processed_count, analysis_metrics
+      FROM analysis_state
+      WHERE component = 'AIAnalyzer'
+    
+ [DatabaseService] 分析调度器启动完成
+ 
+      SELECT COUNT(*) as count
+      FROM command_usage
+      WHERE id > 17.0
+    
+ 
+      SELECT COUNT(*) as count
+      FROM completion_usage
+      WHERE id > 17.0
+    
+ 
+        SELECT 
+          (SELECT COUNT(*) FROM command_usage) as totalCommands,
+          (SELECT COUNT(*) FROM completion_usage) as totalCompletions
+      
+ 
+      SELECT COUNT(*) as count
+      FROM command_usage
+      WHERE id > 17.0
+    
+ 
+      SELECT COUNT(*) as count
+      FROM completion_usage
+      WHERE id > 17.0
+    
+ [AnalysisStateManager] 数据检查结果: {commandCount: 20, completionCount: 1, changeRate: 0.7407407407407407, minCommandCount: 10, minCompletionCount: 2, …}
+ [AnalysisStateManager] 数据充分性检查结果: {hasEnoughData: false, metrics: {…}}
+ [AnalysisScheduler] 数据量不足或变化不大: {newCommandCount: 20, newCompletionCount: 1, lastAnalysisTime: Mon Feb 10 2025 09:17:42 GMT+0800 (中国标准时间), dataChangeRate: 0.7407407407407407}
+ [AnalysisScheduler] 数据量不足或变化不大，跳过分析
+ [App] 加载UI设置: {isFileBrowserVisible: true, isAIVisible: false}
+ [App] 基础服务初始化完成
+ [TerminalTabsManager] 组件渲染: {sessionInfo: undefined, triggerNewTab: 0}
+ [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
+ [TerminalTabsManager] triggerNewTab变化: {triggerNewTab: 0, prevTrigger: undefined, mounted: true, sessionInfo: undefined}
+ [TerminalTabsManager] 跳过创建新标签页
+ [App] 保存UI设置: {isFileBrowserVisible: true, isAIVisible: false}
+renderer.js:321149 [Violation] 'requestAnimationFrame' handler took 207ms
+ [TerminalTabsManager] 组件渲染: {sessionInfo: undefined, triggerNewTab: 0}
+ [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
+ [App] 会话选择: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
+ [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 1}
+ [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
+ [TerminalTabsManager] triggerNewTab变化: {triggerNewTab: 1, prevTrigger: undefined, mounted: true, sessionInfo: {…}}
+ [TerminalTabsManager] 触发新标签页创建: {sessionInfo: {…}}
+ [TerminalTabsManager] 新标签页数据: {key: '1739456020703', title: '252-1234', sessionInfo: {…}, instanceId: '1739456020703', tabId: 'tab-1739456020703', …}
+ [TerminalTabsManager] 更新标签页列表: {prev: Array(0), newTab: {…}}
+ [EventBus] 设置当前 tabId: tab-1739456020703
+ [EventBus] 触发事件: tabIdChanged ['tab-1739456020703']
+ [App] 标签页ID变化: tab-1739456020703
+ [EventBus] 设置当前 shellId: 1737016726289-1739456020703
+ [EventBus] 触发事件: shellIdChanged ['1737016726289-1739456020703']
+ [EventBus] 触发事件: tab-create [{…}]
+ [TerminalTabsManager] 新标签页创建完成: {tabId: 'tab-1739456020703', shellId: '1737016726289-1739456020703', sessionInfo: {…}}
+ [CommandExecutor] 开始初始化补全执行命令的SSH连接
+ [EventBus] 获取当前 tabId: tab-1739456020703
+ [EventBus] getCurrentSessionInfo - currentTabId: tab-1739456020703
+ [EventBus] 获取标签页信息: tab-1739456020703
+ [EventBus] 当前标签页映射: Map(1) {'tab-1739456020703' => {…}}
+ [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739456020703', shellId: '1737016726289-1739456020703', sessionInfo: {…}}
+ [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
+ [SSH] 未找到连接: 1737016726289
+ [EventBus] 获取当前 tabId: tab-1739456020703
+ [EventBus] getCurrentSessionInfo - currentTabId: tab-1739456020703
+ [EventBus] 获取标签页信息: tab-1739456020703
+ [EventBus] 当前标签页映射: Map(1) {'tab-1739456020703' => {…}}
+ [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739456020703', shellId: '1737016726289-1739456020703', sessionInfo: {…}}
+ [CommandExecutor] 正在预初始化SSH连接...
+ SSHService.connect called with: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
+ Connecting to SSH server with config: {host: '172.16.3.226', port: 22, username: 'root', authType: 'password', hasPassword: true, …}
+ [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 1}
+ [TerminalTabsManager] 渲染组件: {tabs: Array(1), activeKey: '1739456020703'}
+ Warning: [antd: Tabs] Tabs.TabPane is deprecated. Please use `items` directly.
+warning @ renderer.js:321459
+call @ renderer.js:321480
+warningOnce @ renderer.js:321487
+warning @ renderer.js:54305
+useLegacyItems @ renderer.js:75459
+Tabs @ renderer.js:75565
+renderWithHooks @ renderer.js:339825
+mountIndeterminateComponent @ renderer.js:344437
+beginWork @ renderer.js:345960
+beginWork$1 @ renderer.js:351799
+performUnitOfWork @ renderer.js:350933
+workLoopSync @ renderer.js:350839
+renderRootSync @ renderer.js:350807
+performConcurrentWorkOnRoot @ renderer.js:350111
+workLoop @ renderer.js:399862
+flushWork @ renderer.js:399835
+performWorkUntilDeadline @ renderer.js:400129
+processImmediate @ node:internal/timers:476
+ 未收到磁盘数据 {monitorData: '无监控数据', timestamp: '2025-02-13T14:13:40.854Z'}
+ [MonitorPage] 创建监控会话: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
+ [MonitorPage] 连接监控会话: 1737016726289
+ [TerminalTabsManager] triggerNewTab变化: {triggerNewTab: 1, prevTrigger: 1, mounted: true, sessionInfo: {…}}
+ [TerminalTabsManager] 跳过创建新标签页
+ SSH connection ready
+ [CommandExecutor] SSH连接预初始化完成
+ 未收到磁盘数据 {monitorData: '无监控数据', timestamp: '2025-02-13T14:13:41.747Z'}
+ 详细视图磁盘信息: {total: '0 B', used: '0 B', partitionsCount: 0, hasHealth: false, healthLastCheck: '无', …}
+ 开始采集指标数据: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:46.117Z'}
+ 开始获取磁盘健康状态: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:46.120Z'}
+ 开始获取IO分析数据: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:46.121Z'}
+ 分析文件类型失败: Error: (SSH) Channel open failure: open failed
+    at renderer.js:437707:28
+analyzeFileTypes @ renderer.js:436717
+await in analyzeFileTypes（异步）
+getSpaceAnalysis @ renderer.js:436624
+refreshSession @ renderer.js:437163
+（匿名） @ renderer.js:437084
+emit @ node:events:525
+refresh @ renderer.js:436981
+（匿名） @ renderer.js:436932
+setInterval（异步）
+startRefresh @ renderer.js:436931
+connectSession @ renderer.js:437124
+await in connectSession（异步）
+initMonitor @ renderer.js:430955
+（匿名） @ renderer.js:430977
+commitHookEffectListMount @ renderer.js:347523
+commitPassiveMountOnFiber @ renderer.js:349304
+commitPassiveMountEffects_complete @ renderer.js:349264
+commitPassiveMountEffects_begin @ renderer.js:349251
+commitPassiveMountEffects @ renderer.js:349239
+flushPassiveEffectsImpl @ renderer.js:351412
+flushPassiveEffects @ renderer.js:351357
+performSyncWorkOnRoot @ renderer.js:350449
+flushSyncCallbacks @ renderer.js:336381
+commitRootImpl @ renderer.js:351332
+commitRoot @ renderer.js:351055
+finishConcurrentRender @ renderer.js:350354
+performConcurrentWorkOnRoot @ renderer.js:350182
+workLoop @ renderer.js:399862
+flushWork @ renderer.js:399835
+performWorkUntilDeadline @ renderer.js:400129
+processImmediate @ node:internal/timers:476
+ 获取进程IO信息失败: Error: (SSH) Channel open failure: open failed
+    at renderer.js:437707:28
+getTopIoProcesses @ renderer.js:436244
+await in getTopIoProcesses（异步）
+getIoAnalysis @ renderer.js:436176
+refreshSession @ renderer.js:437164
+（匿名） @ renderer.js:437084
+emit @ node:events:525
+refresh @ renderer.js:436981
+（匿名） @ renderer.js:436932
+setInterval（异步）
+startRefresh @ renderer.js:436931
+connectSession @ renderer.js:437124
+await in connectSession（异步）
+initMonitor @ renderer.js:430955
+（匿名） @ renderer.js:430977
+commitHookEffectListMount @ renderer.js:347523
+commitPassiveMountOnFiber @ renderer.js:349304
+commitPassiveMountEffects_complete @ renderer.js:349264
+commitPassiveMountEffects_begin @ renderer.js:349251
+commitPassiveMountEffects @ renderer.js:349239
+flushPassiveEffectsImpl @ renderer.js:351412
+flushPassiveEffects @ renderer.js:351357
+performSyncWorkOnRoot @ renderer.js:350449
+flushSyncCallbacks @ renderer.js:336381
+commitRootImpl @ renderer.js:351332
+commitRoot @ renderer.js:351055
+finishConcurrentRender @ renderer.js:350354
+performConcurrentWorkOnRoot @ renderer.js:350182
+workLoop @ renderer.js:399862
+flushWork @ renderer.js:399835
+performWorkUntilDeadline @ renderer.js:400129
+processImmediate @ node:internal/timers:476
+ 获取到进程IO统计: {sessionId: '1737016726289', processCount: 0, timestamp: '2025-02-13T14:13:46.166Z'}
+ 获取设备IO统计失败: Error: (SSH) Channel open failure: open failed
+    at renderer.js:437707:28
+getDeviceIoStats @ renderer.js:436261
+await in getDeviceIoStats（异步）
+getIoAnalysis @ renderer.js:436183
+await in getIoAnalysis（异步）
+refreshSession @ renderer.js:437164
+（匿名） @ renderer.js:437084
+emit @ node:events:525
+refresh @ renderer.js:436981
+（匿名） @ renderer.js:436932
+setInterval（异步）
+startRefresh @ renderer.js:436931
+connectSession @ renderer.js:437124
+await in connectSession（异步）
+initMonitor @ renderer.js:430955
+（匿名） @ renderer.js:430977
+commitHookEffectListMount @ renderer.js:347523
+commitPassiveMountOnFiber @ renderer.js:349304
+commitPassiveMountEffects_complete @ renderer.js:349264
+commitPassiveMountEffects_begin @ renderer.js:349251
+commitPassiveMountEffects @ renderer.js:349239
+flushPassiveEffectsImpl @ renderer.js:351412
+flushPassiveEffects @ renderer.js:351357
+performSyncWorkOnRoot @ renderer.js:350449
+flushSyncCallbacks @ renderer.js:336381
+commitRootImpl @ renderer.js:351332
+commitRoot @ renderer.js:351055
+finishConcurrentRender @ renderer.js:350354
+performConcurrentWorkOnRoot @ renderer.js:350182
+workLoop @ renderer.js:399862
+flushWork @ renderer.js:399835
+performWorkUntilDeadline @ renderer.js:400129
+processImmediate @ node:internal/timers:476
+ 获取到设备IO统计: {sessionId: '1737016726289', deviceCount: 0, timestamp: '2025-02-13T14:13:46.216Z'}
+ IO分析数据获取完成: {sessionId: '1737016726289', processCount: 0, deviceCount: 0, timestamp: '2025-02-13T14:13:46.216Z'}
+ 找到磁盘设备: {sessionId: '1737016726289', deviceCount: 2, devices: Array(2), timestamp: '2025-02-13T14:13:46.237Z'}
+ 获取设备 sdb 的SMART信息失败: Error: (SSH) Channel open failure: open failed
+    at renderer.js:437707:28
+getSmartInfo @ renderer.js:436074
+await in getSmartInfo（异步）
+（匿名） @ renderer.js:435994
+getDiskHealth @ renderer.js:435994
+await in getDiskHealth（异步）
+refreshSession @ renderer.js:437162
+（匿名） @ renderer.js:437084
+emit @ node:events:525
+refresh @ renderer.js:436981
+（匿名） @ renderer.js:436932
+setInterval（异步）
+startRefresh @ renderer.js:436931
+connectSession @ renderer.js:437124
+await in connectSession（异步）
+initMonitor @ renderer.js:430955
+（匿名） @ renderer.js:430977
+commitHookEffectListMount @ renderer.js:347523
+commitPassiveMountOnFiber @ renderer.js:349304
+commitPassiveMountEffects_complete @ renderer.js:349264
+commitPassiveMountEffects_begin @ renderer.js:349251
+commitPassiveMountEffects @ renderer.js:349239
+flushPassiveEffectsImpl @ renderer.js:351412
+flushPassiveEffects @ renderer.js:351357
+performSyncWorkOnRoot @ renderer.js:350449
+flushSyncCallbacks @ renderer.js:336381
+commitRootImpl @ renderer.js:351332
+commitRoot @ renderer.js:351055
+finishConcurrentRender @ renderer.js:350354
+performConcurrentWorkOnRoot @ renderer.js:350182
+workLoop @ renderer.js:399862
+flushWork @ renderer.js:399835
+performWorkUntilDeadline @ renderer.js:400129
+processImmediate @ node:internal/timers:476
+ 获取SMART信息失败: {sessionId: '1737016726289', device: 'sdb', error: '无SMART数据', timestamp: '2025-02-13T14:13:46.279Z'}
+（匿名） @ renderer.js:436002
+getDiskHealth @ renderer.js:435997
+await in getDiskHealth（异步）
+refreshSession @ renderer.js:437162
+（匿名） @ renderer.js:437084
+emit @ node:events:525
+refresh @ renderer.js:436981
+（匿名） @ renderer.js:436932
+setInterval（异步）
+startRefresh @ renderer.js:436931
+connectSession @ renderer.js:437124
+await in connectSession（异步）
+initMonitor @ renderer.js:430955
+（匿名） @ renderer.js:430977
+commitHookEffectListMount @ renderer.js:347523
+commitPassiveMountOnFiber @ renderer.js:349304
+commitPassiveMountEffects_complete @ renderer.js:349264
+commitPassiveMountEffects_begin @ renderer.js:349251
+commitPassiveMountEffects @ renderer.js:349239
+flushPassiveEffectsImpl @ renderer.js:351412
+flushPassiveEffects @ renderer.js:351357
+performSyncWorkOnRoot @ renderer.js:350449
+flushSyncCallbacks @ renderer.js:336381
+commitRootImpl @ renderer.js:351332
+commitRoot @ renderer.js:351055
+finishConcurrentRender @ renderer.js:350354
+performConcurrentWorkOnRoot @ renderer.js:350182
+workLoop @ renderer.js:399862
+flushWork @ renderer.js:399835
+performWorkUntilDeadline @ renderer.js:400129
+processImmediate @ node:internal/timers:476
+ 磁盘健康状态获取完成: {sessionId: '1737016726289', devicesCount: 1, lastCheck: '2025-02-13T14:13:46.279Z', timestamp: '2025-02-13T14:13:46.280Z'}
+ 指标数据采集完成: {sessionId: '1737016726289', hasCpuInfo: true, hasMemoryInfo: true, hasDiskInfo: true, hasDiskHealth: true, …}
+ 会话数据更新完成: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:50.208Z', diskHealth: {…}, diskIo: {…}}
+ 开始采集指标数据: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:51.113Z'}
+ 开始获取磁盘健康状态: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:51.115Z'}
+ 使用缓存的磁盘健康数据: {sessionId: '1737016726289', lastCheck: '2025-02-13T14:13:46.279Z', devicesCount: 1, timestamp: '2025-02-13T14:13:51.116Z'}
+ 开始获取IO分析数据: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:51.116Z'}
+ 收到新的磁盘数据: {readSpeed: 0, writeSpeed: 0, health: '有健康数据', ioAnalysis: '有IO分析数据', timestamp: '2025-02-13T14:13:51.161Z'}
+ 收到新的磁盘数据: {readSpeed: 0, writeSpeed: 0, health: '有健康数据', ioAnalysis: '有IO分析数据', timestamp: '2025-02-13T14:13:51.161Z'}
+ 详细视图磁盘信息: {total: '2.6 TB', used: '1.43 TB', partitionsCount: 9, hasHealth: true, healthLastCheck: '2025-02-13T14:13:46.279Z', …}
+ 获取到进程IO统计: {sessionId: '1737016726289', processCount: 10, timestamp: '2025-02-13T14:13:52.253Z'}
+ 获取到设备IO统计: {sessionId: '1737016726289', deviceCount: 2, timestamp: '2025-02-13T14:13:52.358Z'}
+ IO分析数据获取完成: {sessionId: '1737016726289', processCount: 10, deviceCount: 2, timestamp: '2025-02-13T14:13:52.358Z'}
+ 指标数据采集完成: {sessionId: '1737016726289', hasCpuInfo: true, hasMemoryInfo: true, hasDiskInfo: true, hasDiskHealth: true, …}
+ 会话数据更新完成: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:52.439Z', diskHealth: {…}, diskIo: {…}}
+ 开始采集指标数据: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:56.119Z'}
+ 开始获取磁盘健康状态: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:56.228Z'}
+ 使用缓存的磁盘健康数据: {sessionId: '1737016726289', lastCheck: '2025-02-13T14:13:46.279Z', devicesCount: 1, timestamp: '2025-02-13T14:13:56.229Z'}
+ 开始获取IO分析数据: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:56.229Z'}
+renderer.js:436931 [Violation] 'setInterval' handler took 109ms
+ 收到新的磁盘数据: {readSpeed: 0, writeSpeed: 46762.735944793996, health: '有健康数据', ioAnalysis: '有IO分析数据', timestamp: '2025-02-13T14:13:56.259Z'}
+ 收到新的磁盘数据: {readSpeed: 0, writeSpeed: 46762.735944793996, health: '有健康数据', ioAnalysis: '有IO分析数据', timestamp: '2025-02-13T14:13:56.259Z'}
+ 详细视图磁盘信息: {total: '2.6 TB', used: '1.43 TB', partitionsCount: 9, hasHealth: true, healthLastCheck: '2025-02-13T14:13:46.279Z', …}
+ 获取到进程IO统计: {sessionId: '1737016726289', processCount: 10, timestamp: '2025-02-13T14:13:57.409Z'}
+ 获取到设备IO统计: {sessionId: '1737016726289', deviceCount: 2, timestamp: '2025-02-13T14:13:57.514Z'}
+ IO分析数据获取完成: {sessionId: '1737016726289', processCount: 10, deviceCount: 2, timestamp: '2025-02-13T14:13:57.515Z'}
+ 指标数据采集完成: {sessionId: '1737016726289', hasCpuInfo: true, hasMemoryInfo: true, hasDiskInfo: true, hasDiskHealth: true, …}
+ 会话数据更新完成: {sessionId: '1737016726289', timestamp: '2025-02-13T14:13:57.558Z', diskHealth: {…}, diskIo: {…}}
+ 开始采集指标数据: {sessionId: '1737016726289', timestamp: '2025-02-13T14:14:01.110Z'}
+ 开始获取磁盘健康状态: {sessionId: '1737016726289', timestamp: '2025-02-13T14:14:01.219Z'}
+ 使用缓存的磁盘健康数据: {sessionId: '1737016726289', lastCheck: '2025-02-13T14:13:46.279Z', devicesCount: 1, timestamp: '2025-02-13T14:14:01.220Z'}
+ 开始获取IO分析数据: {sessionId: '1737016726289', timestamp: '2025-02-13T14:14:01.220Z'}
+renderer.js:436931 [Violation] 'setInterval' handler took 110ms
+ 收到新的磁盘数据: {readSpeed: 0, writeSpeed: 340209.8741529526, health: '有健康数据', ioAnalysis: '有IO分析数据', timestamp: '2025-02-13T14:14:01.247Z'}
+ 收到新的磁盘数据: {readSpeed: 0, writeSpeed: 340209.8741529526, health: '有健康数据', ioAnalysis: '有IO分析数据', timestamp: '2025-02-13T14:14:01.248Z'}
+ 详细视图磁盘信息: {total: '2.6 TB', used: '1.43 TB', partitionsCount: 9, hasHealth: true, healthLastCheck: '2025-02-13T14:13:46.279Z', …}
+ 获取磁盘使用情况失败: Error: (SSH) Channel open failure: open failed
+    at renderer.js:437707:28
+getDiskUsage @ renderer.js:436404
+await in getDiskUsage（异步）
+collectMetrics @ renderer.js:436366
+refreshSession @ renderer.js:437161
+（匿名） @ renderer.js:437084
+emit @ node:events:525
+refresh @ renderer.js:436981
+（匿名） @ renderer.js:436932
+setInterval（异步）
+startRefresh @ renderer.js:436931
+connectSession @ renderer.js:437124
+await in connectSession（异步）
+initMonitor @ renderer.js:430955
+（匿名） @ renderer.js:430977
+commitHookEffectListMount @ renderer.js:347523
+commitPassiveMountOnFiber @ renderer.js:349304
+commitPassiveMountEffects_complete @ renderer.js:349264
+commitPassiveMountEffects_begin @ renderer.js:349251
+commitPassiveMountEffects @ renderer.js:349239
+flushPassiveEffectsImpl @ renderer.js:351412
+flushPassiveEffects @ renderer.js:351357
+performSyncWorkOnRoot @ renderer.js:350449
+flushSyncCallbacks @ renderer.js:336381
+commitRootImpl @ renderer.js:351332
+commitRoot @ renderer.js:351055
+finishConcurrentRender @ renderer.js:350354
+performConcurrentWorkOnRoot @ renderer.js:350182
+workLoop @ renderer.js:399862
+flushWork @ renderer.js:399835
+performWorkUntilDeadline @ renderer.js:400129
+processImmediate @ node:internal/timers:476
+ 采集磁盘指标失败: Error: (SSH) Channel open failure: open failed
+    at renderer.js:437707:28
+collectMetrics @ renderer.js:436386
+await in collectMetrics（异步）
+refreshSession @ renderer.js:437161
+（匿名） @ renderer.js:437084
+emit @ node:events:525
+refresh @ renderer.js:436981
+（匿名） @ renderer.js:436932
+setInterval（异步）
+startRefresh @ renderer.js:436931
+connectSession @ renderer.js:437124
+await in connectSession（异步）
+initMonitor @ renderer.js:430955
+（匿名） @ renderer.js:430977
+commitHookEffectListMount @ renderer.js:347523
+commitPassiveMountOnFiber @ renderer.js:349304
+commitPassiveMountEffects_complete @ renderer.js:349264
+commitPassiveMountEffects_begin @ renderer.js:349251
+commitPassiveMountEffects @ renderer.js:349239
+flushPassiveEffectsImpl @ renderer.js:351412
+flushPassiveEffects @ renderer.js:351357
+performSyncWorkOnRoot @ renderer.js:350449
+flushSyncCallbacks @ renderer.js:336381
+commitRootImpl @ renderer.js:351332
+commitRoot @ renderer.js:351055
+finishConcurrentRender @ renderer.js:350354
+performConcurrentWorkOnRoot @ renderer.js:350182
+workLoop @ renderer.js:399862
+flushWork @ renderer.js:399835
+performWorkUntilDeadline @ renderer.js:400129
+processImmediate @ node:internal/timers:476
+ 刷新会话数据失败: {sessionId: '1737016726289', error: '(SSH) Channel open failure: open failed', timestamp: '2025-02-13T14:14:01.319Z'}error: "(SSH) Channel open failure: open failed"sessionId: "1737016726289"timestamp: "2025-02-13T14:14:01.319Z"[[Prototype]]: Object
+refreshSession @ renderer.js:437214
+await in refreshSession（异步）
+（匿名） @ renderer.js:437084
+emit @ node:events:525
+refresh @ renderer.js:436981
+（匿名） @ renderer.js:436932
+setInterval（异步）
+startRefresh @ renderer.js:436931
+connectSession @ renderer.js:437124
+await in connectSession（异步）
+initMonitor @ renderer.js:430955
+（匿名） @ renderer.js:430977
+commitHookEffectListMount @ renderer.js:347523
+commitPassiveMountOnFiber @ renderer.js:349304
+commitPassiveMountEffects_complete @ renderer.js:349264
+commitPassiveMountEffects_begin @ renderer.js:349251
+commitPassiveMountEffects @ renderer.js:349239
+flushPassiveEffectsImpl @ renderer.js:351412
+flushPassiveEffects @ renderer.js:351357
+performSyncWorkOnRoot @ renderer.js:350449
+flushSyncCallbacks @ renderer.js:336381
+commitRootImpl @ renderer.js:351332
+commitRoot @ renderer.js:351055
+finishConcurrentRender @ renderer.js:350354
+performConcurrentWorkOnRoot @ renderer.js:350182
+workLoop @ renderer.js:399862
+flushWork @ renderer.js:399835
+performWorkUntilDeadline @ renderer.js:400129
+processImmediate @ node:internal/timers:476
+renderer.js:437707 Uncaught (in promise) Error: (SSH) Channel open failure: open failed
+    at renderer.js:437707:28
+（匿名） @ renderer.js:437707
+await in （匿名）（异步）
+emit @ node:events:525
+refresh @ renderer.js:436981
+（匿名） @ renderer.js:436932
+setInterval（异步）
+startRefresh @ renderer.js:436931
+connectSession @ renderer.js:437124
+await in connectSession（异步）
+initMonitor @ renderer.js:430955
+（匿名） @ renderer.js:430977
+commitHookEffectListMount @ renderer.js:347523
+commitPassiveMountOnFiber @ renderer.js:349304
+commitPassiveMountEffects_complete @ renderer.js:349264
+commitPassiveMountEffects_begin @ renderer.js:349251
+commitPassiveMountEffects @ renderer.js:349239
+flushPassiveEffectsImpl @ renderer.js:351412
+flushPassiveEffects @ renderer.js:351357
+performSyncWorkOnRoot @ renderer.js:350449
+flushSyncCallbacks @ renderer.js:336381
+commitRootImpl @ renderer.js:351332
+commitRoot @ renderer.js:351055
+finishConcurrentRender @ renderer.js:350354
+performConcurrentWorkOnRoot @ renderer.js:350182
+workLoop @ renderer.js:399862
+flushWork @ renderer.js:399835
+performWorkUntilDeadline @ renderer.js:400129
+processImmediate @ node:internal/timers:476
+ 获取到进程IO统计: {sessionId: '1737016726289', processCount: 10, timestamp: '2025-02-13T14:14:02.401Z'}
+ 获取到设备IO统计: {sessionId: '1737016726289', deviceCount: 2, timestamp: '2025-02-13T14:14:02.507Z'}
+ IO分析数据获取完成: {sessionId: '1737016726289', processCount: 10, deviceCount: 2, timestamp: '2025-02-13T14:14:02.507Z'}
+renderer.js:319091 [Violation] 'resize' handler took 218ms

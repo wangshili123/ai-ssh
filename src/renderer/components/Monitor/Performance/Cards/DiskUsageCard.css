@@ -22,15 +22,16 @@
   gap: 24px;
 }
 
-.disk-usage, .disk-io {
+.disk-usage, .disk-io-trend {
   flex: 1;
   background: #fafafa;
   padding: 16px;
   border-radius: 8px;
+  min-height: 140px;
 }
 
 .disk-usage .title,
-.disk-io .title {
+.disk-io-trend .title {
   font-size: 14px;
   color: #666;
   margin-bottom: 12px;
@@ -42,42 +43,81 @@
   color: #666;
 }
 
-.disk-io .io-stats {
+.disk-health .health-indicators {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.disk-io .read,
-.disk-io .write {
-  font-size: 16px;
-  color: #333;
-}
-
-/* 内容区域并排布局 */
-.disk-content {
+.disk-health .indicator {
   display: flex;
-  gap: 20px;
-  flex: 1;
-  min-height: 0; /* 防止溢出 */
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #666;
 }
 
-.io-trend {
-  flex: 1;
+/* 标签页样式 */
+.disk-tabs {
+  margin-top: 20px;
   background: #fafafa;
   padding: 16px;
   border-radius: 8px;
-  height: auto;
-  min-width: 0; /* 防止图表溢出 */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
+.disk-tabs .ant-tabs-content {
+  flex: 1;
+  height: 100%;
+}
+
+/* 分析页面通用样式 */
+.space-analysis,
+.io-analysis,
+.health-check {
+  padding: 16px;
+  height: 100%;
+}
+
+.coming-soon {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.coming-soon p {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.coming-soon ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: inline-block;
+  text-align: left;
+}
+
+.coming-soon li {
+  margin: 8px 0;
+  padding: 8px 16px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* 保持原有的分区列表样式 */
 .partitions-list {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
-  min-width: 0; /* 防止内容溢出 */
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
 }
 
 .partition-item {

@@ -4,6 +4,7 @@ import ReactECharts from 'echarts-for-react';
 import type { MonitorData } from '../../../../types/monitor';
 import type { ECOption } from '../../../../types/echarts';
 import { formatBytes } from '../../../../utils/format';
+import { DiskDetail } from './DiskDetail/DiskDetailTab';
 import './DiskUsageCard.css';
 
 interface DiskUsageCardProps {
@@ -30,6 +31,14 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
   // 更新历史数据
   useEffect(() => {
     if (monitorData?.disk) {
+      console.log('收到新的磁盘数据:', {
+        readSpeed: monitorData.disk.readSpeed,
+        writeSpeed: monitorData.disk.writeSpeed,
+        health: monitorData.disk.health ? '有健康数据' : '无健康数据',
+        ioAnalysis: monitorData.disk.ioAnalysis ? '有IO分析数据' : '无IO分析数据',
+        timestamp: new Date().toISOString()
+      });
+
       setIoHistory(prev => {
         const newHistory = [
           ...prev,
@@ -40,6 +49,11 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
           }
         ].slice(-MAX_HISTORY_POINTS);
         return newHistory;
+      });
+    } else {
+      console.log('未收到磁盘数据', {
+        monitorData: monitorData ? '有监控数据' : '无监控数据',
+        timestamp: new Date().toISOString()
       });
     }
   }, [monitorData]);
@@ -52,8 +66,28 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
     readSpeed: 0,
     writeSpeed: 0,
     partitions: [],
-    ioHistory: []
+    ioHistory: [],
+    deviceStats: {},
+    health: undefined,
+    spaceAnalysis: undefined,
+    ioAnalysis: undefined
   };
+
+  // 详细视图时打印完整的磁盘信息
+  useEffect(() => {
+    if (detailed) {
+      console.log('详细视图磁盘信息:', {
+        total: formatBytes(diskInfo.total),
+        used: formatBytes(diskInfo.used),
+        partitionsCount: diskInfo.partitions.length,
+        hasHealth: !!diskInfo.health,
+        healthLastCheck: diskInfo.health?.lastCheck ? new Date(diskInfo.health.lastCheck).toISOString() : '无',
+        hasIoAnalysis: !!diskInfo.ioAnalysis,
+        ioTimestamp: diskInfo.ioAnalysis?.timestamp ? new Date(diskInfo.ioAnalysis.timestamp).toISOString() : '无',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [detailed, diskInfo]);
 
   // 获取进度条颜色
   const getProgressColor = (percent: number) => {
@@ -61,82 +95,6 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
     if (percent >= 70) return '#faad14';
     return '#52c41a';
   };
-
-  // 生成IO趋势图配置
-  const getIOTrendOption = (): ECOption => ({
-    grid: {
-      top: 40,
-      right: 20,
-      bottom: 40,
-      left: 50
-    },
-    tooltip: {
-      trigger: 'axis',
-      formatter: (params: any) => {
-        const readSpeed = params[0].data[1];
-        const writeSpeed = params[1].data[1];
-        return `${new Date(params[0].data[0]).toLocaleTimeString()}<br/>
-                读取: ${formatBytes(readSpeed)}/s<br/>
-                写入: ${formatBytes(writeSpeed)}/s`;
-      }
-    },
-    legend: {
-      data: ['读取速度', '写入速度'],
-      top: 0
-    },
-    xAxis: {
-      type: 'time',
-      axisLabel: {
-        formatter: (value: number) => {
-          return new Date(value).toLocaleTimeString('zh-CN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-          });
-        }
-      }
-    },
-    yAxis: {
-      type: 'value',
-      name: '速率',
-      axisLabel: {
-        formatter: (value: number) => formatBytes(value).replace('iB', 'B')
-      }
-    },
-    series: [
-      {
-        name: '读取速度',
-        type: 'line',
-        smooth: true,
-        data: ioHistory.map(item => [item.timestamp, item.readSpeed]),
-        lineStyle: { width: 2 },
-        itemStyle: { color: '#1890ff' },
-        emphasis: {
-          focus: 'series'
-        },
-        areaStyle: {
-          opacity: 0.1
-        }
-      },
-      {
-        name: '写入速度',
-        type: 'line',
-        smooth: true,
-        data: ioHistory.map(item => [item.timestamp, item.writeSpeed]),
-        lineStyle: { 
-          width: 2,
-          type: 'dashed'
-        },
-        itemStyle: { color: '#52c41a' },
-        emphasis: {
-          focus: 'series'
-        },
-        areaStyle: {
-          opacity: 0.1
-        }
-      }
-    ]
-  });
 
   // 简单视图用于左侧资源列表
   if (simple) {
@@ -175,68 +133,96 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
               {formatBytes(diskInfo.used)}/{formatBytes(diskInfo.total)}
             </div>
           </div>
-          <div className="disk-io">
-            <div className="title">磁盘 I/O</div>
-            <div className="io-stats">
-              <div className="read">↑ {formatBytes(diskInfo.readSpeed)}/s</div>
-              <div className="write">↓ {formatBytes(diskInfo.writeSpeed)}/s</div>
-            </div>
-          </div>
-        </div>
-
-        {/* 内容区域：IO趋势图和分区列表并排 */}
-        <div className="disk-content">
-          {/* IO趋势图 */}
-          <div className="io-trend">
-            <ReactECharts 
-              option={getIOTrendOption()} 
-              style={{ height: '100%', minHeight: '300px' }}
+          <div className="disk-io-trend">
+            <div className="title">IO趋势</div>
+            <ReactECharts
+              option={getIOTrendOption(ioHistory)}
+              style={{ height: '100px', minWidth: '300px' }}
               notMerge={true}
             />
           </div>
-
-          {/* 分区列表 */}
-          <div className="partitions-list">
-            {diskInfo.partitions.map((partition, index) => (
-              <div key={index} className={`partition-item ${partition.diskType === '虚拟分区' ? 'virtual' : ''}`}>
-                <div className="partition-header">
-                  <div className="partition-info">
-                    <span className="mountpoint">
-                      {partition.mountpoint.length > 30 ? 
-                        `${partition.mountpoint.slice(0, 30)}...` : 
-                        partition.mountpoint
-                      }
-                    </span>
-                    <span className="fstype">{partition.fstype}</span>
-                    <span className="disk-type">{partition.diskType}</span>
-                  </div>
-                  <span className="io-speed">
-                    {partition.diskType !== '虚拟分区' ? 
-                      `↑ ${formatBytes(partition.readSpeed)}/s ↓ ${formatBytes(partition.writeSpeed)}/s` :
-                      '虚拟文件系统'
-                    }
-                  </span>
-                </div>
-                <div className="usage-row">
-                  <div className="usage-details">
-                    <span>{formatBytes(partition.used)}/{formatBytes(partition.total)}</span>
-                    <span>{Math.round(partition.usagePercent)}%</span>
-                  </div>
-                  <div className="usage-progress">
-                    <Progress 
-                      percent={Math.round(partition.usagePercent)}
-                      strokeColor={getProgressColor(partition.usagePercent)}
-                      showInfo={false}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
+
+        {/* 详细信息区域 */}
+        <DiskDetail diskInfo={diskInfo} />
       </div>
     );
   }
 
   return null;
-}; 
+};
+
+// IO趋势图配置
+const getIOTrendOption = (history: Array<{ timestamp: number; readSpeed: number; writeSpeed: number }>): ECOption => ({
+  grid: {
+    top: 10,
+    right: 10,
+    bottom: 20,
+    left: 45,
+    containLabel: true
+  },
+  tooltip: {
+    trigger: 'axis',
+    formatter: (params: any) => {
+      const readSpeed = params[0].data[1];
+      const writeSpeed = params[1].data[1];
+      return `${new Date(params[0].data[0]).toLocaleTimeString()}<br/>
+              读取: ${formatBytes(readSpeed)}/s<br/>
+              写入: ${formatBytes(writeSpeed)}/s`;
+    }
+  },
+  xAxis: {
+    type: 'time',
+    axisLabel: {
+      formatter: (value: number) => {
+        return new Date(value).toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      },
+      fontSize: 10
+    }
+  },
+  yAxis: {
+    type: 'value',
+    name: '速率',
+    axisLabel: {
+      formatter: (value: number) => formatBytes(value).replace('iB', 'B'),
+      fontSize: 10
+    }
+  },
+  series: [
+    {
+      name: '读取速度',
+      type: 'line',
+      smooth: true,
+      data: history.map(item => [item.timestamp, item.readSpeed]),
+      lineStyle: { width: 1 },
+      itemStyle: { color: '#1890ff' },
+      emphasis: {
+        focus: 'series'
+      },
+      areaStyle: {
+        opacity: 0.1
+      }
+    },
+    {
+      name: '写入速度',
+      type: 'line',
+      smooth: true,
+      data: history.map(item => [item.timestamp, item.writeSpeed]),
+      lineStyle: { 
+        width: 1,
+        type: 'dashed'
+      },
+      itemStyle: { color: '#52c41a' },
+      emphasis: {
+        focus: 'series'
+      },
+      areaStyle: {
+        opacity: 0.1
+      }
+    }
+  ]
+}); 

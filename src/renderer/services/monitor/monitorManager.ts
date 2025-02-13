@@ -4,6 +4,9 @@ import { RefreshService } from './metrics/refreshService';
 import { CpuMetricsService } from './metrics/cpuService';
 import { MemoryMetricsService } from './metrics/memoryService';
 import { DiskMetricsService } from './metrics/diskService';
+import { DiskHealthService } from './metrics/diskHealthService';
+import { DiskSpaceService } from './metrics/diskSpaceService';
+import { DiskIoService } from './metrics/diskIoService';
 import { SSHService } from '../../types';
 
 /**
@@ -17,6 +20,9 @@ class MonitorManager {
   private cpuMetricsService: CpuMetricsService;
   private memoryMetricsService: MemoryMetricsService;
   private diskMetricsService: DiskMetricsService;
+  private diskHealthService: DiskHealthService;
+  private diskSpaceService: DiskSpaceService;
+  private diskIoService: DiskIoService;
   private sshService: SSHService;
 
   private constructor(sshService: SSHService) {
@@ -25,6 +31,9 @@ class MonitorManager {
     this.cpuMetricsService = CpuMetricsService.getInstance(sshService);
     this.memoryMetricsService = MemoryMetricsService.getInstance(sshService);
     this.diskMetricsService = DiskMetricsService.getInstance(sshService);
+    this.diskHealthService = DiskHealthService.getInstance(sshService);
+    this.diskSpaceService = DiskSpaceService.getInstance(sshService);
+    this.diskIoService = DiskIoService.getInstance(sshService);
     this.setupRefreshListener();
   }
 
@@ -120,12 +129,31 @@ class MonitorManager {
     try {
       session.status = 'refreshing';
       
+      console.log('开始采集指标数据:', {
+        sessionId,
+        timestamp: new Date().toISOString()
+      });
+
       // 并行采集所有指标
-      const [cpuInfo, memoryInfo, diskInfo] = await Promise.all([
+      const [cpuInfo, memoryInfo, diskInfo, diskHealth, diskSpace, diskIo] = await Promise.all([
         this.cpuMetricsService.collectMetrics(sessionId),
         this.memoryMetricsService.collectMetrics(sessionId),
-        this.diskMetricsService.collectMetrics(sessionId)
+        this.diskMetricsService.collectMetrics(sessionId),
+        this.diskHealthService.getDiskHealth(sessionId),
+        this.diskSpaceService.getSpaceAnalysis(sessionId),
+        this.diskIoService.getIoAnalysis(sessionId)
       ]);
+
+      console.log('指标数据采集完成:', {
+        sessionId,
+        hasCpuInfo: !!cpuInfo,
+        hasMemoryInfo: !!memoryInfo,
+        hasDiskInfo: !!diskInfo,
+        hasDiskHealth: !!diskHealth,
+        hasDiskSpace: !!diskSpace,
+        hasDiskIo: !!diskIo,
+        timestamp: new Date().toISOString()
+      });
 
       // TODO: 采集网络指标
       const networkInfo: NetworkInfo = {
@@ -140,14 +168,38 @@ class MonitorManager {
       session.monitorData = {
         cpu: cpuInfo,
         memory: memoryInfo,
-        disk: diskInfo,
+        disk: {
+          ...diskInfo,
+          health: diskHealth,
+          spaceAnalysis: diskSpace,
+          ioAnalysis: diskIo
+        },
         network: networkInfo,
         timestamp: Date.now()
       };
 
+      console.log('会话数据更新完成:', {
+        sessionId,
+        timestamp: new Date().toISOString(),
+        diskHealth: diskHealth ? {
+          devicesCount: diskHealth.devices.length,
+          lastCheck: new Date(diskHealth.lastCheck).toISOString()
+        } : '无健康数据',
+        diskIo: diskIo ? {
+          processCount: diskIo.topProcesses.length,
+          deviceCount: diskIo.deviceStats.length,
+          timestamp: new Date(diskIo.timestamp).toISOString()
+        } : '无IO数据'
+      });
+
       session.status = 'connected';
       session.lastUpdated = Date.now();
     } catch (error) {
+      console.error('刷新会话数据失败:', {
+        sessionId,
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      });
       session.status = 'error';
       session.error = (error as Error).message;
       throw error;
@@ -185,6 +237,9 @@ class MonitorManager {
     this.cpuMetricsService.destroy();
     this.memoryMetricsService.destroy();
     this.diskMetricsService.destroy();
+    this.diskHealthService.destroy();
+    this.diskSpaceService.destroy();
+    this.diskIoService.destroy();
     for (const [sessionId] of this.sessions) {
       this.disconnectSession(sessionId);
     }
