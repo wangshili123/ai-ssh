@@ -117,6 +117,10 @@ export class DiskMetricsService {
     let totalUsed = 0;
     let totalFree = 0;
 
+    // 分别存储物理分区和虚拟分区
+    const physicalPartitions = [];
+    const virtualPartitions = [];
+
     for (const line of lines) {
       if (!line.trim()) continue;
       
@@ -130,9 +134,20 @@ export class DiskMetricsService {
       
       // 根据文件系统类型判断是否为虚拟分区
       const isVirtual = ['tmpfs', 'devtmpfs', 'sysfs', 'proc', 'devpts', 'securityfs', 'cgroup', 'pstore', 'hugetlbfs', 'mqueue', 'debugfs'].includes(fstype);
-      const diskType = isVirtual ? '虚拟分区' : (diskTypes.get(baseDevice) || '未知');
       
-      partitions.push({
+      // 判断是否为Docker存储
+      const isDocker = fstype === 'overlay' || fstype === 'overlay2' || device.includes('/var/lib/docker');
+      
+      let diskType;
+      if (isVirtual) {
+        diskType = '虚拟分区';
+      } else if (isDocker) {
+        diskType = 'Docker存储';
+      } else {
+        diskType = diskTypes.get(baseDevice) || '未知';
+      }
+      
+      const partition = {
         device,
         mountpoint,
         fstype,
@@ -143,22 +158,39 @@ export class DiskMetricsService {
         usagePercent,
         readSpeed: 0,  // 将在IO数据中更新
         writeSpeed: 0  // 将在IO数据中更新
-      });
+      };
 
-      // 只将物理分区计入总量
-      if (!isVirtual) {
+      // 根据分区类型分别存储
+      if (isVirtual) {
+        virtualPartitions.push(partition);
+      } else {
+        physicalPartitions.push(partition);
         totalSize += parseInt(size);
         totalUsed += parseInt(used);
         totalFree += parseInt(free);
       }
     }
 
+    // 对物理分区按照挂载点排序
+    physicalPartitions.sort((a, b) => {
+      // 根目录排在最前面
+      if (a.mountpoint === '/') return -1;
+      if (b.mountpoint === '/') return 1;
+      return a.mountpoint.localeCompare(b.mountpoint);
+    });
+
+    // 对虚拟分区按照挂载点排序
+    virtualPartitions.sort((a, b) => a.mountpoint.localeCompare(b.mountpoint));
+
+    // 合并物理分区和虚拟分区
+    const allPartitions = [...physicalPartitions, ...virtualPartitions];
+
     return {
       total: totalSize,
       used: totalUsed,
       free: totalFree,
       usagePercent: totalSize > 0 ? (totalUsed / totalSize) * 100 : 0,
-      partitions,
+      partitions: allPartitions,
       deviceStats: {}
     };
   }
