@@ -1,28 +1,32 @@
 import React from 'react';
 import { Card, Progress } from 'antd';
-import type { MonitorData } from '../../../../types/monitor';
+import type { NetworkBasicInfo, NetworkDetailInfo, MonitorData } from '../../../../types/monitor';
 import { formatBitRate } from '../../../../utils/format';
-import './NetworkTrafficCard.css';
+import './NetworkUsageCard.css';
 
-interface NetworkTrafficCardProps {
+interface NetworkUsageCardProps {
   sessionId: string;
   monitorData?: MonitorData;
   simple?: boolean;
   detailed?: boolean;
 }
 
-export const NetworkTrafficCard: React.FC<NetworkTrafficCardProps> = ({ 
+export const NetworkUsageCard: React.FC<NetworkUsageCardProps> = ({ 
   sessionId, 
   monitorData,
   simple, 
   detailed 
 }) => {
-  const networkInfo = monitorData?.network || {
-    interfaces: [],
+  const networkBasic = monitorData?.performance?.basic?.network || {
     totalRx: 0,
     totalTx: 0,
     rxSpeed: 0,
     txSpeed: 0
+  };
+
+  const networkDetail = monitorData?.performance?.detail?.network || {
+    ...networkBasic,
+    interfaces: []
   };
 
   if (simple) {
@@ -31,8 +35,8 @@ export const NetworkTrafficCard: React.FC<NetworkTrafficCardProps> = ({
         <div className="resource-title">网络</div>
         <div className="resource-value">
           <div className="network-speed">
-            <div className="speed-item">↑ {formatBitRate(networkInfo.txSpeed)}</div>
-            <div className="speed-item">↓ {formatBitRate(networkInfo.rxSpeed)}</div>
+            <div className="speed-item">↑ {formatBitRate(networkBasic.txSpeed)}</div>
+            <div className="speed-item">↓ {formatBitRate(networkBasic.rxSpeed)}</div>
           </div>
         </div>
       </div>
@@ -48,11 +52,11 @@ export const NetworkTrafficCard: React.FC<NetworkTrafficCardProps> = ({
             <div className="network-speeds">
               <div className="speed-item">
                 <span className="speed-label">发送速率</span>
-                <span className="speed-value">{formatBitRate(networkInfo.txSpeed)}</span>
+                <span className="speed-value">{formatBitRate(networkDetail.txSpeed)}</span>
               </div>
               <div className="speed-item">
                 <span className="speed-label">接收速率</span>
-                <span className="speed-value">{formatBitRate(networkInfo.rxSpeed)}</span>
+                <span className="speed-value">{formatBitRate(networkDetail.rxSpeed)}</span>
               </div>
             </div>
           </div>
@@ -60,7 +64,7 @@ export const NetworkTrafficCard: React.FC<NetworkTrafficCardProps> = ({
 
         <div className="interfaces-list">
           <h3>网络接口</h3>
-          {networkInfo.interfaces.map((iface, index) => (
+          {networkDetail.interfaces.map((iface, index) => (
             <div key={index} className="interface-item">
               <div className="interface-header">
                 <span>{iface.name}</span>
@@ -68,11 +72,11 @@ export const NetworkTrafficCard: React.FC<NetworkTrafficCardProps> = ({
               <div className="interface-speeds">
                 <div className="speed-item">
                   <span>发送: {formatBitRate(iface.txSpeed)}</span>
-                  <Progress percent={(iface.txSpeed / networkInfo.txSpeed) * 100} size="small" />
+                  <Progress percent={(iface.txSpeed / networkDetail.txSpeed) * 100} size="small" />
                 </div>
                 <div className="speed-item">
                   <span>接收: {formatBitRate(iface.rxSpeed)}</span>
-                  <Progress percent={(iface.rxSpeed / networkInfo.rxSpeed) * 100} size="small" />
+                  <Progress percent={(iface.rxSpeed / networkDetail.rxSpeed) * 100} size="small" />
                 </div>
               </div>
             </div>
@@ -87,11 +91,11 @@ export const NetworkTrafficCard: React.FC<NetworkTrafficCardProps> = ({
       <div className="network-summary">
         <div className="speed-item">
           <span className="speed-label">发送速率</span>
-          <span className="speed-value">{formatBitRate(networkInfo.txSpeed)}</span>
+          <span className="speed-value">{formatBitRate(networkBasic.txSpeed)}</span>
         </div>
         <div className="speed-item">
           <span className="speed-label">接收速率</span>
-          <span className="speed-value">{formatBitRate(networkInfo.rxSpeed)}</span>
+          <span className="speed-value">{formatBitRate(networkBasic.rxSpeed)}</span>
         </div>
       </div>
     </Card>

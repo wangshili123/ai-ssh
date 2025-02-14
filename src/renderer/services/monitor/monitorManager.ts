@@ -1,13 +1,8 @@
 import { SessionInfo } from '../../types';
-import { CpuInfo, MemoryInfo, DiskInfo, NetworkInfo, MonitorData } from '../../types/monitor';
+import { MonitorData } from '../../types/monitor';
 import { RefreshService } from './metrics/refreshService';
-import { CpuMetricsService } from './metrics/cpuService';
-import { MemoryMetricsService } from './metrics/memoryService';
-import { DiskMetricsService } from './metrics/diskService';
-import { DiskHealthService } from './metrics/diskHealthService';
-import { DiskSpaceService } from './metrics/diskSpaceService';
-import { DiskIoService } from './metrics/diskIoService';
 import { SSHService } from '../../types';
+import { PerformanceManager } from './performanceManager';
 
 /**
  * 监控管理器
@@ -17,23 +12,17 @@ class MonitorManager {
   private static instance: MonitorManager;
   private sessions: Map<string, SessionInfo> = new Map();
   private refreshService: RefreshService;
-  private cpuMetricsService: CpuMetricsService;
-  private memoryMetricsService: MemoryMetricsService;
-  private diskMetricsService: DiskMetricsService;
-  private diskHealthService: DiskHealthService;
-  private diskSpaceService: DiskSpaceService;
-  private diskIoService: DiskIoService;
+  private performanceManager: PerformanceManager;
   private sshService: SSHService;
+  
+  // 活动状态控制
+  private activeTab: string = '';
+  private activeCard: string = '';
 
   private constructor(sshService: SSHService) {
     this.sshService = sshService;
     this.refreshService = RefreshService.getInstance();
-    this.cpuMetricsService = CpuMetricsService.getInstance(sshService);
-    this.memoryMetricsService = MemoryMetricsService.getInstance(sshService);
-    this.diskMetricsService = DiskMetricsService.getInstance(sshService);
-    this.diskHealthService = DiskHealthService.getInstance(sshService);
-    this.diskSpaceService = DiskSpaceService.getInstance(sshService);
-    this.diskIoService = DiskIoService.getInstance(sshService);
+    this.performanceManager = PerformanceManager.getInstance(sshService);
     this.setupRefreshListener();
   }
 
@@ -57,6 +46,24 @@ class MonitorManager {
   }
 
   /**
+   * 设置当前激活的标签页
+   */
+  setActiveTab(tab: string): void {
+    if (this.activeTab === tab) return;
+    this.activeTab = tab;
+
+  }
+
+  /**
+   * 设置当前激活的卡片
+   */
+  setActiveCard(card: string): void {
+    if (this.activeCard === card) return;
+    this.activeCard = card;
+
+  }
+
+  /**
    * 创建新的监控会话
    */
   createSession(config: Partial<Omit<SessionInfo, 'id' | 'type' | 'status'>>): SessionInfo {
@@ -70,7 +77,7 @@ class MonitorManager {
       authType: config.authType || 'password',
       ...config,
       config: {
-        refreshInterval: 1000, // 默认1秒更新一次
+        refreshInterval: 5000,
         autoRefresh: true,
         enableCache: true,
         cacheExpiration: 30000,
@@ -128,74 +135,24 @@ class MonitorManager {
 
     try {
       session.status = 'refreshing';
-      
-      console.log('开始采集指标数据:', {
+      console.log('[MonitorManager] 刷新会话数据:', {
         sessionId,
-        timestamp: new Date().toISOString()
+        activeTab: this.activeTab,
+        activeCard: this.activeCard
       });
-      //计时
-      const startTime = Date.now();
-
-      // 并行采集所有指标
-      const [cpuInfo, memoryInfo, diskInfo, diskHealth, diskSpace, diskIo] = await Promise.all([
-        this.cpuMetricsService.collectMetrics(sessionId),
-        this.memoryMetricsService.collectMetrics(sessionId),
-        this.diskMetricsService.collectMetrics(sessionId),
-        this.diskHealthService.getDiskHealth(sessionId),
-        this.diskSpaceService.getSpaceAnalysis(sessionId),
-        this.diskIoService.getIoAnalysis(sessionId)
-      ]);
-
-      console.log('指标数据采集完成:', {
-        sessionId,
-        hasCpuInfo: !!cpuInfo,
-        hasMemoryInfo: !!memoryInfo,
-        hasDiskInfo: !!diskInfo,
-        hasDiskHealth: !!diskHealth,
-        hasDiskSpace: !!diskSpace,
-        hasDiskIo: !!diskIo,
-        timestamp: new Date().toISOString()
-      });
-
-      // TODO: 采集网络指标
-      const networkInfo: NetworkInfo = {
-        interfaces: [],
-        totalRx: 0,
-        totalTx: 0,
-        rxSpeed: 0,
-        txSpeed: 0
-      };
-
-      // 更新会话数据
-      session.monitorData = {
-        cpu: cpuInfo,
-        memory: memoryInfo,
-        disk: {
-          ...diskInfo,
-          health: diskHealth,
-          spaceAnalysis: diskSpace,
-          ioAnalysis: diskIo
-        },
-        network: networkInfo,
+      // 根据当前激活的标签页决定刷新哪些数据
+      const monitorData: MonitorData = {
         timestamp: Date.now()
       };
-
-      console.log('会话数据更新完成:', {
-        sessionId,
-        timestamp: new Date().toISOString(),
-        diskHealth: diskHealth ? {
-          devicesCount: diskHealth.devices.length,
-          lastCheck: new Date(diskHealth.lastCheck).toISOString()
-        } : '无健康数据',
-        diskIo: diskIo ? {
-          processCount: diskIo.topProcesses.length,
-          deviceCount: diskIo.deviceStats.length,
-          timestamp: new Date(diskIo.timestamp).toISOString()
-        } : '无IO数据'
-      });
-      //计时
-      const endTime = Date.now();
-      console.log(`[Monitor] 采集指标数据完成，用时: ${endTime - startTime}ms`);
+      
+      if (this.activeTab === 'performance') {
+        // 使用性能管理器采集数据，传入当前激活的卡片
+        monitorData.performance = await this.performanceManager.collectMetrics(sessionId, this.activeCard);
+      }
+      // TODO: 其他标签页的数据刷新...
+      
+      // 更新会话数据
+      session.monitorData = monitorData;
       session.status = 'connected';
       session.lastUpdated = Date.now();
     } catch (error) {
@@ -206,7 +163,6 @@ class MonitorManager {
       });
       session.status = 'error';
       session.error = (error as Error).message;
-      return;
     }
   }
 
@@ -238,12 +194,7 @@ class MonitorManager {
    */
   destroy(): void {
     this.refreshService.destroy();
-    this.cpuMetricsService.destroy();
-    this.memoryMetricsService.destroy();
-    this.diskMetricsService.destroy();
-    this.diskHealthService.destroy();
-    this.diskSpaceService.destroy();
-    this.diskIoService.destroy();
+    this.performanceManager.destroy();
     for (const [sessionId] of this.sessions) {
       this.disconnectSession(sessionId);
     }

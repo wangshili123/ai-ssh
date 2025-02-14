@@ -1,21 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CpuUsageCard } from './Cards/CpuUsageCard';
 import { MemoryUsageCard } from './Cards/MemoryUsageCard';
 import { DiskUsageCard } from './Cards/DiskUsageCard';
-import { NetworkTrafficCard } from './Cards/NetworkTrafficCard';
+import { NetworkUsageCard } from './Cards/NetworkUsageCard';
 import { MonitorData } from '../../../types/monitor';
+import { MonitorManager } from '../../../services/monitor/monitorManager';
 import './PerformancePage.css';
 
 interface PerformancePageProps {
   sessionId: string;
   monitorData?: MonitorData;
+  monitorManager: MonitorManager;
 }
 
 export const PerformancePage: React.FC<PerformancePageProps> = ({ 
   sessionId,
-  monitorData
+  monitorData,
+  monitorManager
 }) => {
-  const [selectedResource, setSelectedResource] = useState<'cpu' | 'memory' | 'disk' | 'network'>('cpu');
+  const defaultResource = 'cpu' as const;
+  const [selectedResource, setSelectedResource] = useState<'cpu' | 'memory' | 'disk' | 'network'>(defaultResource);
+
+  // 初始化时设置默认的 activeCard
+  useEffect(() => {
+    monitorManager.setActiveCard(defaultResource);
+  }, []);
+
+  // 处理资源选择变更
+  const handleResourceSelect = (resource: 'cpu' | 'memory' | 'disk' | 'network') => {
+    setSelectedResource(resource);
+    monitorManager.setActiveCard(resource);
+  };
 
   return (
     <div className="performance-container">
@@ -24,27 +39,27 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
         <div className="resource-list">
           <div 
             className={`resource-summary ${selectedResource === 'cpu' ? 'selected' : ''}`}
-            onClick={() => setSelectedResource('cpu')}
+            onClick={() => handleResourceSelect('cpu')}
           >
             <CpuUsageCard sessionId={sessionId} monitorData={monitorData} simple />
           </div>
           <div 
             className={`resource-summary ${selectedResource === 'memory' ? 'selected' : ''}`}
-            onClick={() => setSelectedResource('memory')}
+            onClick={() => handleResourceSelect('memory')}
           >
             <MemoryUsageCard sessionId={sessionId} monitorData={monitorData} simple />
           </div>
           <div 
             className={`resource-summary ${selectedResource === 'disk' ? 'selected' : ''}`}
-            onClick={() => setSelectedResource('disk')}
+            onClick={() => handleResourceSelect('disk')}
           >
             <DiskUsageCard sessionId={sessionId} monitorData={monitorData} simple />
           </div>
           <div 
             className={`resource-summary ${selectedResource === 'network' ? 'selected' : ''}`}
-            onClick={() => setSelectedResource('network')}
+            onClick={() => handleResourceSelect('network')}
           >
-            <NetworkTrafficCard sessionId={sessionId} monitorData={monitorData} simple />
+            <NetworkUsageCard sessionId={sessionId} monitorData={monitorData} simple />
           </div>
         </div>
       </div>
@@ -61,7 +76,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
           <DiskUsageCard sessionId={sessionId} monitorData={monitorData} detailed />
         )}
         {selectedResource === 'network' && (
-          <NetworkTrafficCard sessionId={sessionId} monitorData={monitorData} detailed />
+          <NetworkUsageCard sessionId={sessionId} monitorData={monitorData} detailed />
         )}
       </div>
     </div>

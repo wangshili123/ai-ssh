@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { CpuInfo as MonitorCpuInfo } from '../../../types/monitor';
+import { CpuBasicInfo, CpuDetailInfo } from '../../../types/monitor';
 import { SSHService } from '../../../types';
 
 /**
@@ -8,6 +8,9 @@ import { SSHService } from '../../../types';
 export class CpuMetricsService {
   private static instance: CpuMetricsService;
   private sshService: SSHService;
+  private readonly MAX_HISTORY_POINTS = 60; // 保存60个历史数据点
+  private usageHistory: Map<string, CpuDetailInfo['usageHistory']> = new Map();
+  private coreUsageHistory: Map<string, CpuDetailInfo['coreUsageHistory']> = new Map();
 
   private constructor(sshService: SSHService) {
     this.sshService = sshService;
@@ -26,13 +29,50 @@ export class CpuMetricsService {
   /**
    * 采集CPU所有指标数据
    */
-  async collectMetrics(sessionId: string): Promise<MonitorCpuInfo> {
+  async collectMetrics(sessionId: string): Promise<CpuDetailInfo> {
     try {
       const [basicInfo, usage, freq] = await Promise.all([
         this.getCpuInfo(sessionId),
         this.getCpuUsage(sessionId),
         this.getCpuFrequency(sessionId)
       ]);
+
+      const now = Date.now();
+
+      // 更新CPU使用率历史
+      if (!this.usageHistory.has(sessionId)) {
+        this.usageHistory.set(sessionId, []);
+      }
+      const currentUsageHistory = this.usageHistory.get(sessionId)!;
+      currentUsageHistory.push({
+        timestamp: now,
+        usage: usage.usage,
+        speed: freq.current
+      });
+      if (currentUsageHistory.length > this.MAX_HISTORY_POINTS) {
+        currentUsageHistory.shift();
+      }
+
+      // 更新每个核心的使用率历史
+      if (!this.coreUsageHistory.has(sessionId)) {
+        this.coreUsageHistory.set(sessionId, []);
+      }
+      const currentCoreHistory = this.coreUsageHistory.get(sessionId)!;
+      // 确保有足够的数组来存储每个核心的历史数据
+      while (currentCoreHistory.length < usage.cores.length) {
+        currentCoreHistory.push([]);
+      }
+      // 更新每个核心的历史数据
+      usage.cores.forEach((coreUsage, index) => {
+        currentCoreHistory[index].push({
+          timestamp: now,
+          usage: coreUsage,
+          speed: freq.current
+        });
+        if (currentCoreHistory[index].length > this.MAX_HISTORY_POINTS) {
+          currentCoreHistory[index].shift();
+        }
+      });
 
       return {
         ...basicInfo,
@@ -46,8 +86,12 @@ export class CpuMetricsService {
         physicalCores: basicInfo.physicalCores || usage.cores.length / 2,
         logicalCores: basicInfo.logicalCores || usage.cores.length,
         cache: basicInfo.cache || {},
-        usageHistory: [],  // 历史数据由 MonitorManager 维护
-        coreUsageHistory: []
+        usageHistory: this.usageHistory.get(sessionId) || [],
+        coreUsageHistory: this.coreUsageHistory.get(sessionId) || [],
+        architecture: basicInfo.architecture || 'Unknown',
+        vendor: basicInfo.vendor || 'Unknown',
+        socket: basicInfo.socket || 'Unknown',
+        virtualization: basicInfo.virtualization || false
       };
     } catch (error) {
       console.error('采集CPU指标失败:', error);
@@ -64,7 +108,10 @@ export class CpuMetricsService {
         maxSpeed: 0,
         minSpeed: 0,
         usageHistory: [],
-        coreUsageHistory: []
+        coreUsageHistory: [],
+        architecture: 'Unknown',
+        socket: 'Unknown',
+        virtualization: false
       };
     }
   }
@@ -72,7 +119,7 @@ export class CpuMetricsService {
   /**
    * 获取CPU基本信息
    */
-  private async getCpuInfo(sessionId: string): Promise<Partial<MonitorCpuInfo>> {
+  private async getCpuInfo(sessionId: string): Promise<Partial<CpuDetailInfo>> {
     try {
       // 获取CPU型号、核心数等基本信息
       const cpuInfoCmd = 'cat /proc/cpuinfo';
@@ -105,8 +152,8 @@ export class CpuMetricsService {
   /**
    * 解析CPU基本信息
    */
-  private parseCpuInfo(output: string): Partial<MonitorCpuInfo> {
-    const info: Partial<MonitorCpuInfo> = {
+  private parseCpuInfo(output: string): Partial<CpuDetailInfo> {
+    const info: Partial<CpuDetailInfo> = {
       model: '',
       physicalCores: 0,
       logicalCores: 0,
@@ -279,6 +326,70 @@ export class CpuMetricsService {
       min,
       max
     };
+  }
+
+  /**
+   * 采集CPU基础指标数据
+   */
+  async collectBasicMetrics(sessionId: string): Promise<CpuBasicInfo> {
+    try {
+      // 暂时使用现有方法，后续优化
+      const fullMetrics = await this.collectMetrics(sessionId);
+      return {
+        usage: fullMetrics.usage,
+        temperature: fullMetrics.temperature,
+        speed: fullMetrics.speed,
+        currentSpeed: fullMetrics.currentSpeed
+      };
+    } catch (error) {
+      console.error('采集CPU基础指标失败:', error);
+      return {
+        usage: 0,
+        speed: 0
+      };
+    }
+  }
+
+  /**
+   * 采集CPU详细指标数据
+   */
+  async collectDetailMetrics(sessionId: string): Promise<CpuDetailInfo> {
+    try {
+      // 暂时使用现有方法，后续优化
+      const fullMetrics = await this.collectMetrics(sessionId);
+      return {
+        usage: fullMetrics.usage,
+        temperature: fullMetrics.temperature,
+        speed: fullMetrics.speed,
+        currentSpeed: fullMetrics.currentSpeed,
+        cores: fullMetrics.cores,
+        model: fullMetrics.model,
+        maxSpeed: fullMetrics.maxSpeed,
+        minSpeed: fullMetrics.minSpeed,
+        physicalCores: fullMetrics.physicalCores,
+        logicalCores: fullMetrics.logicalCores,
+        cache: fullMetrics.cache,
+        architecture: fullMetrics.architecture,
+        vendor: fullMetrics.vendor,
+        socket: fullMetrics.socket,
+        virtualization: fullMetrics.virtualization,
+        usageHistory: fullMetrics.usageHistory,
+        coreUsageHistory: fullMetrics.coreUsageHistory
+      };
+    } catch (error) {
+      console.error('采集CPU详细指标失败:', error);
+      return {
+        usage: 0,
+        speed: 0,
+        cores: [],
+        model: '',
+        physicalCores: 0,
+        logicalCores: 0,
+        cache: {},
+        usageHistory: [],
+        coreUsageHistory: []
+      };
+    }
   }
 
   /**

@@ -1,10 +1,11 @@
-import { DiskInfo } from '../../../types/monitor';
+import { DiskBasicInfo, DiskDetailInfo } from '../../../types/monitor';
 import { SSHService } from '../../../types';
 
 /**
  * 磁盘数据采集服务
  */
 export class DiskMetricsService {
+
   private static instance: DiskMetricsService;
   private sshService: SSHService;
   private readonly MAX_HISTORY_POINTS = 60; // 保存60个历史数据点
@@ -27,7 +28,7 @@ export class DiskMetricsService {
   /**
    * 采集磁盘所有指标数据
    */
-  async collectMetrics(sessionId: string): Promise<DiskInfo> {
+  async collectMetrics(sessionId: string): Promise<DiskDetailInfo> {
     try {
       const [diskUsage, diskIO] = await Promise.all([
         this.getDiskUsage(sessionId),
@@ -69,7 +70,7 @@ export class DiskMetricsService {
   /**
    * 获取磁盘使用情况
    */
-  private async getDiskUsage(sessionId: string): Promise<Omit<DiskInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory'>> {
+  private async getDiskUsage(sessionId: string): Promise<Omit<DiskDetailInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory'>> {
     try {
       // 使用df命令获取磁盘使用情况
       const dfCmd = 'df -B1 --output=source,target,fstype,size,used,avail,pcent';
@@ -96,7 +97,7 @@ export class DiskMetricsService {
   /**
    * 获取磁盘IO情况
    */
-  private async getDiskIO(sessionId: string): Promise<Pick<DiskInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory' | 'deviceStats'>> {
+  private async getDiskIO(sessionId: string): Promise<Pick<DiskDetailInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory' | 'deviceStats'>> {
     try {
       // 使用 /proc/diskstats 获取IO统计
       const cmd = 'cat /proc/diskstats';
@@ -118,7 +119,7 @@ export class DiskMetricsService {
   /**
    * 解析磁盘使用情况
    */
-  private parseDiskUsage(output: string, rotationalOutput: string): Omit<DiskInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory'> {
+  private parseDiskUsage(output: string, rotationalOutput: string): Omit<DiskDetailInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory'> {
     // 解析磁盘类型信息
     const diskTypes = new Map<string, string>();
     rotationalOutput.split('\n').forEach(line => {
@@ -215,7 +216,7 @@ export class DiskMetricsService {
   /**
    * 解析磁盘IO情况
    */
-  private parseDiskIO(output: string, timestamp: number): Pick<DiskInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory' | 'deviceStats'> {
+  private parseDiskIO(output: string, timestamp: number): Pick<DiskDetailInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory' | 'deviceStats'> {
     const lines = output.split('\n');
     let totalRead = 0;
     let totalWrite = 0;
@@ -274,6 +275,16 @@ export class DiskMetricsService {
       }]
     };
   }
+
+
+  async collectBasicMetrics(sessionId: string): Promise<DiskBasicInfo> {
+    return this.collectMetrics(sessionId);
+  }
+
+  async collectDetailMetrics(sessionId: string): Promise<DiskDetailInfo> {
+    return this.collectMetrics(sessionId);
+  }
+
 
   /**
    * 销毁实例

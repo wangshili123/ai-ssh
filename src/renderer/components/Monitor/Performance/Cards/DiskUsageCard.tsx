@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Progress } from 'antd';
 import ReactECharts from 'echarts-for-react';
-import type { MonitorData } from '../../../../types/monitor';
+import { DiskBasicInfo, DiskDetailInfo, MonitorData } from '../../../../types/monitor';
 import type { ECOption } from '../../../../types/echarts';
 import { formatBytes } from '../../../../utils/format';
 import { DiskDetail } from './DiskDetail/DiskDetailTab';
@@ -30,12 +30,13 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
 
   // 更新历史数据
   useEffect(() => {
-    if (monitorData?.disk) {
+    const diskData = monitorData?.performance?.detail?.disk;
+    if (diskData) {
       console.log('收到新的磁盘数据:', {
-        readSpeed: monitorData.disk.readSpeed,
-        writeSpeed: monitorData.disk.writeSpeed,
-        health: monitorData.disk.health ? '有健康数据' : '无健康数据',
-        ioAnalysis: monitorData.disk.ioAnalysis ? '有IO分析数据' : '无IO分析数据',
+        readSpeed: diskData.readSpeed,
+        writeSpeed: diskData.writeSpeed,
+        health: diskData.health ? '有健康数据' : '无健康数据',
+        ioAnalysis: diskData.ioAnalysis ? '有IO分析数据' : '无IO分析数据',
         timestamp: new Date().toISOString()
       });
 
@@ -44,8 +45,8 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
           ...prev,
           {
             timestamp: Date.now(),
-            readSpeed: monitorData.disk.readSpeed,
-            writeSpeed: monitorData.disk.writeSpeed
+            readSpeed: diskData.readSpeed,
+            writeSpeed: diskData.writeSpeed
           }
         ].slice(-MAX_HISTORY_POINTS);
         return newHistory;
@@ -58,11 +59,15 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
     }
   }, [monitorData]);
 
-  const diskInfo = monitorData?.disk || {
+  const diskBasic = monitorData?.performance?.basic?.disk || {
     total: 0,
     used: 0,
     free: 0,
-    usagePercent: 0,
+    usagePercent: 0
+  };
+
+  const diskDetail = monitorData?.performance?.detail?.disk || {
+    ...diskBasic,
     readSpeed: 0,
     writeSpeed: 0,
     partitions: [],
@@ -77,17 +82,17 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
   useEffect(() => {
     if (detailed) {
       console.log('详细视图磁盘信息:', {
-        total: formatBytes(diskInfo.total),
-        used: formatBytes(diskInfo.used),
-        partitionsCount: diskInfo.partitions.length,
-        hasHealth: !!diskInfo.health,
-        healthLastCheck: diskInfo.health?.lastCheck ? new Date(diskInfo.health.lastCheck).toISOString() : '无',
-        hasIoAnalysis: !!diskInfo.ioAnalysis,
-        ioTimestamp: diskInfo.ioAnalysis?.timestamp ? new Date(diskInfo.ioAnalysis.timestamp).toISOString() : '无',
+        total: formatBytes(diskDetail.total),
+        used: formatBytes(diskDetail.used),
+        partitionsCount: diskDetail.partitions.length,
+        hasHealth: !!diskDetail.health,
+        healthLastCheck: diskDetail.health?.lastCheck ? new Date(diskDetail.health.lastCheck).toISOString() : '无',
+        hasIoAnalysis: !!diskDetail.ioAnalysis,
+        ioTimestamp: diskDetail.ioAnalysis?.timestamp ? new Date(diskDetail.ioAnalysis.timestamp).toISOString() : '无',
         timestamp: new Date().toISOString()
       });
     }
-  }, [detailed, diskInfo]);
+  }, [detailed, diskDetail]);
 
   // 获取进度条颜色
   const getProgressColor = (percent: number) => {
@@ -102,16 +107,16 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
       <div className="resource-summary disk-usage-card">
         <div className="resource-title">磁盘</div>
         <div className="resource-value">
-          <span className="usage-value">{Math.round(diskInfo.usagePercent)}%</span>
+          <span className="usage-value">{Math.round(diskBasic.usagePercent)}%</span>
           <span className="disk-details">
-            {formatBytes(diskInfo.used)}/{formatBytes(diskInfo.total)}
+            {formatBytes(diskBasic.used)}/{formatBytes(diskBasic.total)}
           </span>
         </div>
         <Progress 
-          percent={Math.round(diskInfo.usagePercent)} 
+          percent={Math.round(diskBasic.usagePercent)} 
           showInfo={false} 
           size="small"
-          strokeColor={getProgressColor(diskInfo.usagePercent)}
+          strokeColor={getProgressColor(diskBasic.usagePercent)}
         />
       </div>
     );
@@ -126,11 +131,11 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
           <div className="disk-usage">
             <div className="title">系统总容量</div>
             <Progress 
-              percent={Math.round(diskInfo.usagePercent)}
-              strokeColor={getProgressColor(diskInfo.usagePercent)}
+              percent={Math.round(diskDetail.usagePercent)}
+              strokeColor={getProgressColor(diskDetail.usagePercent)}
             />
             <div className="details">
-              {formatBytes(diskInfo.used)}/{formatBytes(diskInfo.total)}
+              {formatBytes(diskDetail.used)}/{formatBytes(diskDetail.total)}
             </div>
           </div>
           <div className="disk-io-trend">
@@ -144,7 +149,7 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
         </div>
 
         {/* 详细信息区域 */}
-        <DiskDetail diskInfo={diskInfo} />
+        <DiskDetail diskInfo={diskDetail} />
       </div>
     );
   }

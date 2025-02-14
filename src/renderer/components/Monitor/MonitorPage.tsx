@@ -14,13 +14,18 @@ interface MonitorPageProps {
 
 export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
   const [monitorData, setMonitorData] = useState<MonitorData>();
-  const [activeKey, setActiveKey] = useState<string>(sessionInfo.config?.defaultPage || 'performance');
+  const defaultPage = sessionInfo.config?.defaultPage || 'performance';
+  const [activeKey, setActiveKey] = useState<string>(defaultPage);
+  const monitorManager = getServiceManager().getMonitorManager();
+
+  // 初始化时设置 activeTab
+  useEffect(() => {
+    monitorManager.setActiveTab(defaultPage);
+  }, []);
 
   useEffect(() => {
     const initMonitor = async () => {
       try {
-        const monitorManager = getServiceManager().getMonitorManager();
-        
         // 创建监控会话
         console.log('[MonitorPage] 创建监控会话:', sessionInfo);
         const monitorSession = monitorManager.createSession({
@@ -28,7 +33,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
           config: {
             refreshInterval: sessionInfo.config?.refreshInterval || 1000,
             autoRefresh: sessionInfo.config?.autoRefresh ?? true,
-            defaultPage: sessionInfo.config?.defaultPage || 'performance',
+            defaultPage: defaultPage,
             collectServiceInfo: sessionInfo.config?.collectServiceInfo ?? false,
             recordHistory: sessionInfo.config?.recordHistory ?? false,
             enableCache: sessionInfo.config?.enableCache ?? true,
@@ -67,15 +72,25 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
     initMonitor();
   }, [sessionInfo.id]);
 
+  // 处理标签页切换
+  const handleTabChange = (key: string) => {
+    setActiveKey(key);
+    monitorManager.setActiveTab(key);
+  };
+
   return (
     <div className="monitor-page">
       <Tabs 
         activeKey={activeKey} 
-        onChange={setActiveKey}
-        defaultActiveKey={sessionInfo.config?.defaultPage || 'performance'}
+        onChange={handleTabChange}
+        defaultActiveKey={defaultPage}
       >
         <TabPane tab="性能监控" key="performance">
-          <PerformancePage sessionId={sessionInfo.id} monitorData={monitorData} />
+          <PerformancePage 
+            sessionId={sessionInfo.id} 
+            monitorData={monitorData} 
+            monitorManager={monitorManager}
+          />
         </TabPane>
         <TabPane tab="进程管理" key="process">
           {/* 进程管理页面将在后续实现 */}

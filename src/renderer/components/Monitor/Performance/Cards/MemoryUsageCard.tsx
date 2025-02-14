@@ -1,7 +1,7 @@
 import React from 'react';
 import { Progress, Table } from 'antd';
 import ReactECharts from 'echarts-for-react';
-import type { MonitorData } from '../../../../types/monitor';
+import { MemoryBasicInfo, MemoryDetailInfo, MonitorData } from '../../../../types/monitor';
 import type { ECOption } from '../../../../types/echarts';
 import { formatBytes } from '../../../../utils/format';
 import './MemoryUsageCard.css';
@@ -19,13 +19,17 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
   simple, 
   detailed 
 }) => {
-  const memoryInfo = monitorData?.memory || {
+  const memoryBasic = monitorData?.performance?.basic?.memory || {
     total: 0,
     used: 0,
     free: 0,
+    usagePercent: 0
+  };
+
+  const memoryDetail = monitorData?.performance?.detail?.memory || {
+    ...memoryBasic,
     cached: 0,
     buffers: 0,
-    usagePercent: 0,
     swap: {
       total: 0,
       used: 0,
@@ -44,7 +48,7 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
 
   // 生成内存使用环形图配置
   const getMemoryChartOption = (): ECOption => {
-    const usagePercent = memoryInfo.usagePercent;
+    const usagePercent = memoryDetail.usagePercent;
     const getProgressColor = (percent: number) => {
       if (percent >= 80) return '#ff4d4f';
       if (percent >= 30) return '#faad14';
@@ -166,18 +170,18 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
 
   // 简单视图用于左侧资源列表
   if (simple) {
-    const warningLevel = getWarningLevel(memoryInfo.usagePercent);
+    const warningLevel = getWarningLevel(memoryBasic.usagePercent);
     return (
       <div className={`resource-summary memory-usage-card ${warningLevel}`}>
         <div className="resource-title">内存</div>
         <div className="resource-value">
-          <span className="usage-value">{Math.round(memoryInfo.usagePercent)}%</span>
+          <span className="usage-value">{Math.round(memoryBasic.usagePercent)}%</span>
           <span className="memory-details">
-            {formatBytes(memoryInfo.used)}/{formatBytes(memoryInfo.total)}
+            {formatBytes(memoryBasic.used)}/{formatBytes(memoryBasic.total)}
           </span>
         </div>
         <Progress 
-          percent={Math.round(memoryInfo.usagePercent)} 
+          percent={Math.round(memoryBasic.usagePercent)} 
           showInfo={false} 
           size="small"
           status={warningLevel === 'critical' ? 'exception' : 'normal'}
@@ -203,39 +207,39 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
           <div className="memory-info">
             <div className="info-item">
               <span className="info-label">总内存：</span>
-              <span className="info-value">{formatBytes(memoryInfo.total)}</span>
+              <span className="info-value">{formatBytes(memoryDetail.total)}</span>
             </div>
             <div className="info-item">
               <span className="info-label">已用内存：</span>
-              <span className="info-value">{formatBytes(memoryInfo.used)} ({Math.round(memoryInfo.usagePercent)}%)</span>
+              <span className="info-value">{formatBytes(memoryDetail.used)} ({Math.round(memoryDetail.usagePercent)}%)</span>
             </div>
             <div className="info-item">
               <span className="info-label">可用内存：</span>
-              <span className="info-value">{formatBytes(memoryInfo.free)}</span>
+              <span className="info-value">{formatBytes(memoryDetail.free)}</span>
             </div>
             <div className="info-item">
               <span className="info-label">缓存：</span>
-              <span className="info-value">{formatBytes(memoryInfo.cached)}</span>
+              <span className="info-value">{formatBytes(memoryDetail.cached)}</span>
             </div>
             <div className="info-item">
               <span className="info-label">缓冲区：</span>
-              <span className="info-value">{formatBytes(memoryInfo.buffers)}</span>
+              <span className="info-value">{formatBytes(memoryDetail.buffers)}</span>
             </div>
-            {memoryInfo.swap.total > 0 && (
+            {memoryDetail.swap.total > 0 && (
               <>
                 <div className="info-item section-divider">
                   <span className="info-label">交换空间：</span>
-                  <span className="info-value">{formatBytes(memoryInfo.swap.total)}</span>
+                  <span className="info-value">{formatBytes(memoryDetail.swap.total)}</span>
                 </div>
                 <div className="info-item">
                   <span className="info-label">已用交换：</span>
                   <span className="info-value">
-                    {formatBytes(memoryInfo.swap.used)} ({Math.round(memoryInfo.swap.usagePercent)}%)
+                    {formatBytes(memoryDetail.swap.used)} ({Math.round(memoryDetail.swap.usagePercent)}%)
                   </span>
                 </div>
                 <div className="info-item">
                   <span className="info-label">可用交换：</span>
-                  <span className="info-value">{formatBytes(memoryInfo.swap.free)}</span>
+                  <span className="info-value">{formatBytes(memoryDetail.swap.free)}</span>
                 </div>
               </>
             )}
@@ -246,11 +250,10 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
         <div className="memory-processes">
           <h3>内存占用TOP10进程</h3>
           <Table 
-            dataSource={memoryInfo.topProcesses.map(p => ({ ...p, key: p.pid }))}
+            dataSource={memoryDetail.topProcesses.map(p => ({ ...p, key: p.pid }))}
             columns={columns}
-            size="small"
             pagination={false}
-            scroll={{ y: 300 }}
+            size="small"
           />
         </div>
       </div>

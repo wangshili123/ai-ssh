@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { CpuInfo } from '../../../../types/monitor';
-import type { MonitorData } from '../../../../types/monitor';
+import { CpuBasicInfo, CpuDetailInfo, MonitorData } from '../../../../types/monitor';
 import type { ECOption } from '../../../../types/echarts';
 import { formatFrequency } from '../../../../utils/format';
 import './CpuUsageCard.css';
@@ -22,8 +21,8 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
   detailed 
 }) => {
   const [cpuHistory, setCpuHistory] = useState<{
-    usageHistory: CpuInfo['usageHistory'];
-    coreUsageHistory: CpuInfo['coreUsageHistory'];
+    usageHistory: CpuDetailInfo['usageHistory'];
+    coreUsageHistory: CpuDetailInfo['coreUsageHistory'];
   }>({
     usageHistory: [],
     coreUsageHistory: []
@@ -31,26 +30,27 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
 
   // 更新历史数据
   useEffect(() => {
-    if (monitorData?.cpu) {
+    const cpuData = monitorData?.performance?.detail?.cpu;
+    if (cpuData?.cores) {
       setCpuHistory(prev => {
         const now = Date.now();
         const newUsageHistory = [
           ...prev.usageHistory,
           { 
             timestamp: now, 
-            usage: monitorData.cpu.usage, 
-            speed: monitorData.cpu.currentSpeed 
+            usage: cpuData.usage || 0, 
+            speed: cpuData.currentSpeed || 0 
           }
         ].slice(-MAX_HISTORY_POINTS);
 
-        const newCoreUsageHistory = monitorData.cpu.cores.map((usage, index) => {
+        const newCoreUsageHistory = cpuData.cores.map((usage, index) => {
           const coreHistory = prev.coreUsageHistory[index] || [];
           return [
             ...coreHistory,
             { 
               timestamp: now, 
-              usage, 
-              speed: monitorData.cpu.currentSpeed 
+              usage: usage || 0, 
+              speed: cpuData.currentSpeed || 0 
             }
           ].slice(-MAX_HISTORY_POINTS);
         });
@@ -63,14 +63,26 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
     }
   }, [monitorData]);
 
-  const cpuInfo = monitorData?.cpu || {
+  const cpuBasic = monitorData?.performance?.basic?.cpu || {
     usage: 0,
+    speed: 0,
+    currentSpeed: 0,
+    temperature: undefined
+  };
+
+  const cpuDetail = monitorData?.performance?.detail?.cpu || {
+    ...cpuBasic,
     cores: [],
     model: '',
-    speed: 0,
+    maxSpeed: undefined,
+    minSpeed: undefined,
     physicalCores: 0,
     logicalCores: 0,
     cache: {},
+    architecture: undefined,
+    vendor: undefined,
+    socket: undefined,
+    virtualization: undefined,
     usageHistory: cpuHistory.usageHistory,
     coreUsageHistory: cpuHistory.coreUsageHistory
   };
@@ -81,8 +93,8 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
       <div className="resource-summary cpu-usage-card">
         <div className="resource-title">CPU</div>
         <div className="resource-value">
-          <span className="usage-value">{Math.round(cpuInfo.usage)}%</span>
-          <span className="resource-speed">{formatFrequency(cpuInfo.currentSpeed || cpuInfo.speed)}</span>
+          <span className="usage-value">{Math.round(cpuBasic.usage)}%</span>
+          <span className="resource-speed">{formatFrequency(cpuBasic.currentSpeed || cpuBasic.speed)}</span>
         </div>
       </div>
     );
@@ -98,48 +110,48 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
           <div className="info-row">
             <span className="info-item">
               <span className="info-label">处理器型号:</span>
-              <span className="info-value">{cpuInfo.model}</span>
+              <span className="info-value">{cpuDetail.model}</span>
             </span>
             <span className="info-item">
               <span className="info-label">制造商:</span>
-              <span className="info-value">{cpuInfo.vendor || '未知'}</span>
+              <span className="info-value">{cpuDetail.vendor || '未知'}</span>
             </span>
             <span className="info-item">
               <span className="info-label">基本速度:</span>
-              <span className="info-value">{formatFrequency(cpuInfo.speed)}</span>
+              <span className="info-value">{formatFrequency(cpuDetail.speed)}</span>
             </span>
           </div>
           <div className="info-row">
             <span className="info-item">
               <span className="info-label">当前速度:</span>
-              <span className="info-value">{formatFrequency(cpuInfo.currentSpeed || cpuInfo.speed)}</span>
+              <span className="info-value">{formatFrequency(cpuDetail.currentSpeed || cpuDetail.speed)}</span>
             </span>
             <span className="info-item">
               <span className="info-label">物理核心:</span>
-              <span className="info-value">{cpuInfo.physicalCores}</span>
+              <span className="info-value">{cpuDetail.physicalCores}</span>
             </span>
             <span className="info-item">
               <span className="info-label">逻辑处理器:</span>
-              <span className="info-value">{cpuInfo.logicalCores}</span>
+              <span className="info-value">{cpuDetail.logicalCores}</span>
             </span>
           </div>
           <div className="info-row">
-            {cpuInfo.cache.l1 && (
+            {cpuDetail.cache.l1 && (
               <span className="info-item">
                 <span className="info-label">L1缓存:</span>
-                <span className="info-value">{cpuInfo.cache.l1} KB</span>
+                <span className="info-value">{cpuDetail.cache.l1} KB</span>
               </span>
             )}
-            {cpuInfo.cache.l2 && (
+            {cpuDetail.cache.l2 && (
               <span className="info-item">
                 <span className="info-label">L2缓存:</span>
-                <span className="info-value">{cpuInfo.cache.l2} KB</span>
+                <span className="info-value">{cpuDetail.cache.l2} KB</span>
               </span>
             )}
-            {cpuInfo.cache.l3 && (
+            {cpuDetail.cache.l3 && (
               <span className="info-item">
                 <span className="info-label">L3缓存:</span>
-                <span className="info-value">{cpuInfo.cache.l3} KB</span>
+                <span className="info-value">{cpuDetail.cache.l3} KB</span>
               </span>
             )}
           </div>
@@ -149,14 +161,11 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
         <div className="cpu-main-chart">
           <div className="chart-header">
             <div className="chart-title">CPU 利用率</div>
-            <div className="chart-value">{Math.round(cpuInfo.usage)}%</div>
+            <div className="chart-value">{Math.round(cpuDetail.usage)}%</div>
           </div>
           <div className="echarts-container">
             <ReactECharts
-              option={getMainChartOption({
-                ...cpuInfo,
-                usageHistory: cpuHistory.usageHistory
-              })}
+              option={getMainChartOption(cpuDetail)}
               style={{ height: '100%', width: '100%' }}
               notMerge={true}
             />
@@ -168,7 +177,7 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
       <div className="cpu-cores-section">
         <div className="section-title">每个处理器核心的使用率</div>
         <div className="cpu-cores-grid">
-          {cpuInfo.cores.map((usage, index) => (
+          {cpuDetail.cores.map((usage, index) => (
             <div key={index} className="core-chart">
               <div className="core-header">
                 <span>核心 {index + 1}</span>
@@ -190,7 +199,7 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
 };
 
 // 主图表配置
-const getMainChartOption = (cpuInfo: CpuInfo): ECOption => ({
+const getMainChartOption = (cpuInfo: CpuDetailInfo): ECOption => ({
   grid: {
     top: 20,
     right: 20,
@@ -252,40 +261,37 @@ const getMainChartOption = (cpuInfo: CpuInfo): ECOption => ({
       }
     }
   },
-  series: [
-    {
-      name: 'CPU使用率',
-      type: 'line',
-      smooth: true,
-      showSymbol: false,
-      areaStyle: {
-        opacity: 0.15,
-        color: {
-          type: 'linear',
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [{
-            offset: 0,
-            color: '#1890ff'
-          }, {
-            offset: 1,
-            color: 'rgba(24,144,255,0.1)'
-          }]
-        }
-      },
-      lineStyle: {
-        color: '#1890ff',
-        width: 2
-      },
-      data: cpuInfo.usageHistory.map(item => [
-        item.timestamp,
-        item.usage,
-        item.speed
-      ])
-    }
-  ]
+  series: [{
+    name: 'CPU使用率',
+    type: 'line',
+    smooth: true,
+    showSymbol: false,
+    lineStyle: {
+      width: 2,
+      color: '#1890ff'
+    },
+    areaStyle: {
+      color: {
+        type: 'linear',
+        x: 0,
+        y: 0,
+        x2: 0,
+        y2: 1,
+        colorStops: [{
+          offset: 0,
+          color: 'rgba(24,144,255,0.3)'
+        }, {
+          offset: 1,
+          color: 'rgba(24,144,255,0.1)'
+        }]
+      }
+    },
+    data: cpuInfo.usageHistory.map(item => [
+      item.timestamp,
+      item.usage,
+      item.speed
+    ])
+  }]
 });
 
 // 核心图表配置
@@ -294,15 +300,8 @@ const getCoreChartOption = (history: Array<{ timestamp: number; usage: number; s
     top: 5,
     right: 5,
     bottom: 5,
-    left: 5
-  },
-  tooltip: {
-    trigger: 'axis',
-    formatter: (params: any) => {
-      const data = params[0].data;
-      return `${new Date(data[0]).toLocaleTimeString()}<br/>
-              使用率: ${Math.round(data[1])}%`;
-    }
+    left: 5,
+    containLabel: false
   },
   xAxis: {
     type: 'time',
@@ -314,36 +313,34 @@ const getCoreChartOption = (history: Array<{ timestamp: number; usage: number; s
     min: 0,
     max: 100
   },
-  series: [
-    {
-      type: 'line',
-      smooth: true,
-      showSymbol: false,
-      areaStyle: {
-        opacity: 0.15,
-        color: {
-          type: 'linear',
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [{
-            offset: 0,
-            color: '#1890ff'
-          }, {
-            offset: 1,
-            color: 'rgba(24,144,255,0.1)'
-          }]
-        }
-      },
-      lineStyle: {
-        color: '#1890ff',
-        width: 1.5
-      },
-      data: history.map(item => [
-        item.timestamp,
-        item.usage
-      ])
-    }
-  ]
+  series: [{
+    type: 'line',
+    smooth: true,
+    showSymbol: false,
+    lineStyle: {
+      width: 1,
+      color: '#1890ff'
+    },
+    areaStyle: {
+      color: {
+        type: 'linear',
+        x: 0,
+        y: 0,
+        x2: 0,
+        y2: 1,
+        colorStops: [{
+          offset: 0,
+          color: 'rgba(24,144,255,0.3)'
+        }, {
+          offset: 1,
+          color: 'rgba(24,144,255,0.1)'
+        }]
+      }
+    },
+    data: history.map(item => [
+      item.timestamp,
+      item.usage,
+      item.speed
+    ])
+  }]
 }); 

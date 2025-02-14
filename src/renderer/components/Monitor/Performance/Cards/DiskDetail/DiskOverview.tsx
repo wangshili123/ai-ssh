@@ -1,10 +1,10 @@
 import React from 'react';
 import { Progress } from 'antd';
-import { DiskInfo } from '../../../../../types/monitor';
+import { DiskDetailInfo } from '../../../../../types/monitor';
 import { formatBytes } from '../../../../../utils/format';
 
 interface DiskOverviewProps {
-  diskInfo: DiskInfo;
+  diskInfo: DiskDetailInfo;
 }
 
 export const DiskOverview: React.FC<DiskOverviewProps> = ({ diskInfo }) => {

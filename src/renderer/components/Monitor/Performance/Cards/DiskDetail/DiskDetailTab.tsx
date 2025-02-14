@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Tabs } from 'antd';
-import { DiskInfo } from '../../../../../types/monitor';
+import { DiskDetailInfo } from '../../../../../types/monitor';
 import { DiskOverview } from './DiskOverview';
 import { DiskHealth } from './DiskHealth';
 import { DiskSpace } from './DiskSpace';
@@ -8,7 +8,7 @@ import { DiskIo } from './DiskIo';
 import './DiskDetailTab.css';
 
 interface DiskDetailProps {
-  diskInfo: DiskInfo;
+  diskInfo: DiskDetailInfo;
 }
 
 export const DiskDetail: React.FC<DiskDetailProps> = ({ diskInfo }) => {
