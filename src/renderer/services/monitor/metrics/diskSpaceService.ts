@@ -85,23 +85,37 @@ export class DiskSpaceService {
    */
   private async scanLargeDirectories(sessionId: string, mountpoint: string): Promise<DirSizeInfo[]> {
     try {
-      // 使用du命令获取目录大小，只扫描第一层目录
-      const cmd = `du -x --max-depth=1 ${mountpoint} 2>/dev/null | sort -rn | head -n 20`;
+      // 使用du命令获取目录大小，并通过stat获取最后修改时间
+      const cmd = `du -x --max-depth=1 ${mountpoint} 2>/dev/null | sort -rn | head -n 20 | while read size path; do echo -n "$size $path "; stat -c %Y "$path" 2>/dev/null || echo "0"; done`;
       const output = await this.sshService.executeCommandDirect(sessionId, cmd);
       if (!output) return [];
 
       return output.split('\n')
         .filter(line => line.trim())
         .map(line => {
-          const [size, path] = line.trim().split(/\s+/);
+          const parts = line.trim().split(/\s+/);
+          if (parts.length < 3) return null;
+
+          const size = parts[0];
+          const timestamp = parts[parts.length - 1];
+          const path = parts.slice(1, -1).join(' ');
+
+          const lastModified = parseInt(timestamp);
+          if (isNaN(lastModified)) return null;
+
+          const sizeInBytes = parseInt(size);
+          if (isNaN(sizeInBytes)) return null;
+
           return {
             path,
-            size: parseInt(size) * 1024 // du默认输出KB，转换为bytes
-          };
-        });
+            size: sizeInBytes * 1024,
+            lastModified: lastModified * 1000
+          } as DirSizeInfo;
+        })
+        .filter((item): item is DirSizeInfo => item !== null);
     } catch (error) {
       console.error('扫描大目录失败:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -110,24 +124,35 @@ export class DiskSpaceService {
    */
   private async scanLargeFiles(sessionId: string, mountpoint: string): Promise<DirSizeInfo[]> {
     try {
-      // 使用find命令查找大文件
-      const cmd = `find ${mountpoint} -xdev -type f -size +100M -exec ls -l --block-size=1 {} \\; 2>/dev/null | sort -rn -k5 | head -n 20`;
+      // 使用find命令查找大文件，并通过stat获取准确的时间戳
+      const cmd = `find ${mountpoint} -xdev -type f -size +100M -printf '%s %p\n' 2>/dev/null | sort -rn | head -n 20 | while read size path; do echo -n "$size $path "; stat -c %Y "$path" 2>/dev/null || echo "0"; done`;
       const output = await this.sshService.executeCommandDirect(sessionId, cmd);
       if (!output) return [];
 
-      return output.split('\n')
-        .filter(line => line.trim())
-        .map(line => {
-          const parts = line.trim().split(/\s+/);
-          return {
-            path: parts.slice(8).join(' '),
-            size: parseInt(parts[4]),
-            lastModified: new Date(parts.slice(5, 8).join(' ')).getTime()
-          };
+      const results: DirSizeInfo[] = [];
+      const lines = output.split('\n').filter(line => line.trim());
+
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length < 3) continue;
+
+        const size = parseInt(parts[0]);
+        const timestamp = parseInt(parts[parts.length - 1]);
+        const path = parts.slice(1, -1).join(' ');
+
+        if (isNaN(size) || isNaN(timestamp)) continue;
+
+        results.push({
+          path,
+          size,
+          lastModified: timestamp * 1000 // 转换为毫秒
         });
+      }
+
+      return results;
     } catch (error) {
       console.error('扫描大文件失败:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -136,23 +161,72 @@ export class DiskSpaceService {
    */
   private async analyzeFileTypes(sessionId: string, mountpoint: string): Promise<FileTypeInfo[]> {
     try {
-      // 使用find命令统计文件类型和大小
-      const cmd = `find ${mountpoint} -xdev -type f -exec sh -c 'echo $(wc -c < "$1") $(basename "$1")' _ {} \\; 2>/dev/null | awk -F. '{if (NF>1) {size=$1; ext=$NF; print size " " ext}}' | awk '{size[$2]+=$1; count[$2]+=1} END {for (ext in size) print size[ext] " " count[ext] " " ext}' | sort -rn | head -n 20`;
+      // 使用更简单的命令统计文件类型和大小
+      // 1. 找出所有文件
+      // 2. 提取扩展名和大小
+      // 3. 按大小排序并限制数量
+      const cmd = `find ${mountpoint} -xdev -type f -printf "%s %f\n" 2>/dev/null | awk -F. '{if (NF>1) {size=$1; ext=$NF; print size " " ext}}' | awk '{size[$2]+=$1; count[$2]+=1} END {for (ext in size) print size[ext] " " count[ext] " " ext}' | sort -rn | head -n 20`;
+      
+      console.log('执行文件类型分析命令:', cmd);
       const output = await this.sshService.executeCommandDirect(sessionId, cmd);
-      if (!output) return [];
+      console.log('分析文件类型输出:', output);
+      
+      if (!output) {
+        console.log('命令输出为空');
+        return [];
+      }
 
       const lines = output.split('\n').filter(line => line.trim());
+      console.log('解析的行数:', lines.length);
+
       return lines.map(line => {
-        const [size, count, ext] = line.trim().split(/\s+/);
+        console.log('处理行:', line);
+        const parts = line.trim().split(/\s+/);
+        if (parts.length < 3) {
+          console.log('行格式不正确:', line);
+          return null;
+        }
+
+        const size = parseInt(parts[0]);
+        const count = parseInt(parts[1]);
+        const ext = parts[2];
+
+        if (isNaN(size) || isNaN(count)) {
+          console.log('数值解析失败:', line);
+          return null;
+        }
+
         return {
           extension: ext,
-          count: parseInt(count),
-          totalSize: parseInt(size)
+          count: count,
+          totalSize: size
         };
-      });
+      }).filter((item): item is FileTypeInfo => item !== null);
     } catch (error) {
       console.error('分析文件类型失败:', error);
-      return [];
+      
+      // 尝试使用备用命令
+      try {
+        console.log('尝试使用备用命令');
+        const backupCmd = `find ${mountpoint} -xdev -type f -name "*.*" 2>/dev/null | sed 's/.*\\.//' | sort | uniq -c | sort -rn | head -n 20 | awk '{print "0 " $1 " " $2}'`;
+        const backupOutput = await this.sshService.executeCommandDirect(sessionId, backupCmd);
+        
+        if (!backupOutput) return [];
+
+        return backupOutput.split('\n')
+          .filter(line => line.trim())
+          .map(line => {
+            const [, count, ext] = line.trim().split(/\s+/);
+            return {
+              extension: ext,
+              count: parseInt(count) || 0,
+              totalSize: 0
+            };
+          });
+      } catch (backupError) {
+        console.error('备用命令也失败了:', backupError);
+        throw error;
+      }
     }
   }
 

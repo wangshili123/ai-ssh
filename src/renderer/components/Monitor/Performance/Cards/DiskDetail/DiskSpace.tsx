@@ -2,7 +2,7 @@ import React from 'react';
 import { Table, Card, Tooltip } from 'antd';
 import { DiskSpaceAnalysis } from '../../../../../types/monitor';
 import { formatBytes } from '../../../../../utils/format';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
 interface DiskSpaceProps {
@@ -39,7 +39,7 @@ export const DiskSpace: React.FC<DiskSpaceProps> = ({ spaceAnalysis }) => {
       key: 'lastModified',
       width: 150,
       render: (time?: number) => time ? 
-        formatDistanceToNow(time, { addSuffix: true, locale: zhCN }) : 
+        format(time, 'yyyy-MM-dd HH:mm:ss', { locale: zhCN }) : 
         '未知',
     },
   ];
@@ -69,7 +69,7 @@ export const DiskSpace: React.FC<DiskSpaceProps> = ({ spaceAnalysis }) => {
       key: 'lastModified',
       width: 150,
       render: (time?: number) => time ? 
-        formatDistanceToNow(time, { addSuffix: true, locale: zhCN }) : 
+        format(time, 'yyyy-MM-dd HH:mm:ss', { locale: zhCN }) : 
         '未知',
     },
   ];
@@ -100,6 +100,8 @@ export const DiskSpace: React.FC<DiskSpaceProps> = ({ spaceAnalysis }) => {
     <div className="disk-space">
       <div className="last-scan">
         上次扫描: {formatDistanceToNow(spaceAnalysis.lastScan, { addSuffix: true, locale: zhCN })}
+        {' '}
+        ({format(spaceAnalysis.lastScan, 'yyyy-MM-dd HH:mm:ss', { locale: zhCN })})
       </div>
       <div className="analysis-content">
         <Card title="大目录 TOP 20" size="small" className="analysis-card" >
