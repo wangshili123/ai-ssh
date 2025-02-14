@@ -112,6 +112,7 @@ export interface DiskIoAnalysis {
     util: number;
   }>;
   timestamp: number;
+  isToolInstalled: boolean;  // 添加工具安装状态字段
 }
 
 export interface DiskInfo {

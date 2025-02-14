@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, Card, Tooltip } from 'antd';
+import { Table, Card, Tooltip, Alert } from 'antd';
 import { DiskIoAnalysis } from '../../../../../types/monitor';
 import { formatBytes } from '../../../../../utils/format';
 
@@ -10,6 +10,31 @@ interface DiskIoProps {
 export const DiskIo: React.FC<DiskIoProps> = ({ ioAnalysis }) => {
   if (!ioAnalysis) {
     return <div>暂无IO分析数据</div>;
+  }
+
+  if (!ioAnalysis.isToolInstalled) {
+    return (
+      <div style={{ textAlign: 'center', padding: '20px' }}>
+        <Alert
+          message="无法获取磁盘IO信息"
+          description={
+            <div>
+              <p>请确保系统已安装 iotop 工具：</p>
+              <p style={{ color: '#666', fontSize: '13px', marginTop: '10px' }}>
+                Ubuntu/Debian: sudo apt-get install iotop
+                <br />
+                CentOS/RHEL: sudo yum install iotop
+                <br />
+                <br />
+                注意：iotop 需要 root 权限才能运行
+              </p>
+            </div>
+          }
+          type="warning"
+          showIcon
+        />
+      </div>
+    );
   }
 
   const processColumns = [
