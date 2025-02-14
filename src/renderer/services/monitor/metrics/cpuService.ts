@@ -11,6 +11,8 @@ export class CpuMetricsService {
   private readonly MAX_HISTORY_POINTS = 60; // 保存60个历史数据点
   private usageHistory: Map<string, CpuDetailInfo['usageHistory']> = new Map();
   private coreUsageHistory: Map<string, CpuDetailInfo['coreUsageHistory']> = new Map();
+  private lastCpuStat: { [key: string]: { user: number; nice: number; system: number; idle: number; iowait: number; irq: number; softirq: number; steal: number; total: number } } = {};
+  private lastUsage: { [key: string]: number } = {};
 
   private constructor(sshService: SSHService) {
     this.sshService = sshService;
@@ -31,10 +33,9 @@ export class CpuMetricsService {
    */
   async collectMetrics(sessionId: string): Promise<CpuDetailInfo> {
     try {
-      const [basicInfo, usage, freq] = await Promise.all([
+      const [basicInfo, usage] = await Promise.all([
         this.getCpuInfo(sessionId),
-        this.getCpuUsage(sessionId),
-        this.getCpuFrequency(sessionId)
+        this.getCpuUsage(sessionId)
       ]);
 
       const now = Date.now();
@@ -46,8 +47,8 @@ export class CpuMetricsService {
       const currentUsageHistory = this.usageHistory.get(sessionId)!;
       currentUsageHistory.push({
         timestamp: now,
-        usage: usage.usage,
-        speed: freq.current
+        usage: basicInfo.usage || 0,
+        speed: basicInfo.speed || 0
       });
       if (currentUsageHistory.length > this.MAX_HISTORY_POINTS) {
         currentUsageHistory.shift();
@@ -67,7 +68,7 @@ export class CpuMetricsService {
         currentCoreHistory[index].push({
           timestamp: now,
           usage: coreUsage,
-          speed: freq.current
+          speed: basicInfo.speed
         });
         if (currentCoreHistory[index].length > this.MAX_HISTORY_POINTS) {
           currentCoreHistory[index].shift();
@@ -76,13 +77,13 @@ export class CpuMetricsService {
 
       return {
         ...basicInfo,
-        usage: usage.usage,
+        usage: basicInfo.usage || 0,
         cores: usage.cores,
         model: basicInfo.model || 'Unknown',
-        speed: basicInfo.speed || freq.current,
-        currentSpeed: freq.current,
-        maxSpeed: freq.max,
-        minSpeed: freq.min,
+        speed: basicInfo.speed || 0,
+        currentSpeed: basicInfo.speed,
+        maxSpeed: basicInfo.maxSpeed,
+        minSpeed: basicInfo.minSpeed,
         physicalCores: basicInfo.physicalCores || usage.cores.length / 2,
         logicalCores: basicInfo.logicalCores || usage.cores.length,
         cache: basicInfo.cache || {},
@@ -121,8 +122,8 @@ export class CpuMetricsService {
    */
   private async getCpuInfo(sessionId: string): Promise<Partial<CpuDetailInfo>> {
     try {
-      // 获取CPU型号、核心数等基本信息
-      const cpuInfoCmd = 'cat /proc/cpuinfo';
+      // 使用 lscpu 获取 CPU 所有基本信息
+      const cpuInfoCmd = 'lscpu';
       const cpuInfoResult = await this.sshService.executeCommandDirect(sessionId, cpuInfoCmd);
       
       // 检查是否安装了 lm-sensors
@@ -138,12 +139,14 @@ export class CpuMetricsService {
       } else {
         temp = 'not_installed';
       }
+
       // 解析CPU信息
       const info = this.parseCpuInfo(cpuInfoResult || '');
       
       return {
         ...info,
-        temperature: temp
+        temperature: temp,
+        usage: this.lastUsage[sessionId] || 0  // 使用collectBasicMetrics中计算的使用率
       };
     } catch (error) {
       console.error('获取CPU信息失败:', error);
@@ -152,7 +155,11 @@ export class CpuMetricsService {
         physicalCores: 0,
         logicalCores: 0,
         vendor: '',
-        cache: {}
+        cache: {},
+        speed: 0,
+        currentSpeed: 0,
+        maxSpeed: 0,
+        minSpeed: 0
       };
     }
   }
@@ -161,37 +168,69 @@ export class CpuMetricsService {
    * 解析CPU基本信息
    */
   private parseCpuInfo(output: string): Partial<CpuDetailInfo> {
-    const info: Partial<CpuDetailInfo> = {
+    const info: Required<Pick<CpuDetailInfo, 'cache'>> & Partial<CpuDetailInfo> = {
       model: '',
       physicalCores: 0,
       logicalCores: 0,
       vendor: '',
-      cache: {}
+      cache: {
+        l1: 0,
+        l2: 0,
+        l3: 0
+      },
+      speed: 0,
+      currentSpeed: 0,
+      maxSpeed: 0,
+      minSpeed: 0
     };
 
     const lines = output.split('\n');
-    let physicalId = new Set();
-    let coreId = new Set();
-
     for (const line of lines) {
-      if (line.includes('model name')) {
-        info.model = line.split(':')[1].trim();
-      } else if (line.includes('vendor_id')) {
-        info.vendor = line.split(':')[1].trim();
-      } else if (line.includes('physical id')) {
-        physicalId.add(line.split(':')[1].trim());
-      } else if (line.includes('core id')) {
-        coreId.add(line.split(':')[1].trim());
-      } else if (line.includes('cache size')) {
-        info.cache = {
-          ...info.cache,
-          l3: parseInt(line.split(':')[1].trim())
-        };
+      const [key, value] = line.split(':').map(s => s.trim());
+      if (!key || !value) continue;
+
+      switch (key) {
+        case 'Model name':
+          info.model = value;
+          break;
+        case 'Vendor ID':
+          info.vendor = value;
+          break;
+        case 'CPU(s)':
+          info.logicalCores = parseInt(value) || 0;
+          break;
+        case 'Core(s) per socket':
+          const coresPerSocket = parseInt(value) || 0;
+          const sockets = parseInt(lines.find(l => l.includes('Socket(s)'))?.split(':')[1] || '1') || 1;
+          info.physicalCores = coresPerSocket * sockets;
+          break;
+        case 'CPU max MHz':
+          info.maxSpeed = parseFloat(value) || 0;
+          info.speed = info.maxSpeed; // 基准频率设为最大频率
+          break;
+        case 'CPU min MHz':
+          info.minSpeed = parseFloat(value) || 0;
+          break;
+        case 'CPU MHz':
+          info.currentSpeed = parseFloat(value) || 0;
+          break;
+        case 'L1d cache':
+          info.cache.l1 = parseInt(value) || 0;
+          break;
+        case 'L2 cache':
+          info.cache.l2 = parseInt(value) || 0;
+          break;
+        case 'L3 cache':
+          info.cache.l3 = parseInt(value) || 0;
+          break;
+        case 'Architecture':
+          info.architecture = value;
+          break;
+        case 'Virtualization':
+          info.virtualization = value !== 'none';
+          break;
       }
     }
-
-    info.physicalCores = coreId.size * physicalId.size;
-    info.logicalCores = lines.filter(line => line.includes('processor')).length;
 
     return info;
   }
@@ -213,17 +252,12 @@ export class CpuMetricsService {
   }
 
   /**
-   * 获取CPU使用率
+   * 获取核心使用率
    */
   private async getCpuUsage(sessionId: string): Promise<{
-    usage: number;
     cores: number[];
   }> {
     try {
-      // 获取总体CPU使用率
-      const totalCmd = "top -bn1 | grep 'Cpu(s)' | awk '{print $2}'";
-      const totalResult = await this.sshService.executeCommandDirect(sessionId, totalCmd);
-      // console.log('[CpuService] 总体CPU使用率:', totalResult);
       
       // 获取每个核心的使用率
       const coresCmd = "mpstat -P ALL 1 1";
@@ -236,7 +270,7 @@ export class CpuMetricsService {
       const startIndex = lines.findIndex(line => line.includes('CPU    %usr'));
       if (startIndex === -1) {
         console.error('[CpuService] 未找到CPU数据块');
-        return { usage: 0, cores: [] };
+        return { cores: [] };
       }
 
       // 提取数据行（跳过'all'行）
@@ -266,13 +300,11 @@ export class CpuMetricsService {
       // });
       
       return {
-        usage: parseFloat(totalResult || '0'),
         cores: coresData
       };
     } catch (error) {
       console.error('获取CPU使用率失败:', error);
       return {
-        usage: 0,
         cores: []
       };
     }
@@ -341,14 +373,23 @@ export class CpuMetricsService {
    */
   async collectBasicMetrics(sessionId: string): Promise<CpuBasicInfo> {
     try {
-      // 合并命令：同时获取CPU使用率和频率
-      const cmd = `paste <(top -bn1 | grep 'Cpu(s)' | awk '{print $2}') <(cat /proc/cpuinfo | grep 'cpu MHz' | head -n1 | awk '{print $4}')`;
-      const result = await this.sshService.executeCommandDirect(sessionId, cmd);
+      // 获取CPU使用率
+      const cpuStatCmd = 'cat /proc/stat | grep "^cpu "';
+      const cpuStatResult = await this.sshService.executeCommandDirect(sessionId, cpuStatCmd);
       
-      const [usageStr, speedStr] = result.split('\t');
+      // 获取CPU频率
+      const cpuFreqCmd = "cat /proc/cpuinfo | grep 'cpu MHz' | head -n1 | awk '{print $4}'";
+      const cpuFreqResult = await this.sshService.executeCommandDirect(sessionId, cpuFreqCmd);
+
+      const usage = this.calculateCpuUsage(sessionId, cpuStatResult);
+      const speed = parseFloat(cpuFreqResult || '0');
+
+      // 保存最新的使用率，供getCpuInfo使用
+      this.lastUsage[sessionId] = usage;
+
       return {
-        usage: parseFloat(usageStr || '0'),
-        speed: parseFloat(speedStr || '0')
+        usage,
+        speed
       };
     } catch (error) {
       console.error('采集CPU基础指标失败:', error);
@@ -356,6 +397,56 @@ export class CpuMetricsService {
         usage: 0,
         speed: 0
       };
+    }
+  }
+
+  /**
+   * 计算CPU使用率
+   */
+  private calculateCpuUsage(sessionId: string, statContent: string): number {
+    try {
+      const parts = statContent.trim().split(/\s+/);
+      if (parts.length < 8) return 0;
+
+      const stats = {
+        user: parseInt(parts[1]),
+        nice: parseInt(parts[2]),
+        system: parseInt(parts[3]),
+        idle: parseInt(parts[4]),
+        iowait: parseInt(parts[5]),
+        irq: parseInt(parts[6]),
+        softirq: parseInt(parts[7]),
+        steal: parseInt(parts[8]) || 0
+      };
+
+      const total = stats.user + stats.nice + stats.system + stats.idle + 
+                    stats.iowait + stats.irq + stats.softirq + stats.steal;
+
+      // 获取上次的统计数据
+      const lastStats = this.lastCpuStat[sessionId];
+      
+      // 更新统计数据
+      this.lastCpuStat[sessionId] = { ...stats, total };
+
+      // 如果没有上次的数据，返回0
+      if (!lastStats) {
+        return 0;
+      }
+
+      // 计算时间差
+      const totalDiff = total - lastStats.total;
+      if (totalDiff === 0) return 0;
+
+      // 计算空闲时间差
+      const idleDiff = (stats.idle + stats.iowait) - (lastStats.idle + lastStats.iowait);
+
+      // 计算使用率
+      const usage = ((totalDiff - idleDiff) / totalDiff) * 100;
+
+      return Math.min(100, Math.max(0, usage));
+    } catch (error) {
+      console.error('计算CPU使用率失败:', error);
+      return 0;
     }
   }
 

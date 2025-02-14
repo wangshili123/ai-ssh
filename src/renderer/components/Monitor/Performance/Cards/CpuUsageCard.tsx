@@ -118,16 +118,22 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
               <span className="info-label">制造商:</span>
               <span className="info-value">{cpuDetail.vendor || '未知'}</span>
             </span>
-            <span className="info-item">
-              <span className="info-label">基本速度:</span>
-              <span className="info-value">{formatFrequency(cpuDetail.speed)}</span>
-            </span>
           </div>
           <div className="info-row">
             <span className="info-item">
-              <span className="info-label">当前速度:</span>
+              <span className="info-label">最大频率:</span>
+              <span className="info-value">{formatFrequency(cpuDetail.maxSpeed || 0)}</span>
+            </span>
+            <span className="info-item">
+              <span className="info-label">最小频率:</span>
+              <span className="info-value">{formatFrequency(cpuDetail.minSpeed || 0)}</span>
+            </span>
+            <span className="info-item">
+              <span className="info-label">当前频率:</span>
               <span className="info-value">{formatFrequency(cpuDetail.currentSpeed || cpuDetail.speed)}</span>
             </span>
+          </div>
+          <div className="info-row">
             <span className="info-item">
               <span className="info-label">物理核心:</span>
               <span className="info-value">{cpuDetail.physicalCores}</span>
@@ -137,22 +143,22 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
               <span className="info-value">{cpuDetail.logicalCores}</span>
             </span>
             <span className="info-item">
-                <span className="info-label">温度:</span>
-                <span className="info-value">
-                  {cpuDetail.temperature === 'not_installed' ? (
-                    <Tooltip title={
-                      '未安装 lm-sensors，请使用以下命令安装：\n' +
-                      'Ubuntu/Debian: sudo apt-get install lm-sensors\n' +
-                      'CentOS/RHEL: sudo yum install lm_sensors\n' +
-                      '安装后需要运行: sudo sensors-detect'
-                    }>
-                      <ExclamationCircleOutlined style={{ color: '#faad14' }} />
-                    </Tooltip>
-                  ) : (
-                    `${cpuDetail.temperature === undefined ? '' : cpuDetail.temperature}°C`
-                  )}
-                </span>
+              <span className="info-label">温度:</span>
+              <span className="info-value">
+                {cpuDetail.temperature === 'not_installed' ? (
+                  <Tooltip title={
+                    '未安装 lm-sensors，请使用以下命令安装：\n' +
+                    'Ubuntu/Debian: sudo apt-get install lm-sensors\n' +
+                    'CentOS/RHEL: sudo yum install lm_sensors\n' +
+                    '安装后需要运行: sudo sensors-detect'
+                  }>
+                    <ExclamationCircleOutlined style={{ color: '#faad14' }} />
+                  </Tooltip>
+                ) : (
+                  `${cpuDetail.temperature === undefined ? '' : cpuDetail.temperature}°C`
+                )}
               </span>
+            </span>
           </div>
           <div className="info-row">
             {cpuDetail.cache.l1 && (
