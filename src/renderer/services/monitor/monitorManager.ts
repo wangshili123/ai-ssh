@@ -133,6 +133,8 @@ class MonitorManager {
         sessionId,
         timestamp: new Date().toISOString()
       });
+      //计时
+      const startTime = Date.now();
 
       // 并行采集所有指标
       const [cpuInfo, memoryInfo, diskInfo, diskHealth, diskSpace, diskIo] = await Promise.all([
@@ -191,7 +193,9 @@ class MonitorManager {
           timestamp: new Date(diskIo.timestamp).toISOString()
         } : '无IO数据'
       });
-
+      //计时
+      const endTime = Date.now();
+      console.log(`[Monitor] 采集指标数据完成，用时: ${endTime - startTime}ms`);
       session.status = 'connected';
       session.lastUpdated = Date.now();
     } catch (error) {

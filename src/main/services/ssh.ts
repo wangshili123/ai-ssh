@@ -3,27 +3,174 @@ import type { SessionInfo } from '../../renderer/types';
 import { BrowserWindow } from 'electron';
 import { sftpManager } from './sftp';
 import { storageService } from './storage';
+import { Pool, Factory, Options, createPool } from 'generic-pool';
 
 console.log('Loading SSH service...');
 
+interface PooledConnection {
+  id: string;
+  client: Client;
+  lastUsed: number;
+}
+
+interface PoolConfig {
+  min: number;           // 核心连接数
+  max: number;           // 最大连接数
+  idleTimeoutMillis: number;  // 空闲超时时间
+  acquireTimeoutMillis: number;  // 获取连接超时时间
+  priorityRange: number;      // 优先级范围
+}
+
 class SSHService {
-  private connections: Map<string, Client> = new Map();
   private shells: Map<string, Channel> = new Map();
   private currentDirectories: Map<string, string> = new Map();
+  
+  // 连接池相关
+  private pools: Map<string, Pool<PooledConnection>> = new Map();
+  private configs: Map<string, SessionInfo> = new Map();
+  // 添加专用连接管理
+  private dedicatedConnections: Map<string, Client> = new Map();
+  
+  private readonly DEFAULT_POOL_CONFIG: PoolConfig = {
+    min: 5,                    // 增加核心连接数
+    max: 10,                   // 保持最大连接数
+    idleTimeoutMillis: 600000, // 增加空闲超时时间到10分钟
+    acquireTimeoutMillis: 30000, // 保持获取超时时间
+    priorityRange: 3,          // 优先级范围
+  };
 
   constructor() {
     console.log('Initializing SSHService...');
+    // 移除定期清理任务，因为在渲染进程中可能会有问题
+    // setInterval(() => this.cleanupPools(), 60 * 1000);
+  }
+
+  /**
+   * 创建连接池
+   */
+  private createPool(sessionId: string, config: SessionInfo): Pool<PooledConnection> {
+    const factory = {
+      create: async (): Promise<PooledConnection> => {
+        const client = new Client();
+        await new Promise<void>((resolve, reject) => {
+          client.on('ready', resolve);
+          client.on('error', reject);
+          
+          const connConfig: any = {
+            host: config.host,
+            port: config.port,
+            username: config.username,
+            keepaliveInterval: 10000,  // 每10秒发送一次心跳
+            keepaliveCountMax: 3       // 最多重试3次
+          };
+
+          if (config.authType === 'password' && config.password) {
+            connConfig.password = config.password;
+          } else if (config.authType === 'privateKey' && config.privateKey) {
+            connConfig.privateKey = config.privateKey;
+          }
+
+          client.connect(connConfig);
+        });
+
+        return {
+          id: Math.random().toString(36).substr(2, 9),
+          client,
+          lastUsed: Date.now()
+        };
+      },
+      destroy: async (conn: PooledConnection): Promise<void> => {
+        try {
+          conn.client.end();
+        } catch (error) {
+          console.error('Failed to close connection:', error);
+        }
+      },
+      validate: async (conn: PooledConnection): Promise<boolean> => {
+        // 如果连接最后使用时间在30秒内，直接返回true
+        if (Date.now() - conn.lastUsed < 30000) {
+          return true;
+        }
+        return new Promise((resolve) => {
+          conn.client.exec('echo 1', (err) => {
+            resolve(!err);
+          });
+        });
+      }
+    };
+
+    return createPool(factory, {
+      ...this.DEFAULT_POOL_CONFIG,
+      testOnBorrow: true,      // 保持借用时检查
+      autostart: false,        // 禁用自动启动
+      evictionRunIntervalMillis: 0, // 禁用定时清理
+      fifo: false,             // 后进先出，优化性能
+    });
+  }
+
+  /**
+   * 清理连接池
+   */
+  private async cleanupPools(): Promise<void> {
+    const now = Date.now();
+    for (const [sessionId, pool] of this.pools.entries()) {
+      try {
+        // 检查池的使用情况
+        const status = await pool.size;
+        const available = await pool.available;
+        
+        // 如果所有连接都空闲，且超过一定时间，则清理非核心连接
+        if (status === available && available > this.DEFAULT_POOL_CONFIG.min) {
+          const borrowed = await pool.borrowed;
+          if (borrowed === 0) {
+            // 收缩到核心连接数
+            await pool.drain();
+            await pool.clear();
+            const config = this.configs.get(sessionId);
+            if (config) {
+              const newPool = this.createPool(sessionId, config);
+              this.pools.set(sessionId, newPool);
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to cleanup pool for session ${sessionId}:`, error);
+      }
+    }
+  }
+
+  /**
+   * 获取连接池状态
+   */
+  async getPoolStatus(sessionId: string): Promise<{
+    size: number;
+    available: number;
+    borrowed: number;
+    pending: number;
+    max: number;
+    min: number;
+  }> {
+    const pool = this.pools.get(sessionId);
+    if (!pool) {
+      throw new Error('Session not found');
+    }
+
+    return {
+      size: await pool.size,
+      available: await pool.available,
+      borrowed: await pool.borrowed,
+      pending: await pool.pending,
+      max: this.DEFAULT_POOL_CONFIG.max,
+      min: this.DEFAULT_POOL_CONFIG.min
+    };
   }
 
   /**
    * 获取SSH连接
    */
   getConnection(sessionId: string): Client | undefined {
-    const conn = this.connections.get(sessionId);
-    if (!conn) {
-      console.log(`[SSH] 未找到连接: ${sessionId}`);
-    }
-    return conn;
+    // 优先返回专用连接
+    return this.dedicatedConnections.get(sessionId);
   }
 
   /**
@@ -31,75 +178,117 @@ class SSHService {
    */
   isConnected(sessionId: string): boolean {
     console.log(`[SSH] 检查连接状态: ${sessionId}`);
-    const conn = this.connections.get(sessionId);
-    return !!conn;
+    // 检查是否有专用连接或连接池
+    return this.dedicatedConnections.has(sessionId) || this.pools.has(sessionId);
   }
 
-  async connect(sessionInfo: SessionInfo) {
+  async connect(sessionInfo: SessionInfo): Promise<void> {
     console.log('SSHService.connect called with:', sessionInfo);
-    const { id, host, port, username, password, privateKey, authType } = sessionInfo;
+    const { id } = sessionInfo;
 
-    console.log('Connecting to SSH server with config:', {
-      host,
-      port,
-      username,
-      authType,
-      hasPassword: !!password,
-      hasPrivateKey: !!privateKey
-    });
-
-    return new Promise<void>((resolve, reject) => {
-      const conn = new Client();
+    // 1. 创建专用连接
+    const dedicatedClient = new Client();
+    await new Promise<void>((resolve, reject) => {
+      dedicatedClient.on('ready', resolve);
+      dedicatedClient.on('error', reject);
       
-      conn.on('ready', () => {
-        console.log('SSH connection ready');
-        this.connections.set(id, conn);
-        resolve();
-      });
-
-      conn.on('error', (err) => {
-        console.error('SSH connection error:', err);
-        this.connections.delete(id);
-        reject(err);
-      });
-
-      const config: any = {
-        host,
-        port,
-        username
+      const connConfig: any = {
+        host: sessionInfo.host,
+        port: sessionInfo.port,
+        username: sessionInfo.username
       };
 
-      // 根据认证类型设置认证方式
-      if (authType === 'password' && password) {
-        config.password = password;
-      } else if (authType === 'privateKey' && privateKey) {
-        config.privateKey = privateKey;
-      } else {
-        reject(new Error('Invalid authentication configuration'));
-        return;
+      if (sessionInfo.authType === 'password' && sessionInfo.password) {
+        connConfig.password = sessionInfo.password;
+      } else if (sessionInfo.authType === 'privateKey' && sessionInfo.privateKey) {
+        connConfig.privateKey = sessionInfo.privateKey;
       }
 
-      conn.connect(config);
+      dedicatedClient.connect(connConfig);
     });
+    
+    // 2. 存储专用连接
+    this.dedicatedConnections.set(id, dedicatedClient);
+
+    // 3. 存储配置信息并创建连接池
+    this.configs.set(id, sessionInfo);
+    const pool = this.createPool(id, sessionInfo);
+    this.pools.set(id, pool);
+
+    // 4. 预热连接池，创建核心连接
+    try {
+      await Promise.all(
+        Array(this.DEFAULT_POOL_CONFIG.min)
+          .fill(0)
+          .map(async () => {
+            const conn = await pool.acquire();
+            await pool.release(conn);
+          })
+      );
+      console.log(`Connection pool initialized for session ${id}`);
+    } catch (error) {
+      console.error('Failed to initialize connection pool:', error);
+      // 连接池初始化失败不抛出错误，因为还有专用连接可用
+      console.log('Falling back to dedicated connection only');
+    }
   }
 
-  async disconnect(shellId: string) {
-    // 从 shellId 中提取 sessionId
-    const sessionId = shellId.split('-')[0];
-    
-    // 先删除 shell
-    this.shells.delete(shellId);
+  /**
+   * 执行命令的新方法
+   */
+  async executeCommand(sessionId: string, command: string, priority: number = 1): Promise<string> {
+    const pool = this.pools.get(sessionId);
+    if (!pool) {
+      throw new Error('Session not found');
+    }
 
-    // 检查是否还有其他使用这个连接的 shell
-    const hasOtherShells = Array.from(this.shells.keys()).some(id => id.startsWith(sessionId + '-'));
+    const conn = await pool.acquire(priority);
+    try {
+      return await new Promise<string>((resolve, reject) => {
+        conn.client.exec(command, (err, stream) => {
+          if (err) {
+            reject(err);
+            return;
+          }
 
-    // 如果没有其他 shell 使用这个连接，就关闭连接
-    if (!hasOtherShells) {
-      const conn = this.connections.get(sessionId);
-      if (conn) {
-        console.log(`Closing SSH connection for session ${sessionId}`);
-        conn.end();
-        this.connections.delete(sessionId);
+          let output = '';
+          stream.on('data', (data: Buffer) => {
+            output += data.toString();
+          });
+          stream.on('end', () => resolve(output));
+          stream.on('error', reject);
+        });
+      });
+    } finally {
+      await pool.release(conn);
+    }
+  }
+
+  /**
+   * 断开连接
+   */
+  async disconnect(sessionId: string): Promise<void> {
+    // 1. 清理连接池
+    const pool = this.pools.get(sessionId);
+    if (pool) {
+      await pool.drain();
+      await pool.clear();
+      this.pools.delete(sessionId);
+      this.configs.delete(sessionId);
+    }
+
+    // 2. 清理专用连接
+    const dedicatedClient = this.dedicatedConnections.get(sessionId);
+    if (dedicatedClient) {
+      dedicatedClient.end();
+      this.dedicatedConnections.delete(sessionId);
+    }
+
+    // 3. 清理相关的shells
+    for (const [shellId, shell] of this.shells.entries()) {
+      if (shellId.startsWith(sessionId + '-')) {
+        shell.end();
+        this.shells.delete(shellId);
       }
     }
   }
@@ -109,22 +298,32 @@ class SSHService {
    */
   async cleanupConnection(sessionId: string) {
     console.log(`[SSH] 清理连接: ${sessionId}`);
-    console.log(this.connections);
-    const conn = this.connections.get(sessionId);
-    if (conn) {
-      // 关闭连接
-      conn.end();
-      // 从Map中删除
-      this.connections.delete(sessionId);
-      // 清理相关的shells
-      for (const [shellId, shell] of this.shells.entries()) {
-        if (shellId.startsWith(sessionId + '-')) {
-          shell.end();
-          this.shells.delete(shellId);
-        }
-      }
-      console.log(`[SSH] 连接已清理: ${sessionId}`);
+    
+    // 1. 清理连接池
+    const pool = this.pools.get(sessionId);
+    if (pool) {
+      await pool.drain();
+      await pool.clear();
+      this.pools.delete(sessionId);
+      this.configs.delete(sessionId);
     }
+
+    // 2. 清理专用连接
+    const dedicatedClient = this.dedicatedConnections.get(sessionId);
+    if (dedicatedClient) {
+      dedicatedClient.end();
+      this.dedicatedConnections.delete(sessionId);
+    }
+
+    // 3. 清理相关的shells
+    for (const [shellId, shell] of this.shells.entries()) {
+      if (shellId.startsWith(sessionId + '-')) {
+        shell.end();
+        this.shells.delete(shellId);
+      }
+    }
+    
+    console.log(`[SSH] 连接已清理: ${sessionId}`);
   }
 
   async createShell(
@@ -133,11 +332,16 @@ class SSHService {
   ) {
     // 从 shellId 中提取 sessionId
     const sessionId = shellId.split('-')[0];
-    const conn = this.connections.get(sessionId);
     
-    if (!conn) {
+    // 从连接池获取连接
+    const pool = this.pools.get(sessionId);
+    if (!pool) {
       throw new Error('No SSH connection found');
     }
+
+    // 获取一个专用连接用于shell（优先级最高）
+    const pooledConn = await pool.acquire(0);
+    const conn = pooledConn.client;
 
     // 如果这个 shellId 已经存在，先关闭它
     if (this.shells.has(shellId)) {
@@ -148,14 +352,15 @@ class SSHService {
         this.shells.delete(shellId);
       }
     }
+
     console.log(`[SSH] Creating shell with config:`, initialSize);
     return new Promise<void>((resolve, reject) => {
       // 设置 PTY 选项，启用正确的终端模式
       const ptyConfig = {
         term: 'xterm-256color',
         pty: true,
-        rows: initialSize?.rows || 24,  // 使用传入的尺寸或默认值
-        cols: initialSize?.cols || 80    // 使用传入的尺寸或默认值
+        rows: initialSize?.rows || 24,
+        cols: initialSize?.cols || 80
       };
 
       console.log(`[SSH] Creating shell with config:`, ptyConfig);
@@ -163,6 +368,7 @@ class SSHService {
       conn.shell(ptyConfig, (err, stream) => {
         if (err) {
           console.error('Failed to create shell:', err);
+          pool.release(pooledConn).catch(console.error);
           reject(err);
           return;
         }
@@ -177,6 +383,7 @@ class SSHService {
         const mainWindow = BrowserWindow.getAllWindows()[0];
         if (!mainWindow) {
           console.error('No main window found');
+          pool.release(pooledConn).catch(console.error);
           reject(new Error('No main window found'));
           return;
         }
@@ -201,6 +408,8 @@ class SSHService {
           console.log(`Shell session closed [${shellId}]`);
           mainWindow.webContents.send(`ssh:close:${shellId}`);
           this.shells.delete(shellId);
+          // 释放连接回连接池
+          pool.release(pooledConn).catch(console.error);
         });
 
         // 监听错误事件
@@ -208,6 +417,8 @@ class SSHService {
           console.error(`Shell error [${shellId}]:`, error);
           mainWindow.webContents.send(`ssh:close:${shellId}`);
           this.shells.delete(shellId);
+          // 释放连接回连接池
+          pool.release(pooledConn).catch(console.error);
         });
         
         resolve();
@@ -233,7 +444,7 @@ class SSHService {
     shell.setWindow(rows, cols, 0, 0);
   }
 
-  // 新增：检查是否是 cd 命令
+  // 检查是否是 cd 命令
   private isChangeDirectoryCommand(data: string): boolean {
     // 匹配 cd 命令，包括带参数的情况
     const cdPattern = /^cd\s+.+$/;
@@ -242,7 +453,7 @@ class SSHService {
     return isCD;
   }
 
-  // 新增：处理目录变更
+  // 处理目录变更
   private async handleDirectoryChange(shellId: string, command: string) {
     console.log('[SSH] handleDirectoryChange:', { shellId, command });
     try {
@@ -270,13 +481,13 @@ class SSHService {
       });
 
       // 更新当前目录
-      this.updateCurrentDirectory(shellId, output);
+      await this.updateCurrentDirectory(shellId, output);
     } catch (error) {
       console.error(`[SSH] Failed to handle directory change [${shellId}]:`, error);
     }
   }
 
-  // 新增：更新当前目录
+  // 更新当前目录
   private async updateCurrentDirectory(shellId: string, directory: string) {
     console.log('[SSH] Updating current directory:', { shellId, directory });
     
@@ -307,17 +518,23 @@ class SSHService {
     return directory || '~';
   }
 
-  /**
-   * 直接执行命令（不依赖shell session）
-   */
-  async executeCommandDirect(sessionId: string, command: string): Promise<string> {
-    const connection = await this.getConnection(sessionId);
-    if (!connection) {
-      throw new Error('SSH connection not found');
+  // 内部方法：从连接池获取连接
+  private async getPoolConnection(sessionId: string, priority: number = 1): Promise<PooledConnection | undefined> {
+    const pool = this.pools.get(sessionId);
+    if (!pool) return undefined;
+    console.log('[SSH] getPoolConnection获取连接池连接:', pool );
+    try {
+      return await pool.acquire(priority);
+    } catch (error) {
+      console.error(`[SSH] 获取连接池连接失败: ${sessionId}`, error);
+      return undefined;
     }
+  }
 
-    return new Promise((resolve, reject) => {
-      connection.exec(command, (err, stream) => {
+  // 抽取命令执行逻辑为独立方法
+  private async execCommand(client: Client, command: string): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      client.exec(command, (err, stream) => {
         if (err) {
           reject(err);
           return;
@@ -338,14 +555,37 @@ class SSHService {
           resolve(stdout || stderr);
         });
 
-        stream.on('error', (err: Error) => {
-          reject(err);
-        });
+        stream.on('error', reject);
       });
     });
+  }
+
+  /**
+   * 直接执行命令（不依赖shell session）
+   */
+  async executeCommandDirect(sessionId: string, command: string): Promise<string> {
+    console.log(`[SSH] Executing direct command: ${command}`);
+    
+    // 1. 尝试从连接池获取连接
+    const poolConn = await this.getPoolConnection(sessionId);
+    if (poolConn) {
+      try {
+        return await this.execCommand(poolConn.client, command);
+      } finally {
+        await this.pools.get(sessionId)?.release(poolConn);
+      }
+    }
+    
+    // 2. 如果连接池不可用，回退到专用连接
+    const dedicatedClient = this.dedicatedConnections.get(sessionId);
+    if (!dedicatedClient) {
+      throw new Error('SSH connection not found');
+    }
+    
+    return await this.execCommand(dedicatedClient, command);
   }
 }
 
 console.log('Creating SSH service instance...');
 export const sshService = new SSHService();
-console.log('SSH service instance created.'); 
+console.log('SSH service instance created.');
