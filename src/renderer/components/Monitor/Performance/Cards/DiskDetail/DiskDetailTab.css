@@ -25,13 +25,21 @@
 
 /* 概览页样式 */
 .disk-content {
+  height: 100%;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .partitions-list {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
+  min-height: 0;
+  padding-bottom: 16px;
 }
 
 .partition-item {
@@ -98,12 +106,27 @@
 
 /* 健康状态页样式 */
 .disk-health {
+  height: 100%;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .last-check {
   margin-bottom: 16px;
   color: #8c8c8c;
+  flex-shrink: 0;
+}
+
+.disk-health .ant-table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.disk-health .ant-table-body {
+  overflow-y: auto !important;
 }
 
 .text-warning {
@@ -167,6 +190,9 @@
 }
 
 /* 自定义滚动条样式 */
+.partitions-list::-webkit-scrollbar,
+.disk-health .ant-table-body::-webkit-scrollbar,
+.io-content::-webkit-scrollbar,
 .analysis-content::-webkit-scrollbar,
 .analysis-card .ant-table-body::-webkit-scrollbar {
   width: 8px;
@@ -174,17 +200,26 @@
   background-color: transparent;
 }
 
+.partitions-list::-webkit-scrollbar-thumb,
+.disk-health .ant-table-body::-webkit-scrollbar-thumb,
+.io-content::-webkit-scrollbar-thumb,
 .analysis-content::-webkit-scrollbar-thumb,
 .analysis-card .ant-table-body::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
 }
 
+.partitions-list::-webkit-scrollbar-thumb:hover,
+.disk-health .ant-table-body::-webkit-scrollbar-thumb:hover,
+.io-content::-webkit-scrollbar-thumb:hover,
 .analysis-content::-webkit-scrollbar-thumb:hover,
 .analysis-card .ant-table-body::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.3);
 }
 
+.partitions-list::-webkit-scrollbar-track,
+.disk-health .ant-table-body::-webkit-scrollbar-track,
+.io-content::-webkit-scrollbar-track,
 .analysis-content::-webkit-scrollbar-track,
 .analysis-card .ant-table-body::-webkit-scrollbar-track {
   background-color: transparent;
@@ -192,15 +227,24 @@
 
 /* IO分析页样式 */
 .disk-io {
+  height: 100%;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .io-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
+  min-height: 0;
+  padding-bottom: 16px;
 }
 
 .io-card {
   height: 250px;
+  flex-shrink: 0;
 } 
