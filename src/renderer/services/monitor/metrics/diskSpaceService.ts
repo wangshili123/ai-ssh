@@ -136,27 +136,20 @@ export class DiskSpaceService {
    */
   private async analyzeFileTypes(sessionId: string, mountpoint: string): Promise<FileTypeInfo[]> {
     try {
-      // 使用find命令统计文件类型
-      const cmd = `find ${mountpoint} -xdev -type f -exec basename {} \\; 2>/dev/null | awk -F. '{if (NF>1) print $NF}' | sort | uniq -c | sort -rn | head -n 20`;
+      // 使用find命令统计文件类型和大小
+      const cmd = `find ${mountpoint} -xdev -type f -exec sh -c 'echo $(wc -c < "$1") $(basename "$1")' _ {} \\; 2>/dev/null | awk -F. '{if (NF>1) {size=$1; ext=$NF; print size " " ext}}' | awk '{size[$2]+=$1; count[$2]+=1} END {for (ext in size) print size[ext] " " count[ext] " " ext}' | sort -rn | head -n 20`;
       const output = await this.sshService.executeCommandDirect(sessionId, cmd);
       if (!output) return [];
 
-      const typeStats = new Map<string, { count: number; totalSize: number }>();
       const lines = output.split('\n').filter(line => line.trim());
-
-      for (const line of lines) {
-        const [count, ext] = line.trim().split(/\s+/);
-        typeStats.set(ext, {
+      return lines.map(line => {
+        const [size, count, ext] = line.trim().split(/\s+/);
+        return {
+          extension: ext,
           count: parseInt(count),
-          totalSize: 0 // 暂时不计算总大小，因为可能会很慢
-        });
-      }
-
-      return Array.from(typeStats.entries()).map(([extension, stats]) => ({
-        extension,
-        count: stats.count,
-        totalSize: stats.totalSize
-      }));
+          totalSize: parseInt(size)
+        };
+      });
     } catch (error) {
       console.error('分析文件类型失败:', error);
       return [];

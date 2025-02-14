@@ -102,7 +102,7 @@ export const DiskSpace: React.FC<DiskSpaceProps> = ({ spaceAnalysis }) => {
         上次扫描: {formatDistanceToNow(spaceAnalysis.lastScan, { addSuffix: true, locale: zhCN })}
       </div>
       <div className="analysis-content">
-        <Card title="大目录 TOP 20" size="small" className="analysis-card">
+        <Card title="大目录 TOP 20" size="small" className="analysis-card" >
           <Table 
             dataSource={spaceAnalysis.largeDirectories}
             columns={directoryColumns}
@@ -112,7 +112,7 @@ export const DiskSpace: React.FC<DiskSpaceProps> = ({ spaceAnalysis }) => {
             scroll={{ y: 300 }}
           />
         </Card>
-        <Card title="大文件 TOP 20" size="small" className="analysis-card">
+        <Card title="大文件 TOP 20" size="small" className="analysis-card" >
           <Table 
             dataSource={spaceAnalysis.largeFiles}
             columns={fileColumns}

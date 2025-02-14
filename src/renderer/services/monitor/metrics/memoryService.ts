@@ -38,7 +38,21 @@ export class MemoryMetricsService {
       };
     } catch (error) {
       console.error('采集内存指标失败:', error);
-      throw error;
+      return {
+        total: 0,
+        used: 0,
+        free: 0,
+        cached: 0,
+        buffers: 0,
+        usagePercent: 0,
+        swap: {
+          total: 0,
+          used: 0,
+          free: 0,
+          usagePercent: 0
+        },
+        topProcesses: []
+      };  
     }
   }
 
@@ -58,7 +72,20 @@ export class MemoryMetricsService {
       return this.parseMemoryInfo(freeResult || '', meminfoResult || '');
     } catch (error) {
       console.error('获取内存信息失败:', error);
-      throw error;
+      return {
+        total: 0,
+        used: 0,
+        free: 0,
+        cached: 0,
+        buffers: 0,
+        usagePercent: 0,
+        swap: {
+          total: 0,
+          used: 0,
+          free: 0,
+          usagePercent: 0
+        }
+      };
     }
   }
 
