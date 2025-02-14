@@ -18,6 +18,12 @@ class MonitorManager {
   // 活动状态控制
   private activeTab: string = '';
   private activeCard: string = '';
+  private activeDetailTab: { [key: string]: string } = {
+    cpu: 'basic',
+    memory: 'basic',
+    disk: 'overview',
+    network: 'basic'
+  };
 
   private constructor(sshService: SSHService) {
     this.sshService = sshService;
@@ -51,7 +57,6 @@ class MonitorManager {
   setActiveTab(tab: string): void {
     if (this.activeTab === tab) return;
     this.activeTab = tab;
-
   }
 
   /**
@@ -60,7 +65,15 @@ class MonitorManager {
   setActiveCard(card: string): void {
     if (this.activeCard === card) return;
     this.activeCard = card;
+  }
 
+  /**
+   * 设置当前激活的详情标签页
+   */
+  setActiveDetailTab(card: string, tab: string): void {
+    console.log('[MonitorManager] setActiveDetailTab', card, tab);
+    if (this.activeDetailTab[card] === tab) return;
+    this.activeDetailTab[card] = tab;
   }
 
   /**
@@ -138,7 +151,8 @@ class MonitorManager {
       console.log('[MonitorManager] 刷新会话数据:', {
         sessionId,
         activeTab: this.activeTab,
-        activeCard: this.activeCard
+        activeCard: this.activeCard,
+        activeDetailTab: this.activeDetailTab[this.activeCard]
       });
       // 根据当前激活的标签页决定刷新哪些数据
       const monitorData: MonitorData = {
@@ -146,8 +160,12 @@ class MonitorManager {
       };
       
       if (this.activeTab === 'performance') {
-        // 使用性能管理器采集数据，传入当前激活的卡片
-        monitorData.performance = await this.performanceManager.collectMetrics(sessionId, this.activeCard);
+        // 使用性能管理器采集数据，传入当前激活的卡片和详情标签页
+        monitorData.performance = await this.performanceManager.collectMetrics(
+          sessionId, 
+          this.activeCard,
+          this.activeDetailTab[this.activeCard]
+        );
       }
       // TODO: 其他标签页的数据刷新...
       

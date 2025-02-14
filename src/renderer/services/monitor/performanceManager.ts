@@ -53,12 +53,18 @@ export class PerformanceManager {
      * 采集性能指标数据
      * @param sessionId 会话ID
      * @param activeCard 当前激活的卡片类型
+     * @param activeDetailTab 当前激活的详情标签页
      */
-    async collectMetrics(sessionId: string, activeCard?: string): Promise<PerformanceData> {
+    async collectMetrics(
+        sessionId: string,
+        activeCard?: string,
+        activeDetailTab?: string
+    ): Promise<PerformanceData> {
         try {
             console.log('开始采集性能指标数据:', {
                 sessionId,
                 activeCard,
+                activeDetailTab,
                 timestamp: new Date().toISOString()
             });
 
@@ -94,7 +100,7 @@ export class PerformanceManager {
 
                 switch (activeCard) {
                     case 'cpu':
-                        detail.cpu = await this.cpuMetricsService.collectDetailMetrics(sessionId);
+                        detail.cpu = await this.cpuMetricsService.collectDetailMetrics(sessionId, activeDetailTab);
                         break;
                     case 'memory':
                         detail.memory = await this.memoryMetricsService.collectDetailMetrics(sessionId);

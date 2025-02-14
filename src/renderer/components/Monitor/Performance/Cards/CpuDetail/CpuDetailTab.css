@@ -1,0 +1,134 @@
+.cpu-detail {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cpu-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.cpu-tabs .ant-tabs-content {
+  flex: 1;
+  height: 0;
+}
+
+/* 基础信息样式 */
+.cpu-basic-info {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px;
+}
+
+.cpu-info-panel {
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-label {
+  color: #666;
+  white-space: nowrap;
+}
+
+.info-value {
+  color: #333;
+  font-weight: 500;
+}
+
+.cpu-main-chart {
+  flex: 1;
+  min-height: 300px;
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.chart-value {
+  font-size: 24px;
+  font-weight: 500;
+  color: #1890ff;
+}
+
+.echarts-container {
+  flex: 1;
+}
+
+/* 核心信息样式 */
+.cpu-cores {
+  height: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.cpu-cores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.core-chart {
+  background: #fff;
+  border-radius: 4px;
+  padding: 12px;
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+}
+
+.core-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #666;
+}
+
+.core-header span:last-child {
+  color: #1890ff;
+  font-weight: 500;
+} 

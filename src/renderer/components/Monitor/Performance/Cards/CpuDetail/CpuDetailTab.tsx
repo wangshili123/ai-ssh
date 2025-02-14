@@ -1,0 +1,52 @@
+import React, { useState, useEffect } from 'react';
+import { Tabs } from 'antd';
+import { CpuDetailInfo } from '../../../../../types/monitor';
+import { CpuBasicInfo } from './CpuBasicInfo';
+import { CpuCores } from './CpuCores';
+import { MonitorManager } from '../../../../../services/monitor/monitorManager';
+
+import './CpuDetailTab.css';
+import { getServiceManager } from '@/renderer/services/monitor/serviceManager';
+
+interface CpuDetailProps {
+  cpuInfo: CpuDetailInfo;
+  sessionId: string;
+}
+
+export const CpuDetail: React.FC<CpuDetailProps> = ({ cpuInfo, sessionId }) => {
+  const [activeTab, setActiveTab] = useState('basic');
+
+  // 同步活动标签页状态到 monitorManager
+  useEffect(() => {
+    const monitorManager = getServiceManager().getMonitorManager();
+    monitorManager.setActiveDetailTab('cpu', activeTab);
+  }, [activeTab]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+  };
+
+  const items = [
+    {
+      key: 'basic',
+      label: '基础信息',
+      children: <CpuBasicInfo cpuInfo={cpuInfo} />,
+    },
+    {
+      key: 'cores',
+      label: '逻辑处理器',
+      children: <CpuCores cpuInfo={cpuInfo} />,
+    },
+  ];
+
+  return (
+    <div className="cpu-detail">
+      <Tabs 
+        activeKey={activeTab}
+        onChange={handleTabChange}
+        items={items}
+        className="cpu-tabs"
+      />
+    </div>
+  );
+}; 

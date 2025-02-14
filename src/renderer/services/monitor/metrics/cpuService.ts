@@ -258,7 +258,7 @@ export class CpuMetricsService {
     cores: number[];
   }> {
     try {
-      
+      console.log('[CpuService] getCpuUsage');
       // 获取每个核心的使用率
       const coresCmd = "mpstat -P ALL 1 1";
       const coresResult = await this.sshService.executeCommandDirect(sessionId, coresCmd);
@@ -453,28 +453,94 @@ export class CpuMetricsService {
   /**
    * 采集CPU详细指标数据
    */
-  async collectDetailMetrics(sessionId: string): Promise<CpuDetailInfo> {
+  async collectDetailMetrics(sessionId: string, activeTab: string = 'basic'): Promise<CpuDetailInfo> {
     try {
-      // 暂时使用现有方法，后续优化
-      const fullMetrics = await this.collectMetrics(sessionId);
+      console.log('[CpuService] collectDetailMetrics', activeTab);
+      // 根据活动标签页决定要获取的数据
+      const promises: [Promise<Partial<CpuDetailInfo>>, Promise<{ cores: number[] }>] = [
+        // 只在 basic 标签页时获取基本信息
+        activeTab === 'basic' 
+          ? this.getCpuInfo(sessionId)
+          : Promise.resolve({
+              usage: 0,
+              speed: 0,
+              cores: [],
+              model: 'Unknown',
+              physicalCores: 0,
+              logicalCores: 0,
+              cache: {},
+              maxSpeed: 0,
+              minSpeed: 0,
+              currentSpeed: 0
+            } as Partial<CpuDetailInfo>),
+        
+        // 只在 cores 标签页时获取核心使用率
+        activeTab === 'cores'
+          ? this.getCpuUsage(sessionId)
+          : Promise.resolve({ cores: [] })
+      ];
+
+      // 并行获取数据
+      const [basicInfo, usage] = await Promise.all(promises);
+
+      const now = Date.now();
+
+      // 更新CPU使用率历史
+      if (!this.usageHistory.has(sessionId)) {
+        this.usageHistory.set(sessionId, []);
+      }
+      const currentUsageHistory = this.usageHistory.get(sessionId)!;
+      currentUsageHistory.push({
+        timestamp: now,
+        usage: basicInfo.usage || 0,
+        speed: basicInfo.speed || 0
+      });
+      if (currentUsageHistory.length > this.MAX_HISTORY_POINTS) {
+        currentUsageHistory.shift();
+      }
+
+      // 只在"逻辑处理器"标签页时更新核心使用率历史
+      let currentCoreHistory = this.coreUsageHistory.get(sessionId) || [];
+      if (activeTab === 'cores' && usage.cores.length > 0) {
+        if (!this.coreUsageHistory.has(sessionId)) {
+          this.coreUsageHistory.set(sessionId, []);
+        }
+        currentCoreHistory = this.coreUsageHistory.get(sessionId)!;
+        // 确保有足够的数组来存储每个核心的历史数据
+        while (currentCoreHistory.length < usage.cores.length) {
+          currentCoreHistory.push([]);
+        }
+        // 更新每个核心的历史数据
+        usage.cores.forEach((coreUsage, index) => {
+          currentCoreHistory[index].push({
+            timestamp: now,
+            usage: coreUsage,
+            speed: basicInfo.speed || 0
+          });
+          if (currentCoreHistory[index].length > this.MAX_HISTORY_POINTS) {
+            currentCoreHistory[index].shift();
+          }
+        });
+      }
+
       return {
-        usage: fullMetrics.usage,
-        temperature: fullMetrics.temperature,
-        speed: fullMetrics.speed,
-        currentSpeed: fullMetrics.currentSpeed,
-        cores: fullMetrics.cores,
-        model: fullMetrics.model,
-        maxSpeed: fullMetrics.maxSpeed,
-        minSpeed: fullMetrics.minSpeed,
-        physicalCores: fullMetrics.physicalCores,
-        logicalCores: fullMetrics.logicalCores,
-        cache: fullMetrics.cache,
-        architecture: fullMetrics.architecture,
-        vendor: fullMetrics.vendor,
-        socket: fullMetrics.socket,
-        virtualization: fullMetrics.virtualization,
-        usageHistory: fullMetrics.usageHistory,
-        coreUsageHistory: fullMetrics.coreUsageHistory
+        ...basicInfo,
+        usage: basicInfo.usage || 0,
+        cores: usage.cores,
+        model: basicInfo.model || 'Unknown',
+        speed: basicInfo.speed || 0,
+        currentSpeed: basicInfo.currentSpeed || basicInfo.speed || 0,
+        maxSpeed: basicInfo.maxSpeed || 0,
+        minSpeed: basicInfo.minSpeed || 0,
+        physicalCores: basicInfo.physicalCores || usage.cores.length / 2,
+        logicalCores: basicInfo.logicalCores || usage.cores.length,
+        cache: basicInfo.cache || {},
+        usageHistory: this.usageHistory.get(sessionId) || [],
+        coreUsageHistory: currentCoreHistory,
+        architecture: basicInfo.architecture || 'Unknown',
+        vendor: basicInfo.vendor || 'Unknown',
+        socket: basicInfo.socket || 'Unknown',
+        virtualization: basicInfo.virtualization || false
       };
     } catch (error) {
       console.error('采集CPU详细指标失败:', error);
