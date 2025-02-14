@@ -522,7 +522,6 @@ class SSHService {
   private async getPoolConnection(sessionId: string, priority: number = 1): Promise<PooledConnection | undefined> {
     const pool = this.pools.get(sessionId);
     if (!pool) return undefined;
-    console.log('[SSH] getPoolConnection获取连接池连接:', pool );
     try {
       return await pool.acquire(priority);
     } catch (error) {
