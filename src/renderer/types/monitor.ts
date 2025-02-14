@@ -1,7 +1,7 @@
 // CPU相关接口
 export interface CpuBasicInfo {
   usage: number;           // CPU总体使用率
-  temperature?: number;    // CPU温度 (°C)
+  temperature?: string | 'not_installed';    // CPU温度 (°C) 或未安装状态
   speed: number;          // 基准频率 (MHz)
   currentSpeed?: number;   // 当前频率 (MHz)
 }

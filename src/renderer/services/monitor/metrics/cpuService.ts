@@ -125,13 +125,21 @@ export class CpuMetricsService {
       const cpuInfoCmd = 'cat /proc/cpuinfo';
       const cpuInfoResult = await this.sshService.executeCommandDirect(sessionId, cpuInfoCmd);
       
-      // 获取CPU温度
-      const tempCmd = 'sensors 2>/dev/null | grep "Core"';
-      const tempResult = await this.sshService.executeCommandDirect(sessionId, tempCmd);
+      // 检查是否安装了 lm-sensors
+      const checkSensorsCmd = 'which sensors >/dev/null 2>&1 && echo "installed" || echo "not_installed"';
+      const sensorsInstalled = await this.sshService.executeCommandDirect(sessionId, checkSensorsCmd);
       
+      let temp;
+      if (sensorsInstalled.trim() === 'installed') {
+        // 如果已安装，尝试获取温度
+        const tempCmd = `sensors 2>/dev/null | grep -E "Core|Package|Tdie" | awk '{print $3}' | grep -oE "[0-9]+.[0-9]+" | sort -nr | head -n1`;
+        const tempResult = await this.sshService.executeCommandDirect(sessionId, tempCmd);
+        temp = tempResult;
+      } else {
+        temp = 'not_installed';
+      }
       // 解析CPU信息
       const info = this.parseCpuInfo(cpuInfoResult || '');
-      const temp = this.parseTemperature(tempResult || '');
       
       return {
         ...info,
@@ -191,8 +199,8 @@ export class CpuMetricsService {
   /**
    * 解析CPU温度信息
    */
-  private parseTemperature(output: string): number | undefined {
-    if (!output) return undefined;
+  private parseTemperature(output: string): string {
+    if (!output) return '';
 
     const temps = output.split('\n')
       .filter(line => line.includes('Core'))
@@ -201,7 +209,7 @@ export class CpuMetricsService {
         return match ? parseFloat(match[1]) : 0;
       });
 
-    return temps.length > 0 ? Math.max(...temps) : undefined;
+    return temps.length > 0 ? Math.max(...temps).toString() : '';
   }
 
   /**
@@ -333,13 +341,14 @@ export class CpuMetricsService {
    */
   async collectBasicMetrics(sessionId: string): Promise<CpuBasicInfo> {
     try {
-      // 暂时使用现有方法，后续优化
-      const fullMetrics = await this.collectMetrics(sessionId);
+      // 合并命令：同时获取CPU使用率和频率
+      const cmd = `paste <(top -bn1 | grep 'Cpu(s)' | awk '{print $2}') <(cat /proc/cpuinfo | grep 'cpu MHz' | head -n1 | awk '{print $4}')`;
+      const result = await this.sshService.executeCommandDirect(sessionId, cmd);
+      
+      const [usageStr, speedStr] = result.split('\t');
       return {
-        usage: fullMetrics.usage,
-        temperature: fullMetrics.temperature,
-        speed: fullMetrics.speed,
-        currentSpeed: fullMetrics.currentSpeed
+        usage: parseFloat(usageStr || '0'),
+        speed: parseFloat(speedStr || '0')
       };
     } catch (error) {
       console.error('采集CPU基础指标失败:', error);
