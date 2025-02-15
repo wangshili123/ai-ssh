@@ -11,13 +11,11 @@ class ServiceManager {
   private static instance: ServiceManager;
   private sshService: SSHService;
   private monitorManager: MonitorManager;
-  private cpuMetricsService: CpuMetricsService;
   private refreshService: RefreshService;
 
   private constructor(sshService: SSHService) {
     this.sshService = sshService;
     this.refreshService = RefreshService.getInstance();
-    this.cpuMetricsService = CpuMetricsService.getInstance(sshService);
     this.monitorManager = MonitorManager.getInstance(sshService);
   }
 
@@ -32,9 +30,6 @@ class ServiceManager {
     return this.monitorManager;
   }
 
-  getCpuMetricsService(): CpuMetricsService {
-    return this.cpuMetricsService;
-  }
 
   getRefreshService(): RefreshService {
     return this.refreshService;
@@ -49,7 +44,6 @@ class ServiceManager {
    */
   destroy(): void {
     this.monitorManager.destroy();
-    this.cpuMetricsService.destroy();
     this.refreshService.destroy();
     ServiceManager.instance = null as any;
   }
