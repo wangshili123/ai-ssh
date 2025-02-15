@@ -1,35 +1,122 @@
-    at async RefreshService.<anonymous> (renderer.js:440380:13)
-collectBasicMetrics @ renderer.js:440040
-await in collectBasicMetrics（异步）
-collectMetrics @ renderer.js:440601
-refreshSession @ renderer.js:440486
-（匿名） @ renderer.js:440380
-emit @ node:events:525
-refresh @ renderer.js:440278
-（匿名） @ renderer.js:440229
-setInterval（异步）
-startRefresh @ renderer.js:440228
-connectSession @ renderer.js:440445
-await in connectSession（异步）
-initMonitor @ renderer.js:433433
-（匿名） @ renderer.js:433455
-commitHookEffectListMount @ renderer.js:349690
-commitPassiveMountOnFiber @ renderer.js:351471
-commitPassiveMountEffects_complete @ renderer.js:351431
-commitPassiveMountEffects_begin @ renderer.js:351418
-commitPassiveMountEffects @ renderer.js:351406
-flushPassiveEffectsImpl @ renderer.js:353579
-flushPassiveEffects @ renderer.js:353524
-performSyncWorkOnRoot @ renderer.js:352616
-flushSyncCallbacks @ renderer.js:338548
-commitRootImpl @ renderer.js:353499
-commitRoot @ renderer.js:353222
-finishConcurrentRender @ renderer.js:352521
-performConcurrentWorkOnRoot @ renderer.js:352349
-workLoop @ renderer.js:402029
-flushWork @ renderer.js:402002
-performWorkUntilDeadline @ renderer.js:402296
-processImmediate @ node:internal/timers:476
+ [MonitorManager] 刷新会话数据: {sessionId: '1739629048480', activeTab: 'performance', activeCard: 'disk', activeDetailTab: 'overview'}
+ 开始采集性能指标数据: {sessionId: '1739629048480', activeCard: 'disk', activeDetailTab: 'overview', timestamp: '2025-02-15T15:10:04.615Z'}
  free -b 结果:               total        used        free      shared  buff/cache   available
-Mem:    67266519040 35519905792  5316493312  3309780992 26430119936 27888033792
+Mem:     1955680256   427216896   323559424     5001216  1204903936  1331564544
 Swap:             0           0           0
+
+ 解析的内存数据: (7) ['Mem:', '1955680256', '427216896', '323559424', '5001216', '1204903936', '1331564544']
+ 开始获取磁盘健康状态: {sessionId: '1739629048480', timestamp: '2025-02-15T15:10:05.272Z'}
+ 执行文件类型分析命令: find / -xdev -type f -printf "%s %f
+" 2>/dev/null | awk -F. '{if (NF>1) {size=$1; ext=$NF; print size " " ext}}' | awk '{size[$2]+=$1; count[$2]+=1} END {for (ext in size) print size[ext] " " count[ext] " " ext}' | sort -rn | head -n 20
+ 获取IO分析数据: {sessionId: '1739629048480', timestamp: '2025-02-15T15:10:05.278Z'}
+ iotopCheck: no
+
+ 找到磁盘设备: {sessionId: '1739629048480', deviceCount: 1, devices: Array(1), timestamp: '2025-02-15T15:10:05.775Z'}
+ 获取SMART信息: {sessionId: '1739629048480', device: 'vda', output: 'smartctl 7.0 2018-12-30 r4883 [x86_64-linux-4.19.9…option.\n\nUse smartctl -h to get a usage summary\n\n'}
+ 磁盘健康状态获取完成: {sessionId: '1739629048480', devicesCount: 1, lastCheck: '2025-02-15T15:10:06.025Z', timestamp: '2025-02-15T15:10:06.025Z'}
+ 原始lsblk输出: vda    disk    1      
+└─vda1 part    1      /
+
+ 根设备: /dev/vda1
+ 处理lsblk行: {line: 'vda    disk    1      ', parts: Array(3), cleanName: 'vda', type: 'disk', mountpoint: '1'}
+ 检测到ESSD云盘: vda
+ 设置磁盘类型: {name: 'vda', diskType: 'ESSD云盘'}
+ 处理lsblk行: {line: '└─vda1 part    1      /', parts: Array(4), cleanName: '─vda1', type: 'part', mountpoint: '/'}
+ 找到根分区设备: ─vda
+ 最终磁盘类型映射: {vda: 'ESSD云盘'}
+ 根设备名: ─vda
+ 将/dev/root映射到实际设备: ─vda
+ 处理分区: {device: '/dev/root', mountpoint: '/', fullDeviceName: 'root', baseDeviceName: '─vda', foundType: undefined, …}
+ 尝试获取磁盘类型: {baseDeviceName: '─vda', diskType: undefined, startWithVd: false}
+ 设置为未知类型: ─vda
+ 最终分区信息: {device: '/dev/root', mountpoint: '/', diskType: '未知'}
+ 处理分区: {device: 'devtmpfs', mountpoint: '/dev', fullDeviceName: 'devtmpfs', baseDeviceName: 'devtmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'devtmpfs', mountpoint: '/dev', diskType: '虚拟分区'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/dev/shm', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/dev/shm', diskType: '虚拟分区'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/run', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/run', diskType: '虚拟分区'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', diskType: '虚拟分区'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/run/user/0', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/run/user/0', diskType: '虚拟分区'}
+ 分析文件类型输出: 378491904 5 primary_db
+79392367 1 initramfs-0-rescue-f7b1811184364611b0ff6602ec70d643
+29368874 2 initramfs-4
+29023908 5 updateinfo
+20434408 1 lio_23xx_vsw
+17960008 1 libCri
+16170951 85 coreutils
+15778992 2 cygrpc
+12165184 1 224e94de826118a473ec10a28b0e4ae496a367d7-primary
+12099088 8 qed_init_values-8
+12067400 12 mc_10
+11970709 14 policy
+11243024 3 nic_AMDA0097-0001_8x10
+11158788 1 2a110092f5f7411a5483280d869a899b139c3220-primary
+10831136 3 nic_AMDA0097-0001_4x10_1x40
+10693608 3 nic_AMDA0081-0001_4x10
+10559248 3 nic_AMDA0081-0001_1x40
+10558240 3 nic_AMDA0078-0011_1x100
+10422624 3 nic_AMDA0099-0001_1x10_1x25
+10421568 3 nic_AMDA0099-0001_2x25
+
+ 解析的行数: 20
+ 处理行: 378491904 5 primary_db
+ 处理行: 79392367 1 initramfs-0-rescue-f7b1811184364611b0ff6602ec70d643
+ 处理行: 29368874 2 initramfs-4
+ 处理行: 29023908 5 updateinfo
+ 处理行: 20434408 1 lio_23xx_vsw
+ 处理行: 17960008 1 libCri
+ 处理行: 16170951 85 coreutils
+ 处理行: 15778992 2 cygrpc
+ 处理行: 12165184 1 224e94de826118a473ec10a28b0e4ae496a367d7-primary
+ 处理行: 12099088 8 qed_init_values-8
+ 处理行: 12067400 12 mc_10
+ 处理行: 11970709 14 policy
+ 处理行: 11243024 3 nic_AMDA0097-0001_8x10
+ 处理行: 11158788 1 2a110092f5f7411a5483280d869a899b139c3220-primary
+ 处理行: 10831136 3 nic_AMDA0097-0001_4x10_1x40
+ 处理行: 10693608 3 nic_AMDA0081-0001_4x10
+ 处理行: 10559248 3 nic_AMDA0081-0001_1x40
+ 处理行: 10558240 3 nic_AMDA0078-0011_1x100
+ 处理行: 10422624 3 nic_AMDA0099-0001_1x10_1x25
+ 处理行: 10421568 3 nic_AMDA0099-0001_2x25
+ [Performance] 采集性能指标数据完成，用时: 1637ms
+ [MonitorManager] 刷新会话数据: {sessionId: '1739629048480', activeTab: 'performance', activeCard: 'disk', activeDetailTab: 'overview'}
+ 开始采集性能指标数据: {sessionId: '1739629048480', activeCard: 'disk', activeDetailTab: 'overview', timestamp: '2025-02-15T15:10:09.506Z'}
+ free -b 结果:               total        used        free      shared  buff/cache   available
+Mem:     1955680256   430964736   319627264     5066752  1205088256  1327755264
+Swap:             0           0           0
+
+ 解析的内存数据: (7) ['Mem:', '1955680256', '430964736', '319627264', '5066752', '1205088256', '1327755264']
+ 开始获取磁盘健康状态: {sessionId: '1739629048480', timestamp: '2025-02-15T15:10:09.936Z'}
+ 使用缓存的磁盘健康数据: {sessionId: '1739629048480', lastCheck: '2025-02-15T15:10:06.025Z', devicesCount: 1, timestamp: '2025-02-15T15:10:09.937Z'}
+ 获取IO分析数据: {sessionId: '1739629048480', timestamp: '2025-02-15T15:10:09.937Z'}
+ 原始lsblk输出: vda    disk    1      
+└─vda1 part    1      /
+
+ 根设备: /dev/vda1
+ 处理lsblk行: {line: 'vda    disk    1      ', parts: Array(3), cleanName: 'vda', type: 'disk', mountpoint: '1'}
+ 检测到ESSD云盘: vda
+ 设置磁盘类型: {name: 'vda', diskType: 'ESSD云盘'}
+ 处理lsblk行: {line: '└─vda1 part    1      /', parts: Array(4), cleanName: '─vda1', type: 'part', mountpoint: '/'}
+ 找到根分区设备: ─vda
+ 最终磁盘类型映射: {vda: 'ESSD云盘'}
+ 根设备名: ─vda
+ 将/dev/root映射到实际设备: ─vda
+ 处理分区: {device: '/dev/root', mountpoint: '/', fullDeviceName: 'root', baseDeviceName: '─vda', foundType: undefined, …}
+ 尝试获取磁盘类型: {baseDeviceName: '─vda', diskType: undefined, startWithVd: false}
+ 设置为未知类型: ─vda
+ 最终分区信息: {device: '/dev/root', mountpoint: '/', diskType: '未知'}
+ 处理分区: {device: 'devtmpfs', mountpoint: '/dev', fullDeviceName: 'devtmpfs', baseDeviceName: 'devtmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'devtmpfs', mountpoint: '/dev', diskType: '虚拟分区'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/dev/shm', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/dev/shm', diskType: '虚拟分区'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/run', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/run', diskType: '虚拟分区'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', diskType: '虚拟分区'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/run/user/0', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/run/user/0', diskType: '虚拟分区'}
+ [Performance] 采集性能指标数据完成，用时: 1122ms

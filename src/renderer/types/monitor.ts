@@ -73,11 +73,11 @@ export interface DiskBasicInfo {
   used: number;         // 已使用(bytes)
   free: number;         // 可用空间(bytes)
   usagePercent: number; // 使用率(%)
-  readSpeed: number;    // 读取速度(bytes/s)
-  writeSpeed: number;   // 写入速度(bytes/s)
 }
 
 export interface DiskDetailInfo extends DiskBasicInfo {
+  readSpeed: number;    // 读取速度(bytes/s)
+  writeSpeed: number;   // 写入速度(bytes/s)
   deviceStats: {
     [key: string]: {
       readSpeed: number;  // 设备读取速度(bytes/s)

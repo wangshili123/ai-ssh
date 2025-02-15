@@ -76,11 +76,15 @@ export class DiskMetricsService {
       const dfCmd = 'df -B1 --output=source,target,fstype,size,used,avail,pcent';
       const dfResult = await this.sshService.executeCommandDirect(sessionId, dfCmd);
       
-      // 获取磁盘类型信息
-      const rotationalCmd = "find /sys/block/*/queue/rotational -type f -exec sh -c 'echo $(dirname $(dirname {})) $(cat {})' \\;";
-      const rotationalResult = await this.sshService.executeCommandDirect(sessionId, rotationalCmd);
+      // 使用lsblk命令获取磁盘类型信息，添加TYPE字段，并获取根设备信息
+      const lsblkCmd = "lsblk -o NAME,TYPE,ROTA,TRAN,MOUNTPOINT -n";
+      const lsblkResult = await this.sshService.executeCommandDirect(sessionId, lsblkCmd);
+
+      // 获取根分区对应的实际设备
+      const findmntCmd = "findmnt -n -o SOURCE /";
+      const rootDevice = await this.sshService.executeCommandDirect(sessionId, findmntCmd);
       
-      return this.parseDiskUsage(dfResult || '', rotationalResult || '');
+      return this.parseDiskUsage(dfResult || '', rootDevice?.trim() || '', lsblkResult || '');
     } catch (error) {
       console.error('获取磁盘使用情况失败:', error);
       return {
@@ -119,15 +123,59 @@ export class DiskMetricsService {
   /**
    * 解析磁盘使用情况
    */
-  private parseDiskUsage(output: string, rotationalOutput: string): Omit<DiskDetailInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory'> {
+  private parseDiskUsage(output: string, rootDevice: string, lsblkOutput: string): Omit<DiskDetailInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory'> {
     // 解析磁盘类型信息
     const diskTypes = new Map<string, string>();
-    rotationalOutput.split('\n').forEach(line => {
+    let rootDeviceName = '';
+    
+    // 从lsblk输出解析
+    const lsblkLines = lsblkOutput.split('\n');
+    console.log('原始lsblk输出:', lsblkOutput);
+    console.log('根设备:', rootDevice);
+    
+    lsblkLines.forEach(line => {
       if (!line.trim()) return;
-      const [path, rotational] = line.trim().split(' ');
-      const device = path.split('/').pop() || '';
-      diskTypes.set(device, rotational === '0' ? 'SSD' : 'HDD');
+      const parts = line.trim().split(/\s+/);
+      // 去除树形结构符号（如 └─）
+      const name = parts[0].replace(/[└─├─]/g, '');
+      const type = parts[1];
+      const mountpoint = parts[parts.length - 1];
+      
+      console.log('处理lsblk行:', {
+        line,
+        parts,
+        cleanName: name,
+        type,
+        mountpoint
+      });
+      
+      // 记录根分区对应的设备名
+      if (mountpoint === '/') {
+        rootDeviceName = name.replace(/[0-9]+$/, '');
+        console.log('找到根分区设备:', rootDeviceName);
+      }
+      
+      // 只处理disk类型的设备，跳过分区
+      if (type === 'disk') {
+        let diskType = 'HDD';
+        // 根据设备名判断是否为云盘
+        if (name.startsWith('vd')) {
+          diskType = 'ESSD云盘';
+          console.log('检测到ESSD云盘:', name);
+        } else if (parts.includes('sata') && parts.includes('0')) {
+          diskType = 'SSD';
+          console.log('检测到SATA SSD:', name);
+        } else if (parts.includes('nvme')) {
+          diskType = 'SSD';
+          console.log('检测到NVMe SSD:', name);
+        }
+        console.log('设置磁盘类型:', { name, diskType });
+        diskTypes.set(name, diskType);
+      }
     });
+
+    console.log('最终磁盘类型映射:', Object.fromEntries(diskTypes));
+    console.log('根设备名:', rootDeviceName);
 
     const lines = output.split('\n').slice(1); // 跳过标题行
     const partitions = [];
@@ -146,9 +194,24 @@ export class DiskMetricsService {
       
       const usagePercent = parseInt(usageStr.replace('%', ''));
       
-      // 获取设备名和磁盘类型
-      const deviceName = device.split('/').pop() || '';
-      const baseDevice = deviceName.replace(/[0-9]+$/, ''); // 移除分区号以获取基础设备名
+      // 获取设备名和磁盘类型，移除所有特殊字符
+      let fullDeviceName = device.split('/').pop() || '';
+      let baseDeviceName = fullDeviceName.replace(/[0-9]+$/, '').replace(/[└─├─]/g, '');
+      
+      // 特殊处理 /dev/root
+      if (device === '/dev/root' && rootDeviceName) {
+        baseDeviceName = rootDeviceName.replace(/[└─├─]/g, '');
+        console.log('将/dev/root映射到实际设备:', baseDeviceName);
+      }
+      
+      console.log('处理分区:', { 
+        device,
+        mountpoint,
+        fullDeviceName,
+        baseDeviceName,
+        foundType: diskTypes.get(baseDeviceName),
+        allTypes: Object.fromEntries(diskTypes)
+      });
       
       // 根据文件系统类型判断是否为虚拟分区
       const isVirtual = ['tmpfs', 'devtmpfs', 'sysfs', 'proc', 'devpts', 'securityfs', 'cgroup', 'pstore', 'hugetlbfs', 'mqueue', 'debugfs'].includes(fstype);
@@ -162,9 +225,33 @@ export class DiskMetricsService {
       } else if (isDocker) {
         diskType = 'Docker存储';
       } else {
-        diskType = diskTypes.get(baseDevice) || '未知';
+        // 先尝试从diskTypes获取类型
+        diskType = diskTypes.get(baseDeviceName);
+        console.log('尝试获取磁盘类型:', {
+          baseDeviceName,
+          diskType,
+          startWithVd: baseDeviceName.startsWith('vd')
+        });
+        
+        // 如果没有找到类型，但设备名以vd开头，则设为ESSD云盘
+        if (!diskType && baseDeviceName.startsWith('vd')) {
+          diskType = 'ESSD云盘';
+          console.log('通过设备名判定为ESSD云盘:', baseDeviceName);
+        }
+        
+        // 如果仍然没有类型，则设为未知
+        if (!diskType) {
+          diskType = '未知';
+          console.log('设置为未知类型:', baseDeviceName);
+        }
       }
       
+      console.log('最终分区信息:', {
+        device,
+        mountpoint,
+        diskType
+      });
+
       const partition = {
         device,
         mountpoint,
@@ -174,8 +261,8 @@ export class DiskMetricsService {
         used: parseInt(used),
         free: parseInt(free),
         usagePercent,
-        readSpeed: 0,  // 将在IO数据中更新
-        writeSpeed: 0  // 将在IO数据中更新
+        readSpeed: 0,
+        writeSpeed: 0
       };
 
       // 根据分区类型分别存储
@@ -278,7 +365,53 @@ export class DiskMetricsService {
 
 
   async collectBasicMetrics(sessionId: string): Promise<DiskBasicInfo> {
-    return this.collectMetrics(sessionId);
+    try {
+      // 只使用df命令获取基础磁盘使用情况，使用-B1参数以字节为单位
+      const dfCmd = 'df -B1 --output=source,target,fstype,size,used,avail,pcent';
+      const dfResult = await this.sshService.executeCommandDirect(sessionId, dfCmd);
+      
+      const lines = dfResult.split('\n').slice(1); // 跳过标题行
+      let totalSize = 0;
+      let totalUsed = 0;
+      let totalFree = 0;
+
+      // 分别存储物理分区和虚拟分区
+      const physicalPartitions = [];
+      const virtualPartitions = [];
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        
+        const [device, mountpoint, fstype, size, used, free] = line.trim().split(/\s+/);
+        
+        // 根据文件系统类型判断是否为虚拟分区
+        const isVirtual = ['tmpfs', 'devtmpfs', 'sysfs', 'proc', 'devpts', 'securityfs', 'cgroup', 'pstore', 'hugetlbfs', 'mqueue', 'debugfs'].includes(fstype);
+        
+        // 判断是否为Docker存储
+        const isDocker = fstype === 'overlay' || fstype === 'overlay2' || device.includes('/var/lib/docker');
+        
+        if (!isVirtual && !isDocker) {
+          totalSize += parseInt(size) || 0;
+          totalUsed += parseInt(used) || 0;
+          totalFree += parseInt(free) || 0;
+        }
+      }
+
+      return {
+        total: totalSize,
+        used: totalUsed,
+        free: totalFree,
+        usagePercent: totalSize > 0 ? (totalUsed / totalSize) * 100 : 0
+      };
+    } catch (error) {
+      console.error('获取磁盘基础使用情况失败:', error);
+      return {
+        total: 0,
+        used: 0,
+        free: 0,
+        usagePercent: 0
+      };
+    }
   }
 
   async collectDetailMetrics(sessionId: string): Promise<DiskDetailInfo> {
