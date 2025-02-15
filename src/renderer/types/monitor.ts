@@ -51,6 +51,13 @@ export interface MemoryBasicInfo {
 }
 
 export interface MemoryDetailInfo extends MemoryBasicInfo {
+  // 内存压力指标
+  active: number;      // 活跃内存(bytes)
+  inactive: number;    // 不活跃内存(bytes)
+  dirty: number;       // 待写回内存(bytes)
+  writeback: number;   // 正在写回内存(bytes)
+  actualUsed: number;  // 实际使用内存(bytes) = used - cached - buffers
+  actualUsagePercent: number; // 实际使用率(%)
   topProcesses: Array<{
     pid: number;       // 进程ID
     name: string;      // 进程名

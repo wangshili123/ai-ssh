@@ -11,7 +11,6 @@ interface CpuCoresProps {
 export const CpuCores: React.FC<CpuCoresProps> = ({ cpuInfo }) => {
   return (
     <div className="cpu-cores">
-      <div className="section-title">每个处理器核心的使用率</div>
       <div className="cpu-cores-grid">
         {cpuInfo.cores.map((usage, index) => (
           <div key={index} className="core-chart">

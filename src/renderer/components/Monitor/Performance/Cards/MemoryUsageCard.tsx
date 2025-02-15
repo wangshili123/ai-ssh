@@ -36,6 +36,12 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
       free: 0,
       usagePercent: 0
     },
+    active: 0,
+    inactive: 0,
+    dirty: 0,
+    writeback: 0,
+    actualUsed: 0,
+    actualUsagePercent: 0,
     topProcesses: []
   };
 
@@ -205,31 +211,53 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
             />
           </div>
           <div className="memory-info">
-            <div className="info-item">
-              <span className="info-label">总内存：</span>
-              <span className="info-value">{formatBytes(memoryDetail.total)}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">已用内存：</span>
-              <span className="info-value">{formatBytes(memoryDetail.used)} ({Math.round(memoryDetail.usagePercent)}%)</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">可用内存：</span>
-              <span className="info-value">{formatBytes(memoryDetail.free)}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">缓存：</span>
-              <span className="info-value">{formatBytes(memoryDetail.cached)}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">缓冲区：</span>
-              <span className="info-value">{formatBytes(memoryDetail.buffers)}</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">交换空间：</span>
-              <span className="info-value">
-                {formatBytes(memoryDetail.swap.used)}/{formatBytes(memoryDetail.swap.total)} ({Math.round(memoryDetail.swap.usagePercent)}%)
-              </span>
+            <div className="info-columns">
+              <div className="info-column">
+                <div className="info-item">
+                  <span className="info-label">总内存：</span>
+                  <span className="info-value">{formatBytes(memoryDetail.total)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">实际使用：</span>
+                  <span className="info-value">{formatBytes(memoryDetail.actualUsed)} ({Math.round(memoryDetail.actualUsagePercent)}%)</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">可用内存：</span>
+                  <span className="info-value">{formatBytes(memoryDetail.free)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">缓存：</span>
+                  <span className="info-value">{formatBytes(memoryDetail.cached)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">缓冲区：</span>
+                  <span className="info-value">{formatBytes(memoryDetail.buffers)}</span>
+                </div>
+              </div>
+              <div className="info-column">
+                <div className="info-item">
+                  <span className="info-label">活跃内存：</span>
+                  <span className="info-value">{formatBytes(memoryDetail.active)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">不活跃内存：</span>
+                  <span className="info-value">{formatBytes(memoryDetail.inactive)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">待写回：</span>
+                  <span className="info-value">{formatBytes(memoryDetail.dirty)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">正在写回：</span>
+                  <span className="info-value">{formatBytes(memoryDetail.writeback)}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">交换空间：</span>
+                  <span className="info-value">
+                    {formatBytes(memoryDetail.swap.used)}/{formatBytes(memoryDetail.swap.total)} ({Math.round(memoryDetail.swap.usagePercent)}%)
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

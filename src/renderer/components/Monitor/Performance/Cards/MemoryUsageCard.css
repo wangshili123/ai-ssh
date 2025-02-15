@@ -72,24 +72,34 @@
   padding: 4px;
 }
 
-.info-item {
+.memory-info .info-columns {
   display: flex;
-  align-items: center;
-  font-size: 13px;
-  line-height: 20px;
-  min-width: 240px;
+  gap: 24px;
+}
+
+.memory-info .info-column {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.info-label {
+.memory-info .info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+.memory-info .info-label {
   color: #666;
-  width: 80px;
-  flex-shrink: 0;
+  font-size: 14px;
 }
 
-.info-value {
-  color: #333;
-  font-weight: 500;
+.memory-info .info-value {
+  color: #1f1f1f;
+  font-size: 14px;
 }
 
 .section-divider {
