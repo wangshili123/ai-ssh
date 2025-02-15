@@ -4,6 +4,7 @@ import ReactECharts from 'echarts-for-react';
 import { MemoryBasicInfo, MemoryDetailInfo, MonitorData } from '../../../../types/monitor';
 import type { ECOption } from '../../../../types/echarts';
 import { formatBytes } from '../../../../utils/format';
+import { getProgressColor, getResourceStatus } from '../../../../utils/theme';
 import './MemoryUsageCard.css';
 
 interface MemoryUsageCardProps {
@@ -176,9 +177,9 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
 
   // 简单视图用于左侧资源列表
   if (simple) {
-    const warningLevel = getWarningLevel(memoryBasic.usagePercent);
+    const status = getResourceStatus(memoryBasic.usagePercent);
     return (
-      <div className={`resource-summary memory-usage-card ${warningLevel}`}>
+      <div className={`resource-summary memory-usage-card ${status}`}>
         <div className="resource-title">内存</div>
         <div className="resource-value">
           <span className="usage-value">{Math.round(memoryBasic.usagePercent)}%</span>
@@ -190,8 +191,7 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
           percent={Math.round(memoryBasic.usagePercent)} 
           showInfo={false} 
           size="small"
-          status={warningLevel === 'critical' ? 'exception' : 'normal'}
-          strokeColor={warningLevel === 'warning' ? '#faad14' : undefined}
+          strokeColor={getProgressColor(memoryBasic.usagePercent)}
         />
       </div>
     );

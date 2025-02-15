@@ -1,6 +1,8 @@
 import React from 'react';
+import { Progress } from 'antd';
 import { CpuBasicInfo, CpuDetailInfo, MonitorData } from '../../../../types/monitor';
 import { formatFrequency } from '../../../../utils/format';
+import { getProgressColor, getResourceStatus } from '../../../../utils/theme';
 import { CpuDetail } from './CpuDetail/CpuDetailTab';
 import './CpuUsageCard.css';
 
@@ -43,13 +45,20 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
 
   // 简单视图用于左侧资源列表
   if (simple) {
+    const status = getResourceStatus(cpuBasic.usage);
     return (
-      <div className="resource-summary cpu-usage-card">
+      <div className={`resource-summary cpu-usage-card ${status}`}>
         <div className="resource-title">CPU</div>
         <div className="resource-value">
           <span className="usage-value">{Math.round(cpuBasic.usage)}%</span>
           <span className="resource-speed">{formatFrequency(cpuBasic.currentSpeed || cpuBasic.speed)}</span>
         </div>
+        <Progress 
+          percent={Math.round(cpuBasic.usage)} 
+          showInfo={false} 
+          size="small"
+          strokeColor={getProgressColor(cpuBasic.usage)}
+        />
       </div>
     );
   }

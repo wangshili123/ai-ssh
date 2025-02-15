@@ -50,8 +50,6 @@
 
 .memory-overview {
   display: flex;
-  gap: 24px;
-  padding: 16px;
   background: #fafafa;
   border-radius: 8px;
   min-height: 180px;
