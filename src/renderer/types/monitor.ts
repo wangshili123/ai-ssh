@@ -40,9 +40,6 @@ export interface MemoryBasicInfo {
   used: number;        // 已使用(bytes)
   free: number;        // 空闲内存(bytes)
   usagePercent: number; // 使用率(%)
-}
-
-export interface MemoryDetailInfo extends MemoryBasicInfo {
   cached: number;      // 缓存大小(bytes)
   buffers: number;     // 缓冲区大小(bytes)
   swap: {
@@ -51,6 +48,9 @@ export interface MemoryDetailInfo extends MemoryBasicInfo {
     free: number;      // 空闲交换空间(bytes)
     usagePercent: number; // 交换空间使用率(%)
   };
+}
+
+export interface MemoryDetailInfo extends MemoryBasicInfo {
   topProcesses: Array<{
     pid: number;       // 进程ID
     name: string;      // 进程名

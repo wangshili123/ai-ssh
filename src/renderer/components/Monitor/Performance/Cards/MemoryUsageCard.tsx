@@ -225,24 +225,12 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
               <span className="info-label">缓冲区：</span>
               <span className="info-value">{formatBytes(memoryDetail.buffers)}</span>
             </div>
-            {memoryDetail.swap.total > 0 && (
-              <>
-                <div className="info-item section-divider">
-                  <span className="info-label">交换空间：</span>
-                  <span className="info-value">{formatBytes(memoryDetail.swap.total)}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">已用交换：</span>
-                  <span className="info-value">
-                    {formatBytes(memoryDetail.swap.used)} ({Math.round(memoryDetail.swap.usagePercent)}%)
-                  </span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">可用交换：</span>
-                  <span className="info-value">{formatBytes(memoryDetail.swap.free)}</span>
-                </div>
-              </>
-            )}
+            <div className="info-item">
+              <span className="info-label">交换空间：</span>
+              <span className="info-value">
+                {formatBytes(memoryDetail.swap.used)}/{formatBytes(memoryDetail.swap.total)} ({Math.round(memoryDetail.swap.usagePercent)}%)
+              </span>
+            </div>
           </div>
         </div>
 

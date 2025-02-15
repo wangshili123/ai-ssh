@@ -28,21 +28,19 @@ export class MemoryMetricsService {
    */
   async collectMetrics(sessionId: string): Promise<MemoryDetailInfo> {
     try {
-      const [memInfo, swapInfo, topProcesses] = await Promise.all([
-        this.getMemoryInfo(sessionId),
-        this.getSwapInfo(sessionId),
+      const [memInfo, topProcesses] = await Promise.all([
+        this.collectBasicMetrics(sessionId),
         this.getTopProcesses(sessionId)
       ]);
 
-      // 确保所有必需的字段都有值
       return {
-        total: memInfo.total || 0,
-        used: memInfo.used || 0,
-        free: memInfo.free || 0,
-        cached: memInfo.cached || 0,
-        buffers: memInfo.buffers || 0,
-        usagePercent: memInfo.usagePercent || 0,
-        swap: swapInfo,
+        total: memInfo.total,
+        used: memInfo.used,
+        free: memInfo.free,
+        cached: memInfo.cached,
+        buffers: memInfo.buffers,
+        usagePercent: memInfo.usagePercent,
+        swap: memInfo.swap,
         topProcesses
       };
     } catch (error) {
@@ -66,117 +64,80 @@ export class MemoryMetricsService {
   }
 
   /**
-   * 获取内存基本信息
+   * 采集内存基础指标数据
    */
-  private async getMemoryInfo(sessionId: string): Promise<Partial<MemoryDetailInfo>> {
+  async collectBasicMetrics(sessionId: string): Promise<MemoryBasicInfo> {
     try {
       const cmd = 'free -b';  // 使用字节为单位
       const result = await this.sshService.executeCommandDirect(sessionId, cmd);
-      return this.parseMemoryInfo(result || '');
+      
+      // 解析内存信息
+      const lines = result.split('\n');
+      const memLine = lines.find(line => line.startsWith('Mem:'));
+      const swapLine = lines.find(line => line.startsWith('Swap:'));
+      
+      if (!memLine || !swapLine) {
+        return {
+          total: 0,
+          used: 0,
+          free: 0,
+          usagePercent: 0,
+          cached: 0,
+          buffers: 0,
+          swap: {
+            total: 0,
+            used: 0,
+            free: 0,
+            usagePercent: 0
+          }
+        };
+      }
+
+      // 解析内存信息
+      const memParts = memLine.split(/\s+/);
+      const total = parseInt(memParts[1]) || 0;
+      const used = parseInt(memParts[2]) || 0;
+      const free = parseInt(memParts[3]) || 0;
+      const buffers = parseInt(memParts[5]) || 0;
+      const cached = parseInt(memParts[6]) || 0;
+
+      // 解析交换空间信息
+      const swapParts = swapLine.split(/\s+/);
+      const swapTotal = parseInt(swapParts[1]) || 0;
+      const swapUsed = parseInt(swapParts[2]) || 0;
+      const swapFree = parseInt(swapParts[3]) || 0;
+
+      return {
+        total,
+        used,
+        free,
+        cached,
+        buffers,
+        usagePercent: total > 0 ? (used / total) * 100 : 0,
+        swap: {
+          total: swapTotal,
+          used: swapUsed,
+          free: swapFree,
+          usagePercent: swapTotal > 0 ? (swapUsed / swapTotal) * 100 : 0
+        }
+      };
     } catch (error) {
-      console.error('获取内存信息失败:', error);
+      console.error('采集内存基础指标失败:', error);
       return {
         total: 0,
         used: 0,
         free: 0,
+        usagePercent: 0,
         cached: 0,
         buffers: 0,
-        usagePercent: 0
+        swap: {
+          total: 0,
+          used: 0,
+          free: 0,
+          usagePercent: 0
+        }
       };
     }
-  }
-
-  /**
-   * 获取交换空间信息
-   */
-  private async getSwapInfo(sessionId: string): Promise<{
-    total: number;
-    used: number;
-    free: number;
-    usagePercent: number;
-  }> {
-    try {
-      const cmd = 'free -b';  // 使用字节为单位
-      const result = await this.sshService.executeCommandDirect(sessionId, cmd);
-      return this.parseSwapInfo(result || '');
-    } catch (error) {
-      console.error('获取交换空间信息失败:', error);
-      return {
-        total: 0,
-        used: 0,
-        free: 0,
-        usagePercent: 0
-      };
-    }
-  }
-
-  /**
-   * 解析内存信息
-   */
-  private parseMemoryInfo(output: string): Partial<MemoryDetailInfo> {
-    const lines = output.split('\n');
-    const memLine = lines.find(line => line.startsWith('Mem:'));
-    
-    if (!memLine) {
-      return {
-        total: 0,
-        used: 0,
-        free: 0,
-        cached: 0,
-        buffers: 0,
-        usagePercent: 0
-      };
-    }
-
-    const parts = memLine.split(/\s+/);
-    const total = parseInt(parts[1]) || 0;
-    const used = parseInt(parts[2]) || 0;
-    const free = parseInt(parts[3]) || 0;
-    const buffers = parseInt(parts[5]) || 0;
-    const cached = parseInt(parts[6]) || 0;
-
-    return {
-      total,
-      used,
-      free,
-      cached,
-      buffers,
-      usagePercent: total > 0 ? (used / total) * 100 : 0
-    };
-  }
-
-  /**
-   * 解析交换空间信息
-   */
-  private parseSwapInfo(output: string): {
-    total: number;
-    used: number;
-    free: number;
-    usagePercent: number;
-  } {
-    const lines = output.split('\n');
-    const swapLine = lines.find(line => line.startsWith('Swap:'));
-    
-    if (!swapLine) {
-      return {
-        total: 0,
-        used: 0,
-        free: 0,
-        usagePercent: 0
-      };
-    }
-
-    const parts = swapLine.split(/\s+/);
-    const total = parseInt(parts[1]) || 0;
-    const used = parseInt(parts[2]) || 0;
-    const free = parseInt(parts[3]) || 0;
-
-    return {
-      total,
-      used,
-      free,
-      usagePercent: total > 0 ? (used / total) * 100 : 0
-    };
   }
 
   /**
@@ -225,29 +186,6 @@ export class MemoryMetricsService {
         };
       })
       .slice(0, 10);  // 只取前10个进程
-  }
-
-  /**
-   * 采集内存基础指标数据
-   */
-  async collectBasicMetrics(sessionId: string): Promise<MemoryBasicInfo> {
-    try {
-      const memInfo = await this.getMemoryInfo(sessionId);
-      return {
-        total: memInfo.total || 0,
-        used: memInfo.used || 0,
-        free: memInfo.free || 0,
-        usagePercent: memInfo.usagePercent || 0
-      };
-    } catch (error) {
-      console.error('采集内存基础指标失败:', error);
-      return {
-        total: 0,
-        used: 0,
-        free: 0,
-        usagePercent: 0
-      };
-    }
   }
 
   /**
