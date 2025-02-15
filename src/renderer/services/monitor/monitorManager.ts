@@ -80,6 +80,7 @@ class MonitorManager {
    * 创建新的监控会话
    */
   createSession(config: Partial<Omit<SessionInfo, 'id' | 'type' | 'status'>>): SessionInfo {
+    console.time(`[Performance] 创建会话总耗时`);
     const session: SessionInfo = {
       id: Date.now().toString(),
       type: 'monitor',
@@ -99,6 +100,7 @@ class MonitorManager {
     };
 
     this.sessions.set(session.id, session);
+    console.timeEnd(`[Performance] 创建会话总耗时`);
     return session;
   }
 
@@ -106,6 +108,7 @@ class MonitorManager {
    * 连接会话
    */
   async connectSession(sessionId: string): Promise<void> {
+    console.time(`[Performance] 连接会话总耗时 ${sessionId}`);
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error('Session not found');
@@ -114,17 +117,23 @@ class MonitorManager {
     session.status = 'connecting';
 
     try {
+      console.time(`[Performance] SSH连接耗时 ${sessionId}`);
       await this.sshService.connect(session);
+      console.timeEnd(`[Performance] SSH连接耗时 ${sessionId}`);
+      
       session.status = 'connected';
 
       if (session.config?.autoRefresh) {
+        console.time(`[Performance] 启动自动刷新耗时 ${sessionId}`);
         this.refreshService.startRefresh(session);
+        console.timeEnd(`[Performance] 启动自动刷新耗时 ${sessionId}`);
       }
     } catch (error) {
       session.status = 'error';
       session.error = (error as Error).message;
       throw error;
     }
+    console.timeEnd(`[Performance] 连接会话总耗时 ${sessionId}`);
   }
 
   /**
@@ -143,6 +152,7 @@ class MonitorManager {
    * 刷新会话数据
    */
   async refreshSession(sessionId: string): Promise<void> {
+    console.time(`[Performance] 刷新会话总耗时 ${sessionId}`);
     const session = this.sessions.get(sessionId);
     if (!session || session.status !== 'connected') return;
 
@@ -154,22 +164,21 @@ class MonitorManager {
         activeCard: this.activeCard,
         activeDetailTab: this.activeDetailTab[this.activeCard]
       });
-      // 根据当前激活的标签页决定刷新哪些数据
+
       const monitorData: MonitorData = {
         timestamp: Date.now()
       };
       
       if (this.activeTab === 'performance') {
-        // 使用性能管理器采集数据，传入当前激活的卡片和详情标签页
+        console.time(`[Performance] 性能指标采集耗时 ${sessionId}`);
         monitorData.performance = await this.performanceManager.collectMetrics(
           sessionId, 
           this.activeCard,
           this.activeDetailTab[this.activeCard]
         );
+        console.timeEnd(`[Performance] 性能指标采集耗时 ${sessionId}`);
       }
-      // TODO: 其他标签页的数据刷新...
       
-      // 更新会话数据
       session.monitorData = monitorData;
       session.status = 'connected';
       session.lastUpdated = Date.now();
@@ -182,6 +191,7 @@ class MonitorManager {
       session.status = 'error';
       session.error = (error as Error).message;
     }
+    console.timeEnd(`[Performance] 刷新会话总耗时 ${sessionId}`);
   }
 
   /**

@@ -25,8 +25,10 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
 
   useEffect(() => {
     const initMonitor = async () => {
+      console.time(`[Performance] 监控页面初始化总耗时 ${sessionInfo.id}`);
       try {
         // 创建监控会话
+        console.time(`[Performance] 创建监控会话耗时 ${sessionInfo.id}`);
         console.log('[MonitorPage] 创建监控会话:', sessionInfo);
         const monitorSession = monitorManager.createSession({
           ...sessionInfo,
@@ -40,24 +42,31 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
             cacheExpiration: sessionInfo.config?.cacheExpiration || 30000
           }
         });
+        console.timeEnd(`[Performance] 创建监控会话耗时 ${sessionInfo.id}`);
 
         // 连接监控会话
+        console.time(`[Performance] 连接监控会话耗时 ${sessionInfo.id}`);
         console.log('[MonitorPage] 连接监控会话:', monitorSession.id);
         await monitorManager.connectSession(monitorSession.id);
+        console.timeEnd(`[Performance] 连接监控会话耗时 ${sessionInfo.id}`);
         
         // 监听刷新事件
         const handleRefresh = () => {
+          console.time(`[Performance] 数据更新耗时 ${sessionInfo.id}`);
           const updatedSession = monitorManager.getSession(monitorSession.id);
           if (updatedSession?.monitorData) {
             setMonitorData(updatedSession.monitorData);
           }
+          console.timeEnd(`[Performance] 数据更新耗时 ${sessionInfo.id}`);
         };
 
         const refreshService = getServiceManager().getRefreshService();
         refreshService.on('refresh', handleRefresh);
 
         // 初始获取数据
+        console.time(`[Performance] 初始数据获取耗时 ${sessionInfo.id}`);
         handleRefresh();
+        console.timeEnd(`[Performance] 初始数据获取耗时 ${sessionInfo.id}`);
 
         return () => {
           refreshService.off('refresh', handleRefresh);
@@ -67,6 +76,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
         console.error('[MonitorPage] 监控连接失败:', error);
         message.error('监控连接失败: ' + (error as Error).message);
       }
+      console.timeEnd(`[Performance] 监控页面初始化总耗时 ${sessionInfo.id}`);
     };
 
     initMonitor();
