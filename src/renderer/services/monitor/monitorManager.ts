@@ -25,6 +25,7 @@ class MonitorManager {
     network: 'basic'
   };
 
+
   private constructor(sshService: SSHService) {
     this.sshService = sshService;
     this.refreshService = RefreshService.getInstance();
@@ -50,6 +51,8 @@ class MonitorManager {
       await this.refreshSession(sessionId);
     });
   }
+
+
 
   /**
    * 设置当前激活的标签页
@@ -123,6 +126,9 @@ class MonitorManager {
       
       session.status = 'connected';
 
+      // 初始化时立即刷新一次数据
+      await this.refreshSession(sessionId);
+
       if (session.config?.autoRefresh) {
         console.time(`[Performance] 启动自动刷新耗时 ${sessionId}`);
         this.refreshService.startRefresh(session);
@@ -146,6 +152,7 @@ class MonitorManager {
     this.refreshService.stopRefresh(sessionId);
     this.sshService.disconnect(sessionId);
     session.status = 'disconnected';
+    
   }
 
   /**
@@ -165,6 +172,7 @@ class MonitorManager {
         activeDetailTab: this.activeDetailTab[this.activeCard]
       });
 
+
       const monitorData: MonitorData = {
         timestamp: Date.now()
       };
@@ -177,6 +185,7 @@ class MonitorManager {
           this.activeDetailTab[this.activeCard]
         );
         console.timeEnd(`[Performance] 性能指标采集耗时 ${sessionId}`);
+        console.log('[MonitorManager] 性能指标采集结果:', monitorData.performance);
       }
       
       session.monitorData = monitorData;

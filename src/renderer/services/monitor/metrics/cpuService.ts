@@ -373,6 +373,7 @@ export class CpuMetricsService {
    */
   async collectBasicMetrics(sessionId: string): Promise<CpuBasicInfo> {
     try {
+      console.time(`[CpuService] collectBasicMetrics ${sessionId}`);
       // 获取CPU使用率
       const cpuStatCmd = 'cat /proc/stat | grep "^cpu "';
       const cpuStatResult = await this.sshService.executeCommandDirect(sessionId, cpuStatCmd);
@@ -387,6 +388,7 @@ export class CpuMetricsService {
       // 保存最新的使用率，供getCpuInfo使用
       this.lastUsage[sessionId] = usage;
 
+      console.timeEnd(`[CpuService] collectBasicMetrics ${sessionId}`);
       return {
         usage,
         speed
@@ -455,7 +457,7 @@ export class CpuMetricsService {
    */
   async collectDetailMetrics(sessionId: string, activeTab: string = 'basic'): Promise<CpuDetailInfo> {
     try {
-      console.log('[CpuService] collectDetailMetrics', activeTab);
+      console.time(`[CpuService] collectDetailMetrics ${sessionId}`);
       // 根据活动标签页决定要获取的数据
       const promises: [Promise<Partial<CpuDetailInfo>>, Promise<{ cores: number[] }>] = [
         // 只在 basic 标签页时获取基本信息
@@ -523,6 +525,7 @@ export class CpuMetricsService {
         });
       }
 
+      console.timeEnd(`[CpuService] collectDetailMetrics ${sessionId}`);
       return {
         ...basicInfo,
         usage: basicInfo.usage || 0,
