@@ -1,11 +1,29 @@
 .disk-usage-card {
-  width: 100%;
+  padding: 12px;
+}
+
+.disk-usage-card .resource-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.disk-usage-card .resource-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.disk-usage-card .usage-value {
+  font-size: 20px;
+  font-weight: 500;
+  color: #1f1f1f;
 }
 
 .disk-usage-card .disk-details {
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
-  margin-top: 4px;
 }
 
 .disk-details-view {

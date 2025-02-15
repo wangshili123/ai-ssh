@@ -247,4 +247,56 @@
 .io-card {
   height: 250px;
   flex-shrink: 0;
+}
+
+/* 基础信息样式 */
+.disk-basic-info {
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.disk-basic-info .info-section {
+  margin-bottom: 24px;
+}
+
+.disk-basic-info .info-section:last-child {
+  margin-bottom: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.disk-basic-info .section-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  color: #1f1f1f;
+}
+
+.disk-basic-info .capacity-info {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 4px;
+}
+
+.disk-basic-info .capacity-details {
+  margin-top: 8px;
+  text-align: center;
+  color: #666;
+}
+
+.disk-basic-info .io-trend {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 4px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 确保图表容器填充剩余空间 */
+.disk-basic-info .io-trend .echarts-for-react {
+  flex: 1;
 } 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Tabs } from 'antd';
 import { DiskDetailInfo } from '../../../../../types/monitor';
+import { DiskBasicInfo } from './DiskBasicInfo';
 import { DiskOverview } from './DiskOverview';
 import { DiskHealth } from './DiskHealth';
 import { DiskSpace } from './DiskSpace';
@@ -12,9 +13,14 @@ interface DiskDetailProps {
 }
 
 export const DiskDetail: React.FC<DiskDetailProps> = ({ diskInfo }) => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('basic');
 
   const items = [
+    {
+      key: 'basic',
+      label: '基础信息',
+      children: <DiskBasicInfo diskInfo={diskInfo} />,
+    },
     {
       key: 'overview',
       label: '分区列表',
