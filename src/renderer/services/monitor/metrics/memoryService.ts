@@ -232,13 +232,12 @@ export class MemoryMetricsService {
    */
   async collectBasicMetrics(sessionId: string): Promise<MemoryBasicInfo> {
     try {
-      // 暂时使用现有方法，后续优化
-      const fullMetrics = await this.collectMetrics(sessionId);
+      const memInfo = await this.getMemoryInfo(sessionId);
       return {
-        total: fullMetrics.total,
-        used: fullMetrics.used,
-        free: fullMetrics.free,
-        usagePercent: fullMetrics.usagePercent
+        total: memInfo.total || 0,
+        used: memInfo.used || 0,
+        free: memInfo.free || 0,
+        usagePercent: memInfo.usagePercent || 0
       };
     } catch (error) {
       console.error('采集内存基础指标失败:', error);
