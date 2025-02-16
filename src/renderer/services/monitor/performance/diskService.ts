@@ -16,6 +16,7 @@ export class DiskMetricsService {
   private diskHealthService: DiskHealthService;
   private diskSpaceService: DiskSpaceService;
   private diskIoService: DiskIoService;
+  private lastDiskDetailData: DiskDetailInfo | null = null;
 
   private constructor(
     sshService: SSHService,
@@ -571,12 +572,23 @@ export class DiskMetricsService {
       const needsHealth = activeTab === 'health';
       const needsSpace = activeTab === 'space';
       const needsIo = activeTab === 'io';
-      console.log('磁盘需要获取的数据:', {
-        needsBasicInfo,
-        needsHealth,
-        needsSpace,
-        needsIo
-      });
+
+      // 获取上一次的数据
+      const lastData = this.lastDiskDetailData || {
+        total: 0,
+        used: 0,
+        free: 0,
+        usagePercent: 0,
+        partitions: [],
+        deviceStats: {},
+        readSpeed: 0,
+        writeSpeed: 0,
+        ioHistory: [],
+        health: undefined,
+        spaceAnalysis: undefined,
+        ioAnalysis: undefined
+      };
+
       // 并行获取所需指标
       const [
         basicInfo,
@@ -587,38 +599,34 @@ export class DiskMetricsService {
         // 基础信息和分区列表共用getDetailBasicInfo
         needsBasicInfo 
           ? this.getDetailBasicInfo(sessionId)
-          : Promise.resolve({
-              total: 0,
-              used: 0,
-              free: 0,
-              usagePercent: 0,
-              partitions: [],
-              deviceStats: {},
-              readSpeed: 0,
-              writeSpeed: 0,
-              ioHistory: []
-            }),
+          : Promise.resolve(lastData),
         // 健康状态
         needsHealth 
           ? this.diskHealthService.getDiskHealth(sessionId)
-          : Promise.resolve(undefined),
+          : Promise.resolve(lastData.health),
         // 空间分析
         needsSpace 
           ? this.diskSpaceService.getSpaceAnalysis(sessionId)
-          : Promise.resolve(undefined),
+          : Promise.resolve(lastData.spaceAnalysis),
         // IO分析
         needsIo 
           ? this.diskIoService.getIoAnalysis(sessionId)
-          : Promise.resolve(undefined)
+          : Promise.resolve(lastData.ioAnalysis)
       ]);
 
-      // 合并所有结果
-      return {
-        ...basicInfo,
-        health,
-        spaceAnalysis,
-        ioAnalysis
+      // 合并所有结果，保留上次数据中未更新的部分
+      const result = {
+        ...lastData,
+        ...(needsBasicInfo ? basicInfo : {}),
+        health: needsHealth ? health : lastData.health,
+        spaceAnalysis: needsSpace ? spaceAnalysis : lastData.spaceAnalysis,
+        ioAnalysis: needsIo ? ioAnalysis : lastData.ioAnalysis
       };
+
+      // 保存本次数据用于下次缓存
+      this.lastDiskDetailData = result;
+
+      return result;
     } catch (error) {
       console.error('采集磁盘详细指标失败:', error);
       return {
@@ -642,6 +650,7 @@ export class DiskMetricsService {
    * 销毁实例
    */
   destroy(): void {
+    this.lastDiskDetailData = null;
     DiskMetricsService.instance = null as any;
   }
 } 
