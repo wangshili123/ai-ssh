@@ -63,7 +63,7 @@ export class PerformanceManager {
             case 'memory':
                 return this.memoryMetricsService.collectDetailMetrics(sessionId);
             case 'disk':
-                return this.diskMetricsService.collectDetailMetrics(sessionId);
+                return this.diskMetricsService.collectDetailMetrics(sessionId, activeDetailTab);
             case 'network':
                 // TODO: 实现网络详细指标采集
                 return null;

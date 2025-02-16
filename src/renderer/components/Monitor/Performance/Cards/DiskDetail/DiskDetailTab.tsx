@@ -7,14 +7,21 @@ import { DiskHealth } from './DiskHealth';
 import { DiskSpace } from './DiskSpace';
 import { DiskIo } from './DiskIo';
 import './DiskDetailTab.css';
+import { getServiceManager } from '@/renderer/services/monitor/serviceManager';
 
 interface DiskDetailProps {
   diskInfo: DiskDetailInfo;
 }
 
-export const DiskDetail: React.FC<DiskDetailProps> = ({ diskInfo }) => {
+export const DiskDetail: React.FC<DiskDetailProps> = ({ 
+  diskInfo
+}) => {
+  const monitorManager = getServiceManager().getMonitorManager();
   const [activeTab, setActiveTab] = useState('basic');
-
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    monitorManager.setActiveDetailTab('disk', tab);
+  };
   const items = [
     {
       key: 'basic',
@@ -47,7 +54,7 @@ export const DiskDetail: React.FC<DiskDetailProps> = ({ diskInfo }) => {
     <div className="disk-detail">
       <Tabs 
         activeKey={activeTab}
-        onChange={setActiveTab}
+        onChange={handleTabChange}
         items={items}
         className="disk-tabs"
       />

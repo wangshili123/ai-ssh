@@ -564,14 +564,52 @@ export class DiskMetricsService {
     }
   }
 
-  async collectDetailMetrics(sessionId: string): Promise<DiskDetailInfo> {
+  async collectDetailMetrics(sessionId: string, activeTab?: string): Promise<DiskDetailInfo> {
     try {
-      // 并行获取所有指标
-      const [basicInfo, health, spaceAnalysis, ioAnalysis] = await Promise.all([
-        this.getDetailBasicInfo(sessionId),
-        this.diskHealthService.getDiskHealth(sessionId),
-        this.diskSpaceService.getSpaceAnalysis(sessionId),
-        this.diskIoService.getIoAnalysis(sessionId)
+      // 根据activeTab决定需要获取哪些数据
+      const needsBasicInfo = !activeTab || activeTab === 'basic' || activeTab === 'overview';
+      const needsHealth = activeTab === 'health';
+      const needsSpace = activeTab === 'space';
+      const needsIo = activeTab === 'io';
+      console.log('磁盘需要获取的数据:', {
+        needsBasicInfo,
+        needsHealth,
+        needsSpace,
+        needsIo
+      });
+      // 并行获取所需指标
+      const [
+        basicInfo,
+        health,
+        spaceAnalysis,
+        ioAnalysis
+      ] = await Promise.all([
+        // 基础信息和分区列表共用getDetailBasicInfo
+        needsBasicInfo 
+          ? this.getDetailBasicInfo(sessionId)
+          : Promise.resolve({
+              total: 0,
+              used: 0,
+              free: 0,
+              usagePercent: 0,
+              partitions: [],
+              deviceStats: {},
+              readSpeed: 0,
+              writeSpeed: 0,
+              ioHistory: []
+            }),
+        // 健康状态
+        needsHealth 
+          ? this.diskHealthService.getDiskHealth(sessionId)
+          : Promise.resolve(undefined),
+        // 空间分析
+        needsSpace 
+          ? this.diskSpaceService.getSpaceAnalysis(sessionId)
+          : Promise.resolve(undefined),
+        // IO分析
+        needsIo 
+          ? this.diskIoService.getIoAnalysis(sessionId)
+          : Promise.resolve(undefined)
       ]);
 
       // 合并所有结果

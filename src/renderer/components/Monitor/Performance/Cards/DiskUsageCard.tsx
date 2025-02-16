@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Progress } from 'antd';
 import { DiskBasicInfo, DiskDetailInfo, MonitorData } from '../../../../types/monitor';
 import { formatBytes } from '../../../../utils/format';
@@ -19,6 +19,8 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
   simple, 
   detailed 
 }) => {
+  const [activeTab, setActiveTab] = useState('basic');
+
   // 定义基础数据的默认值
   const defaultBasic: DiskBasicInfo = {
     total: 0,
@@ -112,7 +114,7 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
 
   // 详细视图
   if (detailed) {
-    return <DiskDetail diskInfo={diskDetail} />;
+    return <DiskDetail diskInfo={diskDetail}  />;
   }
 
   return null;

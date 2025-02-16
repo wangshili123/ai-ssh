@@ -180,7 +180,6 @@ export class DiskSpaceService {
       console.log('解析的行数:', lines.length);
 
       return lines.map(line => {
-        console.log('处理行:', line);
         const parts = line.trim().split(/\s+/);
         if (parts.length < 3) {
           console.log('行格式不正确:', line);

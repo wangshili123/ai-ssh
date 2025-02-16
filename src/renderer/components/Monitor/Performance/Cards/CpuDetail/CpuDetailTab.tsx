@@ -15,15 +15,12 @@ interface CpuDetailProps {
 
 export const CpuDetail: React.FC<CpuDetailProps> = ({ cpuInfo, sessionId }) => {
   const [activeTab, setActiveTab] = useState('basic');
-
-  // 同步活动标签页状态到 monitorManager
-  useEffect(() => {
-    const monitorManager = getServiceManager().getMonitorManager();
-    monitorManager.setActiveDetailTab('cpu', activeTab);
-  }, [activeTab]);
+  const monitorManager = getServiceManager().getMonitorManager();
+ 
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
+    monitorManager.setActiveDetailTab('cpu', tab);
   };
 
   const items = [
