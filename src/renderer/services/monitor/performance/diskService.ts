@@ -71,13 +71,6 @@ export class DiskMetricsService {
 
         const stats = matchedStats ? diskIO.deviceStats[matchedName!] : { readSpeed: 0, writeSpeed: 0 };
         
-        console.log('设备IO匹配结果:', {
-          partition: partition.device,
-          mountpoint: partition.mountpoint,
-          matchedName,
-          stats
-        });
-
         return {
           ...partition,
           readSpeed: stats.readSpeed,
@@ -85,16 +78,6 @@ export class DiskMetricsService {
         };
       });
 
-      console.log('采集磁盘指标数据:', {
-        diskUsage,
-        diskIO,
-        partitions: partitions.map(p => ({
-          device: p.device,
-          mountpoint: p.mountpoint,
-          readSpeed: p.readSpeed,
-          writeSpeed: p.writeSpeed
-        }))
-      });
 
       return {
         ...diskUsage,
