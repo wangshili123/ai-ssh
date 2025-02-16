@@ -34,16 +34,66 @@ export class DiskMetricsService {
         this.getDiskUsage(sessionId),
         this.getDiskIO(sessionId)
       ]);
+      console.log('采集磁盘基础数据:', {
+        diskUsage,
+        diskIO
+      });
 
       // 更新分区的IO速度
       const partitions = diskUsage.partitions.map(partition => {
-        const deviceName = partition.device.split('/').pop() || '';
-        const deviceStats = diskIO.deviceStats?.[deviceName] || { readSpeed: 0, writeSpeed: 0 };
+        // 获取完整设备名（包含分区号）
+        const fullDeviceName = partition.device.split('/').pop() || '';
+        
+        // 只使用完整设备名进行匹配
+        const possibleNames = [
+          fullDeviceName,                // 完整设备名（如 sda1, sda2）
+          partition.device               // 完整路径（如 /dev/sda1）
+        ];
+        
+        console.log('尝试匹配设备IO:', {
+          partition: partition.device,
+          mountpoint: partition.mountpoint,
+          fullDeviceName,
+          possibleNames,
+          availableStats: Object.keys(diskIO.deviceStats || {})
+        });
+
+        // 查找第一个匹配的设备统计信息
+        let matchedName;
+        const matchedStats = possibleNames
+          .find(name => {
+            if (diskIO.deviceStats?.[name]) {
+              matchedName = name;
+              return true;
+            }
+            return false;
+          });
+
+        const stats = matchedStats ? diskIO.deviceStats[matchedName!] : { readSpeed: 0, writeSpeed: 0 };
+        
+        console.log('设备IO匹配结果:', {
+          partition: partition.device,
+          mountpoint: partition.mountpoint,
+          matchedName,
+          stats
+        });
+
         return {
           ...partition,
-          readSpeed: deviceStats.readSpeed,
-          writeSpeed: deviceStats.writeSpeed
+          readSpeed: stats.readSpeed,
+          writeSpeed: stats.writeSpeed
         };
+      });
+
+      console.log('采集磁盘指标数据:', {
+        diskUsage,
+        diskIO,
+        partitions: partitions.map(p => ({
+          device: p.device,
+          mountpoint: p.mountpoint,
+          readSpeed: p.readSpeed,
+          writeSpeed: p.writeSpeed
+        }))
       });
 
       return {
@@ -304,22 +354,40 @@ export class DiskMetricsService {
    * 解析磁盘IO情况
    */
   private parseDiskIO(output: string, timestamp: number): Pick<DiskDetailInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory' | 'deviceStats'> {
+    console.log('开始解析磁盘IO数据:', { timestamp });
     const lines = output.split('\n');
+    console.log('原始输出行数:', lines.length);
+    
     let totalRead = 0;
     let totalWrite = 0;
     const currentStats: { [key: string]: { time: number; read: number; write: number } } = {};
     const deviceStats: { [key: string]: { readSpeed: number; writeSpeed: number } } = {};
+    // 记录已处理的基础设备，避免重复计算分区速率
+    const processedBaseDevices = new Set<string>();
 
     for (const line of lines) {
       if (!line.trim()) continue;
       
       const parts = line.trim().split(/\s+/);
       // 跳过非物理设备
-      if (parts[2].startsWith('loop') || parts[2].startsWith('ram')) continue;
+      if (parts[2].startsWith('loop') || parts[2].startsWith('ram')) {
+        console.log('跳过非物理设备:', parts[2]);
+        continue;
+      }
       
       const device = parts[2];
+      // 获取基础设备名（移除分区号）
+      const baseDevice = device.replace(/[0-9]+$/, '');
       const sectorsRead = parseInt(parts[5]) * 512;
       const sectorsWritten = parseInt(parts[9]) * 512;
+      
+      console.log('处理设备IO:', {
+        device,
+        baseDevice,
+        sectorsRead,
+        sectorsWritten,
+        hasLastStats: !!this.lastDiskStats[device]
+      });
       
       currentStats[device] = {
         time: timestamp,
@@ -330,6 +398,13 @@ export class DiskMetricsService {
       // 计算每个设备的速率
       if (this.lastDiskStats[device]) {
         const timeDiff = (timestamp - this.lastDiskStats[device].time) / 1000;
+        console.log('计算时间差:', {
+          device,
+          timeDiff,
+          currentTime: timestamp,
+          lastTime: this.lastDiskStats[device].time
+        });
+        
         if (timeDiff > 0) {
           const readDiff = sectorsRead - this.lastDiskStats[device].read;
           const writeDiff = sectorsWritten - this.lastDiskStats[device].write;
@@ -337,19 +412,57 @@ export class DiskMetricsService {
           const readSpeed = readDiff / timeDiff;
           const writeSpeed = writeDiff / timeDiff;
           
+          console.log('计算设备速率:', {
+            device,
+            readDiff,
+            writeDiff,
+            readSpeed,
+            writeSpeed
+          });
+          
           deviceStats[device] = {
             readSpeed: Math.max(0, readSpeed),
             writeSpeed: Math.max(0, writeSpeed)
           };
           
-          totalRead += readSpeed;
-          totalWrite += writeSpeed;
+          // 只有在基础设备未处理过时才累加到总速率
+          if (!processedBaseDevices.has(baseDevice)) {
+            totalRead += readSpeed;
+            totalWrite += writeSpeed;
+            processedBaseDevices.add(baseDevice);
+            console.log('累加到总速率:', {
+              baseDevice,
+              totalRead,
+              totalWrite
+            });
+          } else {
+            console.log('跳过重复设备的速率累加:', {
+              device,
+              baseDevice
+            });
+          }
+        } else {
+          console.log('时间差异异常:', {
+            device,
+            timeDiff,
+            currentTime: timestamp,
+            lastTime: this.lastDiskStats[device].time
+          });
         }
       }
     }
 
     // 更新上次的统计数据
     this.lastDiskStats = currentStats;
+    
+    console.log('IO统计结果:', {
+      totalRead,
+      totalWrite,
+      deviceStatsCount: Object.keys(deviceStats).length,
+      devices: Object.keys(deviceStats),
+      allDeviceStats: deviceStats,
+      processedBaseDevices: Array.from(processedBaseDevices)
+    });
 
     return {
       readSpeed: Math.max(0, totalRead),

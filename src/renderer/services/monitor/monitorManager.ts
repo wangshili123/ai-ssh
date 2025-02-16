@@ -21,7 +21,7 @@ class MonitorManager {
   private activeDetailTab: { [key: string]: string } = {
     cpu: 'basic',
     memory: 'basic',
-    disk: 'overview',
+    disk: 'basic',
     network: 'basic'
   };
 
