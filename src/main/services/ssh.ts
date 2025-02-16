@@ -32,7 +32,7 @@ class SSHService {
   private dedicatedConnections: Map<string, Client> = new Map();
   
   private readonly DEFAULT_POOL_CONFIG: PoolConfig = {
-    min: 5,                    // 增加核心连接数
+    min: 3,                    // 增加核心连接数
     max: 10,                   // 保持最大连接数
     idleTimeoutMillis: 600000, // 增加空闲超时时间到10分钟
     acquireTimeoutMillis: 30000, // 保持获取超时时间
