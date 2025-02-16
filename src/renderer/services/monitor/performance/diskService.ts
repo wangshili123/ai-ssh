@@ -16,7 +16,7 @@ export class DiskMetricsService {
   private diskHealthService: DiskHealthService;
   private diskSpaceService: DiskSpaceService;
   private diskIoService: DiskIoService;
-  private lastDiskDetailData: DiskDetailInfo | null = null;
+  private lastDiskDetailData: Map<string, DiskDetailInfo> = new Map();
 
   private constructor(
     sshService: SSHService,
@@ -574,7 +574,7 @@ export class DiskMetricsService {
       const needsIo = activeTab === 'io';
 
       // 获取上一次的数据
-      const lastData = this.lastDiskDetailData || {
+      const lastData = this.lastDiskDetailData.get(sessionId) || {
         total: 0,
         used: 0,
         free: 0,
@@ -624,7 +624,7 @@ export class DiskMetricsService {
       };
 
       // 保存本次数据用于下次缓存
-      this.lastDiskDetailData = result;
+      this.lastDiskDetailData.set(sessionId, result);
 
       return result;
     } catch (error) {
@@ -650,7 +650,7 @@ export class DiskMetricsService {
    * 销毁实例
    */
   destroy(): void {
-    this.lastDiskDetailData = null;
+    this.lastDiskDetailData.clear();
     DiskMetricsService.instance = null as any;
   }
 } 

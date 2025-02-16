@@ -13,6 +13,7 @@ export class CpuMetricsService {
   private coreUsageHistory: Map<string, CpuDetailInfo['coreUsageHistory']> = new Map();
   private lastCpuStat: { [key: string]: { user: number; nice: number; system: number; idle: number; iowait: number; irq: number; softirq: number; steal: number; total: number } } = {};
   private lastUsage: { [key: string]: number } = {};
+  private lastCpuDetailData: Map<string, CpuDetailInfo> = new Map();
 
   private constructor(sshService: SSHService) {
     this.sshService = sshService;
@@ -457,28 +458,38 @@ export class CpuMetricsService {
   async collectDetailMetrics(sessionId: string, activeTab: string = 'basic'): Promise<CpuDetailInfo> {
     try {
       console.time(`[CpuService] collectDetailMetrics ${sessionId}`);
+      
+      // 获取上一次的数据
+      const lastData = this.lastCpuDetailData.get(sessionId) || {
+        usage: 0,
+        speed: 0,
+        cores: [],
+        model: 'Unknown',
+        physicalCores: 0,
+        logicalCores: 0,
+        cache: {},
+        maxSpeed: 0,
+        minSpeed: 0,
+        currentSpeed: 0,
+        usageHistory: [],
+        coreUsageHistory: [],
+        architecture: 'Unknown',
+        vendor: 'Unknown',
+        socket: 'Unknown',
+        virtualization: false
+      };
+
       // 根据活动标签页决定要获取的数据
       const promises: [Promise<Partial<CpuDetailInfo>>, Promise<{ cores: number[] }>] = [
         // 只在 basic 标签页时获取基本信息
         activeTab === 'basic' 
           ? this.getCpuInfo(sessionId)
-          : Promise.resolve({
-              usage: 0,
-              speed: 0,
-              cores: [],
-              model: 'Unknown',
-              physicalCores: 0,
-              logicalCores: 0,
-              cache: {},
-              maxSpeed: 0,
-              minSpeed: 0,
-              currentSpeed: 0
-            } as Partial<CpuDetailInfo>),
+          : Promise.resolve(lastData),
         
         // 只在 cores 标签页时获取核心使用率
         activeTab === 'cores'
           ? this.getCpuUsage(sessionId)
-          : Promise.resolve({ cores: [] })
+          : Promise.resolve({ cores: lastData.cores })
       ];
 
       // 并行获取数据
@@ -491,13 +502,15 @@ export class CpuMetricsService {
         this.usageHistory.set(sessionId, []);
       }
       const currentUsageHistory = this.usageHistory.get(sessionId)!;
-      currentUsageHistory.push({
-        timestamp: now,
-        usage: basicInfo.usage || 0,
-        speed: basicInfo.speed || 0
-      });
-      if (currentUsageHistory.length > this.MAX_HISTORY_POINTS) {
-        currentUsageHistory.shift();
+      if (activeTab === 'basic') {
+        currentUsageHistory.push({
+          timestamp: now,
+          usage: basicInfo.usage || 0,
+          speed: basicInfo.speed || 0
+        });
+        if (currentUsageHistory.length > this.MAX_HISTORY_POINTS) {
+          currentUsageHistory.shift();
+        }
       }
 
       // 只在"逻辑处理器"标签页时更新核心使用率历史
@@ -524,26 +537,20 @@ export class CpuMetricsService {
         });
       }
 
-      console.timeEnd(`[CpuService] collectDetailMetrics ${sessionId}`);
-      return {
-        ...basicInfo,
-        usage: basicInfo.usage || 0,
-        cores: usage.cores,
-        model: basicInfo.model || 'Unknown',
-        speed: basicInfo.speed || 0,
-        currentSpeed: basicInfo.currentSpeed || basicInfo.speed || 0,
-        maxSpeed: basicInfo.maxSpeed || 0,
-        minSpeed: basicInfo.minSpeed || 0,
-        physicalCores: basicInfo.physicalCores || usage.cores.length / 2,
-        logicalCores: basicInfo.logicalCores || usage.cores.length,
-        cache: basicInfo.cache || {},
-        usageHistory: this.usageHistory.get(sessionId) || [],
-        coreUsageHistory: currentCoreHistory,
-        architecture: basicInfo.architecture || 'Unknown',
-        vendor: basicInfo.vendor || 'Unknown',
-        socket: basicInfo.socket || 'Unknown',
-        virtualization: basicInfo.virtualization || false
+      // 合并数据，保留上次数据中未更新的部分
+      const result = {
+        ...lastData,
+        ...(activeTab === 'basic' ? basicInfo : {}),
+        cores: activeTab === 'cores' ? usage.cores : lastData.cores,
+        usageHistory: currentUsageHistory,
+        coreUsageHistory: currentCoreHistory
       };
+
+      // 保存本次数据用于下次缓存
+      this.lastCpuDetailData.set(sessionId, result);
+
+      console.timeEnd(`[CpuService] collectDetailMetrics ${sessionId}`);
+      return result;
     } catch (error) {
       console.error('采集CPU详细指标失败:', error);
       return {
@@ -555,7 +562,14 @@ export class CpuMetricsService {
         logicalCores: 0,
         cache: {},
         usageHistory: [],
-        coreUsageHistory: []
+        coreUsageHistory: [],
+        maxSpeed: 0,
+        minSpeed: 0,
+        currentSpeed: 0,
+        architecture: 'Unknown',
+        vendor: 'Unknown',
+        socket: 'Unknown',
+        virtualization: false
       };
     }
   }
@@ -564,6 +578,7 @@ export class CpuMetricsService {
    * 销毁实例
    */
   destroy(): void {
+    this.lastCpuDetailData.clear();
     CpuMetricsService.instance = null as any;
   }
 } 
