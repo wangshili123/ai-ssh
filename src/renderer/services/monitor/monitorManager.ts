@@ -181,7 +181,7 @@ class MonitorManager {
         console.time(`[Performance] 性能指标采集耗时 ${sessionId}`);
         monitorData.performance = await this.performanceManager.collectMetrics(
           sessionId, 
-          this.activeCard,
+          this.activeCard as 'cpu' | 'memory' | 'disk' | 'network',
           this.activeDetailTab[this.activeCard]
         );
         console.timeEnd(`[Performance] 性能指标采集耗时 ${sessionId}`);

@@ -156,10 +156,10 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
       }));
     }
     
-    if (performanceData?.detail?.[selectedResource]) {
-      setDetailData(performanceData.detail[selectedResource]);
+    if (performanceData?.detail) {
+      setDetailData(performanceData.detail);
     }
-  }, [monitorData, selectedResource]);
+  }, [monitorData]);
 
   // 处理资源选择
   const handleResourceSelect = useCallback((resource: ResourceType) => {
@@ -182,12 +182,39 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
         ))}
       </div>
       <div className="performance-details">
-        <DetailResourceCard
-          type={selectedResource}
-          detailData={detailData}
-          basicData={basicData}
-          sessionId={sessionId}
-        />
+        {/* 保持所有详细面板挂载，通过 CSS 控制显示/隐藏 */}
+        <div style={{ display: selectedResource === 'cpu' ? 'block' : 'none' }}>
+          <DetailResourceCard
+            type="cpu"
+            detailData={detailData?.cpu}
+            basicData={basicData}
+            sessionId={sessionId}
+          />
+        </div>
+        <div style={{ display: selectedResource === 'memory' ? 'block' : 'none' }}>
+          <DetailResourceCard
+            type="memory"
+            detailData={detailData?.memory}
+            basicData={basicData}
+            sessionId={sessionId}
+          />
+        </div>
+        <div style={{ display: selectedResource === 'disk' ? 'block' : 'none' }}>
+          <DetailResourceCard
+            type="disk"
+            detailData={detailData?.disk}
+            basicData={basicData}
+            sessionId={sessionId}
+          />
+        </div>
+        <div style={{ display: selectedResource === 'network' ? 'block' : 'none' }}>
+          <DetailResourceCard
+            type="network"
+            detailData={detailData?.network}
+            basicData={basicData}
+            sessionId={sessionId}
+          />
+        </div>
       </div>
     </div>
   );

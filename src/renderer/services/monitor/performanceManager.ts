@@ -24,11 +24,19 @@ export class PerformanceManager {
     private diskSpaceService: DiskSpaceService;
     private diskIoService: DiskIoService;
 
-    // 数据缓存
-    private metricsCache: Map<string, {
-        data: Partial<MonitorData>;
+    // 保存上一次的完整数据
+    private lastPerformanceData: Map<string, {
+        data: PerformanceData;
         timestamp: number;
     }> = new Map();
+
+    // 记录每个卡片最后更新时间
+    private lastDetailUpdate: Map<string, {
+        [key in 'cpu' | 'memory' | 'disk' | 'network']?: number;
+    }> = new Map();
+
+    // 非活动卡片更新间隔（1分钟）
+    private readonly INACTIVE_UPDATE_INTERVAL = 60000;
     
     private constructor(sshService: SSHService) {
         // 初始化所有性能监控服务
@@ -49,6 +57,39 @@ export class PerformanceManager {
         }
         return PerformanceManager.instance;
     }
+
+    /**
+     * 获取卡片详细指标数据
+     */
+    private async collectCardDetailMetrics(
+        sessionId: string,
+        card: 'cpu' | 'memory' | 'disk' | 'network',
+        activeDetailTab?: string
+    ): Promise<any> {  // TODO: 后续可以定义更具体的联合类型
+        switch (card) {
+            case 'cpu':
+                return this.cpuMetricsService.collectDetailMetrics(sessionId, activeDetailTab);
+            case 'memory':
+                return this.memoryMetricsService.collectDetailMetrics(sessionId);
+            case 'disk':
+                const [diskDetail, diskHealth, diskSpace, diskIo] = await Promise.all([
+                    this.diskMetricsService.collectDetailMetrics(sessionId),
+                    this.diskHealthService.getDiskHealth(sessionId),
+                    this.diskSpaceService.getSpaceAnalysis(sessionId),
+                    this.diskIoService.getIoAnalysis(sessionId)
+                ]);
+                return {
+                    ...diskDetail,
+                    health: diskHealth,
+                    spaceAnalysis: diskSpace,
+                    ioAnalysis: diskIo
+                };
+            case 'network':
+                // TODO: 实现网络详细指标采集
+                return null;
+        }
+    }
+
     /**
      * 采集性能指标数据
      * @param sessionId 会话ID
@@ -57,7 +98,7 @@ export class PerformanceManager {
      */
     async collectMetrics(
         sessionId: string,
-        activeCard?: string,
+        activeCard?: 'cpu' | 'memory' | 'disk' | 'network',
         activeDetailTab?: string
     ): Promise<PerformanceData> {
         try {
@@ -69,6 +110,7 @@ export class PerformanceManager {
             });
 
             const startTime = Date.now();
+            const lastData = this.lastPerformanceData.get(sessionId)?.data;
 
             // 获取基础指标（始终需要）
             const [cpuBasic, memoryBasic, diskBasic, networkBasic] = await Promise.all([
@@ -94,38 +136,32 @@ export class PerformanceManager {
                 }
             };
 
-            // 根据激活的卡片类型获取详细指标
+            // 使用上次的详细数据作为基础
+            const detail: Partial<PerformanceDetailData> = lastData?.detail || {};
+            
+            // 更新活动卡片的详细指标
             if (activeCard) {
-                const detail: Partial<PerformanceDetailData> = {};
-
-                switch (activeCard) {
-                    case 'cpu':
-                        detail.cpu = await this.cpuMetricsService.collectDetailMetrics(sessionId, activeDetailTab);
-                        break;
-                    case 'memory':
-                        detail.memory = await this.memoryMetricsService.collectDetailMetrics(sessionId);
-                        break;
-                    case 'disk':
-                        const [diskDetail, diskHealth, diskSpace, diskIo] = await Promise.all([
-                            this.diskMetricsService.collectDetailMetrics(sessionId),
-                            this.diskHealthService.getDiskHealth(sessionId),
-                            this.diskSpaceService.getSpaceAnalysis(sessionId),
-                            this.diskIoService.getIoAnalysis(sessionId)
-                        ]);
-                        detail.disk = {
-                            ...diskDetail,
-                            health: diskHealth,
-                            spaceAnalysis: diskSpace,
-                            ioAnalysis: diskIo
-                        };
-                        break;
-                    case 'network':
-                        // TODO: 实现网络详细指标采集
-                        break;
+                const lastUpdate = this.lastDetailUpdate.get(sessionId) || {};
+                const detailData = await this.collectCardDetailMetrics(sessionId, activeCard, activeDetailTab);
+                if (detailData) {
+                    detail[activeCard] = detailData;
                 }
 
-                performanceData.detail = detail;
+                // 更新最后更新时间
+                lastUpdate[activeCard] = Date.now();
+                this.lastDetailUpdate.set(sessionId, lastUpdate);
             }
+
+            // 检查并更新非活动卡片
+            await this.updateInactiveCardsIfNeeded(sessionId, activeCard, detail);
+
+            performanceData.detail = detail;
+
+            // 保存完整数据
+            this.lastPerformanceData.set(sessionId, {
+                data: performanceData,
+                timestamp: Date.now()
+            });
 
             const endTime = Date.now();
             console.log(`[Performance] 采集性能指标数据完成，用时: ${endTime - startTime}ms`);
@@ -138,6 +174,54 @@ export class PerformanceManager {
                 timestamp: new Date().toISOString()
             });
             throw error;
+        }
+    }
+
+    /**
+     * 检查并更新非活动卡片的数据
+     */
+    private async updateInactiveCardsIfNeeded(
+        sessionId: string,
+        activeCard: 'cpu' | 'memory' | 'disk' | 'network' | undefined,
+        detail: Partial<PerformanceDetailData>
+    ): Promise<void> {
+        const lastUpdate = this.lastDetailUpdate.get(sessionId) || {};
+        const now = Date.now();
+
+        // 检查每个非活动卡片是否需要更新
+        const cards = ['cpu', 'memory', 'disk', 'network'] as const;
+        for (const card of cards) {
+            if (card === activeCard) continue;
+            
+            const lastUpdateTime = lastUpdate[card] || 0;
+            if (now - lastUpdateTime > this.INACTIVE_UPDATE_INTERVAL) {
+                // 异步更新非活动卡片
+                this.updateCardDetailAsync(sessionId, card, detail);
+            }
+        }
+    }
+
+    /**
+     * 异步更新卡片详细数据
+     */
+    private async updateCardDetailAsync(
+        sessionId: string,
+        card: 'cpu' | 'memory' | 'disk' | 'network',
+        detail: Partial<PerformanceDetailData>
+    ): Promise<void> {
+        try {
+            const lastUpdate = this.lastDetailUpdate.get(sessionId) || {};
+            
+            const detailData = await this.collectCardDetailMetrics(sessionId, card);
+            if (detailData) {
+                detail[card] = detailData;
+            }
+
+            // 更新最后更新时间
+            lastUpdate[card] = Date.now();
+            this.lastDetailUpdate.set(sessionId, lastUpdate);
+        } catch (error) {
+            console.error(`异步更新${card}详细数据失败:`, error);
         }
     }
 
