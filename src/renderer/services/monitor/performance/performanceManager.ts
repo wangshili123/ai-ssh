@@ -3,9 +3,6 @@ import { MonitorData, PerformanceData, PerformanceDetailData } from '../../../ty
 import { CpuMetricsService } from './cpuService';
 import { MemoryMetricsService } from './memoryService';
 import { DiskMetricsService } from './diskService';
-import { DiskHealthService } from './diskHealthService';
-import { DiskSpaceService } from './diskSpaceService';
-import { DiskIoService } from './diskIoService';
 
 /**
  * 性能监控管理器
@@ -20,9 +17,6 @@ export class PerformanceManager {
     private cpuMetricsService: CpuMetricsService;
     private memoryMetricsService: MemoryMetricsService;
     private diskMetricsService: DiskMetricsService;
-    private diskHealthService: DiskHealthService;
-    private diskSpaceService: DiskSpaceService;
-    private diskIoService: DiskIoService;
 
     // 保存上一次的完整数据
     private lastPerformanceData: Map<string, {
@@ -43,9 +37,6 @@ export class PerformanceManager {
         this.cpuMetricsService = CpuMetricsService.getInstance(sshService);
         this.memoryMetricsService = MemoryMetricsService.getInstance(sshService);
         this.diskMetricsService = DiskMetricsService.getInstance(sshService);
-        this.diskHealthService = DiskHealthService.getInstance(sshService);
-        this.diskSpaceService = DiskSpaceService.getInstance(sshService);
-        this.diskIoService = DiskIoService.getInstance(sshService);
     }
 
     /**
@@ -72,18 +63,7 @@ export class PerformanceManager {
             case 'memory':
                 return this.memoryMetricsService.collectDetailMetrics(sessionId);
             case 'disk':
-                const [diskDetail, diskHealth, diskSpace, diskIo] = await Promise.all([
-                    this.diskMetricsService.collectDetailMetrics(sessionId),
-                    this.diskHealthService.getDiskHealth(sessionId),
-                    this.diskSpaceService.getSpaceAnalysis(sessionId),
-                    this.diskIoService.getIoAnalysis(sessionId)
-                ]);
-                return {
-                    ...diskDetail,
-                    health: diskHealth,
-                    spaceAnalysis: diskSpace,
-                    ioAnalysis: diskIo
-                };
+                return this.diskMetricsService.collectDetailMetrics(sessionId);
             case 'network':
                 // TODO: 实现网络详细指标采集
                 return null;
@@ -232,9 +212,6 @@ export class PerformanceManager {
         this.cpuMetricsService.destroy();
         this.memoryMetricsService.destroy();
         this.diskMetricsService.destroy();
-        this.diskHealthService.destroy();
-        this.diskSpaceService.destroy();
-        this.diskIoService.destroy();
         PerformanceManager.instance = null as any;
     }
 } 

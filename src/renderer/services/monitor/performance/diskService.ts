@@ -1,5 +1,8 @@
 import { DiskBasicInfo, DiskDetailInfo } from '../../../types/monitor';
 import { SSHService } from '../../../types';
+import { DiskHealthService } from './diskHealthService';
+import { DiskSpaceService } from './diskSpaceService';
+import { DiskIoService } from './diskIoService';
 
 /**
  * 磁盘数据采集服务
@@ -7,12 +10,23 @@ import { SSHService } from '../../../types';
 export class DiskMetricsService {
 
   private static instance: DiskMetricsService;
-  private sshService: SSHService;
+  private readonly sshService: SSHService;
   private readonly MAX_HISTORY_POINTS = 60; // 保存60个历史数据点
   private lastDiskStats: { [key: string]: { time: number; read: number; write: number } } = {};
+  private diskHealthService: DiskHealthService;
+  private diskSpaceService: DiskSpaceService;
+  private diskIoService: DiskIoService;
 
-  private constructor(sshService: SSHService) {
+  private constructor(
+    sshService: SSHService,
+    diskHealthService: DiskHealthService,
+    diskSpaceService: DiskSpaceService,
+    diskIoService: DiskIoService
+  ) {
     this.sshService = sshService;
+    this.diskHealthService = diskHealthService;
+    this.diskSpaceService = diskSpaceService;
+    this.diskIoService = diskIoService;
   }
 
   /**
@@ -20,7 +34,15 @@ export class DiskMetricsService {
    */
   static getInstance(sshService: SSHService): DiskMetricsService {
     if (!DiskMetricsService.instance) {
-      DiskMetricsService.instance = new DiskMetricsService(sshService);
+      const diskHealthService = DiskHealthService.getInstance(sshService);
+      const diskSpaceService = DiskSpaceService.getInstance(sshService);
+      const diskIoService = DiskIoService.getInstance(sshService);
+      DiskMetricsService.instance = new DiskMetricsService(
+        sshService,
+        diskHealthService,
+        diskSpaceService,
+        diskIoService
+      );
     }
     return DiskMetricsService.instance;
   }
@@ -468,10 +490,115 @@ export class DiskMetricsService {
     }
   }
 
-  async collectDetailMetrics(sessionId: string): Promise<DiskDetailInfo> {
-    return this.collectMetrics(sessionId);
+  /**
+   * 获取磁盘详细基础信息
+   */
+  private async getDetailBasicInfo(sessionId: string): Promise<DiskDetailInfo> {
+    try {
+      const [diskUsage, diskIO] = await Promise.all([
+        this.getDiskUsage(sessionId),
+        this.getDiskIO(sessionId)
+      ]);
+      console.log('采集磁盘基础数据:', {
+        diskUsage,
+        diskIO
+      });
+
+      // 更新分区的IO速度
+      const partitions = diskUsage.partitions.map(partition => {
+        // 获取完整设备名（包含分区号）
+        const fullDeviceName = partition.device.split('/').pop() || '';
+        
+        // 只使用完整设备名进行匹配
+        const possibleNames = [
+          fullDeviceName,                // 完整设备名（如 sda1, sda2）
+          partition.device               // 完整路径（如 /dev/sda1）
+        ];
+        
+        console.log('尝试匹配设备IO:', {
+          partition: partition.device,
+          mountpoint: partition.mountpoint,
+          fullDeviceName,
+          possibleNames,
+          availableStats: Object.keys(diskIO.deviceStats || {})
+        });
+
+        // 查找第一个匹配的设备统计信息
+        let matchedName;
+        const matchedStats = possibleNames
+          .find(name => {
+            if (diskIO.deviceStats?.[name]) {
+              matchedName = name;
+              return true;
+            }
+            return false;
+          });
+
+        const stats = matchedStats ? diskIO.deviceStats[matchedName!] : { readSpeed: 0, writeSpeed: 0 };
+        
+        return {
+          ...partition,
+          readSpeed: stats.readSpeed,
+          writeSpeed: stats.writeSpeed
+        };
+      });
+
+      return {
+        ...diskUsage,
+        ...diskIO,
+        partitions
+      };
+    } catch (error) {
+      console.error('采集磁盘指标失败:', error);
+      return {
+        total: 0,
+        used: 0,
+        free: 0,
+        usagePercent: 0,
+        partitions: [],
+        deviceStats: {},
+        readSpeed: 0,
+        writeSpeed: 0,
+        ioHistory: []
+      };
+    }
   }
 
+  async collectDetailMetrics(sessionId: string): Promise<DiskDetailInfo> {
+    try {
+      // 并行获取所有指标
+      const [basicInfo, health, spaceAnalysis, ioAnalysis] = await Promise.all([
+        this.getDetailBasicInfo(sessionId),
+        this.diskHealthService.getDiskHealth(sessionId),
+        this.diskSpaceService.getSpaceAnalysis(sessionId),
+        this.diskIoService.getIoAnalysis(sessionId)
+      ]);
+
+      // 合并所有结果
+      return {
+        ...basicInfo,
+        health,
+        spaceAnalysis,
+        ioAnalysis
+      };
+    } catch (error) {
+      console.error('采集磁盘详细指标失败:', error);
+      return {
+        total: 0,
+        used: 0,
+        free: 0,
+        usagePercent: 0,
+        partitions: [],
+        deviceStats: {},
+        readSpeed: 0,
+        writeSpeed: 0,
+        ioHistory: [],
+        health: undefined,
+        spaceAnalysis: undefined,
+        ioAnalysis: undefined
+      };
+    }
+  }
 
   /**
    * 销毁实例
