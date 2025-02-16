@@ -275,6 +275,20 @@
   color: #1f1f1f;
 }
 
+/* 新增：基础信息行布局 */
+.basic-info-row {
+  display: flex;
+  gap: 24px;
+}
+
+.capacity-container {
+  flex: 3;
+}
+
+.io-speed-container {
+  flex: 2;
+}
+
 .disk-basic-info .capacity-info {
   padding: 16px;
   background: #fafafa;
@@ -285,6 +299,35 @@
   margin-top: 8px;
   text-align: center;
   color: #666;
+}
+
+/* 新增：IO速度信息样式 */
+.disk-basic-info .io-speed-info {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 4px;
+  height: calc(100% - 40px);  /* 减去标题的高度 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+.disk-basic-info .speed-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.disk-basic-info .speed-label {
+  color: #666;
+  font-size: 14px;
+}
+
+.disk-basic-info .speed-value {
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .disk-basic-info .io-trend {

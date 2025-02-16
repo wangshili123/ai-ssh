@@ -25,6 +25,21 @@ export const DiskBasicInfo: React.FC<DiskBasicInfoProps> = ({ diskInfo }) => {
     if (diskInfo) {
       const now = Date.now();
       setIoHistory(prev => {
+        // 如果是第一次加载，创建初始数据点
+        if (prev.length === 0) {
+          const initialPoints = Array.from({ length: MAX_HISTORY_POINTS }, (_, i) => ({
+            timestamp: now - (MAX_HISTORY_POINTS - i - 1) * 1000,
+            readSpeed: 0,
+            writeSpeed: 0
+          }));
+          return [...initialPoints, {
+            timestamp: now,
+            readSpeed: diskInfo.readSpeed || 0,
+            writeSpeed: diskInfo.writeSpeed || 0
+          }];
+        }
+
+        // 添加新数据点
         const newHistory = [
           ...prev,
           {
@@ -40,8 +55,18 @@ export const DiskBasicInfo: React.FC<DiskBasicInfoProps> = ({ diskInfo }) => {
 
   // 配置IO趋势图表选项
   const getIOTrendOption = (history: Array<{ timestamp: number; readSpeed: number; writeSpeed: number }>): ECOption => {
-    const now = Date.now();
-    const start = now - 60 * 1000; // 60秒前
+    // 确保至少有一个数据点
+    if (history.length === 0) {
+      const now = Date.now();
+      history = Array.from({ length: MAX_HISTORY_POINTS }, (_, i) => ({
+        timestamp: now - (MAX_HISTORY_POINTS - i - 1) * 1000,
+        readSpeed: 0,
+        writeSpeed: 0
+      }));
+    }
+
+    const latestTime = history[history.length - 1].timestamp;
+    const earliestTime = latestTime - (MAX_HISTORY_POINTS - 1) * 1000;
     
     return {
       grid: {
@@ -62,8 +87,8 @@ export const DiskBasicInfo: React.FC<DiskBasicInfoProps> = ({ diskInfo }) => {
       },
       xAxis: {
         type: 'time',
-        min: start,
-        max: now,
+        min: earliestTime,
+        max: latestTime,
         axisLabel: {
           formatter: (value: number) => {
             return new Date(value).toLocaleTimeString('zh-CN', {
@@ -79,9 +104,17 @@ export const DiskBasicInfo: React.FC<DiskBasicInfoProps> = ({ diskInfo }) => {
         type: 'value',
         name: '速率',
         axisLabel: {
-          formatter: (value: number) => formatBytes(value).replace('iB', 'B'),
+          formatter: (value: number) => {
+            // 确保value是有效数字
+            if (typeof value !== 'number' || isNaN(value)) {
+              return '0 B/s';
+            }
+            return formatBytes(value) + '/s';
+          },
           fontSize: 10
         },
+        min: 0,  // 设置最小值为0
+        minInterval: 1024,  // 设置最小间隔为1KB
         splitLine: {
           lineStyle: {
             type: 'dashed'
@@ -130,14 +163,35 @@ export const DiskBasicInfo: React.FC<DiskBasicInfoProps> = ({ diskInfo }) => {
   return (
     <div className="disk-basic-info">
       <div className="info-section">
-        <div className="section-title">系统总容量</div>
-        <div className="capacity-info">
-          <Progress 
-            percent={Math.round(diskInfo.usagePercent)}
-            strokeColor={getProgressColor(diskInfo.usagePercent)}
-          />
-          <div className="capacity-details">
-            {formatBytes(diskInfo.used)}/{formatBytes(diskInfo.total)}
+        <div className="basic-info-row">
+          <div className="capacity-container">
+            <div className="section-title">系统总容量</div>
+            <div className="capacity-info">
+              <Progress 
+                percent={Math.round(diskInfo.usagePercent)}
+                strokeColor={getProgressColor(diskInfo.usagePercent)}
+              />
+              <div className="capacity-details">
+                {formatBytes(diskInfo.used)}/{formatBytes(diskInfo.total)}
+              </div>
+            </div>
+          </div>
+          <div className="io-speed-container">
+            <div className="section-title">IO速度</div>
+            <div className="io-speed-info">
+              <div className="speed-item">
+                <span className="speed-label">读取：</span>
+                <span className="speed-value" style={{ color: '#1890ff' }}>
+                  {formatBytes(diskInfo.readSpeed)}/s
+                </span>
+              </div>
+              <div className="speed-item">
+                <span className="speed-label">写入：</span>
+                <span className="speed-value" style={{ color: '#52c41a' }}>
+                  {formatBytes(diskInfo.writeSpeed)}/s
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
