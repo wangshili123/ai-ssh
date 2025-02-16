@@ -262,7 +262,6 @@ export class CpuMetricsService {
       // 获取每个核心的使用率
       const coresCmd = "mpstat -P ALL 1 1";
       const coresResult = await this.sshService.executeCommandDirect(sessionId, coresCmd);
-      // console.log('[CpuService] mpstat原始输出:', coresResult);
       
       // 解析每个核心的使用率
       const lines = coresResult.split('\n');
