@@ -77,6 +77,7 @@ export class DiskIoService {
         sessionId,
         timestamp: new Date().toISOString()
       });
+      console.time('获取IO分析数据');
       const isInstalled = await this.checkTools(sessionId);
       
       if (!isInstalled) {
@@ -103,7 +104,7 @@ export class DiskIoService {
         deviceCount: deviceStats.length,
         timestamp: new Date().toISOString()
       });
-
+      console.timeEnd('获取IO分析数据');
       return {
         topProcesses,
         deviceStats,

@@ -52,7 +52,7 @@ export class DiskSpaceService {
     if (cachedResult && now - cachedResult.lastScan < this.scanInterval) {
       return cachedResult;
     }
-
+    console.time('获取空间分析数据');
     try {
       const [largeDirectories, largeFiles, fileTypes] = await Promise.all([
         this.scanLargeDirectories(sessionId, mountpoint),
@@ -68,6 +68,7 @@ export class DiskSpaceService {
       };
 
       this.scanResults.set(cacheKey, result);
+      console.timeEnd('获取空间分析数据');
       return result;
     } catch (error) {
       console.error('空间分析失败:', error);

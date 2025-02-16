@@ -80,6 +80,7 @@ export class DiskHealthService {
         sessionId,
         timestamp: new Date().toISOString()
       });
+      console.time('获取磁盘健康状态');
 
       // 检查缓存
       const cachedData = this.healthCache.get(sessionId);
@@ -151,7 +152,7 @@ export class DiskHealthService {
         lastCheck: new Date(health.lastCheck).toISOString(),
         timestamp: new Date().toISOString()
       });
-
+      console.timeEnd('获取磁盘健康状态');
       return health;
     } catch (error) {
       console.error('获取磁盘健康状态失败:', {
