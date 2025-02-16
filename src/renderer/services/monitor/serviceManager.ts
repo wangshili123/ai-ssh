@@ -1,7 +1,7 @@
 import { SSHService } from '../../types';
 import { MonitorManager } from './monitorManager';
-import { CpuMetricsService } from './metrics/cpuService';
-import { RefreshService } from './metrics/refreshService';
+import { CpuMetricsService } from './performance/cpuService';
+import { RefreshService } from './refreshService';
 
 /**
  * 服务管理器

@@ -1,8 +1,8 @@
 import { SessionInfo } from '../../types';
 import { MonitorData } from '../../types/monitor';
-import { RefreshService } from './metrics/refreshService';
+import { RefreshService } from './refreshService';
 import { SSHService } from '../../types';
-import { PerformanceManager } from './performanceManager';
+import { PerformanceManager } from './performance/performanceManager';
 
 /**
  * 监控管理器

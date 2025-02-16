@@ -1,11 +1,11 @@
-import { SSHService } from '../../types';
-import { MonitorData, PerformanceData, PerformanceDetailData } from '../../types/monitor';
-import { CpuMetricsService } from './metrics/cpuService';
-import { MemoryMetricsService } from './metrics/memoryService';
-import { DiskMetricsService } from './metrics/diskService';
-import { DiskHealthService } from './metrics/diskHealthService';
-import { DiskSpaceService } from './metrics/diskSpaceService';
-import { DiskIoService } from './metrics/diskIoService';
+import { SSHService } from '../../../types';
+import { MonitorData, PerformanceData, PerformanceDetailData } from '../../../types/monitor';
+import { CpuMetricsService } from './cpuService';
+import { MemoryMetricsService } from './memoryService';
+import { DiskMetricsService } from './diskService';
+import { DiskHealthService } from './diskHealthService';
+import { DiskSpaceService } from './diskSpaceService';
+import { DiskIoService } from './diskIoService';
 
 /**
  * 性能监控管理器

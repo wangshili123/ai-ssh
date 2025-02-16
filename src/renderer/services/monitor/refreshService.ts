@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
-import { SessionInfo } from '../../../types';
-import { getServiceManager } from '../serviceManager';
+import { SessionInfo } from '../../types';
+import { getServiceManager } from './serviceManager';
 
 interface RefreshOptions {
   interval: number;      // 刷新间隔(毫秒)
