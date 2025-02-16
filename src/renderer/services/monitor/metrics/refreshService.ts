@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { SessionInfo } from '../../../types';
+import { getServiceManager } from '../serviceManager';
 
 interface RefreshOptions {
   interval: number;      // 刷新间隔(毫秒)
@@ -107,8 +108,14 @@ export class RefreshService extends EventEmitter {
    * 手动刷新
    * @param sessionId 会话ID
    */
-  refresh(sessionId: string): void {
-    // 触发刷新事件
+  async refresh(sessionId: string): Promise<void> {
+    // 获取 MonitorManager 实例
+    const monitorManager = getServiceManager().getMonitorManager();
+    
+    // 等待数据刷新完成
+    await monitorManager.refreshSession(sessionId);
+    
+    // 数据更新完成后触发事件
     this.emit('refresh', sessionId);
   }
 
