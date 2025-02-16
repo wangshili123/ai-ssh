@@ -354,9 +354,7 @@ export class DiskMetricsService {
    * 解析磁盘IO情况
    */
   private parseDiskIO(output: string, timestamp: number): Pick<DiskDetailInfo, 'readSpeed' | 'writeSpeed' | 'ioHistory' | 'deviceStats'> {
-    console.log('开始解析磁盘IO数据:', { timestamp });
     const lines = output.split('\n');
-    console.log('原始输出行数:', lines.length);
     
     let totalRead = 0;
     let totalWrite = 0;
@@ -371,7 +369,6 @@ export class DiskMetricsService {
       const parts = line.trim().split(/\s+/);
       // 跳过非物理设备
       if (parts[2].startsWith('loop') || parts[2].startsWith('ram')) {
-        console.log('跳过非物理设备:', parts[2]);
         continue;
       }
       
@@ -380,14 +377,7 @@ export class DiskMetricsService {
       const baseDevice = device.replace(/[0-9]+$/, '');
       const sectorsRead = parseInt(parts[5]) * 512;
       const sectorsWritten = parseInt(parts[9]) * 512;
-      
-      console.log('处理设备IO:', {
-        device,
-        baseDevice,
-        sectorsRead,
-        sectorsWritten,
-        hasLastStats: !!this.lastDiskStats[device]
-      });
+
       
       currentStats[device] = {
         time: timestamp,
@@ -398,12 +388,7 @@ export class DiskMetricsService {
       // 计算每个设备的速率
       if (this.lastDiskStats[device]) {
         const timeDiff = (timestamp - this.lastDiskStats[device].time) / 1000;
-        console.log('计算时间差:', {
-          device,
-          timeDiff,
-          currentTime: timestamp,
-          lastTime: this.lastDiskStats[device].time
-        });
+
         
         if (timeDiff > 0) {
           const readDiff = sectorsRead - this.lastDiskStats[device].read;
@@ -412,14 +397,7 @@ export class DiskMetricsService {
           const readSpeed = readDiff / timeDiff;
           const writeSpeed = writeDiff / timeDiff;
           
-          console.log('计算设备速率:', {
-            device,
-            readDiff,
-            writeDiff,
-            readSpeed,
-            writeSpeed
-          });
-          
+  
           deviceStats[device] = {
             readSpeed: Math.max(0, readSpeed),
             writeSpeed: Math.max(0, writeSpeed)
@@ -430,39 +408,19 @@ export class DiskMetricsService {
             totalRead += readSpeed;
             totalWrite += writeSpeed;
             processedBaseDevices.add(baseDevice);
-            console.log('累加到总速率:', {
-              baseDevice,
-              totalRead,
-              totalWrite
-            });
+   
           } else {
-            console.log('跳过重复设备的速率累加:', {
-              device,
-              baseDevice
-            });
+     
           }
         } else {
-          console.log('时间差异异常:', {
-            device,
-            timeDiff,
-            currentTime: timestamp,
-            lastTime: this.lastDiskStats[device].time
-          });
+         
         }
       }
     }
 
     // 更新上次的统计数据
     this.lastDiskStats = currentStats;
-    
-    console.log('IO统计结果:', {
-      totalRead,
-      totalWrite,
-      deviceStatsCount: Object.keys(deviceStats).length,
-      devices: Object.keys(deviceStats),
-      allDeviceStats: deviceStats,
-      processedBaseDevices: Array.from(processedBaseDevices)
-    });
+  
 
     return {
       readSpeed: Math.max(0, totalRead),
