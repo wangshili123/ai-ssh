@@ -1,7 +1,8 @@
 import React from 'react';
-import { Card, Progress } from 'antd';
-import type { NetworkBasicInfo, NetworkDetailInfo, MonitorData } from '../../../../types/monitor';
-import { formatBitRate } from '../../../../utils/format';
+import { Progress } from 'antd';
+import { NetworkBasicInfo, NetworkDetailInfo, MonitorData } from '../../../../types/monitor';
+import { formatBytes } from '../../../../utils/format';
+import { getProgressColor, getResourceStatus } from '../../../../utils/theme';
 import './NetworkUsageCard.css';
 
 interface NetworkUsageCardProps {
@@ -17,87 +18,84 @@ export const NetworkUsageCard: React.FC<NetworkUsageCardProps> = ({
   simple, 
   detailed 
 }) => {
-  const networkBasic = monitorData?.performance?.basic?.network || {
+  // 定义基础数据的默认值
+  const defaultBasic: NetworkBasicInfo = {
     totalRx: 0,
     totalTx: 0,
     rxSpeed: 0,
     txSpeed: 0
   };
 
-  const networkDetail = monitorData?.performance?.detail?.network || {
-    ...networkBasic,
+  // 定义网络接口的默认值
+  const defaultInterface = {
+    name: '',
+    rx: 0,
+    tx: 0,
+    rxSpeed: 0,
+    txSpeed: 0
+  };
+
+  // 定义详细数据的默认值
+  const defaultDetail: NetworkDetailInfo = {
+    ...defaultBasic,
     interfaces: []
   };
 
+  // 安全地获取基础数据
+  const networkBasic = {
+    ...defaultBasic,
+    ...(monitorData?.performance?.basic?.network || {})
+  };
+
+  // 安全地获取详细数据
+  const networkDetail = {
+    ...defaultDetail,
+    ...(monitorData?.performance?.detail?.network || {}),
+    // 确保接口数组有默认值，并且每个接口都有完整的属性
+    interfaces: (monitorData?.performance?.detail?.network?.interfaces || [])
+      .map(iface => ({
+        ...defaultInterface,
+        ...iface
+      }))
+  };
+
+  // 计算总带宽使用率（假设最大带宽为1Gbps）
+  const maxBandwidth = 1000 * 1000 * 1000; // 1 Gbps in bytes
+  const bandwidthUsage = Math.min(100, ((networkBasic.rxSpeed + networkBasic.txSpeed) / maxBandwidth) * 100);
+
+  // 简单视图用于左侧资源列表
   if (simple) {
+    const status = getResourceStatus(bandwidthUsage);
     return (
-      <div className="resource-summary network-traffic-card">
+      <div className={`resource-summary network-usage-card ${status}`}>
         <div className="resource-title">网络</div>
         <div className="resource-value">
-          <div className="network-speed">
-            <div className="speed-item">↑ {formatBitRate(networkBasic.txSpeed)}</div>
-            <div className="speed-item">↓ {formatBitRate(networkBasic.rxSpeed)}</div>
-          </div>
+          <span className="usage-value">
+            ↓{formatBytes(networkBasic.rxSpeed)}/s
+          </span>
+          <span className="usage-value">
+            ↑{formatBytes(networkBasic.txSpeed)}/s
+          </span>
         </div>
+        <Progress 
+          percent={Math.round(bandwidthUsage)} 
+          showInfo={false} 
+          size="small"
+          strokeColor={getProgressColor(bandwidthUsage)}
+        />
       </div>
     );
   }
 
+  // 详细视图
   if (detailed) {
     return (
-      <div className="resource-details">
-        <div className="resource-header">
-          <h2>网络使用情况</h2>
-          <div className="resource-summary">
-            <div className="network-speeds">
-              <div className="speed-item">
-                <span className="speed-label">发送速率</span>
-                <span className="speed-value">{formatBitRate(networkDetail.txSpeed)}</span>
-              </div>
-              <div className="speed-item">
-                <span className="speed-label">接收速率</span>
-                <span className="speed-value">{formatBitRate(networkDetail.rxSpeed)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="interfaces-list">
-          <h3>网络接口</h3>
-          {networkDetail.interfaces.map((iface, index) => (
-            <div key={index} className="interface-item">
-              <div className="interface-header">
-                <span>{iface.name}</span>
-              </div>
-              <div className="interface-speeds">
-                <div className="speed-item">
-                  <span>发送: {formatBitRate(iface.txSpeed)}</span>
-                  <Progress percent={(iface.txSpeed / networkDetail.txSpeed) * 100} size="small" />
-                </div>
-                <div className="speed-item">
-                  <span>接收: {formatBitRate(iface.rxSpeed)}</span>
-                  <Progress percent={(iface.rxSpeed / networkDetail.rxSpeed) * 100} size="small" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="network-details-view">
+        {/* 网络详细信息的实现将在后续添加 */}
+        <div>网络监控详细信息开发中...</div>
       </div>
     );
   }
 
-  return (
-    <Card title="网络流量" size="small">
-      <div className="network-summary">
-        <div className="speed-item">
-          <span className="speed-label">发送速率</span>
-          <span className="speed-value">{formatBitRate(networkBasic.txSpeed)}</span>
-        </div>
-        <div className="speed-item">
-          <span className="speed-label">接收速率</span>
-          <span className="speed-value">{formatBitRate(networkBasic.rxSpeed)}</span>
-        </div>
-      </div>
-    </Card>
-  );
+  return null;
 }; 

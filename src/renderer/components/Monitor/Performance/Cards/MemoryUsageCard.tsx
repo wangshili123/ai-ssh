@@ -20,23 +20,28 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
   simple, 
   detailed 
 }) => {
-  const memoryBasic = monitorData?.performance?.basic?.memory || {
+  // 定义默认的交换空间数据
+  const defaultSwap = {
     total: 0,
     used: 0,
     free: 0,
     usagePercent: 0
   };
 
-  const memoryDetail = monitorData?.performance?.detail?.memory || {
-    ...memoryBasic,
+  // 定义基础数据的默认值
+  const defaultBasic: MemoryBasicInfo = {
+    total: 0,
+    used: 0,
+    free: 0,
+    usagePercent: 0,
     cached: 0,
     buffers: 0,
-    swap: {
-      total: 0,
-      used: 0,
-      free: 0,
-      usagePercent: 0
-    },
+    swap: defaultSwap
+  };
+
+  // 定义详细数据的默认值
+  const defaultDetail: MemoryDetailInfo = {
+    ...defaultBasic,
     active: 0,
     inactive: 0,
     dirty: 0,
@@ -44,6 +49,30 @@ export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({
     actualUsed: 0,
     actualUsagePercent: 0,
     topProcesses: []
+  };
+
+  // 安全地获取基础数据
+  const memoryBasic = {
+    ...defaultBasic,
+    ...(monitorData?.performance?.basic?.memory || {}),
+    // 确保交换空间数据完整
+    swap: {
+      ...defaultSwap,
+      ...(monitorData?.performance?.basic?.memory?.swap || {})
+    }
+  };
+
+  // 安全地获取详细数据
+  const memoryDetail = {
+    ...defaultDetail,
+    ...(monitorData?.performance?.detail?.memory || {}),
+    // 确保交换空间数据完整
+    swap: {
+      ...defaultSwap,
+      ...(monitorData?.performance?.detail?.memory?.swap || {})
+    },
+    // 确保进程列表有默认值
+    topProcesses: monitorData?.performance?.detail?.memory?.topProcesses || []
   };
 
   // 获取警告级别
