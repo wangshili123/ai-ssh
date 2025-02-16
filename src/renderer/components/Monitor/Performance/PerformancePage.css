@@ -56,10 +56,11 @@
   flex-direction: column;
   background-color: #f5f5f5;
   position: relative;
+  min-height: 400px;
 }
 
 /* 详细面板容器 */
-.performance-details > div {
+.performance-details > div:not(.loading-overlay) {
   position: absolute;
   top: 0;
   left: 0;
@@ -71,9 +72,10 @@
 }
 
 /* 显示时的样式 */
-.performance-details > div[style*="display: block"] {
+.performance-details > div[style*="display: block"]:not(.loading-overlay) {
   opacity: 1;
   pointer-events: auto;
+  z-index: 1;
 }
 
 /* 资源卡片通用样式 */

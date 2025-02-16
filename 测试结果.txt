@@ -1,346 +1,142 @@
- iotop输出: Total DISK READ :       0.00 K/s | Total DISK WRITE :       0.00 K/s
-Actual DISK READ:       0.00 K/s | Actual DISK WRITE:     190.69 K/s
-  PID  PRIO  USER     DISK READ  DISK WRITE  SWAPIN      IO    COMMAND
-
- 获取到进程IO统计: {sessionId: '1737016726289', processCount: 0, timestamp: '2025-02-16T10:52:59.972Z'}
- 获取到设备IO统计: {sessionId: '1737016726289', deviceCount: 2, timestamp: '2025-02-16T10:53:00.306Z'}
- Timer '[Performance] 刷新会话总耗时 1737016726289' already exists
-refreshSession @ renderer.js:438812
-（匿名） @ renderer.js:438713
-emit @ node:events:525
-refresh @ renderer.js:441271
-await in refresh（异步）
-（匿名） @ renderer.js:441218
-setInterval（异步）
-startRefresh @ renderer.js:441217
-connectSession @ renderer.js:438786
-await in connectSession（异步）
-initMonitor @ renderer.js:433531
-（匿名） @ renderer.js:433559
-commitHookEffectListMount @ renderer.js:349784
-commitPassiveMountOnFiber @ renderer.js:351565
-commitPassiveMountEffects_complete @ renderer.js:351525
-commitPassiveMountEffects_begin @ renderer.js:351512
-commitPassiveMountEffects @ renderer.js:351500
-flushPassiveEffectsImpl @ renderer.js:353673
-flushPassiveEffects @ renderer.js:353618
-performSyncWorkOnRoot @ renderer.js:352710
-flushSyncCallbacks @ renderer.js:338642
-commitRootImpl @ renderer.js:353593
-commitRoot @ renderer.js:353316
-finishConcurrentRender @ renderer.js:352615
-performConcurrentWorkOnRoot @ renderer.js:352443
-workLoop @ renderer.js:402123
-flushWork @ renderer.js:402096
-performWorkUntilDeadline @ renderer.js:402390
+[App] 会话选择: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
+ [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 1}
+ [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
+ [TerminalTabsManager] triggerNewTab变化: {triggerNewTab: 1, prevTrigger: undefined, mounted: true, sessionInfo: {…}}
+ [TerminalTabsManager] 触发新标签页创建: {sessionInfo: {…}}
+ [TerminalTabsManager] 新标签页数据: {key: '1739721805934', title: '252-1234', sessionInfo: {…}, instanceId: '1739721805934', tabId: 'tab-1739721805934', …}
+ [TerminalTabsManager] 更新标签页列表: {prev: Array(0), newTab: {…}}
+ [EventBus] 设置当前 tabId: tab-1739721805934
+ [EventBus] 触发事件: tabIdChanged ['tab-1739721805934']
+ [App] 标签页ID变化: tab-1739721805934
+ [EventBus] 设置当前 shellId: 1737016726289-1739721805934
+ [EventBus] 触发事件: shellIdChanged ['1737016726289-1739721805934']
+ [EventBus] 触发事件: tab-create [{…}]
+ [TerminalTabsManager] 新标签页创建完成: {tabId: 'tab-1739721805934', shellId: '1737016726289-1739721805934', sessionInfo: {…}}
+ [CommandExecutor] 开始初始化补全执行命令的SSH连接
+ [EventBus] 获取当前 tabId: tab-1739721805934
+ [EventBus] getCurrentSessionInfo - currentTabId: tab-1739721805934
+ [EventBus] 获取标签页信息: tab-1739721805934
+ [EventBus] 当前标签页映射: Map(1) {'tab-1739721805934' => {…}}
+ [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739721805934', shellId: '1737016726289-1739721805934', sessionInfo: {…}}
+ [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
+ [EventBus] 获取当前 tabId: tab-1739721805934
+ [EventBus] getCurrentSessionInfo - currentTabId: tab-1739721805934
+ [EventBus] 获取标签页信息: tab-1739721805934
+ [EventBus] 当前标签页映射: Map(1) {'tab-1739721805934' => {…}}
+ [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739721805934', shellId: '1737016726289-1739721805934', sessionInfo: {…}}
+ [CommandExecutor] 正在预初始化SSH连接...
+ SSHService.connect called with: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
+ [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 1}
+ [TerminalTabsManager] 渲染组件: {tabs: Array(1), activeKey: '1739721805934'}
+ Warning: [antd: Tabs] Tabs.TabPane is deprecated. Please use `items` directly.
+warning @ renderer.js:323785
+call @ renderer.js:323806
+warningOnce @ renderer.js:323813
+warning @ renderer.js:54305
+useLegacyItems @ renderer.js:75459
+Tabs @ renderer.js:75565
+renderWithHooks @ renderer.js:342151
+mountIndeterminateComponent @ renderer.js:346763
+beginWork @ renderer.js:348286
+beginWork$1 @ renderer.js:354125
+performUnitOfWork @ renderer.js:353259
+workLoopSync @ renderer.js:353165
+renderRootSync @ renderer.js:353133
+performConcurrentWorkOnRoot @ renderer.js:352437
+workLoop @ renderer.js:402188
+flushWork @ renderer.js:402161
+performWorkUntilDeadline @ renderer.js:402455
 processImmediate @ node:internal/timers:476
- [Performance] 数据更新耗时 1737016726289: 0.01806640625 ms
- 原始lsblk输出: sda    disk    0 sata   
-├─sda1 part    0        /boot
-├─sda2 part    0        /
-└─sda3 part    0        
-sdb    disk    1 sata   
-└─sdb1 part    1        /home
-
- 根设备: /dev/sda2
- 处理lsblk行: {line: 'sda    disk    0 sata   ', parts: Array(4), cleanName: 'sda', type: 'disk', mountpoint: 'sata'}
- 检测到SATA SSD: sda
- 设置磁盘类型: {name: 'sda', diskType: 'SSD'}
- 处理lsblk行: {line: '├─sda1 part    0        /boot', parts: Array(4), cleanName: 'sda1', type: 'part', mountpoint: '/boot'}
- 处理lsblk行: {line: '├─sda2 part    0        /', parts: Array(4), cleanName: 'sda2', type: 'part', mountpoint: '/'}
- 找到根分区设备: sda
- 处理lsblk行: {line: '└─sda3 part    0        ', parts: Array(3), cleanName: 'sda3', type: 'part', mountpoint: '0'}
- 处理lsblk行: {line: 'sdb    disk    1 sata   ', parts: Array(4), cleanName: 'sdb', type: 'disk', mountpoint: 'sata'}
- 设置磁盘类型: {name: 'sdb', diskType: 'HDD'}
- 处理lsblk行: {line: '└─sdb1 part    1        /home', parts: Array(4), cleanName: 'sdb1', type: 'part', mountpoint: '/home'}
- 最终磁盘类型映射: {sda: 'SSD', sdb: 'HDD'}
- 根设备名: sda
- 处理分区: {device: 'devtmpfs', mountpoint: '/dev', fullDeviceName: 'devtmpfs', baseDeviceName: 'devtmpfs', foundType: undefined, …}
- 最终分区信息: {device: 'devtmpfs', mountpoint: '/dev', diskType: '虚拟分区'}
- 处理分区: {device: 'tmpfs', mountpoint: '/dev/shm', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
- 最终分区信息: {device: 'tmpfs', mountpoint: '/dev/shm', diskType: '虚拟分区'}
- 处理分区: {device: 'tmpfs', mountpoint: '/run', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
- 最终分区信息: {device: 'tmpfs', mountpoint: '/run', diskType: '虚拟分区'}
- 处理分区: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
- 最终分区信息: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', diskType: '虚拟分区'}
- 处理分区: {device: '/dev/sda2', mountpoint: '/', fullDeviceName: 'sda2', baseDeviceName: 'sda', foundType: 'SSD', …}
- 尝试获取磁盘类型: {baseDeviceName: 'sda', diskType: 'SSD', startWithVd: false}
- 最终分区信息: {device: '/dev/sda2', mountpoint: '/', diskType: 'SSD'}
- 处理分区: {device: '/dev/sda1', mountpoint: '/boot', fullDeviceName: 'sda1', baseDeviceName: 'sda', foundType: 'SSD', …}
- 尝试获取磁盘类型: {baseDeviceName: 'sda', diskType: 'SSD', startWithVd: false}
- 最终分区信息: {device: '/dev/sda1', mountpoint: '/boot', diskType: 'SSD'}
- 处理分区: {device: '/dev/sdb1', mountpoint: '/home', fullDeviceName: 'sdb1', baseDeviceName: 'sdb', foundType: 'HDD', …}
- 尝试获取磁盘类型: {baseDeviceName: 'sdb', diskType: 'HDD', startWithVd: false}
- 最终分区信息: {device: '/dev/sdb1', mountpoint: '/home', diskType: 'HDD'}
- 处理分区: {device: 'tmpfs', mountpoint: '/run/user/0', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
- 最终分区信息: {device: 'tmpfs', mountpoint: '/run/user/0', diskType: '虚拟分区'}
- 处理分区: {device: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', fullDeviceName: 'overlay', baseDeviceName: 'overlay', foundType: undefined, …}
- 最终分区信息: {device: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', diskType: 'Docker存储'}
- 采集磁盘基础数据: {diskUsage: {…}, diskIO: {…}}
- 尝试匹配设备IO: {partition: '/dev/sda2', mountpoint: '/', fullDeviceName: 'sda2', deviceName: 'sda', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: '/dev/sda2', mountpoint: '/', matchedName: 'sda2', stats: {…}}
- 尝试匹配设备IO: {partition: '/dev/sda1', mountpoint: '/boot', fullDeviceName: 'sda1', deviceName: 'sda', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: '/dev/sda1', mountpoint: '/boot', matchedName: 'sda1', stats: {…}}
- 尝试匹配设备IO: {partition: '/dev/sdb1', mountpoint: '/home', fullDeviceName: 'sdb1', deviceName: 'sdb', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: '/dev/sdb1', mountpoint: '/home', matchedName: 'sdb1', stats: {…}}
- 尝试匹配设备IO: {partition: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', fullDeviceName: 'overlay', deviceName: 'overlay', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', matchedName: undefined, stats: {…}}
- 尝试匹配设备IO: {partition: 'devtmpfs', mountpoint: '/dev', fullDeviceName: 'devtmpfs', deviceName: 'devtmpfs', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'devtmpfs', mountpoint: '/dev', matchedName: undefined, stats: {…}}
- 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/dev/shm', fullDeviceName: 'tmpfs', deviceName: 'tmpfs', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'tmpfs', mountpoint: '/dev/shm', matchedName: undefined, stats: {…}}
- 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/run', fullDeviceName: 'tmpfs', deviceName: 'tmpfs', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'tmpfs', mountpoint: '/run', matchedName: undefined, stats: {…}}
- 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/run/user/0', fullDeviceName: 'tmpfs', deviceName: 'tmpfs', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'tmpfs', mountpoint: '/run/user/0', matchedName: undefined, stats: {…}}
- 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/sys/fs/cgroup', fullDeviceName: 'tmpfs', deviceName: 'tmpfs', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'tmpfs', mountpoint: '/sys/fs/cgroup', matchedName: undefined, stats: {…}}
- 采集磁盘指标数据: {diskUsage: {…}, diskIO: {…}, partitions: Array(9)}
- [Performance] 采集性能指标数据完成，用时: 3138ms
- Timer '[Performance] 性能指标采集耗时 1737016726289' does not exist
-refreshSession @ renderer.js:438830
-await in refreshSession（异步）
-（匿名） @ renderer.js:438713
-emit @ node:events:525
-refresh @ renderer.js:441271
-await in refresh（异步）
-（匿名） @ renderer.js:441218
-setInterval（异步）
-startRefresh @ renderer.js:441217
-connectSession @ renderer.js:438786
-await in connectSession（异步）
-initMonitor @ renderer.js:433531
-（匿名） @ renderer.js:433559
-commitHookEffectListMount @ renderer.js:349784
-commitPassiveMountOnFiber @ renderer.js:351565
-commitPassiveMountEffects_complete @ renderer.js:351525
-commitPassiveMountEffects_begin @ renderer.js:351512
-commitPassiveMountEffects @ renderer.js:351500
-flushPassiveEffectsImpl @ renderer.js:353673
-flushPassiveEffects @ renderer.js:353618
-performSyncWorkOnRoot @ renderer.js:352710
-flushSyncCallbacks @ renderer.js:338642
-commitRootImpl @ renderer.js:353593
-commitRoot @ renderer.js:353316
-finishConcurrentRender @ renderer.js:352615
-performConcurrentWorkOnRoot @ renderer.js:352443
-workLoop @ renderer.js:402123
-flushWork @ renderer.js:402096
-performWorkUntilDeadline @ renderer.js:402390
+ PerformancePage render: {sessionId: '1737016726289', isInitialLoading: true, selectedResource: 'cpu', hasBasicData: true, hasDetailData: false}
+ LoadingOverlay render: {tip: '正在加载CPU性能数据...', spinning: true}
+ Warning: Table: Support for defaultProps will be removed from function components in a future major release. Use JavaScript default parameters instead.
+    at Table (http://localhost:3000/renderer.js:309763:25)
+    at div
+    at div
+    at Spin (http://localhost:3000/renderer.js:72241:25)
+    at SpinFC (http://localhost:3000/renderer.js:72301:34)
+    at div
+    at InternalTable (http://localhost:3000/renderer.js:73024:34)
+    at div
+    at div
+    at MemoryUsageCard (http://localhost:3000/renderer.js:435109:28)
+    at http://localhost:3000/renderer.js:435524:52
+    at div
+    at div
+    at div
+    at PerformancePage (http://localhost:3000/renderer.js:435547:28)
+    at div
+    at http://localhost:3000/renderer.js:312599:24
+    at DomWrapper (http://localhost:3000/renderer.js:292456:90)
+    at http://localhost:3000/renderer.js:292156:32
+    at div
+    at div
+    at TabPanelList (http://localhost:3000/renderer.js:312657:17)
+    at div
+    at Tabs (http://localhost:3000/renderer.js:312762:17)
+    at Tabs (http://localhost:3000/renderer.js:75531:17)
+    at div
+    at MonitorPage (http://localhost:3000/renderer.js:433702:24)
+    at div
+    at http://localhost:3000/renderer.js:312599:24
+    at DomWrapper (http://localhost:3000/renderer.js:292456:90)
+    at http://localhost:3000/renderer.js:292156:32
+    at div
+    at div
+    at TabPanelList (http://localhost:3000/renderer.js:312657:17)
+    at div
+    at Tabs (http://localhost:3000/renderer.js:312762:17)
+    at Tabs (http://localhost:3000/renderer.js:75531:17)
+    at div
+    at div
+    at TerminalTabsManager (http://localhost:3000/renderer.js:436487:32)
+    at main
+    at http://localhost:3000/renderer.js:65136:25
+    at http://localhost:3000/renderer.js:65119:66
+    at section
+    at http://localhost:3000/renderer.js:65149:63
+    at http://localhost:3000/renderer.js:65119:66
+    at section
+    at http://localhost:3000/renderer.js:65149:63
+    at http://localhost:3000/renderer.js:65119:66
+    at App (http://localhost:3000/renderer.js:430810:68)
+    at Provider (http://localhost:3000/renderer.js:459025:11)
+printWarning @ renderer.js:326751
+error @ renderer.js:326725
+validateFunctionComponentInDev @ renderer.js:346890
+mountIndeterminateComponent @ renderer.js:346849
+beginWork @ renderer.js:348286
+beginWork$1 @ renderer.js:354125
+performUnitOfWork @ renderer.js:353259
+workLoopSync @ renderer.js:353165
+renderRootSync @ renderer.js:353133
+performConcurrentWorkOnRoot @ renderer.js:352437
+workLoop @ renderer.js:402188
+flushWork @ renderer.js:402161
+performWorkUntilDeadline @ renderer.js:402455
 processImmediate @ node:internal/timers:476
- [MonitorManager] 性能指标采集结果: {basic: {…}, detail: {…}}
- [Performance] 刷新会话总耗时 1737016726289: 312.699951171875 ms
- [MonitorManager] 刷新会话数据: {sessionId: '1737016726289', activeTab: 'performance', activeCard: 'disk', activeDetailTab: 'basic'}
- 开始采集性能指标数据: {sessionId: '1737016726289', activeCard: 'disk', activeDetailTab: 'basic', timestamp: '2025-02-16T10:53:03.984Z'}
- free -b 结果:               total        used        free      shared  buff/cache   available
-Mem:    67266519040 35462664192  4310769664  3333890048 27493085184 27921170432
-Swap:             0           0           0
-
- 解析的内存数据: (7) ['Mem:', '67266519040', '35462664192', '4310769664', '3333890048', '27493085184', '27921170432']
- [CpuService] collectBasicMetrics 1737016726289: 611.513916015625 ms
- 开始获取磁盘健康状态: {sessionId: '1737016726289', timestamp: '2025-02-16T10:53:04.598Z'}
- 使用缓存的磁盘健康数据: {sessionId: '1737016726289', lastCheck: '2025-02-16T10:52:51.144Z', devicesCount: 2, timestamp: '2025-02-16T10:53:04.598Z'}
- 获取IO分析数据: {sessionId: '1737016726289', timestamp: '2025-02-16T10:53:04.599Z'}
- 开始解析磁盘IO数据: {timestamp: 1739703184885}
- 原始输出行数: 7
- 处理设备IO: {device: 'sda', baseDevice: 'sda', sectorsRead: 1160591112192, sectorsWritten: 1245017349632, hasLastStats: true}
- 计算时间差: {device: 'sda', timeDiff: 5.459, currentTime: 1739703184885, lastTime: 1739703179426}
- 计算设备速率: {device: 'sda', readDiff: 0, writeDiff: 138240, readSpeed: 0, writeSpeed: 25323.319289247116}
- 累加到总速率: {baseDevice: 'sda', totalRead: 0, totalWrite: 25323.319289247116}
- 处理设备IO: {device: 'sda1', baseDevice: 'sda', sectorsRead: 24952320, sectorsWritten: 2769920, hasLastStats: true}
- 计算时间差: {device: 'sda1', timeDiff: 5.459, currentTime: 1739703184885, lastTime: 1739703179426}
- 计算设备速率: {device: 'sda1', readDiff: 0, writeDiff: 0, readSpeed: 0, writeSpeed: 0}
- 跳过重复设备的速率累加: {device: 'sda1', baseDevice: 'sda'}
- 处理设备IO: {device: 'sda2', baseDevice: 'sda', sectorsRead: 1159920732672, sectorsWritten: 1243908344320, hasLastStats: true}
- 计算时间差: {device: 'sda2', timeDiff: 5.459, currentTime: 1739703184885, lastTime: 1739703179426}
- 计算设备速率: {device: 'sda2', readDiff: 0, writeDiff: 138240, readSpeed: 0, writeSpeed: 25323.319289247116}
- 跳过重复设备的速率累加: {device: 'sda2', baseDevice: 'sda'}
- 处理设备IO: {device: 'sda3', baseDevice: 'sda', sectorsRead: 643248128, sectorsWritten: 1106235392, hasLastStats: true}
- 计算时间差: {device: 'sda3', timeDiff: 5.459, currentTime: 1739703184885, lastTime: 1739703179426}
- 计算设备速率: {device: 'sda3', readDiff: 0, writeDiff: 0, readSpeed: 0, writeSpeed: 0}
- 跳过重复设备的速率累加: {device: 'sda3', baseDevice: 'sda'}
- 处理设备IO: {device: 'sdb', baseDevice: 'sdb', sectorsRead: 439878160896, sectorsWritten: 1243119452160, hasLastStats: true}
- 计算时间差: {device: 'sdb', timeDiff: 5.459, currentTime: 1739703184885, lastTime: 1739703179426}
- 计算设备速率: {device: 'sdb', readDiff: 0, writeDiff: 0, readSpeed: 0, writeSpeed: 0}
- 累加到总速率: {baseDevice: 'sdb', totalRead: 0, totalWrite: 25323.319289247116}
- 处理设备IO: {device: 'sdb1', baseDevice: 'sdb', sectorsRead: 439875961344, sectorsWritten: 1243119452160, hasLastStats: true}
- 计算时间差: {device: 'sdb1', timeDiff: 5.459, currentTime: 1739703184885, lastTime: 1739703179426}
- 计算设备速率: {device: 'sdb1', readDiff: 0, writeDiff: 0, readSpeed: 0, writeSpeed: 0}
- 跳过重复设备的速率累加: {device: 'sdb1', baseDevice: 'sdb'}
- IO统计结果: {totalRead: 0, totalWrite: 25323.319289247116, deviceStatsCount: 6, devices: Array(6), allDeviceStats: {…}, …}
- iotop输出: Total DISK READ :       0.00 K/s | Total DISK WRITE :      14.18 K/s
-Actual DISK READ:       0.00 K/s | Actual DISK WRITE:       0.00 K/s
-  PID  PRIO  USER     DISK READ  DISK WRITE  SWAPIN      IO    COMMAND
-11009 be/4 root        0.00 K/s   14.18 K/s  0.00 %  0.00 % java -Ddinky.logs.path=/usr/local/install/dinky/dinky-1.2.0/logs -Ddinky.root.path=/usr/local/install/dinky/dinky-1.2.0 -Ddruid.mysql.usePingMethod=false -Dlog4j2.isThreadContextMapInheritable=true -Xms512M -Xmx2048M -XX:PermSize=512M -XX:MaxPermSize=1024M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/usr/local/install/dinky/dinky-1.2.0/logs/heapdump.hprof -XX:+UseG1GC -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintHeapAtGC -XX:+PrintGCCause -Xloggc:/usr/local/install/dinky/dinky-1.2.0/logs/gc-%t.log -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=20M -Xverify:none -cp /usr/local/install/dinky/dinky-1.2.0:/usr/local/install/dinky/dinky-1.2.0/lib/*:/usr/local/install/dinky/dinky-1.2.0/config:/usr/local/install/dinky/dinky-1.2.0/extends/*:/usr/local/install/dinky/dinky-1.2.0/customJar/*:/usr/local/install/dinky/dinky-1.2.0/extends/flink1.20/dinky/*:/usr/local/install/dinky/dinky-1.2.0/extends/flink1.20/flink/*:/usr/local/install/dinky/dinky-1.2.0/extends/flink1.20/* org.dinky.Dinky --logging.config=/usr/local/install/dinky/dinky-1.2.0/config/log4j2.xml
-
- 获取到进程IO统计: {sessionId: '1737016726289', processCount: 1, timestamp: '2025-02-16T10:53:05.454Z'}
- 原始lsblk输出: sda    disk    0 sata   
-├─sda1 part    0        /boot
-├─sda2 part    0        /
-└─sda3 part    0        
-sdb    disk    1 sata   
-└─sdb1 part    1        /home
-
- 根设备: /dev/sda2
- 处理lsblk行: {line: 'sda    disk    0 sata   ', parts: Array(4), cleanName: 'sda', type: 'disk', mountpoint: 'sata'}
- 检测到SATA SSD: sda
- 设置磁盘类型: {name: 'sda', diskType: 'SSD'}
- 处理lsblk行: {line: '├─sda1 part    0        /boot', parts: Array(4), cleanName: 'sda1', type: 'part', mountpoint: '/boot'}
- 处理lsblk行: {line: '├─sda2 part    0        /', parts: Array(4), cleanName: 'sda2', type: 'part', mountpoint: '/'}
- 找到根分区设备: sda
- 处理lsblk行: {line: '└─sda3 part    0        ', parts: Array(3), cleanName: 'sda3', type: 'part', mountpoint: '0'}
- 处理lsblk行: {line: 'sdb    disk    1 sata   ', parts: Array(4), cleanName: 'sdb', type: 'disk', mountpoint: 'sata'}
- 设置磁盘类型: {name: 'sdb', diskType: 'HDD'}
- 处理lsblk行: {line: '└─sdb1 part    1        /home', parts: Array(4), cleanName: 'sdb1', type: 'part', mountpoint: '/home'}
- 最终磁盘类型映射: {sda: 'SSD', sdb: 'HDD'}
- 根设备名: sda
- 处理分区: {device: 'devtmpfs', mountpoint: '/dev', fullDeviceName: 'devtmpfs', baseDeviceName: 'devtmpfs', foundType: undefined, …}
- 最终分区信息: {device: 'devtmpfs', mountpoint: '/dev', diskType: '虚拟分区'}
- 处理分区: {device: 'tmpfs', mountpoint: '/dev/shm', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
- 最终分区信息: {device: 'tmpfs', mountpoint: '/dev/shm', diskType: '虚拟分区'}
- 处理分区: {device: 'tmpfs', mountpoint: '/run', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
- 最终分区信息: {device: 'tmpfs', mountpoint: '/run', diskType: '虚拟分区'}
- 处理分区: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
- 最终分区信息: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', diskType: '虚拟分区'}
- 处理分区: {device: '/dev/sda2', mountpoint: '/', fullDeviceName: 'sda2', baseDeviceName: 'sda', foundType: 'SSD', …}
- 尝试获取磁盘类型: {baseDeviceName: 'sda', diskType: 'SSD', startWithVd: false}
- 最终分区信息: {device: '/dev/sda2', mountpoint: '/', diskType: 'SSD'}
- 处理分区: {device: '/dev/sda1', mountpoint: '/boot', fullDeviceName: 'sda1', baseDeviceName: 'sda', foundType: 'SSD', …}
- 尝试获取磁盘类型: {baseDeviceName: 'sda', diskType: 'SSD', startWithVd: false}
- 最终分区信息: {device: '/dev/sda1', mountpoint: '/boot', diskType: 'SSD'}
- 处理分区: {device: '/dev/sdb1', mountpoint: '/home', fullDeviceName: 'sdb1', baseDeviceName: 'sdb', foundType: 'HDD', …}
- 尝试获取磁盘类型: {baseDeviceName: 'sdb', diskType: 'HDD', startWithVd: false}
- 最终分区信息: {device: '/dev/sdb1', mountpoint: '/home', diskType: 'HDD'}
- 处理分区: {device: 'tmpfs', mountpoint: '/run/user/0', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
- 最终分区信息: {device: 'tmpfs', mountpoint: '/run/user/0', diskType: '虚拟分区'}
- 处理分区: {device: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', fullDeviceName: 'overlay', baseDeviceName: 'overlay', foundType: undefined, …}
- 最终分区信息: {device: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', diskType: 'Docker存储'}
- 采集磁盘基础数据: {diskUsage: {…}, diskIO: {…}}
- 尝试匹配设备IO: {partition: '/dev/sda2', mountpoint: '/', fullDeviceName: 'sda2', deviceName: 'sda', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: '/dev/sda2', mountpoint: '/', matchedName: 'sda2', stats: {…}}
- 尝试匹配设备IO: {partition: '/dev/sda1', mountpoint: '/boot', fullDeviceName: 'sda1', deviceName: 'sda', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: '/dev/sda1', mountpoint: '/boot', matchedName: 'sda1', stats: {…}}
- 尝试匹配设备IO: {partition: '/dev/sdb1', mountpoint: '/home', fullDeviceName: 'sdb1', deviceName: 'sdb', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: '/dev/sdb1', mountpoint: '/home', matchedName: 'sdb1', stats: {…}}
- 尝试匹配设备IO: {partition: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', fullDeviceName: 'overlay', deviceName: 'overlay', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', matchedName: undefined, stats: {…}}
- 尝试匹配设备IO: {partition: 'devtmpfs', mountpoint: '/dev', fullDeviceName: 'devtmpfs', deviceName: 'devtmpfs', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'devtmpfs', mountpoint: '/dev', matchedName: undefined, stats: {…}}
- 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/dev/shm', fullDeviceName: 'tmpfs', deviceName: 'tmpfs', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'tmpfs', mountpoint: '/dev/shm', matchedName: undefined, stats: {…}}
- 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/run', fullDeviceName: 'tmpfs', deviceName: 'tmpfs', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'tmpfs', mountpoint: '/run', matchedName: undefined, stats: {…}}
- 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/run/user/0', fullDeviceName: 'tmpfs', deviceName: 'tmpfs', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'tmpfs', mountpoint: '/run/user/0', matchedName: undefined, stats: {…}}
- 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/sys/fs/cgroup', fullDeviceName: 'tmpfs', deviceName: 'tmpfs', possibleNames: Array(4), …}
- 设备IO匹配结果: {partition: 'tmpfs', mountpoint: '/sys/fs/cgroup', matchedName: undefined, stats: {…}}
- 采集磁盘指标数据: {diskUsage: {…}, diskIO: {…}, partitions: Array(9)}
- 获取到设备IO统计: {sessionId: '1737016726289', deviceCount: 2, timestamp: '2025-02-16T10:53:05.832Z'}
- [Performance] 采集性能指标数据完成，用时: 1848ms
- [Performance] 性能指标采集耗时 1737016726289: 1849.033935546875 ms
- [MonitorManager] 性能指标采集结果: {basic: {…}, detail: {…}}
- [Performance] 刷新会话总耗时 1737016726289: 1850.04296875 ms
- [MonitorManager] 刷新会话数据: {sessionId: '1737016726289', activeTab: 'performance', activeCard: 'disk', activeDetailTab: 'basic'}
- 开始采集性能指标数据: {sessionId: '1737016726289', activeCard: 'disk', activeDetailTab: 'basic', timestamp: '2025-02-16T10:53:05.834Z'}
- [Performance] 数据更新耗时 1737016726289: 0.098876953125 ms
- free -b 结果:               total        used        free      shared  buff/cache   available
-Mem:    67266519040 35462275072  4311158784  3333890048 27493085184 27921559552
-Swap:             0           0           0
-
- 解析的内存数据: (7) ['Mem:', '67266519040', '35462275072', '4311158784', '3333890048', '27493085184', '27921559552']
- [CpuService] collectBasicMetrics 1737016726289: 640.305908203125 ms
- 开始获取磁盘健康状态: {sessionId: '1737016726289', timestamp: '2025-02-16T10:53:06.475Z'}
- 使用缓存的磁盘健康数据: {sessionId: '1737016726289', lastCheck: '2025-02-16T10:52:51.144Z', devicesCount: 2, timestamp: '2025-02-16T10:53:06.476Z'}
- 获取IO分析数据: {sessionId: '1737016726289', timestamp: '2025-02-16T10:53:06.476Z'}
- 开始解析磁盘IO数据: {timestamp: 1739703186771}
- 原始输出行数: 7
- 处理设备IO: {device: 'sda', baseDevice: 'sda', sectorsRead: 1160591112192, sectorsWritten: 1245017418752, hasLastStats: true}
- 计算时间差: {device: 'sda', timeDiff: 1.886, currentTime: 1739703186771, lastTime: 1739703184885}
- 计算设备速率: {device: 'sda', readDiff: 0, writeDiff: 69120, readSpeed: 0, writeSpeed: 36648.992576882294}
- 累加到总速率: {baseDevice: 'sda', totalRead: 0, totalWrite: 36648.992576882294}
- 处理设备IO: {device: 'sda1', baseDevice: 'sda', sectorsRead: 24952320, sectorsWritten: 2769920, hasLastStats: true}
- 计算时间差: {device: 'sda1', timeDiff: 1.886, currentTime: 1739703186771, lastTime: 1739703184885}
- 计算设备速率: {device: 'sda1', readDiff: 0, writeDiff: 0, readSpeed: 0, writeSpeed: 0}
- 跳过重复设备的速率累加: {device: 'sda1', baseDevice: 'sda'}
- 处理设备IO: {device: 'sda2', baseDevice: 'sda', sectorsRead: 1159920732672, sectorsWritten: 1243908413440, hasLastStats: true}
- 计算时间差: {device: 'sda2', timeDiff: 1.886, currentTime: 1739703186771, lastTime: 1739703184885}
- 计算设备速率: {device: 'sda2', readDiff: 0, writeDiff: 69120, readSpeed: 0, writeSpeed: 36648.992576882294}
- 跳过重复设备的速率累加: {device: 'sda2', baseDevice: 'sda'}
- 处理设备IO: {device: 'sda3', baseDevice: 'sda', sectorsRead: 643248128, sectorsWritten: 1106235392, hasLastStats: true}
- 计算时间差: {device: 'sda3', timeDiff: 1.886, currentTime: 1739703186771, lastTime: 1739703184885}
- 计算设备速率: {device: 'sda3', readDiff: 0, writeDiff: 0, readSpeed: 0, writeSpeed: 0}
- 跳过重复设备的速率累加: {device: 'sda3', baseDevice: 'sda'}
- 处理设备IO: {device: 'sdb', baseDevice: 'sdb', sectorsRead: 439878160896, sectorsWritten: 1243119452160, hasLastStats: true}
- 计算时间差: {device: 'sdb', timeDiff: 1.886, currentTime: 1739703186771, lastTime: 1739703184885}
- 计算设备速率: {device: 'sdb', readDiff: 0, writeDiff: 0, readSpeed: 0, writeSpeed: 0}
- 累加到总速率: {baseDevice: 'sdb', totalRead: 0, totalWrite: 36648.992576882294}
- 处理设备IO: {device: 'sdb1', baseDevice: 'sdb', sectorsRead: 439875961344, sectorsWritten: 1243119452160, hasLastStats: true}
- 计算时间差: {device: 'sdb1', timeDiff: 1.886, currentTime: 1739703186771, lastTime: 1739703184885}
- 计算设备速率: {device: 'sdb1', readDiff: 0, writeDiff: 0, readSpeed: 0, writeSpeed: 0}
- 跳过重复设备的速率累加: {device: 'sdb1', baseDevice: 'sdb'}
- IO统计结果: {totalRead: 0, totalWrite: 36648.992576882294, deviceStatsCount: 6, devices: Array(6), allDeviceStats: {…}, …}
- Timer '[Performance] 刷新会话总耗时 1737016726289' already exists
-refreshSession @ renderer.js:438812
-refresh @ renderer.js:441269
-（匿名） @ renderer.js:441218
-setInterval（异步）
-startRefresh @ renderer.js:441217
-connectSession @ renderer.js:438786
-await in connectSession（异步）
-initMonitor @ renderer.js:433531
-（匿名） @ renderer.js:433559
-commitHookEffectListMount @ renderer.js:349784
-commitPassiveMountOnFiber @ renderer.js:351565
-commitPassiveMountEffects_complete @ renderer.js:351525
-commitPassiveMountEffects_begin @ renderer.js:351512
-commitPassiveMountEffects @ renderer.js:351500
-flushPassiveEffectsImpl @ renderer.js:353673
-flushPassiveEffects @ renderer.js:353618
-performSyncWorkOnRoot @ renderer.js:352710
-flushSyncCallbacks @ renderer.js:338642
-commitRootImpl @ renderer.js:353593
-commitRoot @ renderer.js:353316
-finishConcurrentRender @ renderer.js:352615
-performConcurrentWorkOnRoot @ renderer.js:352443
-workLoop @ renderer.js:402123
-flushWork @ renderer.js:402096
-performWorkUntilDeadline @ renderer.js:402390
+2 [ECharts] Can't get DOM width or height. Please check dom.clientWidth and dom.clientHeight. They should not be 0.For example, you may need to call this in the callback of window.onload.
+outputLog @ renderer.js:555213
+warn @ renderer.js:555220
+init @ renderer.js:533185
+EChartsReactCore.getEchartsInstance @ renderer.js:181247
+EChartsReactCore.updateEChartsOption @ renderer.js:181308
+EChartsReactCore.renderNewEcharts @ renderer.js:181271
+EChartsReactCore.componentDidMount @ renderer.js:181203
+commitLayoutEffectOnFiber @ renderer.js:350009
+commitLayoutMountEffects_complete @ renderer.js:351387
+commitLayoutEffects_begin @ renderer.js:351373
+commitLayoutEffects @ renderer.js:351311
+commitRootImpl @ renderer.js:353522
+commitRoot @ renderer.js:353381
+finishConcurrentRender @ renderer.js:352680
+performConcurrentWorkOnRoot @ renderer.js:352508
+workLoop @ renderer.js:402188
+flushWork @ renderer.js:402161
+performWorkUntilDeadline @ renderer.js:402455
 processImmediate @ node:internal/timers:476
- Timer '[Performance] 刷新会话总耗时 1737016726289' already exists
-refreshSession @ renderer.js:438812
-（匿名） @ renderer.js:438713
-emit @ node:events:525
-refresh @ renderer.js:441271
-await in refresh（异步）
-（匿名） @ renderer.js:441218
-setInterval（异步）
-startRefresh @ renderer.js:441217
-connectSession @ renderer.js:438786
-await in connectSession（异步）
-initMonitor @ renderer.js:433531
-（匿名） @ renderer.js:433559
-commitHookEffectListMount @ renderer.js:349784
-commitPassiveMountOnFiber @ renderer.js:351565
-commitPassiveMountEffects_complete @ renderer.js:351525
-commitPassiveMountEffects_begin @ renderer.js:351512
-commitPassiveMountEffects @ renderer.js:351500
-flushPassiveEffectsImpl @ renderer.js:353673
-flushPassiveEffects @ renderer.js:353618
-performSyncWorkOnRoot @ renderer.js:352710
-flushSyncCallbacks @ renderer.js:338642
-commitRootImpl @ renderer.js:353593
-commitRoot @ renderer.js:353316
-finishConcurrentRender @ renderer.js:352615
-performConcurrentWorkOnRoot @ renderer.js:352443
-workLoop @ renderer.js:402123
-flushWork @ renderer.js:402096
-performWorkUntilDeadline @ renderer.js:402390
-processImmediate @ node:internal/timers:476
- [Performance] 数据更新耗时 1737016726289: 0.056884765625 ms
- iotop输出: Total DISK READ :       0.00 K/s | Total DISK WRITE :     243.64 K/s
-Actual DISK READ:       0.00 K/s | Actual DISK WRITE:       0.00 K/s
-  PID  PRIO  USER     DISK READ  DISK WRITE  SWAPIN      IO    COMMAND
- 6218 be/4 root        0.00 K/s  243.64 K/s  0.00 %  0.03 % java -server -Dinstall4j.jvmDir=/usr/local/install/jdk/jdk1.8.0_341 -Dexe4j.moduleName=/home/cxr/nexus3/nexus-3.54.1-01/bin/nexus -XX:+UnlockDiagnosticVMOptions -Dinstall4j.launcherId=245 -Dinstall4j.swt=false -Di4jv=0 -Di4jv=0 -Di4jv=0 -Di4jv=0 -Di4jv=0 -Xms2703m -Xmx2703m -XX:MaxDirectMemorySize=2703m -XX:+UnlockDiagnosticVMOptions -XX:+LogVMOutput -XX:LogFile=../sonatype-work/nexus3/log/jvm.log -XX:-OmitStackTraceInFastThrow -Djava.net.preferIPv4Stack=true -Dkaraf.home=. -Dkaraf.base=. -Dkaraf.etc=etc/karaf -Djava.util.logging.config.file=etc/karaf/java.util.logging.properties -Dkaraf.data=../sonatype-work/nexus3 -Dkaraf.log=../sonatype-work/nexus3/log -Djava.io.tmpdir=../sonatype-work/nexus3/tmp -Dkaraf.startLocalConsole=false -Djdk.tls.ephemeralDHKeySize=2048 -Djava.endorsed.dirs=lib/endorsed -Di4j.vpt=true -classpath /home/cxr/nexus3/nexus-3.54.1-01/.install4j/i4jruntime.jar:/home/cxr/nexus3/nexus-3.54.1-01/lib/boot/nexus-main.jar:/home/cxr/nexus3/nexus-3.54.1-01/lib/boot/activation-1.1.1.jar:/home/cxr/nexus3/nexus-3.54.1-01/lib/boot/jakarta.xml.bind-api-2.3.3.jar:/home/cxr/nexus3/nexus-3.54.1-01/lib/boot/jaxb-runtime-2.3.3.jar:/home/cxr/nexus3/nexus-3.54.1-01/lib/boot/txw2-2.3.3.jar:/home/cxr/nexus3/nexus-3.54.1-01/lib/boot/istack-commons-runtime-3.0.10.jar:/home/cxr/nexus3/nexus-3.54.1-01/lib/boot/org.apache.karaf.main-4.3.9.jar:/home/cxr/nexus3/nexus-3.54.1-01/lib/boot/osgi.core-7.0.0.jar:/home/cxr/nexus3/nexus-3.54.1-01/lib/boot/org.apache.karaf.specs.activator-4.3.9.jar:/home/cxr/nexus3/nexus-3.54.1-01/lib/boot/org.apache.karaf.diagnostic.boot-4.3.9.jar:/home/cxr/nexus3/nexus-3.54.1-01/lib/boot/org.apache.karaf.jaas.boot-4.3.9.jar com.install4j.runtime.launcher.UnixLauncher start 9d17dc87 0 0 org.sonatype.nexus.karaf.NexusMain
-
- 获取到进程IO统计: {sessionId: '1737016726289', processCount: 1, timestamp: '2025-02-16T10:53:07.332Z'}
- 获取到设备IO统计: {sessionId: '1737016726289', deviceCount: 2, timestamp: '2025-02-16T10:53:07.654Z'}
+ 初始化 PerformancePage: {sessionId: '1737016726289'}
+ Performance data update: {sessionId: '1737016726289', hasData: false, hasBasic: false, hasDetail: false, isLoading: true, …}
+ No performance data, keeping loading state
+ Session ID changed, resetting loading state: {sessionId: '1737016726289'}
+ [MonitorPage] 创建监控会话: 
