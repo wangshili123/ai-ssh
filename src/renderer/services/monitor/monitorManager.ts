@@ -14,6 +14,7 @@ class MonitorManager {
   private refreshService: RefreshService;
   private performanceManager: PerformanceManager;
   private sshService: SSHService;
+  private refreshRequestIds: Map<string, number> = new Map();
   
   // 活动状态控制
   private activeTab: string = '';
@@ -158,20 +159,24 @@ class MonitorManager {
   /**
    * 刷新会话数据
    */
-  async refreshSession(sessionId: string): Promise<void> {
+  async refreshSession(sessionId: string): Promise<MonitorData> {
     console.time(`[Performance] 刷新会话总耗时 ${sessionId}`);
     const session = this.sessions.get(sessionId);
-    if (!session || session.status !== 'connected') return;
+    if (!session || session.status !== 'connected') return {} as MonitorData;
+
+    // 生成新的请求ID
+    const requestId = Date.now();
+    this.refreshRequestIds.set(sessionId, requestId);
 
     try {
       session.status = 'refreshing';
       console.log('[MonitorManager] 刷新会话数据:', {
         sessionId,
+        requestId,
         activeTab: this.activeTab,
         activeCard: this.activeCard,
         activeDetailTab: this.activeDetailTab[this.activeCard]
       });
-
 
       const monitorData: MonitorData = {
         timestamp: Date.now()
@@ -188,19 +193,35 @@ class MonitorManager {
         console.log('[MonitorManager] 性能指标采集结果:', monitorData.performance);
       }
       
-      session.monitorData = monitorData;
-      session.status = 'connected';
-      session.lastUpdated = Date.now();
+      // 检查请求ID是否仍然匹配
+      if (this.refreshRequestIds.get(sessionId) === requestId) {
+        session.monitorData = monitorData;
+        session.status = 'connected';
+        session.lastUpdated = Date.now();
+      } else {
+        console.log('[MonitorManager] 跳过数据更新：检测到更新的请求', {
+          sessionId,
+          currentRequestId: this.refreshRequestIds.get(sessionId),
+          thisRequestId: requestId
+        });
+      }
+      return monitorData;
     } catch (error) {
       console.error('刷新会话数据失败:', {
         sessionId,
+        requestId,
         error: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString()
       });
-      session.status = 'error';
-      session.error = (error as Error).message;
+      // 检查请求ID是否仍然匹配
+      if (this.refreshRequestIds.get(sessionId) === requestId) {
+        session.status = 'error';
+        session.error = (error as Error).message;
+      }
+      return {} as MonitorData;
+    } finally {
+      console.timeEnd(`[Performance] 刷新会话总耗时 ${sessionId}`);
     }
-    console.timeEnd(`[Performance] 刷新会话总耗时 ${sessionId}`);
   }
 
   /**

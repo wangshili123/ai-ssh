@@ -114,7 +114,7 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
 
   // 详细视图
   if (detailed) {
-    return <DiskDetail diskInfo={diskDetail}  />;
+    return <DiskDetail diskInfo={diskDetail} sessionId={sessionId} />;
   }
 
   return null;

@@ -172,7 +172,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
     }
 
     // 只有在收到完整的数据时才关闭加载状态
-    const hasCompleteData = performanceData.basic && performanceData.detail;
+    const hasCompleteData = performanceData.basic;
     console.log('Checking complete data:', { hasCompleteData });
     
     if (hasCompleteData) {
