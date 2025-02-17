@@ -101,59 +101,63 @@ const App: React.FC = () => {
 
   return (
     <Layout className="app-container">
-      <AppToolbar 
-        onSessionListOpen={() => setSessionListVisible(true)}
-        isAICollapsed={isCollapsed}
-        onAICollapse={setIsCollapsed}
-        isFileBrowserVisible={isFileBrowserVisible}
-        onFileBrowserVisibleChange={setIsFileBrowserVisible}
-      />
       <Layout>
-        <Content className="main-content">
-          <TerminalTabsManager 
-            sessionInfo={activeSession}
-            triggerNewTab={triggerNewTab}
-            onTabChange={handleSessionSelect}
+        <Sider width={48} className="app-toolbar-sider" theme="light">
+          <AppToolbar 
+            onSessionListOpen={() => setSessionListVisible(true)}
+            isAICollapsed={isCollapsed}
+            onAICollapse={setIsCollapsed}
             isFileBrowserVisible={isFileBrowserVisible}
+            onFileBrowserVisibleChange={setIsFileBrowserVisible}
           />
-        </Content>
-        
-        {!isCollapsed && (
-          <Sider 
-            width={aiSiderWidth}
-            className="ai-sider"
-            trigger={null}
-          >
-            <div 
-              className="ai-assistant-container"
-              onMouseDown={(e) => {
-                if (e.target === e.currentTarget.querySelector('.resize-handle')) {
-                  const startX = e.clientX;
-                  const startWidth = aiSiderWidth;
-                  
-                  const handleMouseMove = (moveEvent: MouseEvent) => {
-                    const deltaX = startX - moveEvent.clientX;
-                    const newWidth = Math.min(Math.max(370, startWidth + deltaX), 800);
-                    setAiSiderWidth(newWidth);
-                  };
-                  
-                  const handleMouseUp = () => {
-                    document.removeEventListener('mousemove', handleMouseMove);
-                    document.removeEventListener('mouseup', handleMouseUp);
-                  };
-                  
-                  document.addEventListener('mousemove', handleMouseMove);
-                  document.addEventListener('mouseup', handleMouseUp);
-                }
-              }}
+        </Sider>
+        <Layout>
+          <Content className="main-content">
+            <TerminalTabsManager 
+              sessionInfo={activeSession}
+              triggerNewTab={triggerNewTab}
+              onTabChange={handleSessionSelect}
+              isFileBrowserVisible={isFileBrowserVisible}
+            />
+          </Content>
+          
+          {!isCollapsed && (
+            <Sider 
+              width={aiSiderWidth}
+              className="ai-sider"
+              trigger={null}
             >
-              <div className="resize-handle" />
-              <AIAssistant 
-                sessionId={activeSession?.id} 
-              />
-            </div>
-          </Sider>
-        )}
+              <div 
+                className="ai-assistant-container"
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget.querySelector('.resize-handle')) {
+                    const startX = e.clientX;
+                    const startWidth = aiSiderWidth;
+                    
+                    const handleMouseMove = (moveEvent: MouseEvent) => {
+                      const deltaX = startX - moveEvent.clientX;
+                      const newWidth = Math.min(Math.max(370, startWidth + deltaX), 800);
+                      setAiSiderWidth(newWidth);
+                    };
+                    
+                    const handleMouseUp = () => {
+                      document.removeEventListener('mousemove', handleMouseMove);
+                      document.removeEventListener('mouseup', handleMouseUp);
+                    };
+                    
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                  }
+                }}
+              >
+                <div className="resize-handle" />
+                <AIAssistant 
+                  sessionId={activeSession?.id} 
+                />
+              </div>
+            </Sider>
+          )}
+        </Layout>
       </Layout>
       <AppStatusBar />
       <SessionListModal

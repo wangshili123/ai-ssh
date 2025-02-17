@@ -101,7 +101,7 @@ module.exports = merge(common, {
     })
   ],
   devServer: {
-    port: 3000,
+    port: localConfig.devPort,
     hot: true,
     static: [
       {

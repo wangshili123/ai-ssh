@@ -16,6 +16,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .app-container > .ant-layout {
@@ -30,6 +31,8 @@
   flex-direction: column;
   overflow: hidden;
   background: #fff;
+  position: relative;
+  height: 100%;
 }
 
 .terminal-container {
@@ -74,16 +77,15 @@
   position: absolute;
   left: 0;
   top: 0;
-  bottom: 0;
   width: 4px;
+  height: 100%;
   cursor: col-resize;
-  background: transparent;
+  background-color: transparent;
   transition: background-color 0.3s;
-  z-index: 10;
 }
 
 .resize-handle:hover {
-  background: var(--resize-handle-hover, rgba(0, 0, 0, 0.1));
+  background-color: #e6f7ff;
 }
 
 .ai-assistant-container {
@@ -91,6 +93,7 @@
   background: #fff;
   overflow: hidden;
   position: relative;
+  display: flex;
 }
 
 /* 调整分割条样式 */
@@ -132,4 +135,16 @@
 .ant-layout-content {
   display: flex;
   flex-direction: column;
+}
+
+.app-toolbar-sider {
+  background-color: #ffffff;
+  border-right: 1px solid #e8e8e8;
+  z-index: 1000;
+}
+
+.app-toolbar-sider .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 } 

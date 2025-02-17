@@ -1,28 +1,65 @@
 .toolbar {
-  padding: 8px 16px;
+  height: 100%;
+  padding: 8px 4px;
   background-color: #ffffff;
-  border-bottom: 1px solid #e8e8e8;
+  border-right: 1px solid #e8e8e8;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05);
 }
 
 .toolbar .ant-space {
-  flex-wrap: wrap;
-  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.toolbar .ant-space-item {
+  width: 100%;
 }
 
 .toolbar .ant-btn {
-  padding: 4px 12px;
-  height: 32px;
-  border-radius: 4px;
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
   transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar .ant-btn span:not(.anticon) {
+  display: none;
 }
 
 .toolbar .ant-btn:hover {
   color: #1890ffbd;
   background-color: #e6f7ff;
+}
+
+/* 移除水平分隔线 */
+.toolbar .ant-space > div:not(:last-child)::after {
+  display: none;
+}
+
+/* 添加垂直分隔线 */
+.toolbar .ant-space > div:not(:last-child) {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.toolbar .ant-space > div:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 1px;
+  background-color: #e8e8e8;
 }
 
 /* 响应式布局 */
@@ -34,15 +71,4 @@
   .toolbar .ant-btn span:not(.anticon) {
     display: none;
   }
-}
-
-/* 添加分隔线 */
-.toolbar .ant-space > div:not(:last-child)::after {
-  content: '';
-  display: inline-block;
-  width: 1px;
-  height: 16px;
-  background-color: #e8e8e8;
-  margin: 0 8px;
-  vertical-align: middle;
 } 
