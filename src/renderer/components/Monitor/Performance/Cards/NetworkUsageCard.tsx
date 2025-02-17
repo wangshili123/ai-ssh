@@ -2,6 +2,7 @@ import React from 'react';
 import { Tooltip } from 'antd';
 import { NetworkBasicInfo, NetworkDetailInfo, MonitorData } from '../../../../types/monitor';
 import { formatBytes } from '../../../../utils/format';
+import { NetworkDetail } from './NetworkDetail/NetworkDetailTab';
 import './NetworkUsageCard.css';
 
 interface NetworkUsageCardProps {
@@ -94,8 +95,7 @@ export const NetworkUsageCard: React.FC<NetworkUsageCardProps> = ({
   if (detailed) {
     return (
       <div className="network-details-view">
-        {/* 网络详细信息的实现将在后续添加 */}
-        <div>网络监控详细信息开发中...</div>
+        <NetworkDetail networkInfo={networkDetail} sessionId={sessionId} />
       </div>
     );
   }

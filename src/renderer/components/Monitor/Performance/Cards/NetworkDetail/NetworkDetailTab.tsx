@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tabs, Spin } from 'antd';
+import { Tabs } from 'antd';
 import { NetworkDetailInfo, MonitorData } from '../../../../../types/monitor';
 import { NetworkBasicInfo } from './NetworkBasicInfo';
 import { NetworkConnections } from './NetworkConnections';
