@@ -3,6 +3,7 @@ import { MonitorData, PerformanceData, PerformanceDetailData } from '../../../ty
 import { CpuMetricsService } from './cpuService';
 import { MemoryMetricsService } from './memoryService';
 import { DiskMetricsService } from './diskService';
+import { NetworkService } from './networkService';
 
 /**
  * 性能监控管理器
@@ -17,6 +18,7 @@ export class PerformanceManager {
     private cpuMetricsService: CpuMetricsService;
     private memoryMetricsService: MemoryMetricsService;
     private diskMetricsService: DiskMetricsService;
+    private networkService: NetworkService;
 
     // 保存上一次的完整数据
     private lastPerformanceData: Map<string, {
@@ -37,6 +39,7 @@ export class PerformanceManager {
         this.cpuMetricsService = CpuMetricsService.getInstance(sshService);
         this.memoryMetricsService = MemoryMetricsService.getInstance(sshService);
         this.diskMetricsService = DiskMetricsService.getInstance(sshService);
+        this.networkService = NetworkService.getInstance(sshService);
     }
 
     /**
@@ -65,8 +68,7 @@ export class PerformanceManager {
             case 'disk':
                 return this.diskMetricsService.collectDetailMetrics(sessionId, activeDetailTab);
             case 'network':
-                // TODO: 实现网络详细指标采集
-                return null;
+                return this.networkService.collectDetailMetrics(sessionId);
         }
     }
 
@@ -97,13 +99,7 @@ export class PerformanceManager {
                 this.cpuMetricsService.collectBasicMetrics(sessionId),
                 this.memoryMetricsService.collectBasicMetrics(sessionId),
                 this.diskMetricsService.collectBasicMetrics(sessionId),
-                // TODO: 实现网络基础指标采集
-                Promise.resolve({
-                    totalRx: 0,
-                    totalTx: 0,
-                    rxSpeed: 0,
-                    txSpeed: 0
-                })
+                this.networkService.collectBasicMetrics(sessionId)
             ]);
 
             // 构建基础性能数据
@@ -212,6 +208,7 @@ export class PerformanceManager {
         this.cpuMetricsService.destroy();
         this.memoryMetricsService.destroy();
         this.diskMetricsService.destroy();
+        this.networkService.destroy();
         PerformanceManager.instance = null as any;
     }
 } 

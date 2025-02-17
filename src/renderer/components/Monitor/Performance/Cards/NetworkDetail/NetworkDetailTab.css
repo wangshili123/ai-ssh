@@ -1,0 +1,204 @@
+.network-detail {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.network-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.network-tabs .ant-tabs-content {
+  flex: 1;
+  height: 0;
+  overflow: hidden;
+}
+
+.network-tabs .ant-tabs-tabpane {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 基础信息标签页样式 */
+.network-basic-info {
+  height: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.interface-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.interface-card {
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.interface-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.interface-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1f1f1f;
+}
+
+.interface-status {
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.interface-status.up {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.interface-status.down {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
+.interface-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #1f1f1f;
+}
+
+.bandwidth-chart {
+  flex: 1;
+  min-height: 300px;
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+/* 连接分析标签页样式 */
+.network-connections {
+  height: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.connection-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 500;
+  color: #1890ff;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+.connection-table {
+  flex: 1;
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 进程监控标签页样式 */
+.network-processes {
+  height: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.process-table {
+  flex: 1;
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.bandwidth-chart {
+  height: 300px;
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+/* 自定义滚动条样式 */
+.network-basic-info::-webkit-scrollbar,
+.network-connections::-webkit-scrollbar,
+.network-processes::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: transparent;
+}
+
+.network-basic-info::-webkit-scrollbar-thumb,
+.network-connections::-webkit-scrollbar-thumb,
+.network-processes::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.network-basic-info::-webkit-scrollbar-thumb:hover,
+.network-connections::-webkit-scrollbar-thumb:hover,
+.network-processes::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.network-basic-info::-webkit-scrollbar-track,
+.network-connections::-webkit-scrollbar-track,
+.network-processes::-webkit-scrollbar-track {
+  background-color: transparent;
+} 

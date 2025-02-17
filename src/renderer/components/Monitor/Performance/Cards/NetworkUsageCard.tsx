@@ -1,8 +1,7 @@
 import React from 'react';
-import { Progress } from 'antd';
+import { Tooltip } from 'antd';
 import { NetworkBasicInfo, NetworkDetailInfo, MonitorData } from '../../../../types/monitor';
 import { formatBytes } from '../../../../utils/format';
-import { getProgressColor, getResourceStatus } from '../../../../utils/theme';
 import './NetworkUsageCard.css';
 
 interface NetworkUsageCardProps {
@@ -38,7 +37,16 @@ export const NetworkUsageCard: React.FC<NetworkUsageCardProps> = ({
   // 定义详细数据的默认值
   const defaultDetail: NetworkDetailInfo = {
     ...defaultBasic,
-    interfaces: []
+    interfaces: [],
+    connections: {
+      total: 0,
+      tcp: 0,
+      udp: 0,
+      listening: 0,
+      list: []
+    },
+    processes: [],
+    history: []
   };
 
   // 安全地获取基础数据
@@ -59,30 +67,25 @@ export const NetworkUsageCard: React.FC<NetworkUsageCardProps> = ({
       }))
   };
 
-  // 计算总带宽使用率（假设最大带宽为1Gbps）
-  const maxBandwidth = 1000 * 1000 * 1000; // 1 Gbps in bytes
-  const bandwidthUsage = Math.min(100, ((networkBasic.rxSpeed + networkBasic.txSpeed) / maxBandwidth) * 100);
-
   // 简单视图用于左侧资源列表
   if (simple) {
-    const status = getResourceStatus(bandwidthUsage);
     return (
-      <div className={`resource-summary network-usage-card ${status}`}>
+      <div className="resource-summary network-usage-card">
         <div className="resource-title">网络</div>
-        <div className="resource-value">
-          <span className="usage-value">
-            ↓{formatBytes(networkBasic.rxSpeed)}/s
-          </span>
-          <span className="usage-value">
-            ↑{formatBytes(networkBasic.txSpeed)}/s
-          </span>
+        <div className="resource-value network-speeds">
+          <Tooltip title="下载速度">
+            <div className="speed-item">
+              <span className="speed-icon">↓</span>
+              <span className="speed-value">{formatBytes(networkBasic.rxSpeed)}/s</span>
+            </div>
+          </Tooltip>
+          <Tooltip title="上传速度">
+            <div className="speed-item">
+              <span className="speed-icon">↑</span>
+              <span className="speed-value">{formatBytes(networkBasic.txSpeed)}/s</span>
+            </div>
+          </Tooltip>
         </div>
-        <Progress 
-          percent={Math.round(bandwidthUsage)} 
-          showInfo={false} 
-          size="small"
-          strokeColor={getProgressColor(bandwidthUsage)}
-        />
       </div>
     );
   }
