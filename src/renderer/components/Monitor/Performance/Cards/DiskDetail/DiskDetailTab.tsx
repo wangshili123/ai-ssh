@@ -25,9 +25,9 @@ export const DiskDetail: React.FC<DiskDetailProps> = ({
 
   const handleTabChange = async (tab: string) => {
     setActiveTab(tab);
+    monitorManager.setActiveDetailTab('disk', tab);
     if (!loadedTabs.has(tab)) {
       // 第一次切换时立即触发刷新，等待刷新完成
-      monitorManager.setActiveDetailTab('disk', tab);
       const newData = await monitorManager.refreshSession(sessionId);
       if (newData?.performance?.detail?.disk) {
         setMonitorData(newData);

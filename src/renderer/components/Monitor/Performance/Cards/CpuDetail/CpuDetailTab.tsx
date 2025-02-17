@@ -20,11 +20,12 @@ export const CpuDetail: React.FC<CpuDetailProps> = ({ cpuInfo, sessionId }) => {
   const monitorManager = getServiceManager().getMonitorManager();
  
   const handleTabChange = async (tab: string) => {
+    console.log('CpuDetail切换tab', tab);
     setActiveTab(tab);
+    monitorManager.setActiveDetailTab('cpu', tab);
     if (!loadedTabs.has(tab)) {
       // 第一次切换时立即触发刷新，等待刷新完成
       console.log('CpuDetail刷新会话数据', sessionId);
-      monitorManager.setActiveDetailTab('cpu', tab);
       const newData = await monitorManager.refreshSession(sessionId);
       if (newData?.performance?.detail?.cpu) {
         setMonitorData(newData);

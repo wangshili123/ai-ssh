@@ -24,9 +24,9 @@ export const NetworkDetail: React.FC<NetworkDetailProps> = ({
 
   const handleTabChange = async (tab: string) => {
     setActiveTab(tab);
+    monitorManager.setActiveDetailTab('network', tab);
     if (!loadedTabs.has(tab)) {
       // 第一次切换时立即触发刷新，等待刷新完成
-      monitorManager.setActiveDetailTab('network', tab);
       const newData = await monitorManager.refreshSession(sessionId);
       if (newData?.performance?.detail?.network) {
         setMonitorData(newData);

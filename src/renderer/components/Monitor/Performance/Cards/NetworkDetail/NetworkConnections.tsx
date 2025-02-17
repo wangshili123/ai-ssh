@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { NetworkDetailInfo } from '../../../../../types/monitor';
@@ -16,8 +16,8 @@ interface ConnectionTableItem {
   process: string;
 }
 
-export const NetworkConnections: React.FC<NetworkConnectionsProps> = ({ networkInfo }) => {
-  const columns: ColumnsType<ConnectionTableItem> = [
+export const NetworkConnections: React.FC<NetworkConnectionsProps> = React.memo(({ networkInfo }) => {
+  const columns: ColumnsType<ConnectionTableItem> = useMemo(() => [
     {
       title: '协议',
       dataIndex: 'protocol',
@@ -48,16 +48,19 @@ export const NetworkConnections: React.FC<NetworkConnectionsProps> = ({ networkI
       key: 'process',
       ellipsis: true,
     },
-  ];
+  ], []);
 
-  const data: ConnectionTableItem[] = networkInfo.connections.list.map((conn, index) => ({
-    key: `${index}`,
-    protocol: conn.protocol,
-    localAddress: `${conn.localAddress}:${conn.localPort}`,
-    remoteAddress: `${conn.remoteAddress}:${conn.remotePort}`,
-    state: conn.state,
-    process: conn.process || '未知'
-  }));
+  const data: ConnectionTableItem[] = useMemo(() => 
+    networkInfo.connections.list.map((conn, index) => ({
+      key: `${index}`,
+      protocol: conn.protocol,
+      localAddress: `${conn.localAddress}:${conn.localPort}`,
+      remoteAddress: `${conn.remoteAddress}:${conn.remotePort}`,
+      state: conn.state,
+      process: conn.process || '未知'
+    })),
+    [networkInfo.connections.list]
+  );
 
   return (
     <div className="network-connections">
@@ -85,10 +88,11 @@ export const NetworkConnections: React.FC<NetworkConnectionsProps> = ({ networkI
           columns={columns}
           dataSource={data}
           pagination={false}
-          scroll={{ y: 'calc(100vh - 400px)' }}
+          scroll={{ y: 'calc(100vh - 400px)', scrollToFirstRowOnChange: true }}
           size="middle"
+          virtual
         />
       </div>
     </div>
   );
-}; 
+}); 
