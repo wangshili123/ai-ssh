@@ -3,7 +3,7 @@ import { MonitorData, PerformanceData, PerformanceDetailData } from '../../../ty
 import { CpuMetricsService } from './cpuService';
 import { MemoryMetricsService } from './memoryService';
 import { DiskMetricsService } from './diskService';
-import { NetworkService } from './networkService';
+import { NetworkService } from './network/networkService';
 
 /**
  * 性能监控管理器
@@ -68,7 +68,7 @@ export class PerformanceManager {
             case 'disk':
                 return this.diskMetricsService.collectDetailMetrics(sessionId, activeDetailTab);
             case 'network':
-                return this.networkService.collectDetailMetrics(sessionId);
+                return this.networkService.collectDetailMetrics(sessionId,activeDetailTab);
         }
     }
 

@@ -24,6 +24,8 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
   }, []);
 
   useEffect(() => {
+    let cleanup: (() => void) | undefined;
+
     const initMonitor = async () => {
       console.time(`[Performance] 监控页面初始化总耗时 ${sessionInfo.id}`);
       try {
@@ -60,7 +62,10 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
 
         const refreshService = getServiceManager().getRefreshService();
         refreshService.on('refresh', handleRefresh);
-        return () => {
+        
+        // 设置清理函数
+        cleanup = () => {
+          console.log('[MonitorPage] 清理监控资源:', monitorSession.id);
           refreshService.off('refresh', handleRefresh);
           monitorManager.disconnectSession(monitorSession.id);
         };
@@ -72,6 +77,13 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
     };
 
     initMonitor();
+
+    // 返回清理函数
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
   }, [sessionInfo.id]);
 
   // 处理标签页切换

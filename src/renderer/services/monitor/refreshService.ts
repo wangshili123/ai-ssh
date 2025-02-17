@@ -19,7 +19,7 @@ interface RefreshTask {
  */
 export class RefreshService extends EventEmitter {
   private static instance: RefreshService;
-  private refreshTasks: Map<string, RefreshTask> = new Map();
+  private refreshTasks: Map<string, number> = new Map();
 
   private constructor() {
     super();
@@ -37,44 +37,39 @@ export class RefreshService extends EventEmitter {
 
   /**
    * 启动刷新任务
-   * @param session 会话信息
    */
-  startRefresh(session: SessionInfo): void {
-    // 如果已存在任务，先停止
+  startRefresh(session: SessionInfo, options?: RefreshOptions) {
+    // 如果已存在任务则先停止
     this.stopRefresh(session.id);
 
-    const options: RefreshOptions = {
+    const refreshOptions = {
       interval: session.config?.refreshInterval || 5000,
-      autoRefresh: session.config?.autoRefresh ?? true
+      autoRefresh: session.config?.autoRefresh ?? true,
+      ...options
     };
 
-    // 如果不需要自动刷新，直接返回
-    if (!options.autoRefresh) {
-      return;
-    }
+    console.log(`[RefreshService] 启动刷新任务-${session.id}`, refreshOptions);
 
     // 创建定时器
-    const timerId = window.setInterval(() => {
-      this.refresh(session.id);
-    }, options.interval);
+    const timerId = window.setInterval(async () => {
+      const monitorManager = getServiceManager().getMonitorManager();
+      const updatedData = await monitorManager.refreshSession(session.id);
+      this.emit('refresh', session.id);
+    }, refreshOptions.interval);
 
-    // 保存任务信息
-    this.refreshTasks.set(session.id, {
-      sessionId: session.id,
-      timerId,
-      options
-    });
+    // 保存定时器ID
+    this.refreshTasks.set(session.id, timerId);
   }
 
   /**
    * 停止刷新任务
-   * @param sessionId 会话ID
    */
   stopRefresh(sessionId: string): void {
-    const task = this.refreshTasks.get(sessionId);
-    if (task) {
-      clearInterval(task.timerId);
+    const timerId = this.refreshTasks.get(sessionId);
+    if (timerId) {
+      window.clearInterval(timerId);
       this.refreshTasks.delete(sessionId);
+      console.log(`[RefreshService] 停止刷新任务-${sessionId}`);
     }
   }
 
@@ -83,9 +78,9 @@ export class RefreshService extends EventEmitter {
    * @param sessionId 会话ID
    */
   pauseRefresh(sessionId: string): void {
-    const task = this.refreshTasks.get(sessionId);
-    if (task) {
-      clearInterval(task.timerId);
+    const timerId = this.refreshTasks.get(sessionId);
+    if (timerId) {
+      window.clearInterval(timerId);
     }
   }
 
@@ -94,54 +89,18 @@ export class RefreshService extends EventEmitter {
    * @param sessionId 会话ID
    */
   resumeRefresh(sessionId: string): void {
-    const task = this.refreshTasks.get(sessionId);
-    if (task && task.options.autoRefresh) {
-      const timerId = window.setInterval(() => {
-        this.refresh(task.sessionId);
-      }, task.options.interval);
-
-      task.timerId = timerId;
-    }
-  }
-
-  /**
-   * 手动刷新
-   * @param sessionId 会话ID
-   */
-  async refresh(sessionId: string): Promise<void> {
-    // 获取 MonitorManager 实例
-    const monitorManager = getServiceManager().getMonitorManager();
-    
-    // 等待数据刷新完成
-    await monitorManager.refreshSession(sessionId);
-    
-    // 数据更新完成后触发事件
-    this.emit('refresh', sessionId);
-  }
-
-  /**
-   * 更新刷新选项
-   * @param sessionId 会话ID
-   * @param options 新的选项
-   */
-  updateOptions(sessionId: string, options: Partial<RefreshOptions>): void {
-    const task = this.refreshTasks.get(sessionId);
-    if (task) {
-      // 更新选项
-      task.options = {
-        ...task.options,
-        ...options
+    const timerId = this.refreshTasks.get(sessionId);
+    if (timerId) {
+      const refreshOptions = {
+        interval: this.refreshTasks.get(sessionId) as number,
+        autoRefresh: true
       };
-
-      // 重启任务以应用新选项
-      this.stopRefresh(sessionId);
-      if (task.options.autoRefresh) {
-        const timerId = window.setInterval(() => {
-          this.refresh(task.sessionId);
-        }, task.options.interval);
-
-        task.timerId = timerId;
-      }
+      const timer = window.setInterval(async () => {
+        const monitorManager = getServiceManager().getMonitorManager();
+        const updatedData = await monitorManager.refreshSession(sessionId);
+        this.emit('refresh', sessionId);
+      }, refreshOptions.interval);
+      this.refreshTasks.set(sessionId, timer);
     }
   }
 
@@ -153,10 +112,13 @@ export class RefreshService extends EventEmitter {
     isRunning: boolean;
     options?: RefreshOptions;
   } {
-    const task = this.refreshTasks.get(sessionId);
+    const timerId = this.refreshTasks.get(sessionId);
     return {
-      isRunning: !!task,
-      options: task?.options
+      isRunning: !!timerId,
+      options: {
+        interval: timerId as number,
+        autoRefresh: true
+      }
     };
   }
 

@@ -26,12 +26,10 @@ class MonitorManager {
     network: 'basic'
   };
 
-
   private constructor(sshService: SSHService) {
     this.sshService = sshService;
     this.refreshService = RefreshService.getInstance();
     this.performanceManager = PerformanceManager.getInstance(sshService);
-    this.setupRefreshListener();
   }
 
   /**
@@ -43,17 +41,6 @@ class MonitorManager {
     }
     return MonitorManager.instance;
   }
-
-  /**
-   * 设置刷新监听器
-   */
-  private setupRefreshListener(): void {
-    this.refreshService.on('refresh', async (sessionId: string) => {
-      await this.refreshSession(sessionId);
-    });
-  }
-
-
 
   /**
    * 设置当前激活的标签页
@@ -126,15 +113,13 @@ class MonitorManager {
       console.timeEnd(`[Performance] SSH连接耗时 ${sessionId}`);
       
       session.status = 'connected';
-
-      // 初始化时立即刷新一次数据
+      // 马上调用一次
       await this.refreshSession(sessionId);
-
-      if (session.config?.autoRefresh) {
-        console.time(`[Performance] 启动自动刷新耗时 ${sessionId}`);
-        this.refreshService.startRefresh(session);
-        console.timeEnd(`[Performance] 启动自动刷新耗时 ${sessionId}`);
-      }
+      // 启动自动刷新
+      console.time(`[Performance] 启动自动刷新耗时 ${sessionId}`);
+      this.refreshService.startRefresh(session);
+      console.timeEnd(`[Performance] 启动自动刷新耗时 ${sessionId}`);
+    
     } catch (error) {
       session.status = 'error';
       session.error = (error as Error).message;
@@ -153,14 +138,36 @@ class MonitorManager {
     this.refreshService.stopRefresh(sessionId);
     this.sshService.disconnect(sessionId);
     session.status = 'disconnected';
-    
+  }
+
+  /**
+   * 获取会话
+   */
+  getSession(sessionId: string): SessionInfo | undefined {
+    return this.sessions.get(sessionId);
+  }
+
+  /**
+   * 获取所有会话
+   */
+  getAllSessions(): SessionInfo[] {
+    return Array.from(this.sessions.values());
+  }
+
+  /**
+   * 获取活跃会话
+   */
+  getActiveSessions(): SessionInfo[] {
+    return Array.from(this.sessions.values()).filter(
+      session => session.status === 'connected'
+    );
   }
 
   /**
    * 刷新会话数据
    */
   async refreshSession(sessionId: string): Promise<MonitorData> {
-    console.time(`[Performance] 刷新会话总耗时 ${sessionId}`);
+    console.time(`[Performance] 刷新会话总耗时-开始 ${sessionId}`);
     const session = this.sessions.get(sessionId);
     if (!session || session.status !== 'connected') return {} as MonitorData;
 
@@ -222,29 +229,6 @@ class MonitorManager {
     } finally {
       console.timeEnd(`[Performance] 刷新会话总耗时 ${sessionId}`);
     }
-  }
-
-  /**
-   * 获取会话
-   */
-  getSession(sessionId: string): SessionInfo | undefined {
-    return this.sessions.get(sessionId);
-  }
-
-  /**
-   * 获取所有会话
-   */
-  getAllSessions(): SessionInfo[] {
-    return Array.from(this.sessions.values());
-  }
-
-  /**
-   * 获取活跃会话
-   */
-  getActiveSessions(): SessionInfo[] {
-    return Array.from(this.sessions.values()).filter(
-      session => session.status === 'connected'
-    );
   }
 
   /**

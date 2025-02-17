@@ -1,112 +1,326 @@
-[NetworkService] collectBasicMetrics 1737016726289: 144.49267578125 ms
- interfaceInfo 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
-    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-    RX: bytes  packets  errors  dropped overrun mcast   
-    296429936591 264190564 0       0       0       0       
-    TX: bytes  packets  errors  dropped carrier collsns 
-    296429936591 264190564 0       0       0       0       
-2: eno1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
-    link/ether 3c:ec:ef:05:d4:10 brd ff:ff:ff:ff:ff:ff
-    RX: bytes  packets  errors  dropped overrun mcast   
-    1474933564298 2585942139 0       4945967 0       12251801 
-    TX: bytes  packets  errors  dropped carrier collsns 
-    357242140362 1886543088 0       0       0       0       
-3: eno2: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN mode DEFAULT group default qlen 1000
-    link/ether 3c:ec:ef:05:d4:11 brd ff:ff:ff:ff:ff:ff
-    RX: bytes  packets  errors  dropped overrun mcast   
-    26414927013 111656546 0       421105  0       17821   
-    TX: bytes  packets  errors  dropped carrier collsns 
-    14912098862 128513817 0       0       0       0       
-4: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default 
-    link/ether 02:42:65:fd:47:a1 brd ff:ff:ff:ff:ff:ff
-    RX: bytes  packets  errors  dropped overrun mcast   
-    39227175   208352   0       0       0       0       
-    TX: bytes  packets  errors  dropped carrier collsns 
-    117357307  205541   0       0       0       0       
-36: oray_vnc: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1300 qdisc pfifo_fast state UNKNOWN mode DEFAULT group default qlen 1000
-    link/ether 00:25:e1:03:10:00 brd ff:ff:ff:ff:ff:ff
-    RX: bytes  packets  errors  dropped overrun mcast   
-    1707215102 22364505 0       0       0       0       
-    TX: bytes  packets  errors  dropped carrier collsns 
-    12453269683 36929488 0       0       0       0       
-40: veth44692c6@if39: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP mode DEFAULT group default 
-    link/ether 62:02:41:ed:b9:38 brd ff:ff:ff:ff:ff:ff link-netnsid 0
-    RX: bytes  packets  errors  dropped overrun mcast   
-    4208373    41649    0       0       0       0       
-    TX: bytes  packets  errors  dropped carrier collsns 
-    51782751   44763    0       0       0       0       
----SPLIT---
-1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
-    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
-    inet 127.0.0.1/8 scope host lo
-       valid_lft forever preferred_lft forever
-    inet6 ::1/128 scope host 
-       valid_lft forever preferred_lft forever
-    RX: bytes  packets  errors  dropped overrun mcast   
-    296429936591 264190564 0       0       0       0       
-    TX: bytes  packets  errors  dropped carrier collsns 
-    296429936591 264190564 0       0       0       0       
-2: eno1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
-    link/ether 3c:ec:ef:05:d4:10 brd ff:ff:ff:ff:ff:ff
-    inet 10.10.18.252/24 brd 10.10.18.255 scope global noprefixroute eno1
-       valid_lft forever preferred_lft forever
-    inet6 fe80::6d7c:be6d:ef23:e8e8/64 scope link noprefixroute 
-       valid_lft forever preferred_lft forever
-    RX: bytes  packets  errors  dropped overrun mcast   
-    1474933564298 2585942139 0       4945967 0       12251801 
-    TX: bytes  packets  errors  dropped carrier collsns 
-    357242142698 1886543090 0       0       0       0       
-3: eno2: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN group default qlen 1000
-    link/ether 3c:ec:ef:05:d4:11 brd ff:ff:ff:ff:ff:ff
-    RX: bytes  packets  errors  dropped overrun mcast   
-    26414927013 111656546 0       421105  0       17821   
-    TX: bytes  packets  errors  dropped carrier collsns 
-    14912098862 128513817 0       0       0       0       
-4: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
-    link/ether 02:42:65:fd:47:a1 brd ff:ff:ff:ff:ff:ff
-    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
-       valid_lft forever preferred_lft forever
-    inet6 fe80::42:65ff:fefd:47a1/64 scope link 
-       valid_lft forever preferred_lft forever
-    RX: bytes  packets  errors  dropped overrun mcast   
-    39227175   208352   0       0       0       0       
-    TX: bytes  packets  errors  dropped carrier collsns 
-    117357307  205541   0       0       0       0       
-36: oray_vnc: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1300 qdisc pfifo_fast state UNKNOWN group default qlen 1000
-    link/ether 00:25:e1:03:10:00 brd ff:ff:ff:ff:ff:ff
-    inet 172.16.3.226/22 brd 172.16.3.255 scope global oray_vnc
-       valid_lft forever preferred_lft forever
-    inet6 fe80::225:e1ff:fe03:1000/64 scope link 
-       valid_lft forever preferred_lft forever
-    RX: bytes  packets  errors  dropped overrun mcast   
-    1707215102 22364505 0       0       0       0       
-    TX: bytes  packets  errors  dropped carrier collsns 
-    12453271887 36929490 0       0       0       0       
-40: veth44692c6@if39: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
-    link/ether 62:02:41:ed:b9:38 brd ff:ff:ff:ff:ff:ff link-netnsid 0
-    inet6 fe80::6002:41ff:feed:b938/64 scope link 
-       valid_lft forever preferred_lft forever
-    RX: bytes  packets  errors  dropped overrun mcast   
-    4208373    41649    0       0       0       0       
-    TX: bytes  packets  errors  dropped carrier collsns 
-    51782751   44763    0       0       0       0       
+ [MonitorManager] 刷新会话数据: {sessionId: '1737016726289', requestId: 1739804727740, activeTab: 'performance', activeCard: 'cpu', activeDetailTab: 'basic'}
+ 开始采集性能指标数据: {sessionId: '1737016726289', activeCard: 'cpu', activeDetailTab: 'basic', timestamp: '2025-02-17T15:05:27.740Z'}
+ free -b 结果:               total        used        free      shared  buff/cache   available
+Mem:    67266519040 35504283648   834539520  3359674368 30927695872 27853750272
+Swap:             0           0           0
 
- ssStats Total: 1783 (kernel 3560)
-TCP:   1212 (estab 773, closed 366, orphaned 0, synrecv 0, timewait 84/0), ports 0
+ 解析的内存数据: (7) ['Mem:', '67266519040', '35504283648', '834539520', '3359674368', '30927695872', '27853750272']
+ [NetworkService] collectBasicMetrics 1737016726289: 694.6767578125 ms
+ [CpuService] collectBasicMetrics 1737016726289: 1178.59326171875 ms
+ [CpuService] collectDetailMetrics 1737016726289: 911.9169921875 ms
+ [Performance] 采集性能指标数据完成，用时: 2663ms
+ [NetworkService] collectDetailMetrics 1737016726289: 0.369873046875 ms
+ [Performance] 性能指标采集耗时 1737016726289: 2663.27783203125 ms
+ [MonitorManager] 性能指标采集结果: {basic: {…}, detail: {…}}
+ Timer '[Performance] 刷新会话总耗时 1737016726289' does not exist
+refreshSession @ renderer.js:440434
+await in refreshSession（异步）
+refresh @ renderer.js:443593
+（匿名） @ renderer.js:443542
+setInterval（异步）
+startRefresh @ renderer.js:443541
+connectSession @ renderer.js:440349
+await in connectSession（异步）
+initMonitor @ renderer.js:434435
+（匿名） @ renderer.js:434461
+commitHookEffectListMount @ renderer.js:350306
+commitPassiveMountOnFiber @ renderer.js:352087
+commitPassiveMountEffects_complete @ renderer.js:352047
+commitPassiveMountEffects_begin @ renderer.js:352034
+commitPassiveMountEffects @ renderer.js:352022
+flushPassiveEffectsImpl @ renderer.js:354195
+flushPassiveEffects @ renderer.js:354140
+performSyncWorkOnRoot @ renderer.js:353232
+flushSyncCallbacks @ renderer.js:339164
+commitRootImpl @ renderer.js:354115
+commitRoot @ renderer.js:353838
+finishConcurrentRender @ renderer.js:353137
+performConcurrentWorkOnRoot @ renderer.js:352965
+workLoop @ renderer.js:402645
+flushWork @ renderer.js:402618
+performWorkUntilDeadline @ renderer.js:402912
+processImmediate @ node:internal/timers:476
+ Timer '[Performance] 刷新会话总耗时-开始 1737016726289' already exists
+refreshSession @ renderer.js:440379
+（匿名） @ renderer.js:440277
+emit @ node:events:525
+refresh @ renderer.js:443595
+await in refresh（异步）
+（匿名） @ renderer.js:443542
+setInterval（异步）
+startRefresh @ renderer.js:443541
+connectSession @ renderer.js:440349
+await in connectSession（异步）
+initMonitor @ renderer.js:434435
+（匿名） @ renderer.js:434461
+commitHookEffectListMount @ renderer.js:350306
+commitPassiveMountOnFiber @ renderer.js:352087
+commitPassiveMountEffects_complete @ renderer.js:352047
+commitPassiveMountEffects_begin @ renderer.js:352034
+commitPassiveMountEffects @ renderer.js:352022
+flushPassiveEffectsImpl @ renderer.js:354195
+flushPassiveEffects @ renderer.js:354140
+performSyncWorkOnRoot @ renderer.js:353232
+flushSyncCallbacks @ renderer.js:339164
+commitRootImpl @ renderer.js:354115
+commitRoot @ renderer.js:353838
+finishConcurrentRender @ renderer.js:353137
+performConcurrentWorkOnRoot @ renderer.js:352965
+workLoop @ renderer.js:402645
+flushWork @ renderer.js:402618
+performWorkUntilDeadline @ renderer.js:402912
+processImmediate @ node:internal/timers:476
+ [MonitorManager] 刷新会话数据: {sessionId: '1737016726289', requestId: 1739804730404, activeTab: 'performance', activeCard: 'cpu', activeDetailTab: 'basic'}
+ 开始采集性能指标数据: {sessionId: '1737016726289', activeCard: 'cpu', activeDetailTab: 'basic', timestamp: '2025-02-17T15:05:30.405Z'}
+ [Performance] 数据更新耗时 1737016726289: 0.0888671875 ms
+ PerformancePage render: {sessionId: '1737016726289', isInitialLoading: false, selectedResource: 'cpu', hasBasicData: true, hasDetailData: true}
+ Performance data update: {sessionId: '1737016726289', hasData: true, hasBasic: true, hasDetail: true, isLoading: false, …}
+ Checking complete data: {hasCompleteData: {…}}
+ Complete data received, closing loading state
+ PerformancePage render: {sessionId: '1737016726289', isInitialLoading: false, selectedResource: 'cpu', hasBasicData: true, hasDetailData: true}
+ free -b 结果:               total        used        free      shared  buff/cache   available
+Mem:    67266519040 35507834880   830988288  3359674368 30927695872 27850199040
+Swap:             0           0           0
 
-Transport Total     IP        IPv6
-*	  3560      -         -        
-RAW	  1         0         1        
-UDP	  10        5         5        
-TCP	  846       569       277      
-INET	  857       574       283      
-FRAG	  0         0         0        
+ 解析的内存数据: (7) ['Mem:', '67266519040', '35507834880', '830988288', '3359674368', '30927695872', '27850199040']
+ [NetworkService] collectBasicMetrics 1737016726289: 428.510986328125 ms
+ free -b 结果:               total        used        free      shared  buff/cache   available
+Mem:    67266519040 35507949568   830873600  3359674368 30927695872 27850084352
+Swap:             0           0           0
 
+ 解析的内存数据: (7) ['Mem:', '67266519040', '35507949568', '830873600', '3359674368', '30927695872', '27850084352']
+ [CpuService] collectBasicMetrics 1737016726289: 901.57421875 ms
+ 原始lsblk输出: sda    disk    0 sata   
+├─sda1 part    0        /boot
+├─sda2 part    0        /
+└─sda3 part    0        
+sdb    disk    1 sata   
+└─sdb1 part    1        /home
 
- 数据块数量: 1
- 处理数据块: 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
- 跳过lo接口
- 完成链路层解析，接口数量: 0
- IP地址数据块数量: 1
- 完成IP地址解析，最终接口数量: 0
- interfaces []
+ 根设备: /dev/sda2
+ 处理lsblk行: {line: 'sda    disk    0 sata   ', parts: Array(4), cleanName: 'sda', type: 'disk', mountpoint: 'sata'}
+ 检测到SATA SSD: sda
+ 设置磁盘类型: {name: 'sda', diskType: 'SSD'}
+ 处理lsblk行: {line: '├─sda1 part    0        /boot', parts: Array(4), cleanName: 'sda1', type: 'part', mountpoint: '/boot'}
+ 处理lsblk行: {line: '├─sda2 part    0        /', parts: Array(4), cleanName: 'sda2', type: 'part', mountpoint: '/'}
+ 找到根分区设备: sda
+ 处理lsblk行: {line: '└─sda3 part    0        ', parts: Array(3), cleanName: 'sda3', type: 'part', mountpoint: '0'}
+ 处理lsblk行: {line: 'sdb    disk    1 sata   ', parts: Array(4), cleanName: 'sdb', type: 'disk', mountpoint: 'sata'}
+ 设置磁盘类型: {name: 'sdb', diskType: 'HDD'}
+ 处理lsblk行: {line: '└─sdb1 part    1        /home', parts: Array(4), cleanName: 'sdb1', type: 'part', mountpoint: '/home'}
+ 最终磁盘类型映射: {sda: 'SSD', sdb: 'HDD'}
+ 根设备名: sda
+ 处理分区: {device: 'devtmpfs', mountpoint: '/dev', fullDeviceName: 'devtmpfs', baseDeviceName: 'devtmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'devtmpfs', mountpoint: '/dev', diskType: '虚拟分区'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/dev/shm', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/dev/shm', diskType: '虚拟分区'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/run', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/run', diskType: '虚拟分区'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', diskType: '虚拟分区'}
+ 处理分区: {device: '/dev/sda2', mountpoint: '/', fullDeviceName: 'sda2', baseDeviceName: 'sda', foundType: 'SSD', …}
+ 尝试获取磁盘类型: {baseDeviceName: 'sda', diskType: 'SSD', startWithVd: false}
+ 最终分区信息: {device: '/dev/sda2', mountpoint: '/', diskType: 'SSD'}
+ 处理分区: {device: '/dev/sda1', mountpoint: '/boot', fullDeviceName: 'sda1', baseDeviceName: 'sda', foundType: 'SSD', …}
+ 尝试获取磁盘类型: {baseDeviceName: 'sda', diskType: 'SSD', startWithVd: false}
+ 最终分区信息: {device: '/dev/sda1', mountpoint: '/boot', diskType: 'SSD'}
+ 处理分区: {device: '/dev/sdb1', mountpoint: '/home', fullDeviceName: 'sdb1', baseDeviceName: 'sdb', foundType: 'HDD', …}
+ 尝试获取磁盘类型: {baseDeviceName: 'sdb', diskType: 'HDD', startWithVd: false}
+ 最终分区信息: {device: '/dev/sdb1', mountpoint: '/home', diskType: 'HDD'}
+ 处理分区: {device: 'tmpfs', mountpoint: '/run/user/0', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+ 最终分区信息: {device: 'tmpfs', mountpoint: '/run/user/0', diskType: '虚拟分区'}
+ 处理分区: {device: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', fullDeviceName: 'overlay', baseDeviceName: 'overlay', foundType: undefined, …}
+ 最终分区信息: {device: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', diskType: 'Docker存储'}
+ 采集磁盘基础数据: {diskUsage: {…}, diskIO: {…}}
+ 尝试匹配设备IO: {partition: '/dev/sda2', mountpoint: '/', fullDeviceName: 'sda2', possibleNames: Array(2), availableStats: Array(6)}
+ 尝试匹配设备IO: {partition: '/dev/sda1', mountpoint: '/boot', fullDeviceName: 'sda1', possibleNames: Array(2), availableStats: Array(6)}
+ 尝试匹配设备IO: {partition: '/dev/sdb1', mountpoint: '/home', fullDeviceName: 'sdb1', possibleNames: Array(2), availableStats: Array(6)}
+ 尝试匹配设备IO: {partition: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', fullDeviceName: 'overlay', possibleNames: Array(2), availableStats: Array(6)}
+ 尝试匹配设备IO: {partition: 'devtmpfs', mountpoint: '/dev', fullDeviceName: 'devtmpfs', possibleNames: Array(2), availableStats: Array(6)}
+ 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/dev/shm', fullDeviceName: 'tmpfs', possibleNames: Array(2), availableStats: Array(6)}
+ 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/run', fullDeviceName: 'tmpfs', possibleNames: Array(2), availableStats: Array(6)}
+ 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/run/user/0', fullDeviceName: 'tmpfs', possibleNames: Array(2), availableStats: Array(6)}
+ 尝试匹配设备IO: {partition: 'tmpfs', mountpoint: '/sys/fs/cgroup', fullDeviceName: 'tmpfs', possibleNames: Array(2), availableStats: Array(6)}
+ [CpuService] collectDetailMetrics 1737016726289: 1116.274169921875 ms
+ [Performance] 采集性能指标数据完成，用时: 2019ms
+ [Performance] 性能指标采集耗时 1737016726289: 2019.18115234375 ms
+ [MonitorManager] 性能指标采集结果: {basic: {…}, detail: {…}}
+ Timer '[Performance] 刷新会话总耗时 1737016726289' does not exist
+refreshSession @ renderer.js:440434
+await in refreshSession（异步）
+（匿名） @ renderer.js:440277
+emit @ node:events:525
+refresh @ renderer.js:443595
+await in refresh（异步）
+（匿名） @ renderer.js:443542
+setInterval（异步）
+startRefresh @ renderer.js:443541
+connectSession @ renderer.js:440349
+await in connectSession（异步）
+initMonitor @ renderer.js:434435
+（匿名） @ renderer.js:434461
+commitHookEffectListMount @ renderer.js:350306
+commitPassiveMountOnFiber @ renderer.js:352087
+commitPassiveMountEffects_complete @ renderer.js:352047
+commitPassiveMountEffects_begin @ renderer.js:352034
+commitPassiveMountEffects @ renderer.js:352022
+flushPassiveEffectsImpl @ renderer.js:354195
+flushPassiveEffects @ renderer.js:354140
+performSyncWorkOnRoot @ renderer.js:353232
+flushSyncCallbacks @ renderer.js:339164
+commitRootImpl @ renderer.js:354115
+commitRoot @ renderer.js:353838
+finishConcurrentRender @ renderer.js:353137
+performConcurrentWorkOnRoot @ renderer.js:352965
+workLoop @ renderer.js:402645
+flushWork @ renderer.js:402618
+performWorkUntilDeadline @ renderer.js:402912
+processImmediate @ node:internal/timers:476
+ Timer '[Performance] 刷新会话总耗时-开始 1737016726289' already exists
+refreshSession @ renderer.js:440379
+refresh @ renderer.js:443593
+（匿名） @ renderer.js:443542
+setInterval（异步）
+startRefresh @ renderer.js:443541
+connectSession @ renderer.js:440349
+await in connectSession（异步）
+initMonitor @ renderer.js:434435
+（匿名） @ renderer.js:434461
+commitHookEffectListMount @ renderer.js:350306
+commitPassiveMountOnFiber @ renderer.js:352087
+commitPassiveMountEffects_complete @ renderer.js:352047
+commitPassiveMountEffects_begin @ renderer.js:352034
+commitPassiveMountEffects @ renderer.js:352022
+flushPassiveEffectsImpl @ renderer.js:354195
+flushPassiveEffects @ renderer.js:354140
+performSyncWorkOnRoot @ renderer.js:353232
+flushSyncCallbacks @ renderer.js:339164
+commitRootImpl @ renderer.js:354115
+commitRoot @ renderer.js:353838
+finishConcurrentRender @ renderer.js:353137
+performConcurrentWorkOnRoot @ renderer.js:352965
+workLoop @ renderer.js:402645
+flushWork @ renderer.js:402618
+performWorkUntilDeadline @ renderer.js:402912
+processImmediate @ node:internal/timers:476
+ [MonitorManager] 刷新会话数据: {sessionId: '1737016726289', requestId: 1739804732752, activeTab: 'performance', activeCard: 'cpu', activeDetailTab: 'basic'}
+ 开始采集性能指标数据: {sessionId: '1737016726289', activeCard: 'cpu', activeDetailTab: 'basic', timestamp: '2025-02-17T15:05:32.752Z'}
+ [NetworkService] collectBasicMetrics 1737016726289: 161.504150390625 ms
+ free -b 结果:               total        used        free      shared  buff/cache   available
+Mem:    67266519040 35506475008   832344064  3359674368 30927699968 27851558912
+Swap:             0           0           0
+
+ 解析的内存数据: (7) ['Mem:', '67266519040', '35506475008', '832344064', '3359674368', '30927699968', '27851558912']
+ [CpuService] collectBasicMetrics 1737016726289: 365.712158203125 ms
+ [CpuService] collectDetailMetrics 1737016726289: 636.42822265625 ms
+ [Performance] 采集性能指标数据完成，用时: 1002ms
+ [Performance] 性能指标采集耗时 1737016726289: 1002.68798828125 ms
+ [MonitorManager] 性能指标采集结果: {basic: {…}, detail: {…}}
+ Timer '[Performance] 刷新会话总耗时 1737016726289' does not exist
+refreshSession @ renderer.js:440434
+await in refreshSession（异步）
+refresh @ renderer.js:443593
+（匿名） @ renderer.js:443542
+setInterval（异步）
+startRefresh @ renderer.js:443541
+connectSession @ renderer.js:440349
+await in connectSession（异步）
+initMonitor @ renderer.js:434435
+（匿名） @ renderer.js:434461
+commitHookEffectListMount @ renderer.js:350306
+commitPassiveMountOnFiber @ renderer.js:352087
+commitPassiveMountEffects_complete @ renderer.js:352047
+commitPassiveMountEffects_begin @ renderer.js:352034
+commitPassiveMountEffects @ renderer.js:352022
+flushPassiveEffectsImpl @ renderer.js:354195
+flushPassiveEffects @ renderer.js:354140
+performSyncWorkOnRoot @ renderer.js:353232
+flushSyncCallbacks @ renderer.js:339164
+commitRootImpl @ renderer.js:354115
+commitRoot @ renderer.js:353838
+finishConcurrentRender @ renderer.js:353137
+performConcurrentWorkOnRoot @ renderer.js:352965
+workLoop @ renderer.js:402645
+flushWork @ renderer.js:402618
+performWorkUntilDeadline @ renderer.js:402912
+processImmediate @ node:internal/timers:476
+ Timer '[Performance] 刷新会话总耗时-开始 1737016726289' already exists
+refreshSession @ renderer.js:440379
+（匿名） @ renderer.js:440277
+emit @ node:events:525
+refresh @ renderer.js:443595
+await in refresh（异步）
+（匿名） @ renderer.js:443542
+setInterval（异步）
+startRefresh @ renderer.js:443541
+connectSession @ renderer.js:440349
+await in connectSession（异步）
+initMonitor @ renderer.js:434435
+（匿名） @ renderer.js:434461
+commitHookEffectListMount @ renderer.js:350306
+commitPassiveMountOnFiber @ renderer.js:352087
+commitPassiveMountEffects_complete @ renderer.js:352047
+commitPassiveMountEffects_begin @ renderer.js:352034
+commitPassiveMountEffects @ renderer.js:352022
+flushPassiveEffectsImpl @ renderer.js:354195
+flushPassiveEffects @ renderer.js:354140
+performSyncWorkOnRoot @ renderer.js:353232
+flushSyncCallbacks @ renderer.js:339164
+commitRootImpl @ renderer.js:354115
+commitRoot @ renderer.js:353838
+finishConcurrentRender @ renderer.js:353137
+performConcurrentWorkOnRoot @ renderer.js:352965
+workLoop @ renderer.js:402645
+flushWork @ renderer.js:402618
+performWorkUntilDeadline @ renderer.js:402912
+processImmediate @ node:internal/timers:476
+ [MonitorManager] 刷新会话数据: {sessionId: '1737016726289', requestId: 1739804733755, activeTab: 'performance', activeCard: 'cpu', activeDetailTab: 'basic'}
+ 开始采集性能指标数据: {sessionId: '1737016726289', activeCard: 'cpu', activeDetailTab: 'basic', timestamp: '2025-02-17T15:05:33.755Z'}
+ [Performance] 数据更新耗时 1737016726289: 0.065185546875 ms
+ PerformancePage render: {sessionId: '1737016726289', isInitialLoading: false, selectedResource: 'cpu', hasBasicData: true, hasDetailData: true}
+ Performance data update: {sessionId: '1737016726289', hasData: true, hasBasic: true, hasDetail: true, isLoading: false, …}
+ Checking complete data: {hasCompleteData: {…}}
+ Complete data received, closing loading state
+ PerformancePage render: {sessionId: '1737016726289', isInitialLoading: false, selectedResource: 'cpu', hasBasicData: true, hasDetailData: true}
+ free -b 结果:               total        used        free      shared  buff/cache   available
+Mem:    67266519040 35506409472   832401408  3359674368 30927708160 27851632640
+Swap:             0           0           0
+
+ 解析的内存数据: (7) ['Mem:', '67266519040', '35506409472', '832401408', '3359674368', '30927708160', '27851632640']
+ [NetworkService] collectBasicMetrics 1737016726289: 209.809814453125 ms
+ [CpuService] collectBasicMetrics 1737016726289: 431.940673828125 ms
+ [CpuService] collectDetailMetrics 1737016726289: 593.878173828125 ms
+ [Performance] 采集性能指标数据完成，用时: 1026ms
+ [Performance] 性能指标采集耗时 1737016726289: 1026.809814453125 ms
+ [MonitorManager] 性能指标采集结果: {basic: {…}, detail: {…}}
+ Timer '[Performance] 刷新会话总耗时 1737016726289' does not exist
+refreshSession @ renderer.js:440434
+await in refreshSession（异步）
+（匿名） @ renderer.js:440277
+emit @ node:events:525
+refresh @ renderer.js:443595
+await in refresh（异步）
+（匿名） @ renderer.js:443542
+setInterval（异步）
+startRefresh @ renderer.js:443541
+connectSession @ renderer.js:440349
+await in connectSession（异步）
+initMonitor @ renderer.js:434435
+（匿名） @ renderer.js:434461
+commitHookEffectListMount @ renderer.js:350306
+commitPassiveMountOnFiber @ renderer.js:352087
+commitPassiveMountEffects_complete @ renderer.js:352047
+commitPassiveMountEffects_begin @ renderer.js:352034
+commitPassiveMountEffects @ renderer.js:352022
+flushPassiveEffectsImpl @ renderer.js:354195
+flushPassiveEffects @ renderer.js:354140
+performSyncWorkOnRoot @ renderer.js:353232
+flushSyncCallbacks @ renderer.js:339164
+commitRootImpl @ renderer.js:354115
+commitRoot @ renderer.js:353838
+finishConcurrentRender @ renderer.js:353137
+performConcurrentWorkOnRoot @ renderer.js:352965
+workLoop @ renderer.js:402645
+flushWork @ renderer.js:402618
+performWorkUntilDeadline @ renderer.js:402912
+processImmediate @ node:internal/timers:476
