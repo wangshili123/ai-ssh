@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Table, Card, Tooltip, Alert } from 'antd';
 import { DiskIoAnalysis } from '../../../../../types/monitor';
 import { formatBytes } from '../../../../../utils/format';
@@ -7,7 +7,7 @@ interface DiskIoProps {
   ioAnalysis?: DiskIoAnalysis;
 }
 
-export const DiskIo: React.FC<DiskIoProps> = ({ ioAnalysis }) => {
+export const DiskIo: React.FC<DiskIoProps> = React.memo(({ ioAnalysis }) => {
   if (!ioAnalysis) {
     return <div>暂无IO分析数据</div>;
   }
@@ -37,7 +37,7 @@ export const DiskIo: React.FC<DiskIoProps> = ({ ioAnalysis }) => {
     );
   }
 
-  const processColumns = [
+  const processColumns = useMemo(() => [
     {
       title: 'PID',
       dataIndex: 'pid',
@@ -84,9 +84,9 @@ export const DiskIo: React.FC<DiskIoProps> = ({ ioAnalysis }) => {
       width: 120,
       render: (bytes: number) => formatBytes(bytes),
     },
-  ];
+  ], []);
 
-  const deviceColumns = [
+  const deviceColumns = useMemo(() => [
     {
       title: '设备',
       dataIndex: 'device',
@@ -135,7 +135,7 @@ export const DiskIo: React.FC<DiskIoProps> = ({ ioAnalysis }) => {
       width: 100,
       render: (util: number) => `${util.toFixed(2)}%`,
     },
-  ];
+  ], []);
 
   return (
     <div className="disk-io">
@@ -148,6 +148,7 @@ export const DiskIo: React.FC<DiskIoProps> = ({ ioAnalysis }) => {
             size="small"
             pagination={false}
             scroll={{ x: 'max-content' }}
+            virtual
           />
         </Card>
         <Card title="设备IO统计" size="small" className="io-card">
@@ -158,9 +159,10 @@ export const DiskIo: React.FC<DiskIoProps> = ({ ioAnalysis }) => {
             size="small"
             pagination={false}
             scroll={{ x: 'max-content' }}
+            virtual
           />
         </Card>
       </div>
     </div>
   );
-}; 
+}); 

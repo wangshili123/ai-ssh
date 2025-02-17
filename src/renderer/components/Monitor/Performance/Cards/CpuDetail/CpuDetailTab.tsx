@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Tabs, Spin } from 'antd';
 import { CpuDetailInfo, MonitorData } from '../../../../../types/monitor';
 import { CpuBasicInfo } from './CpuBasicInfo';
@@ -13,7 +13,7 @@ interface CpuDetailProps {
   sessionId: string;
 }
 
-export const CpuDetail: React.FC<CpuDetailProps> = ({ cpuInfo, sessionId }) => {
+export const CpuDetail: React.FC<CpuDetailProps> = React.memo(({ cpuInfo, sessionId }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set(['basic']));
   const [monitorData, setMonitorData] = useState<MonitorData>();
@@ -48,7 +48,7 @@ export const CpuDetail: React.FC<CpuDetailProps> = ({ cpuInfo, sessionId }) => {
     return Component;
   };
 
-  const items = [
+  const items = useMemo(() => [
     {
       key: 'basic',
       label: '基础信息',
@@ -59,7 +59,7 @@ export const CpuDetail: React.FC<CpuDetailProps> = ({ cpuInfo, sessionId }) => {
       label: '逻辑处理器',
       children: renderTabContent(<CpuCores cpuInfo={currentCpuInfo} />, !loadedTabs.has('cores')),
     },
-  ];
+  ], [currentCpuInfo, loadedTabs]);
 
   return (
     <div className="cpu-detail">
@@ -71,4 +71,4 @@ export const CpuDetail: React.FC<CpuDetailProps> = ({ cpuInfo, sessionId }) => {
       />
     </div>
   );
-}; 
+}); 

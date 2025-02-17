@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Table, Card } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import * as echarts from 'echarts';
@@ -20,11 +20,11 @@ interface ProcessTableItem {
   connections: number;
 }
 
-export const NetworkProcesses: React.FC<NetworkProcessesProps> = ({ networkInfo }) => {
+export const NetworkProcesses: React.FC<NetworkProcessesProps> = React.memo(({ networkInfo }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts>();
 
-  const columns: ColumnsType<ProcessTableItem> = [
+  const columns: ColumnsType<ProcessTableItem> = useMemo(() => [
     {
       title: '进程',
       dataIndex: 'name',
@@ -70,20 +70,17 @@ export const NetworkProcesses: React.FC<NetworkProcessesProps> = ({ networkInfo 
       width: 100,
       sorter: (a, b) => a.connections - b.connections,
     },
-  ];
+  ], []);
 
-  const data: ProcessTableItem[] = networkInfo.processes.map((proc, index) => ({
-    key: `${index}`,
-    ...proc
-  }));
+  const data: ProcessTableItem[] = useMemo(() => 
+    networkInfo.processes.map((proc, index) => ({
+      key: `${index}`,
+      ...proc
+    })),
+    [networkInfo.processes]
+  );
 
-  useEffect(() => {
-    if (!chartRef.current) return;
-
-    if (!chartInstance.current) {
-      chartInstance.current = echarts.init(chartRef.current);
-    }
-
+  const getChartOption = useMemo(() => {
     // 计算总带宽使用
     const totalBandwidth = networkInfo.processes.reduce(
       (sum, proc) => sum + proc.rxSpeed + proc.txSpeed,
@@ -102,7 +99,7 @@ export const NetworkProcesses: React.FC<NetworkProcessesProps> = ({ networkInfo 
       .sort((a, b) => b.value - a.value)
       .slice(0, 10); // 只显示前10个进程
 
-    const option = {
+    return {
       title: {
         text: '进程带宽占用',
         left: 'center'
@@ -148,14 +145,22 @@ export const NetworkProcesses: React.FC<NetworkProcessesProps> = ({ networkInfo 
         }
       ]
     };
+  }, [networkInfo.processes]);
 
-    chartInstance.current.setOption(option);
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    if (!chartInstance.current) {
+      chartInstance.current = echarts.init(chartRef.current);
+    }
+
+    chartInstance.current.setOption(getChartOption);
 
     return () => {
       chartInstance.current?.dispose();
       chartInstance.current = undefined;
     };
-  }, [networkInfo.processes]);
+  }, [getChartOption]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -175,6 +180,7 @@ export const NetworkProcesses: React.FC<NetworkProcessesProps> = ({ networkInfo 
           pagination={false}
           scroll={{ y: 'calc(100vh - 700px)' }}
           size="middle"
+          virtual
         />
       </div>
 
@@ -183,4 +189,4 @@ export const NetworkProcesses: React.FC<NetworkProcessesProps> = ({ networkInfo 
       </Card>
     </div>
   );
-}; 
+}); 

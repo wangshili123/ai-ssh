@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Tabs, Spin } from 'antd';
 import { DiskDetailInfo, MonitorData } from '../../../../../types/monitor';
 import { DiskBasicInfo } from './DiskBasicInfo';
@@ -14,7 +14,7 @@ interface DiskDetailProps {
   sessionId: string;
 }
 
-export const DiskDetail: React.FC<DiskDetailProps> = ({ 
+export const DiskDetail: React.FC<DiskDetailProps> = React.memo(({ 
   diskInfo,
   sessionId
 }) => {
@@ -50,7 +50,7 @@ export const DiskDetail: React.FC<DiskDetailProps> = ({
     return Component;
   };
 
-  const items = [
+  const items = useMemo(() => [
     {
       key: 'basic',
       label: '基础信息',
@@ -76,7 +76,7 @@ export const DiskDetail: React.FC<DiskDetailProps> = ({
       label: 'IO分析',
       children: renderTabContent(<DiskIo ioAnalysis={currentDiskInfo.ioAnalysis} />, !loadedTabs.has('io')),
     },
-  ];
+  ], [currentDiskInfo, loadedTabs]);
 
   return (
     <div className="disk-detail">
@@ -88,4 +88,4 @@ export const DiskDetail: React.FC<DiskDetailProps> = ({
       />
     </div>
   );
-}; 
+}); 
