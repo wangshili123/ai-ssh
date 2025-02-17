@@ -30,18 +30,26 @@
 /* 基础信息标签页样式 */
 .network-basic-info {
   height: 100%;
-  padding: 20px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.network-basic-info .info-section {
+  flex-shrink: 0;
+}
+
+.network-basic-info .info-section:first-child {
+  height: 300px;
   display: flex;
   flex-direction: column;
 }
 
-.network-basic-info .info-section {
-  margin-bottom: 24px;
-}
-
 .network-basic-info .info-section:last-child {
-  margin-bottom: 0;
-  flex: 1;
+  height: 400px;
   display: flex;
   flex-direction: column;
 }
@@ -49,52 +57,46 @@
 .network-basic-info .section-title {
   font-size: 16px;
   font-weight: 500;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   color: #1f1f1f;
 }
 
 /* 网络接口信息布局 */
+.interface-info-container {
+  flex: 1;
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  overflow-y: auto;
+  min-height: 0;
+  pointer-events: auto;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .basic-info-row {
   display: flex;
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.interfaces-container {
-  flex: 3;
-}
-
-.stats-container {
-  flex: 2;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* 网络接口卡片样式 */
-.network-basic-info .interface-info {
-  padding: 16px;
-  background: #fafafa;
-  border-radius: 4px;
-}
-
 .interface-item {
   padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.interface-item:last-child {
-  border-bottom: none;
+  border-radius: 4px;
+  background: #fafafa;
 }
 
 .interface-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 8px;
 }
 
 .interface-name {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   color: #000000d9;
 }
@@ -117,19 +119,19 @@
 
 .interface-details {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 24px;
 }
 
 .detail-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .detail-label {
   color: #00000073;
-  min-width: 60px;
 }
 
 .detail-value {
@@ -137,8 +139,24 @@
 }
 
 .interface-chart {
-  margin-top: 4px;
-  padding: 4px;
+  margin-top: 12px;
+}
+
+/* 带宽趋势图样式 */
+.bandwidth-trend {
+  flex: 1;
+  background: #fff;
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.bandwidth-trend .echarts-for-react {
+  flex: 1;
+  min-height: 0;
 }
 
 /* 网络统计样式 */
@@ -255,6 +273,7 @@
 }
 
 /* 自定义滚动条样式 */
+.interface-info-container::-webkit-scrollbar,
 .network-basic-info::-webkit-scrollbar,
 .network-connections::-webkit-scrollbar,
 .network-processes::-webkit-scrollbar {
@@ -263,21 +282,26 @@
   background-color: transparent;
 }
 
+.interface-info-container::-webkit-scrollbar-thumb,
 .network-basic-info::-webkit-scrollbar-thumb,
 .network-connections::-webkit-scrollbar-thumb,
 .network-processes::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
+  cursor: pointer;
 }
 
+.interface-info-container::-webkit-scrollbar-thumb:hover,
 .network-basic-info::-webkit-scrollbar-thumb:hover,
 .network-connections::-webkit-scrollbar-thumb:hover,
 .network-processes::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.3);
 }
 
+.interface-info-container::-webkit-scrollbar-track,
 .network-basic-info::-webkit-scrollbar-track,
 .network-connections::-webkit-scrollbar-track,
 .network-processes::-webkit-scrollbar-track {
   background-color: transparent;
+  pointer-events: auto;
 } 

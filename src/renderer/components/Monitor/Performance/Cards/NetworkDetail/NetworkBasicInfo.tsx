@@ -9,7 +9,7 @@ interface NetworkBasicInfoProps {
 }
 
 // 获取迷你图表配置
-const getMiniChartOption = (data: { timestamp: number; rxSpeed: number; txSpeed: number }[]) => {
+const getMiniChartOption = (data: { timestamp: number; rxSpeed: number; txSpeed: number }[], ifaceName: string) => {
   return {
     grid: {
       top: 5,
@@ -127,60 +127,46 @@ const getBandwidthTrendOption = (data: { timestamp: number; rxSpeed: number; txS
 export const NetworkBasicInfo: React.FC<NetworkBasicInfoProps> = ({ networkInfo }) => {
   return (
     <div className="network-basic-info">
-      <div className="basic-info-row">
-        {/* 网络接口信息 */}
-        <div className="interfaces-container">
-          <div className="section-title">网络接口信息</div>
-          <div className="interface-info">
+      {/* 网络接口信息 */}
+      <div className="info-section">
+        <div className="section-title">网络接口信息</div>
+        <div className="interface-info-container">
+          <div className="basic-info-row">
             {networkInfo.interfaces.map((iface) => (
               <div key={iface.name} className="interface-item">
                 <div className="interface-header">
                   <span className="interface-name">{iface.name}</span>
                   <span className={`interface-status ${iface.status.toLowerCase()}`}>
-                    {iface.status === 'UP' ? '已连接' : '已断开'}
+                    {iface.status === 'UP' ? '已连接' : '未连接'}
                   </span>
                 </div>
                 <div className="interface-details">
                   <div className="detail-row">
                     <span className="detail-label">IP:</span>
-                    <span className="detail-value">{iface.ipv4.join(', ') || '无'}</span>
+                    <span className="detail-value">
+                      {iface.ipv4.length > 0 ? iface.ipv4.join(', ') : '无'}
+                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">MAC:</span>
-                    <span className="detail-value">{iface.mac || '无'}</span>
+                    <span className="detail-value">{iface.mac || 'link/ether'}</span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">速度:</span>
                     <span className="detail-value">
-                      ↑ {formatBytes(iface.txSpeed)}/s   
-                      ↓ {formatBytes(iface.rxSpeed)}/s
+                      ↑ {formatBytes(iface.txSpeed)}/s ↓ {formatBytes(iface.rxSpeed)}/s
                     </span>
                   </div>
                 </div>
                 <div className="interface-chart">
                   <ReactECharts 
-                    option={getMiniChartOption(networkInfo.history)}
-                    style={{ height: '40px', width: '100%' }}
+                    option={getMiniChartOption(networkInfo.history, iface.name)} 
+                    style={{ height: '40px' }} 
                     notMerge={true}
                   />
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* 网络统计 */}
-        <div className="stats-container">
-          <div className="section-title">网络统计</div>
-          <div className="stats-info">
-            <div className="stat-item">
-              <span className="stat-label">总计接收</span>
-              <span className="stat-value">{formatBytes(networkInfo.totalRx)}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">总计发送</span>
-              <span className="stat-value">{formatBytes(networkInfo.totalTx)}</span>
-            </div>
           </div>
         </div>
       </div>
@@ -190,8 +176,7 @@ export const NetworkBasicInfo: React.FC<NetworkBasicInfoProps> = ({ networkInfo 
         <div className="section-title">带宽趋势</div>
         <div className="bandwidth-trend">
           <ReactECharts 
-            option={getBandwidthTrendOption(networkInfo.history)}
-            style={{ height: '100%' }}
+            option={getBandwidthTrendOption(networkInfo.history)} 
             notMerge={true}
           />
         </div>

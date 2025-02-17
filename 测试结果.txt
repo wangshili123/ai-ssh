@@ -1,142 +1,112 @@
-[App] 会话选择: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
- [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 1}
- [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
- [TerminalTabsManager] triggerNewTab变化: {triggerNewTab: 1, prevTrigger: undefined, mounted: true, sessionInfo: {…}}
- [TerminalTabsManager] 触发新标签页创建: {sessionInfo: {…}}
- [TerminalTabsManager] 新标签页数据: {key: '1739721805934', title: '252-1234', sessionInfo: {…}, instanceId: '1739721805934', tabId: 'tab-1739721805934', …}
- [TerminalTabsManager] 更新标签页列表: {prev: Array(0), newTab: {…}}
- [EventBus] 设置当前 tabId: tab-1739721805934
- [EventBus] 触发事件: tabIdChanged ['tab-1739721805934']
- [App] 标签页ID变化: tab-1739721805934
- [EventBus] 设置当前 shellId: 1737016726289-1739721805934
- [EventBus] 触发事件: shellIdChanged ['1737016726289-1739721805934']
- [EventBus] 触发事件: tab-create [{…}]
- [TerminalTabsManager] 新标签页创建完成: {tabId: 'tab-1739721805934', shellId: '1737016726289-1739721805934', sessionInfo: {…}}
- [CommandExecutor] 开始初始化补全执行命令的SSH连接
- [EventBus] 获取当前 tabId: tab-1739721805934
- [EventBus] getCurrentSessionInfo - currentTabId: tab-1739721805934
- [EventBus] 获取标签页信息: tab-1739721805934
- [EventBus] 当前标签页映射: Map(1) {'tab-1739721805934' => {…}}
- [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739721805934', shellId: '1737016726289-1739721805934', sessionInfo: {…}}
- [EventBus] getCurrentSessionId - sessionInfo: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
- [EventBus] 获取当前 tabId: tab-1739721805934
- [EventBus] getCurrentSessionInfo - currentTabId: tab-1739721805934
- [EventBus] 获取标签页信息: tab-1739721805934
- [EventBus] 当前标签页映射: Map(1) {'tab-1739721805934' => {…}}
- [EventBus] getCurrentSessionInfo - tabInfo: {tabId: 'tab-1739721805934', shellId: '1737016726289-1739721805934', sessionInfo: {…}}
- [CommandExecutor] 正在预初始化SSH连接...
- SSHService.connect called with: {id: '1737016726289', name: '252-1234', host: '172.16.3.226', port: 22, username: 'root', …}
- [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 1}
- [TerminalTabsManager] 渲染组件: {tabs: Array(1), activeKey: '1739721805934'}
- Warning: [antd: Tabs] Tabs.TabPane is deprecated. Please use `items` directly.
-warning @ renderer.js:323785
-call @ renderer.js:323806
-warningOnce @ renderer.js:323813
-warning @ renderer.js:54305
-useLegacyItems @ renderer.js:75459
-Tabs @ renderer.js:75565
-renderWithHooks @ renderer.js:342151
-mountIndeterminateComponent @ renderer.js:346763
-beginWork @ renderer.js:348286
-beginWork$1 @ renderer.js:354125
-performUnitOfWork @ renderer.js:353259
-workLoopSync @ renderer.js:353165
-renderRootSync @ renderer.js:353133
-performConcurrentWorkOnRoot @ renderer.js:352437
-workLoop @ renderer.js:402188
-flushWork @ renderer.js:402161
-performWorkUntilDeadline @ renderer.js:402455
-processImmediate @ node:internal/timers:476
- PerformancePage render: {sessionId: '1737016726289', isInitialLoading: true, selectedResource: 'cpu', hasBasicData: true, hasDetailData: false}
- LoadingOverlay render: {tip: '正在加载CPU性能数据...', spinning: true}
- Warning: Table: Support for defaultProps will be removed from function components in a future major release. Use JavaScript default parameters instead.
-    at Table (http://localhost:3000/renderer.js:309763:25)
-    at div
-    at div
-    at Spin (http://localhost:3000/renderer.js:72241:25)
-    at SpinFC (http://localhost:3000/renderer.js:72301:34)
-    at div
-    at InternalTable (http://localhost:3000/renderer.js:73024:34)
-    at div
-    at div
-    at MemoryUsageCard (http://localhost:3000/renderer.js:435109:28)
-    at http://localhost:3000/renderer.js:435524:52
-    at div
-    at div
-    at div
-    at PerformancePage (http://localhost:3000/renderer.js:435547:28)
-    at div
-    at http://localhost:3000/renderer.js:312599:24
-    at DomWrapper (http://localhost:3000/renderer.js:292456:90)
-    at http://localhost:3000/renderer.js:292156:32
-    at div
-    at div
-    at TabPanelList (http://localhost:3000/renderer.js:312657:17)
-    at div
-    at Tabs (http://localhost:3000/renderer.js:312762:17)
-    at Tabs (http://localhost:3000/renderer.js:75531:17)
-    at div
-    at MonitorPage (http://localhost:3000/renderer.js:433702:24)
-    at div
-    at http://localhost:3000/renderer.js:312599:24
-    at DomWrapper (http://localhost:3000/renderer.js:292456:90)
-    at http://localhost:3000/renderer.js:292156:32
-    at div
-    at div
-    at TabPanelList (http://localhost:3000/renderer.js:312657:17)
-    at div
-    at Tabs (http://localhost:3000/renderer.js:312762:17)
-    at Tabs (http://localhost:3000/renderer.js:75531:17)
-    at div
-    at div
-    at TerminalTabsManager (http://localhost:3000/renderer.js:436487:32)
-    at main
-    at http://localhost:3000/renderer.js:65136:25
-    at http://localhost:3000/renderer.js:65119:66
-    at section
-    at http://localhost:3000/renderer.js:65149:63
-    at http://localhost:3000/renderer.js:65119:66
-    at section
-    at http://localhost:3000/renderer.js:65149:63
-    at http://localhost:3000/renderer.js:65119:66
-    at App (http://localhost:3000/renderer.js:430810:68)
-    at Provider (http://localhost:3000/renderer.js:459025:11)
-printWarning @ renderer.js:326751
-error @ renderer.js:326725
-validateFunctionComponentInDev @ renderer.js:346890
-mountIndeterminateComponent @ renderer.js:346849
-beginWork @ renderer.js:348286
-beginWork$1 @ renderer.js:354125
-performUnitOfWork @ renderer.js:353259
-workLoopSync @ renderer.js:353165
-renderRootSync @ renderer.js:353133
-performConcurrentWorkOnRoot @ renderer.js:352437
-workLoop @ renderer.js:402188
-flushWork @ renderer.js:402161
-performWorkUntilDeadline @ renderer.js:402455
-processImmediate @ node:internal/timers:476
-2 [ECharts] Can't get DOM width or height. Please check dom.clientWidth and dom.clientHeight. They should not be 0.For example, you may need to call this in the callback of window.onload.
-outputLog @ renderer.js:555213
-warn @ renderer.js:555220
-init @ renderer.js:533185
-EChartsReactCore.getEchartsInstance @ renderer.js:181247
-EChartsReactCore.updateEChartsOption @ renderer.js:181308
-EChartsReactCore.renderNewEcharts @ renderer.js:181271
-EChartsReactCore.componentDidMount @ renderer.js:181203
-commitLayoutEffectOnFiber @ renderer.js:350009
-commitLayoutMountEffects_complete @ renderer.js:351387
-commitLayoutEffects_begin @ renderer.js:351373
-commitLayoutEffects @ renderer.js:351311
-commitRootImpl @ renderer.js:353522
-commitRoot @ renderer.js:353381
-finishConcurrentRender @ renderer.js:352680
-performConcurrentWorkOnRoot @ renderer.js:352508
-workLoop @ renderer.js:402188
-flushWork @ renderer.js:402161
-performWorkUntilDeadline @ renderer.js:402455
-processImmediate @ node:internal/timers:476
- 初始化 PerformancePage: {sessionId: '1737016726289'}
- Performance data update: {sessionId: '1737016726289', hasData: false, hasBasic: false, hasDetail: false, isLoading: true, …}
- No performance data, keeping loading state
- Session ID changed, resetting loading state: {sessionId: '1737016726289'}
- [MonitorPage] 创建监控会话: 
+[NetworkService] collectBasicMetrics 1737016726289: 144.49267578125 ms
+ interfaceInfo 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    RX: bytes  packets  errors  dropped overrun mcast   
+    296429936591 264190564 0       0       0       0       
+    TX: bytes  packets  errors  dropped carrier collsns 
+    296429936591 264190564 0       0       0       0       
+2: eno1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP mode DEFAULT group default qlen 1000
+    link/ether 3c:ec:ef:05:d4:10 brd ff:ff:ff:ff:ff:ff
+    RX: bytes  packets  errors  dropped overrun mcast   
+    1474933564298 2585942139 0       4945967 0       12251801 
+    TX: bytes  packets  errors  dropped carrier collsns 
+    357242140362 1886543088 0       0       0       0       
+3: eno2: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN mode DEFAULT group default qlen 1000
+    link/ether 3c:ec:ef:05:d4:11 brd ff:ff:ff:ff:ff:ff
+    RX: bytes  packets  errors  dropped overrun mcast   
+    26414927013 111656546 0       421105  0       17821   
+    TX: bytes  packets  errors  dropped carrier collsns 
+    14912098862 128513817 0       0       0       0       
+4: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default 
+    link/ether 02:42:65:fd:47:a1 brd ff:ff:ff:ff:ff:ff
+    RX: bytes  packets  errors  dropped overrun mcast   
+    39227175   208352   0       0       0       0       
+    TX: bytes  packets  errors  dropped carrier collsns 
+    117357307  205541   0       0       0       0       
+36: oray_vnc: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1300 qdisc pfifo_fast state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ether 00:25:e1:03:10:00 brd ff:ff:ff:ff:ff:ff
+    RX: bytes  packets  errors  dropped overrun mcast   
+    1707215102 22364505 0       0       0       0       
+    TX: bytes  packets  errors  dropped carrier collsns 
+    12453269683 36929488 0       0       0       0       
+40: veth44692c6@if39: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP mode DEFAULT group default 
+    link/ether 62:02:41:ed:b9:38 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    RX: bytes  packets  errors  dropped overrun mcast   
+    4208373    41649    0       0       0       0       
+    TX: bytes  packets  errors  dropped carrier collsns 
+    51782751   44763    0       0       0       0       
+---SPLIT---
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+    RX: bytes  packets  errors  dropped overrun mcast   
+    296429936591 264190564 0       0       0       0       
+    TX: bytes  packets  errors  dropped carrier collsns 
+    296429936591 264190564 0       0       0       0       
+2: eno1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 3c:ec:ef:05:d4:10 brd ff:ff:ff:ff:ff:ff
+    inet 10.10.18.252/24 brd 10.10.18.255 scope global noprefixroute eno1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::6d7c:be6d:ef23:e8e8/64 scope link noprefixroute 
+       valid_lft forever preferred_lft forever
+    RX: bytes  packets  errors  dropped overrun mcast   
+    1474933564298 2585942139 0       4945967 0       12251801 
+    TX: bytes  packets  errors  dropped carrier collsns 
+    357242142698 1886543090 0       0       0       0       
+3: eno2: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN group default qlen 1000
+    link/ether 3c:ec:ef:05:d4:11 brd ff:ff:ff:ff:ff:ff
+    RX: bytes  packets  errors  dropped overrun mcast   
+    26414927013 111656546 0       421105  0       17821   
+    TX: bytes  packets  errors  dropped carrier collsns 
+    14912098862 128513817 0       0       0       0       
+4: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:65:fd:47:a1 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:65ff:fefd:47a1/64 scope link 
+       valid_lft forever preferred_lft forever
+    RX: bytes  packets  errors  dropped overrun mcast   
+    39227175   208352   0       0       0       0       
+    TX: bytes  packets  errors  dropped carrier collsns 
+    117357307  205541   0       0       0       0       
+36: oray_vnc: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1300 qdisc pfifo_fast state UNKNOWN group default qlen 1000
+    link/ether 00:25:e1:03:10:00 brd ff:ff:ff:ff:ff:ff
+    inet 172.16.3.226/22 brd 172.16.3.255 scope global oray_vnc
+       valid_lft forever preferred_lft forever
+    inet6 fe80::225:e1ff:fe03:1000/64 scope link 
+       valid_lft forever preferred_lft forever
+    RX: bytes  packets  errors  dropped overrun mcast   
+    1707215102 22364505 0       0       0       0       
+    TX: bytes  packets  errors  dropped carrier collsns 
+    12453271887 36929490 0       0       0       0       
+40: veth44692c6@if39: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default 
+    link/ether 62:02:41:ed:b9:38 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::6002:41ff:feed:b938/64 scope link 
+       valid_lft forever preferred_lft forever
+    RX: bytes  packets  errors  dropped overrun mcast   
+    4208373    41649    0       0       0       0       
+    TX: bytes  packets  errors  dropped carrier collsns 
+    51782751   44763    0       0       0       0       
+
+ ssStats Total: 1783 (kernel 3560)
+TCP:   1212 (estab 773, closed 366, orphaned 0, synrecv 0, timewait 84/0), ports 0
+
+Transport Total     IP        IPv6
+*	  3560      -         -        
+RAW	  1         0         1        
+UDP	  10        5         5        
+TCP	  846       569       277      
+INET	  857       574       283      
+FRAG	  0         0         0        
+
+
+ 数据块数量: 1
+ 处理数据块: 1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+ 跳过lo接口
+ 完成链路层解析，接口数量: 0
+ IP地址数据块数量: 1
+ 完成IP地址解析，最终接口数量: 0
+ interfaces []

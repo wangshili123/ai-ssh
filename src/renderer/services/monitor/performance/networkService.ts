@@ -28,44 +28,72 @@ export class NetworkService {
     const interfaces: Array<NetworkDetailInfo['interfaces'][0]> = [];
     const now = Date.now();
 
-    // 解析 ip -s link 输出
-    const linkBlocks = ipLink.split('\n\n');
+    // 规范化换行符
+    const normalizedIpLink = ipLink.replace(/\r\n/g, '\n');
+    
+    // 使用正则表达式分割数据块
+    const linkBlocks = normalizedIpLink.split(/(?=^\d+:)/m).filter(block => block.trim());
+    
+    console.log('数据块数量:', linkBlocks.length);
+    
     for (const block of linkBlocks) {
       const lines = block.trim().split('\n');
-      if (lines.length < 1) continue;
+      if (lines.length < 1) {
+        console.log('跳过空数据块');
+        continue;
+      }
+
+      console.log('处理数据块:', lines[0]);
 
       // 解析接口基本信息
-      const firstLine = lines[0];
-      const match = firstLine.match(/^\d+:\s+([^:@]+)(?:@\S+)?:\s+<(.+)>/);
-      if (!match) continue;
+      const firstLine = lines[0].trim();
+      // 更灵活的正则表达式
+      const match = firstLine.match(/^\d+:\s*([\w\-]+)(?:@[\w\-]+)?:?\s*<(.+)>/);
+      if (!match) {
+        console.log('无法匹配接口行:', firstLine);
+        continue;
+      }
 
       const name = match[1].trim();
-      const flags = match[2].split(',');
+      const flags = match[2].split(',').map(f => f.trim());
       
       // 忽略 lo 接口
-      if (name === 'lo') continue;
+      if (name === 'lo') {
+        console.log('跳过lo接口');
+        continue;
+      }
+
+      console.log('解析接口:', name, '状态:', flags.join(','));
 
       // 解析 MAC 地址
       const macLine = lines.find(line => line.includes('link/ether'));
-      const mac = macLine ? macLine.split(/\s+/)[1] : '';
+      const mac = macLine ? macLine.split(/\s+/)[1].trim() : '';
+      console.log('MAC地址:', mac);
 
       // 解析 MTU
       const mtuMatch = firstLine.match(/mtu\s+(\d+)/);
       const mtu = mtuMatch ? parseInt(mtuMatch[1], 10) : 0;
+      console.log('MTU:', mtu);
 
       // 解析统计信息
       let rx = 0, tx = 0, rxErrors = 0, txErrors = 0;
       const statsStartIndex = lines.findIndex(line => line.includes('RX:'));
       if (statsStartIndex > 0 && lines.length > statsStartIndex + 3) {
-        // RX 统计
-        const rxStats = lines[statsStartIndex + 1].trim().split(/\s+/);
-        rx = parseInt(rxStats[0], 10);
-        rxErrors = parseInt(rxStats[2], 10);
+        try {
+          // RX 统计
+          const rxStats = lines[statsStartIndex + 1].trim().split(/\s+/);
+          rx = parseInt(rxStats[0], 10);
+          rxErrors = parseInt(rxStats[2], 10);
 
-        // TX 统计
-        const txStats = lines[statsStartIndex + 3].trim().split(/\s+/);
-        tx = parseInt(txStats[0], 10);
-        txErrors = parseInt(txStats[2], 10);
+          // TX 统计
+          const txStats = lines[statsStartIndex + 3].trim().split(/\s+/);
+          tx = parseInt(txStats[0], 10);
+          txErrors = parseInt(txStats[2], 10);
+          
+          console.log('流量统计:', { rx, tx, rxErrors, txErrors });
+        } catch (error) {
+          console.error('解析流量统计失败:', error);
+        }
       }
 
       // 计算速度
@@ -75,8 +103,10 @@ export class NetworkService {
         const rxDiff = rx - this.previousStats[name].rx;
         const txDiff = tx - this.previousStats[name].tx;
         
-        rxSpeed = rxDiff / timeDiff;
-        txSpeed = txDiff / timeDiff;
+        if (timeDiff > 0) {
+          rxSpeed = rxDiff / timeDiff;
+          txSpeed = txDiff / timeDiff;
+        }
       }
 
       // 更新历史数据
@@ -103,38 +133,95 @@ export class NetworkService {
       interfaces.push(iface);
     }
 
-    // 解析 ip -s addr 输出，添加 IP 地址信息
-    const addrBlocks = ipAddr.split('\n\n');
+    console.log('完成链路层解析，接口数量:', interfaces.length);
+
+    // 规范化换行符
+    const normalizedIpAddr = ipAddr.replace(/\r\n/g, '\n');
+    
+    // 使用相同的分割逻辑处理IP地址数据
+    const addrBlocks = normalizedIpAddr.split(/(?=^\d+:)/m).filter(block => block.trim());
+    
+    console.log('IP地址数据块数量:', addrBlocks.length);
+
     for (const block of addrBlocks) {
       const lines = block.trim().split('\n');
       if (lines.length < 1) continue;
 
       // 获取接口名
-      const firstLine = lines[0];
-      const nameMatch = firstLine.match(/^\d+:\s+([^:@]+)(?:@\S+)?:/);
-      if (!nameMatch) continue;
+      const firstLine = lines[0].trim();
+      const nameMatch = firstLine.match(/^\d+:\s*([\w\-]+)(?:@[\w\-]+)?:?/);
+      if (!nameMatch) {
+        console.log('无法匹配地址行:', firstLine);
+        continue;
+      }
 
       const name = nameMatch[1].trim();
       const iface = interfaces.find(i => i.name === name);
-      if (!iface) continue;
+      if (!iface || name === 'lo') continue;
+
+      console.log('处理接口IP地址:', name);
 
       // 解析 IP 地址
       for (const line of lines) {
-        if (line.includes('inet ')) {
-          const ipv4Match = line.match(/inet\s+([^\/\s]+)/);
-          if (ipv4Match) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.includes('inet ') && !trimmedLine.includes('inet6')) {
+          const ipv4Match = trimmedLine.match(/inet\s+([^\/\s]+)/);
+          if (ipv4Match && !ipv4Match[1].startsWith('127.')) {
             iface.ipv4.push(ipv4Match[1]);
+            console.log('添加IPv4:', ipv4Match[1]);
           }
-        } else if (line.includes('inet6 ')) {
-          const ipv6Match = line.match(/inet6\s+([^\/\s]+)/);
-          if (ipv6Match) {
+        } else if (trimmedLine.includes('inet6 ')) {
+          const ipv6Match = trimmedLine.match(/inet6\s+([^\/\s]+)/);
+          if (ipv6Match && !ipv6Match[1].startsWith('::1')) {
             iface.ipv6.push(ipv6Match[1]);
+            console.log('添加IPv6:', ipv6Match[1]);
           }
         }
       }
     }
 
+    console.log('完成IP地址解析，最终接口数量:', interfaces.length);
     return interfaces;
+  }
+
+  /**
+   * 解析连接统计信息
+   */
+  private parseConnectionStats(ssStats: string): NetworkDetailInfo['connections'] {
+    const connections = {
+      total: 0,
+      tcp: 0,
+      udp: 0,
+      listening: 0,
+      list: []
+    };
+
+    try {
+      // 解析 TCP 连接数
+      const tcpMatch = ssStats.match(/TCP:\s+(\d+)\s+\(estab\s+(\d+),\s+closed\s+(\d+)/);
+      if (tcpMatch) {
+        connections.tcp = parseInt(tcpMatch[1], 10);
+      }
+
+      // 解析 UDP 连接数
+      const udpMatch = ssStats.match(/UDP:\s+(\d+)/);
+      if (udpMatch) {
+        connections.udp = parseInt(udpMatch[1], 10);
+      }
+
+      // 解析监听端口数
+      const listeningMatch = ssStats.match(/LISTEN\s+(\d+)/);
+      if (listeningMatch) {
+        connections.listening = parseInt(listeningMatch[1], 10);
+      }
+
+      // 计算总连接数
+      connections.total = connections.tcp + connections.udp;
+    } catch (error) {
+      console.error('解析连接统计信息失败:', error);
+    }
+
+    return connections;
   }
 
   /**
@@ -237,12 +324,17 @@ export class NetworkService {
           'ss -s'
         )
       ]);
+      console.log("interfaceInfo", interfaceInfo);
+      console.log("ssStats", ssStats);
 
       // 分割接口信息
       const [ipLink, ipAddr] = interfaceInfo.split('---SPLIT---');
 
       // 解析网络接口信息
       const interfaces = this.parseInterfaceInfo(ipLink, ipAddr);
+      console.log("interfaces", interfaces);
+      // 解析连接统计信息
+      const connections = this.parseConnectionStats(ssStats);
 
       // 更新历史数据
       const now = Date.now();
@@ -261,13 +353,7 @@ export class NetworkService {
       const result = {
         ...basicInfo,
         interfaces,
-        connections: {
-          total: 0,
-          tcp: 0,
-          udp: 0,
-          listening: 0,
-          list: []
-        },
+        connections,
         processes: [],
         history
       };
