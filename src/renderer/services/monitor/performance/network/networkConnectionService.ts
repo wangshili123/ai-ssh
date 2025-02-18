@@ -26,17 +26,17 @@ export class NetworkConnectionService {
     try {
       console.time(`[NetworkConnectionService] getConnectionInfo ${sessionId}`);
       
-      // 获取连接统计和详细连接列表
-      const [ssStats, ssDetails] = await Promise.all([
+      // 获取连接统计和监听端口数
+      const [ssStats, listenPorts] = await Promise.all([
         this.sshService.executeCommandDirect(sessionId, 'ss -s'),
-        this.sshService.executeCommandDirect(sessionId, 'ss -tupn')
+        this.sshService.executeCommandDirect(sessionId, 'ss -l | grep -v "^Netid" | wc -l')
       ]);
 
       // 解析连接统计
-      const connectionStats = this.parseConnectionStats(ssStats);
+      const connectionStats = this.parseConnectionStats(ssStats, parseInt(listenPorts.trim(), 10));
       
       // 解析连接列表
-      const connectionList = this.parseConnectionList(ssDetails);
+      const connectionList = this.parseConnectionList(await this.sshService.executeCommandDirect(sessionId, 'ss -tupn state established'));
 
       // 合并结果
       const result = {
@@ -61,32 +61,30 @@ export class NetworkConnectionService {
   /**
    * 解析连接统计信息
    */
-  private parseConnectionStats(ssStats: string): NetworkDetailInfo['connections'] {
+  private parseConnectionStats(ssStats: string, listenPorts: number): NetworkDetailInfo['connections'] {
     const connections = {
       total: 0,
       tcp: 0,
       udp: 0,
-      listening: 0,
+      listening: listenPorts,
       list: []
     };
-
+    
     try {
-      // 解析 TCP 连接数
-      const tcpMatch = ssStats.match(/TCP:\s+(\d+)\s+\(estab\s+(\d+),\s+closed\s+(\d+)/);
-      if (tcpMatch) {
-        connections.tcp = parseInt(tcpMatch[1], 10);
-      }
-
-      // 解析 UDP 连接数
-      const udpMatch = ssStats.match(/UDP:\s+(\d+)/);
-      if (udpMatch) {
-        connections.udp = parseInt(udpMatch[1], 10);
-      }
-
-      // 解析监听端口数
-      const listeningMatch = ssStats.match(/LISTEN\s+(\d+)/);
-      if (listeningMatch) {
-        connections.listening = parseInt(listeningMatch[1], 10);
+      // 解析表格中的连接数
+      const lines = ssStats.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('TCP')) {
+          const parts = line.trim().split(/\s+/);
+          if (parts.length >= 2) {
+            connections.tcp = parseInt(parts[1], 10);
+          }
+        } else if (line.startsWith('UDP')) {
+          const parts = line.trim().split(/\s+/);
+          if (parts.length >= 2) {
+            connections.udp = parseInt(parts[1], 10);
+          }
+        }
       }
 
       // 计算总连接数
