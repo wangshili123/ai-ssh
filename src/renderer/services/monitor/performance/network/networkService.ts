@@ -121,7 +121,10 @@ export class NetworkService {
           listening: 0,
           list: []
         },
-        processes: [],
+        processes: {
+          isToolInstalled: false,
+          list: []
+        },
         history: []
       };
 
@@ -204,7 +207,10 @@ export class NetworkService {
           listening: 0,
           list: []
         },
-        processes: [],
+        processes: {
+          isToolInstalled: false,
+          list: []
+        },
         history: []
       };
     }

@@ -114,53 +114,64 @@ export interface NetworkBasicInfo {
   txSpeed: number;      // 当前上传速度(bytes/s)
 }
 
-export interface NetworkDetailInfo extends NetworkBasicInfo {
-  interfaces: Array<{
-    name: string;          // 接口名称
-    status: 'UP' | 'DOWN'; // 接口状态
-    ipv4: string[];       // IPv4地址列表
-    ipv6: string[];       // IPv6地址列表
-    mac: string;          // MAC地址
-    mtu: number;          // MTU大小
-    rx: number;           // 总接收字节
-    tx: number;           // 总发送字节
-    rxSpeed: number;      // 当前下载速度
-    txSpeed: number;      // 当前上传速度
-    errors: {
-      rx: number;         // 接收错误
-      tx: number;         // 发送错误
-    };
-  }>;
-  connections: {           // 连接统计
-    total: number;        // 总连接数
-    tcp: number;          // TCP连接数
-    udp: number;          // UDP连接数
-    listening: number;    // 监听端口数
-    list: Array<{         // 活跃连接列表
-      protocol: 'TCP' | 'UDP';
-      localAddress: string;
-      localPort: number;
-      remoteAddress: string;
-      remotePort: number;
-      state: string;
-      pid?: number;
-      process?: string;
-    }>;
+export interface NetworkInterface {
+  name: string;          // 接口名称
+  status: 'UP' | 'DOWN'; // 接口状态
+  ipv4: string[];       // IPv4地址列表
+  ipv6: string[];       // IPv6地址列表
+  mac: string;          // MAC地址
+  mtu: number;          // MTU大小
+  rx: number;           // 总接收字节
+  tx: number;           // 总发送字节
+  rxSpeed: number;      // 当前下载速度
+  txSpeed: number;      // 当前上传速度
+  errors: {
+    rx: number;         // 接收错误
+    tx: number;         // 发送错误
   };
-  processes: Array<{       // 进程网络使用统计
-    pid: number;
-    name: string;
-    command: string;
-    rxSpeed: number;
-    txSpeed: number;
-    totalBytes: number;
-    connections: number;
-  }>;
-  history: Array<{         // 带宽使用历史
-    timestamp: number;
-    rxSpeed: number;
-    txSpeed: number;
-  }>;
+}
+
+export interface NetworkConnection {
+  protocol: 'TCP' | 'UDP';
+  localAddress: string;
+  localPort: number;
+  remoteAddress: string;
+  remotePort: number;
+  state: string;
+  pid?: number;
+  process?: string;
+}
+
+export interface NetworkProcess {
+  pid: number;
+  name: string;
+  command: string;
+  rxSpeed: number;
+  txSpeed: number;
+  totalBytes: number;
+  connections: number;
+}
+
+export interface NetworkHistory {
+  timestamp: number;
+  rxSpeed: number;
+  txSpeed: number;
+}
+
+export interface NetworkDetailInfo extends NetworkBasicInfo {
+  interfaces: NetworkInterface[];
+  history: NetworkHistory[];
+  connections: {
+    total: number;
+    tcp: number;
+    udp: number;
+    listening: number;
+    list: NetworkConnection[];
+  };
+  processes: {
+    isToolInstalled: boolean;
+    list: NetworkProcess[];
+  };
 }
 
 // 性能数据接口

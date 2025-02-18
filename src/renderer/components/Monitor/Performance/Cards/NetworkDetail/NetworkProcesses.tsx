@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { Table, Card } from 'antd';
+import { Table, Card, Alert } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import * as echarts from 'echarts';
 import { NetworkDetailInfo } from '../../../../../types/monitor';
@@ -21,6 +21,7 @@ interface ProcessTableItem {
 }
 
 export const NetworkProcesses: React.FC<NetworkProcessesProps> = React.memo(({ networkInfo }) => {
+
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts>();
 
@@ -73,22 +74,22 @@ export const NetworkProcesses: React.FC<NetworkProcessesProps> = React.memo(({ n
   ], []);
 
   const data: ProcessTableItem[] = useMemo(() => 
-    networkInfo.processes.map((proc, index) => ({
+    networkInfo.processes.list.map((proc, index) => ({
       key: `${index}`,
       ...proc
     })),
-    [networkInfo.processes]
+    [networkInfo.processes.list]
   );
 
   const getChartOption = useMemo(() => {
     // 计算总带宽使用
-    const totalBandwidth = networkInfo.processes.reduce(
+    const totalBandwidth = networkInfo.processes.list.reduce(
       (sum, proc) => sum + proc.rxSpeed + proc.txSpeed,
       0
     );
 
     // 准备饼图数据
-    const pieData = networkInfo.processes
+    const pieData = networkInfo.processes.list
       .map(proc => ({
         name: proc.name,
         value: proc.rxSpeed + proc.txSpeed,
@@ -145,7 +146,7 @@ export const NetworkProcesses: React.FC<NetworkProcessesProps> = React.memo(({ n
         }
       ]
     };
-  }, [networkInfo.processes]);
+  }, [networkInfo.processes.list]);
 
   useEffect(() => {
     if (!chartRef.current) return;

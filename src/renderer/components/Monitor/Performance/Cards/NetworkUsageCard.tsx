@@ -46,7 +46,10 @@ export const NetworkUsageCard: React.FC<NetworkUsageCardProps> = ({
       listening: 0,
       list: []
     },
-    processes: [],
+    processes: {
+      isToolInstalled: false,
+      list: []
+    },
     history: []
   };
 

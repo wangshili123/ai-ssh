@@ -1,5 +1,5 @@
 import { SSHService } from '../../../../types';
-import { NetworkDetailInfo } from '../../../../types/monitor';
+import { NetworkDetailInfo, NetworkProcess } from '../../../../types/monitor';
 
 /**
  * 网络进程监控服务
@@ -27,112 +27,114 @@ export class NetworkProcessService {
     try {
       console.time(`[NetworkProcessService] getProcessInfo ${sessionId}`);
 
-      // 检查 nethogs 是否安装
-      const checkResult = await this.sshService.executeCommandDirect(
-        sessionId,
-        'which nethogs'
-      );
+      // 1. 获取进程连接信息和基本统计
+      const processInfoCmd = `
+        ss -tupn | awk '
+          # 跳过标题行和本地连接
+          NR>1 && !/^127\\.0\\.0\\.1|^::1/ {
+            # 提取进程信息
+            if(match($0, /pid=([0-9]+).*"([^"]+)".*cmd="([^"]+)"/, arr)) {
+              pid=arr[1]
+              name=arr[2]
+              cmd=arr[3]
+              # 排除本地回环和内网地址
+              if ($5 !~ /^127\\.|^192\\.168\\.|^10\\.|^172\\.(1[6-9]|2[0-9]|3[0-1])\\./) {
+                connections[pid]++
+                if(!(pid in pids)) {
+                  pids[pid]=name
+                  cmds[pid]=cmd  # 保存完整命令
+                }
+              }
+            }
+          }
+          END {
+            # 输出结果，使用制表符分隔以处理命令中的空格
+            for(pid in connections) {
+              printf "%s\\t%s\\t%s\\t%d\\n", pid, pids[pid], cmds[pid], connections[pid]
+            }
+          }'
+      `;
 
-      if (!checkResult.trim()) {
-        console.warn('nethogs 未安装');
-        return [];
-      }
-
-      // 使用 nethogs 获取进程网络使用情况
-      // -t 参数输出文本格式，-c 1 只刷新一次
-      const nethogsOutput = await this.sshService.executeCommandDirect(
-        sessionId,
-        'sudo nethogs -t -c 1'
-      );
-
-      // 解析进程信息
-      const processes = this.parseProcessInfo(nethogsOutput);
-
-      // 获取进程的连接数
-      const ssOutput = await this.sshService.executeCommandDirect(
-        sessionId,
-        'ss -tupn'
-      );
-
-      // 统计每个进程的连接数
-      const connectionCounts = new Map<number, number>();
-      ssOutput.split('\n').forEach(line => {
-        const pidMatch = line.match(/pid=(\d+)/);
-        if (pidMatch) {
-          const pid = parseInt(pidMatch[1], 10);
-          connectionCounts.set(pid, (connectionCounts.get(pid) || 0) + 1);
+      const processInfo = await this.sshService.executeCommandDirect(sessionId, processInfoCmd);
+      const processes = new Map<number, NetworkProcess>();
+      
+      // 解析进程信息（使用制表符分隔）
+      processInfo.split('\n').forEach(line => {
+        const [pid, name, command, connections] = line.trim().split('\t');
+        if (pid) {
+          processes.set(Number(pid), {
+            pid: Number(pid),
+            name,
+            command,
+            rxSpeed: 0,
+            txSpeed: 0,
+            totalBytes: 0,
+            connections: Number(connections)
+          });
         }
       });
 
-      // 更新进程的连接数
-      processes.forEach(proc => {
-        proc.connections = connectionCounts.get(proc.pid) || 0;
+      // 2. 获取进程网络流量统计
+      const now = Date.now();
+      const statsCmd = `
+        for pid in \`ls -d /proc/[0-9]* 2>/dev/null\`; do
+          pid=\${pid##*/}
+          if [ -f "/proc/\$pid/net/dev" ]; then
+            echo "=== \$pid ==="
+            cat "/proc/\$pid/net/dev" 2>/dev/null | grep -v '^[[:space:]]*lo:'
+          fi
+        done
+      `;
+
+      const statsOutput = await this.sshService.executeCommandDirect(sessionId, statsCmd);
+      let currentPid: number | null = null;
+
+      // 解析网络统计
+      statsOutput.split('\n').forEach(line => {
+        const pidMatch = line.match(/^=== (\d+) ===/);
+        if (pidMatch) {
+          currentPid = Number(pidMatch[1]);
+          return;
+        }
+
+        if (currentPid && processes.has(currentPid) && line.includes(':')) {
+          const [, stats] = line.split(':');
+          if (stats) {
+            const values = stats.trim().split(/\s+/);
+            const rx = Number(values[0]);
+            const tx = Number(values[8]);
+
+            const process = processes.get(currentPid)!;
+            const prev = this.previousStats[currentPid];
+
+            if (prev) {
+              const timeDiff = (now - prev.timestamp) / 1000;
+              if (timeDiff > 0) {
+                process.rxSpeed = Math.max(0, (rx - prev.rx) / timeDiff);
+                process.txSpeed = Math.max(0, (tx - prev.tx) / timeDiff);
+                process.totalBytes = (rx - prev.rx) + (tx - prev.tx);
+              }
+            }
+
+            this.previousStats[currentPid] = { rx, tx, timestamp: now };
+          }
+        }
       });
 
       console.timeEnd(`[NetworkProcessService] getProcessInfo ${sessionId}`);
-      return processes;
+      
+      return {
+        isToolInstalled: true,
+        list: Array.from(processes.values())
+          .sort((a, b) => (b.rxSpeed + b.txSpeed) - (a.rxSpeed + a.txSpeed))
+      };
     } catch (error) {
       console.error('获取进程网络使用信息失败:', error);
-      return [];
+      return {
+        isToolInstalled: true,
+        list: []
+      };
     }
-  }
-
-  /**
-   * 解析进程网络使用信息
-   */
-  private parseProcessInfo(nethogsOutput: string): NetworkDetailInfo['processes'] {
-    const processes: NetworkDetailInfo['processes'] = [];
-    const now = Date.now();
-    const lines = nethogsOutput.split('\n');
-
-    // 跳过标题行
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line || line.startsWith('Refreshing')) continue;
-
-      try {
-        const parts = line.split(/\s+/);
-        if (parts.length < 4) continue;
-
-        const [pid, program, sent, received] = parts;
-        const pidNum = parseInt(pid, 10);
-        if (isNaN(pidNum)) continue;
-
-        // 解析发送和接收的字节数（nethogs输出的是KB/s）
-        const tx = parseFloat(sent) * 1024;
-        const rx = parseFloat(received) * 1024;
-
-        // 计算总流量
-        let totalBytes = 0;
-        if (this.previousStats[pidNum]) {
-          const timeDiff = (now - this.previousStats[pidNum].timestamp) / 1000;
-          if (timeDiff > 0) {
-            totalBytes = (this.previousStats[pidNum].rx + this.previousStats[pidNum].tx) * timeDiff;
-          }
-        }
-
-        // 更新历史数据
-        this.previousStats[pidNum] = {
-          rx,
-          tx,
-          timestamp: now
-        };
-
-        processes.push({
-          pid: pidNum,
-          name: program.split('/').pop() || program,
-          command: program,
-          rxSpeed: rx,
-          txSpeed: tx,
-          totalBytes,
-          connections: 0 // 连接数将在后续更新
-        });
-      } catch (error) {
-        console.error('解析进程网络使用行失败:', error, line);
-      }
-    }
-
-    return processes;
   }
 
   /**
