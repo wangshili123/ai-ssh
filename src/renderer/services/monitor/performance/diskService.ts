@@ -73,13 +73,7 @@ export class DiskMetricsService {
           partition.device               // 完整路径（如 /dev/sda1）
         ];
         
-        console.log('尝试匹配设备IO:', {
-          partition: partition.device,
-          mountpoint: partition.mountpoint,
-          fullDeviceName,
-          possibleNames,
-          availableStats: Object.keys(diskIO.deviceStats || {})
-        });
+
 
         // 查找第一个匹配的设备统计信息
         let matchedName;
@@ -515,14 +509,6 @@ export class DiskMetricsService {
           fullDeviceName,                // 完整设备名（如 sda1, sda2）
           partition.device               // 完整路径（如 /dev/sda1）
         ];
-        
-        console.log('尝试匹配设备IO:', {
-          partition: partition.device,
-          mountpoint: partition.mountpoint,
-          fullDeviceName,
-          possibleNames,
-          availableStats: Object.keys(diskIO.deviceStats || {})
-        });
 
         // 查找第一个匹配的设备统计信息
         let matchedName;

@@ -119,7 +119,8 @@ export class NetworkService {
           tcp: 0,
           udp: 0,
           listening: 0,
-          list: []
+          list: [],
+          isToolInstalled: false
         },
         processes: {
           isToolInstalled: false,
@@ -205,7 +206,8 @@ export class NetworkService {
           tcp: 0,
           udp: 0,
           listening: 0,
-          list: []
+          list: [],
+          isToolInstalled: false
         },
         processes: {
           isToolInstalled: false,

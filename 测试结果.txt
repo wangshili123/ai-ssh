@@ -1,21 +1,7 @@
-LoadingOverlay render: {tip: '正在初始化性能监控数据...', spinning: true}
- Warning: [antd: Spin] `tip` only work in nest or fullscreen pattern.
-warning @ renderer.js:324896
-call @ renderer.js:324917
-warningOnce @ renderer.js:324924
-warning @ renderer.js:68429
-typeWarning @ renderer.js:68460
-Spin @ renderer.js:112293
-renderWithHooks @ renderer.js:343276
-mountIndeterminateComponent @ renderer.js:347888
-beginWork @ renderer.js:349411
-beginWork$1 @ renderer.js:355250
-performUnitOfWork @ renderer.js:354384
-workLoopSync @ renderer.js:354290
-renderRootSync @ renderer.js:354258
-performConcurrentWorkOnRoot @ renderer.js:353562
-workLoop @ renderer.js:403313
-flushWork @ renderer.js:403286
-performWorkUntilDeadline @ renderer.js:403580
-processImmediate @ node:internal/timers:476
- Warning: bodyStyle is deprecated, please use styles instead.
+命令输出: === TCP ===
+COMMAND     PID   USER   FD   TYPE     DEVICE SIZE/OFF NODE NAME
+sshd        302   root    3u  IPv4 1965597581      0t0  TCP 172.16.3.226:22->172.16.0.216:65185 (ESTABLISHED)
+sshd        321   root    3u  IPv4 1965597585      0t0  TCP 172.16.3.226:22->172.16.0.216:65186 (ESTABLISHED)
+sshd        322   root    3u  IPv4 1965597589      0t0  TCP 172.16.3.226:22->172.16.0.216:65187 (ESTABLISHED)
+sshd        323   root    3u  IPv4 1965597593      0t0  TCP 172.16.3.226:22->172.16.0.216:65188 (ESTABLISHED)
+sshd        341   root    3u  IPv4 1965597615      0t0  TCP 172.16.3.226:22->172.16.0.216:65192 (ESTABLISHED)

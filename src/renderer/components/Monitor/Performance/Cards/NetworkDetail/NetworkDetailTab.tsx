@@ -63,7 +63,7 @@ export const NetworkDetail: React.FC<NetworkDetailProps> = ({
       key: 'processes',
       label: '进程监控',
       children: renderTabContent(
-        <NetworkProcesses networkInfo={currentNetworkInfo} />,
+        <NetworkProcesses networkInfo={currentNetworkInfo} sessionId={sessionId} />,
         !loadedTabs.has('processes')
       ),
     },

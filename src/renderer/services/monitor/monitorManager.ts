@@ -3,22 +3,25 @@ import { MonitorData } from '../../types/monitor';
 import { RefreshService } from './refreshService';
 import { SSHService } from '../../types';
 import { PerformanceManager } from './performance/performanceManager';
+import { NetworkService } from './performance/network/networkService';
+import { NetworkProcessService } from './performance/network/networkProcessService';
 
 /**
  * 监控管理器
  * 用于统一管理所有监控相关服务
  */
-class MonitorManager {
+export class MonitorManager {
   private static instance: MonitorManager;
   private sessions: Map<string, SessionInfo> = new Map();
   private refreshService: RefreshService;
   private performanceManager: PerformanceManager;
   private sshService: SSHService;
   private refreshRequestIds: Map<string, number> = new Map();
+  private networkService: NetworkService;
   
   // 活动状态控制
   private activeTab: string = '';
-  private activeCard: string = '';
+  private activeCard: string = 'cpu';
   private activeDetailTab: { [key: string]: string } = {
     cpu: 'basic',
     memory: 'basic',
@@ -30,6 +33,7 @@ class MonitorManager {
     this.sshService = sshService;
     this.refreshService = RefreshService.getInstance();
     this.performanceManager = PerformanceManager.getInstance(sshService);
+    this.networkService = NetworkService.getInstance(sshService);
   }
 
   /**
@@ -243,7 +247,12 @@ class MonitorManager {
     this.sessions.clear();
     MonitorManager.instance = null as any;
   }
-}
 
-// 只在底部导出
-export { MonitorManager }; 
+  getNetworkService(): NetworkService {
+    return this.networkService;
+  }
+
+  getNetworkProcessService(): NetworkProcessService {
+    return NetworkProcessService.getInstance(this.sshService);
+  }
+} 

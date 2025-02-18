@@ -1,0 +1,135 @@
+.monitor-network-connections {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 统计卡片区 */
+.monitor-network-connections__stats {
+  flex-shrink: 0;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 16px;
+}
+
+.monitor-network-connections__stats-card {
+  min-width: 150px;
+  background: #fafafa;
+  border-radius: 4px;
+}
+
+/* 过滤器区域 */
+.monitor-network-connections__filters {
+  flex-shrink: 0;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 4px;
+}
+
+/* 表格区域 */
+.monitor-network-connections__table-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.monitor-network-connections__table-container .ant-table-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.monitor-network-connections__table-container .ant-table {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.monitor-network-connections__table-container .ant-table-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.monitor-network-connections__table-container .ant-table-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.monitor-network-connections__table-container .ant-table-header {
+  flex-shrink: 0;
+}
+
+.monitor-network-connections__table-container .ant-table-body {
+  flex: 1;
+  overflow-y: auto !important;
+}
+
+/* 表格行样式 */
+.monitor-network-connections__table-row {
+  cursor: pointer;
+}
+
+.monitor-network-connections__table-row:hover {
+  background-color: #f5f5f5;
+}
+
+/* 抽屉内容样式 */
+.monitor-network-connections__drawer-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.monitor-network-connections__info-card {
+  background: #fafafa;
+}
+
+.monitor-network-connections__info-item {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.monitor-network-connections__info-item:last-child {
+  margin-bottom: 0;
+}
+
+.monitor-network-connections__info-label {
+  color: #666;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.monitor-network-connections__info-value {
+  flex: 1;
+  word-break: break-all;
+}
+
+/* 自定义滚动条样式 */
+.monitor-network-connections__table-container .ant-table-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: transparent;
+}
+
+.monitor-network-connections__table-container .ant-table-body::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.monitor-network-connections__table-container .ant-table-body::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.monitor-network-connections__table-container .ant-table-body::-webkit-scrollbar-track {
+  background-color: transparent;
+} 

@@ -11,13 +11,14 @@ globs: ["**/*.{ts,tsx,js,jsx,css}"]
 
 开发前阅读 [AI-SSH-TOOL-SPEC.md](mdc:docs/AI-SSH-TOOL-SPEC.md)  [PROGRESS.md](mdc:docs/PROGRESS.md) , [要求](mdc:要求), [经验.md](mdc:docs/LessonsLearned/经验.md) 熟悉项目情况和进度，阅读完后询问用户当前想要专注于什么功能。
 重点：写代码之前一定要思考全文并设计方案与用户沟通是否可行才能操作。
-强制：必须调用 MCP sequential-thinking 进行深度思考
+强制：一定要以大型项目来规划文件目录、文件名、架构、功能设计等。不可单一考虑
 1. 代码组织
    - 功能模块清晰分包，单文件不超过200行，超过了要注意新功能尽量抽取
    - 文件命名需包含模块/功能名，避免单一的index/style/types
    - 每个步骤尽量添加注释，至少有个说明是干嘛的，也不用太详细
    - 被注释的代码保留，不删除
    - 新功能文件要有自己的文件目录或者子目录，更加规范
+   - css 采用 BEM (Block Element Modifier) 命名规范
 
 2. 技术栈
    - 前端：Electron + React + TypeScript + Ant Design

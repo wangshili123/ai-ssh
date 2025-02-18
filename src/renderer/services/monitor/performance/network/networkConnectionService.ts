@@ -7,6 +7,7 @@ import { NetworkDetailInfo } from '../../../../types/monitor';
 export class NetworkConnectionService {
   private static instance: NetworkConnectionService;
   private sshService: SSHService;
+  private isToolInstalled: boolean | null = null;
 
   private constructor(sshService: SSHService) {
     this.sshService = sshService;
@@ -20,139 +21,215 @@ export class NetworkConnectionService {
   }
 
   /**
+   * 检查必要工具是否已安装
+   */
+  private async checkTools(sessionId: string): Promise<boolean> {
+    if (this.isToolInstalled !== null) {
+      return this.isToolInstalled;
+    }
+
+    try {
+      // 检查 lsof 是否安装
+      const lsofCheck = await this.sshService.executeCommandDirect(
+        sessionId,
+        'which lsof >/dev/null 2>&1 && echo "yes" || echo "no"'
+      );
+      this.isToolInstalled = lsofCheck.trim() === 'yes';
+      return this.isToolInstalled;
+    } catch (error) {
+      console.error('检查工具安装状态失败:', error);
+      return false;
+    }
+  }
+
+  /**
    * 获取连接信息
    */
   async getConnectionInfo(sessionId: string): Promise<NetworkDetailInfo['connections']> {
     try {
       console.time(`[NetworkConnectionService] getConnectionInfo ${sessionId}`);
-      
-      // 获取连接统计和监听端口数
-      const [ssStats, listenPorts] = await Promise.all([
-        this.sshService.executeCommandDirect(sessionId, 'ss -s'),
-        this.sshService.executeCommandDirect(sessionId, 'ss -l | grep -v "^Netid" | wc -l')
-      ]);
 
-      // 解析连接统计
-      const connectionStats = this.parseConnectionStats(ssStats, parseInt(listenPorts.trim(), 10));
-      
-      // 解析连接列表
-      const connectionList = this.parseConnectionList(await this.sshService.executeCommandDirect(sessionId, 'ss -tupn state established'));
+      // 检查工具是否安装
+      const isInstalled = await this.checkTools(sessionId);
+      if (!isInstalled) {
+        return {
+          total: 0,
+          tcp: 0,
+          udp: 0,
+          listening: 0,
+          list: [],
+          isToolInstalled: false
+        };
+      }
 
-      // 合并结果
-      const result = {
-        ...connectionStats,
-        list: connectionList
+      // 使用 lsof 获取网络连接信息
+      const cmd = `
+        # 获取TCP连接
+        echo "=== TCP ==="
+        lsof -i TCP -n -P 2>/dev/null;
+        
+        # 获取UDP连接
+        echo "=== UDP ==="
+        lsof -i UDP -n -P 2>/dev/null;
+      `;
+
+      const output = await this.sshService.executeCommandDirect(sessionId, cmd);
+      console.log('[NetworkConnectionService] 命令输出:', output);
+      const [tcpSection, udpSection] = output.split('=== UDP ===');
+
+      // 初始化结果
+      const result: NetworkDetailInfo['connections'] = {
+        total: 0,
+        tcp: 0,
+        udp: 0,
+        listening: 0,
+        list: [],
+        isToolInstalled: true
       };
+
+      // 解析TCP连接
+      const tcpConnections = this.parseConnections(tcpSection, 'TCP');
+      result.tcp = tcpConnections.length;
+      result.list.push(...tcpConnections);
+
+      // 解析UDP连接
+      const udpConnections = this.parseConnections(udpSection, 'UDP');
+      result.udp = udpConnections.length;
+      result.list.push(...udpConnections);
+
+      // 计算总数和监听数
+      result.total = result.tcp + result.udp;
+      result.listening = result.list.filter(conn => conn.state === 'LISTEN').length;
 
       console.timeEnd(`[NetworkConnectionService] getConnectionInfo ${sessionId}`);
       return result;
     } catch (error) {
-      console.error('获取连接信息失败:', error);
+      console.error('[NetworkConnectionService] 获取连接信息失败:', error);
       return {
         total: 0,
         tcp: 0,
         udp: 0,
         listening: 0,
-        list: []
+        list: [],
+        isToolInstalled: false
       };
     }
   }
 
   /**
-   * 解析连接统计信息
+   * 解析连接信息
    */
-  private parseConnectionStats(ssStats: string, listenPorts: number): NetworkDetailInfo['connections'] {
-    const connections = {
-      total: 0,
-      tcp: 0,
-      udp: 0,
-      listening: listenPorts,
-      list: []
-    };
-    
-    try {
-      // 解析表格中的连接数
-      const lines = ssStats.split('\n');
-      for (const line of lines) {
-        if (line.startsWith('TCP')) {
-          const parts = line.trim().split(/\s+/);
-          if (parts.length >= 2) {
-            connections.tcp = parseInt(parts[1], 10);
-          }
-        } else if (line.startsWith('UDP')) {
-          const parts = line.trim().split(/\s+/);
-          if (parts.length >= 2) {
-            connections.udp = parseInt(parts[1], 10);
-          }
-        }
-      }
+  private parseConnections(output: string, protocol: 'TCP' | 'UDP'): NetworkDetailInfo['connections']['list'] {
+    const connections: NetworkDetailInfo['connections']['list'] = [];
+    const lines = output.split('\n');
 
-      // 计算总连接数
-      connections.total = connections.tcp + connections.udp;
-    } catch (error) {
-      console.error('解析连接统计信息失败:', error);
+    for (const line of lines) {
+      if (!line.trim() || line.startsWith('COMMAND')) continue;
+
+      try {
+        // 使用正则表达式匹配 NAME 字段中的连接信息
+        const nameMatch = line.match(/(\S+)\s+(\d+)\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+(.*)/);
+        if (!nameMatch) continue;
+
+        const [, command, pidStr, connectionInfo] = nameMatch;
+        
+        // 解析连接状态
+        const stateMatch = connectionInfo.match(/\((.*?)\)$/);
+        const state = stateMatch ? stateMatch[1] : protocol === 'UDP' ? '-' : 'ESTABLISHED';
+
+        // 解析地址信息
+        const addressInfo = connectionInfo.replace(/\s*\([^)]+\)\s*$/, '').trim();
+        const [local, remote] = addressInfo.split('->').map(addr => addr.trim());
+
+        if (!local) continue;
+
+        // 解析本地地址
+        const [localAddr, localPortStr] = this.parseAddress(local);
+        const localPort = parseInt(localPortStr, 10);
+        if (isNaN(localPort)) continue;
+
+        // 解析远程地址
+        let remoteAddr = '*';
+        let remotePort = 0;
+
+        if (remote) {
+          const [remoteAddrParsed, remotePortStr] = this.parseAddress(remote);
+          remoteAddr = remoteAddrParsed;
+          remotePort = parseInt(remotePortStr || '0', 10);
+        }
+
+        // 确定连接类型
+        let type: '内网' | '外网' | '监听';
+        if (state === 'LISTEN') {
+          type = '监听';
+        } else if (this.isInternalIP(remoteAddr)) {
+          type = '内网';
+        } else {
+          type = '外网';
+        }
+
+        const pid = parseInt(pidStr, 10);
+        if (isNaN(pid)) continue;
+
+        connections.push({
+          protocol,
+          localAddress: localAddr,
+          localPort,
+          remoteAddress: remoteAddr,
+          remotePort,
+          state,
+          type,
+          process: command,
+          pid
+        });
+      } catch (error) {
+        console.error('[NetworkConnectionService] 解析连接信息失败:', error, line);
+        continue;
+      }
     }
 
     return connections;
   }
 
   /**
-   * 解析详细连接列表
+   * 解析地址和端口
    */
-  private parseConnectionList(ssOutput: string): NetworkDetailInfo['connections']['list'] {
-    const connections: NetworkDetailInfo['connections']['list'] = [];
-    const lines = ssOutput.split('\n');
-
-    // 跳过标题行
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-
-      try {
-        const parts = line.split(/\s+/);
-        if (parts.length < 5) continue;
-
-        const [state, recvQ, sendQ, localAddr, remoteAddr, process] = parts;
-        
-        // 解析本地地址
-        const [localAddress, localPort] = localAddr.split(':');
-        
-        // 解析远程地址
-        const [remoteAddress, remotePort] = remoteAddr.split(':');
-
-        // 解析进程信息
-        let pid: number | undefined;
-        let processName: string | undefined;
-        if (process && process !== '-') {
-          const processMatch = process.match(/users:\(\("([^"]+)",pid=(\d+)/);
-          if (processMatch) {
-            processName = processMatch[1];
-            pid = parseInt(processMatch[2], 10);
-          }
-        }
-
-        connections.push({
-          protocol: 'TCP', // 根据实际情况判断
-          localAddress,
-          localPort: parseInt(localPort, 10),
-          remoteAddress,
-          remotePort: parseInt(remotePort, 10) || 0,
-          state,
-          pid,
-          process: processName
-        });
-      } catch (error) {
-        console.error('解析连接行失败:', error, line);
-      }
+  private parseAddress(addr: string): [string, string] {
+    // 处理 IPv4 和 IPv6 地址
+    const ipv4Match = addr.match(/([0-9.]+):([0-9]+)/);
+    if (ipv4Match) {
+      return [ipv4Match[1], ipv4Match[2]];
     }
 
-    return connections;
+    const ipv6Match = addr.match(/\[([0-9a-fA-F:]+)\]:([0-9]+)/);
+    if (ipv6Match) {
+      return [ipv6Match[1], ipv6Match[2]];
+    }
+
+    return [addr, '0'];
+  }
+
+  /**
+   * 判断是否为内网IP
+   */
+  private isInternalIP(ip: string): boolean {
+    if (ip === '*' || ip === 'localhost' || ip === '127.0.0.1') return true;
+    
+    const parts = ip.split('.');
+    if (parts.length !== 4) return false;
+
+    return (
+      parts[0] === '10' ||
+      (parts[0] === '172' && parseInt(parts[1], 10) >= 16 && parseInt(parts[1], 10) <= 31) ||
+      (parts[0] === '192' && parts[1] === '168')
+    );
   }
 
   /**
    * 销毁服务实例
    */
   destroy(): void {
+    this.isToolInstalled = null;
     NetworkConnectionService.instance = null as any;
   }
 } 

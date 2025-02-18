@@ -1,0 +1,74 @@
+.monitor-network-processes {
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.monitor-network-processes__overview {
+  margin-bottom: 16px;
+  flex: 0 0 auto;
+}
+
+.monitor-network-processes__chart-card {
+  height: 200px;
+}
+
+.monitor-network-processes__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.monitor-network-processes__list .ant-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.monitor-network-processes__list .ant-card-body {
+  flex: 1;
+  padding: 0;
+  overflow: hidden;
+}
+
+.monitor-network-processes__list .ant-table-wrapper {
+  height: 100%;
+}
+
+.monitor-network-processes__list .ant-table-body {
+  overflow-y: auto !important;
+}
+
+.monitor-network-processes__table-row {
+  cursor: pointer;
+}
+
+.monitor-network-processes__table-row:hover {
+  background-color: #f5f5f5;
+}
+
+.monitor-network-processes__drawer-content {
+  padding: 8px;
+}
+
+.monitor-network-processes__info-card {
+  margin-bottom: 16px;
+}
+
+.monitor-network-processes__info-item {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.monitor-network-processes__info-label {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.monitor-network-processes__info-value {
+  color: #666;
+  word-break: break-all;
+} 

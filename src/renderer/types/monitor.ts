@@ -140,6 +140,7 @@ export interface NetworkConnection {
   state: string;
   pid?: number;
   process?: string;
+  type: '内网' | '外网' | '监听';  // 添加连接类型字段
 }
 
 export interface NetworkProcess {
@@ -167,6 +168,7 @@ export interface NetworkDetailInfo extends NetworkBasicInfo {
     udp: number;
     listening: number;
     list: NetworkConnection[];
+    isToolInstalled: boolean;  // 添加工具安装状态字段
   };
   processes: {
     isToolInstalled: boolean;
