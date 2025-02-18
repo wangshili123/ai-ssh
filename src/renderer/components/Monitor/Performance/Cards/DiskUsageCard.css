@@ -75,21 +75,7 @@
   color: #666;
 }
 
-/* 标签页样式 */
-.disk-tabs {
-  margin-top: 20px;
-  background: #fafafa;
-  padding: 16px;
-  border-radius: 8px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
 
-.disk-tabs .ant-tabs-content {
-  flex: 1;
-  height: 100%;
-}
 
 /* 分析页面通用样式 */
 .space-analysis,

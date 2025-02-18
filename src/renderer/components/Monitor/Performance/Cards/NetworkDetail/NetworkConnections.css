@@ -133,3 +133,8 @@
 .monitor-network-connections__table-container .ant-table-body::-webkit-scrollbar-track {
   background-color: transparent;
 } 
+
+.monitor-network-connections__table-container .ant-table-tbody-virtual-scrollbar {
+  width: 13px !important;
+}
+
