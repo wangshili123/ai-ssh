@@ -15,11 +15,13 @@
 .monitor-page .ant-tabs-content {
   flex: 1;
   min-height: 0;
+  position: relative;
 }
 
 .monitor-page .ant-tabs-tabpane {
   height: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 .monitor-page .ant-tabs-nav {

@@ -1,5 +1,5 @@
 .loading-overlay {
-  position: fixed !important;
+  position: absolute !important;
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
@@ -8,7 +8,7 @@
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
-  z-index: 999999 !important;
+  z-index: 10 !important;
   pointer-events: auto !important;
 }
 

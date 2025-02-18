@@ -5,7 +5,6 @@ import { DiskUsageCard } from './Cards/DiskUsageCard';
 import { NetworkUsageCard } from './Cards/NetworkUsageCard';
 import { MonitorData, PerformanceBasicData } from '../../../types/monitor';
 import { MonitorManager } from '../../../services/monitor/monitorManager';
-import { LoadingOverlay } from '../../Common/LoadingOverlay';
 import './PerformancePage.css';
 
 type ResourceType = 'cpu' | 'memory' | 'disk' | 'network';
@@ -101,9 +100,6 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
   monitorData,
   monitorManager
 }) => {
-  // 添加加载状态
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  
   // 基础数据状态
   const [basicData, setBasicData] = useState<PerformanceBasicData>({
     cpu: {
@@ -151,52 +147,20 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
     monitorManager.setActiveCard(defaultResource);
   }, []);
 
-  // 处理数据更新和加载状态
+  // 处理数据更新
   useEffect(() => {
     const performanceData = monitorData?.performance;
-    console.log('Performance data update:', {
-      sessionId,
-      hasData: !!monitorData,
-      hasBasic: !!performanceData?.basic,
-      hasDetail: !!performanceData?.detail,
-      isLoading: isInitialLoading,
-      basicData: performanceData?.basic,
-      detailData: performanceData?.detail
-    });
-
-    // 如果没有数据，保持加载状态
-    if (!performanceData) {
-      console.log('No performance data, keeping loading state');
-      setIsInitialLoading(true);
-      return;
-    }
-
-    // 只有在收到完整的数据时才关闭加载状态
-    const hasCompleteData = performanceData.basic;
-    console.log('Checking complete data:', { hasCompleteData });
-    
-    if (hasCompleteData) {
-      console.log('Complete data received, closing loading state');
-      setIsInitialLoading(false);
-    }
-
-    if (performanceData.basic) {
+    if (performanceData?.basic) {
       setBasicData(prev => ({
         ...prev,
         ...performanceData.basic
       }));
     }
     
-    if (performanceData.detail) {
+    if (performanceData?.detail) {
       setDetailData(performanceData.detail);
     }
   }, [monitorData]);
-
-  // 当会话ID改变时，重置加载状态
-  useEffect(() => {
-    console.log('Session ID changed, resetting loading state:', { sessionId });
-    setIsInitialLoading(true);
-  }, [sessionId]);
 
   // 处理资源选择
   const handleResourceSelect = useCallback((resource: ResourceType) => {
@@ -204,14 +168,6 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
     setSelectedResource(resource);
     monitorManager.setActiveCard(resource);
   }, [monitorManager]);
-
-  console.log('PerformancePage render:', {
-    sessionId,
-    isInitialLoading,
-    selectedResource,
-    hasBasicData: !!basicData,
-    hasDetailData: !!detailData
-  });
 
   return (
     <div className="performance-container">
@@ -228,14 +184,6 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
         ))}
       </div>
       <div className="performance-details">
-        {/* 加载状态覆盖层 */}
-        {isInitialLoading && (
-          <LoadingOverlay 
-            spinning={true} 
-            tip={`正在初始化性能监控数据...`} 
-          />
-        )}
-        
         {/* 保持所有详细面板挂载，通过 CSS 控制显示/隐藏 */}
         <div style={{ display: selectedResource === 'cpu' ? 'block' : 'none' }}>
           <DetailResourceCard

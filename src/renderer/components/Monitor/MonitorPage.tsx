@@ -4,6 +4,7 @@ import { PerformancePage } from './Performance/PerformancePage';
 import { getServiceManager } from '../../services/monitor/serviceManager';
 import { SessionInfo } from '../../types';
 import { MonitorData } from '../../types/monitor';
+import { LoadingOverlay } from '../Common/LoadingOverlay';
 import './MonitorPage.css';
 
 const { TabPane } = Tabs;
@@ -14,6 +15,7 @@ interface MonitorPageProps {
 
 export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
   const [monitorData, setMonitorData] = useState<MonitorData>();
+  const [isLoading, setIsLoading] = useState(true);
   const defaultPage = sessionInfo.config?.defaultPage || 'performance';
   const [activeKey, setActiveKey] = useState<string>(defaultPage);
   const monitorManager = getServiceManager().getMonitorManager();
@@ -56,6 +58,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
           const updatedSession = monitorManager.getSession(monitorSession.id);
           if (updatedSession?.monitorData) {
             setMonitorData(updatedSession.monitorData);
+            setIsLoading(false);
           }
           console.timeEnd(`[Performance] 数据更新耗时 ${sessionInfo.id}`);
         };
@@ -72,6 +75,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
       } catch (error) {
         console.error('[MonitorPage] 监控连接失败:', error);
         message.error('监控连接失败: ' + (error as Error).message);
+        setIsLoading(false);
       }
       console.timeEnd(`[Performance] 监控页面初始化总耗时 ${sessionInfo.id}`);
     };
@@ -94,6 +98,13 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
 
   return (
     <div className="monitor-page">
+      {/* 加载状态覆盖层 */}
+      {isLoading && (
+        <LoadingOverlay 
+          spinning={true} 
+          tip={`正在初始化监控数据...`} 
+        />
+      )}
       <Tabs 
         activeKey={activeKey} 
         onChange={handleTabChange}

@@ -21,7 +21,8 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   return (
     <div className="loading-overlay">
       <div className="loading-content">
-        <Spin size="large" tip={tip} />
+        <Spin size="large" />
+        {tip && <div className="ant-spin-text">{tip}</div>}
       </div>
     </div>
   );
