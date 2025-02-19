@@ -74,22 +74,6 @@ export const MonitorConfigContent = forwardRef<FormInstance, MonitorConfigConten
         />
       </Form.Item>
 
-
-      <Form.Item
-        name="enableCache"
-        valuePropName="checked"
-      >
-        <Checkbox>启用缓存</Checkbox>
-      </Form.Item>
-
-      <Form.Item
-        name="cacheExpiration"
-        label="缓存过期时间(秒)"
-        rules={[{ required: true, message: '请输入缓存过期时间' }]}
-      >
-        <InputNumber min={5} max={3600} style={{ width: '100%' }}  controls={false}
-          type="number"/>
-      </Form.Item>
     </Form>
   );
 }); 

@@ -9,7 +9,7 @@
 - [x] 创建基础目录结构
 - [x] 安装必要依赖
 
-## 2. 基础框架搭建 [进行中]
+## 2. 基础框架搭建 [已完成]
 
 ### 2.1 主进程 [已完成]
 - [x] 创建主窗口
@@ -41,7 +41,7 @@
   * [x] 优化字体和图标显示
   * [ ] 添加加载状态动画
 
-### 2.4 SSH会话管理组件 [进行中]
+### 2.4 SSH会话管理组件 [已完成]
 
 #### 文件结构调整 [已完成]
 - [x] 创建新的目录结构
@@ -60,7 +60,7 @@
   * [x] 标签页切换
   * [x] 标签页状态管理
 
-### 2.5 终端组件 [进行中]
+### 2.5 终端组件 [已完成]
 - [ ] 基础终端功能
   * [x] 集成 xterm.js
   * [x] 实现终端会话绑定
@@ -159,7 +159,8 @@
           * [x] 在输出开头添加截断说明
           * [x] 显示实际输出行数信息
   * [x] Agent模式 [设计文档: docs/agent-mode-ui-design.md]
-  * [x] 文件管理器 [设计文档: docs/linux-file-brower/ui-design.md],产品文档: docs/linux-file-brower/product-spec.md - 进行中
+  * [x] 文件管理器 [设计文档: docs/linux-file-brower/ui-design.md],产品文档: docs/linux-file-brower/product-spec.md - 已完成
+  * [ ] 监控组件 [设计文档: .notes/tasks/shell-visualization/ui-design-spec.md],产品文档: .notes/tasks/shell-visualization/3-process-management/3.1-process-list.md - 进行中
 
 
 

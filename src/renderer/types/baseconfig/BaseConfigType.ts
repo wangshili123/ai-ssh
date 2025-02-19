@@ -1,8 +1,6 @@
 export interface MonitorConfig {
   refreshInterval: number;     // 刷新间隔(秒)
   defaultPage: 'process' | 'performance' | 'history' | 'startup' | 'user' | 'detail' | 'service';  // 默认页面
-  enableCache: boolean;       // 是否启用缓存
-  cacheExpiration: number;    // 缓存过期时间(秒)
 } 
 
 /**
