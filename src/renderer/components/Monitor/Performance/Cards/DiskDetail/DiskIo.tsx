@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Table, Card, Tooltip, Alert } from 'antd';
-import { DiskIoAnalysis } from '../../../../../types/monitor';
+import { DiskIoAnalysis } from '../../../../../types/monitor/monitor';
 import { formatBytes } from '../../../../../utils/format';
 
 interface DiskIoProps {

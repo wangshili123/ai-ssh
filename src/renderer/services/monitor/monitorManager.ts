@@ -1,10 +1,11 @@
 import { SessionInfo } from '../../types';
-import { MonitorData } from '../../types/monitor';
+import { MonitorData } from '../../types/monitor/monitor';
 import { RefreshService } from './refreshService';
 import { SSHService } from '../../types';
 import { PerformanceManager } from './performance/performanceManager';
 import { NetworkService } from './performance/network/networkService';
 import { NetworkProcessService } from './performance/network/networkProcessService';
+import { MonitorConfigManager } from '../config/MonitorConfig';
 
 /**
  * 监控管理器
@@ -18,6 +19,7 @@ export class MonitorManager {
   private sshService: SSHService;
   private refreshRequestIds: Map<string, number> = new Map();
   private networkService: NetworkService;
+  private configManager: MonitorConfigManager;
   
   // 活动状态控制
   private activeTab: string = '';
@@ -34,6 +36,7 @@ export class MonitorManager {
     this.refreshService = RefreshService.getInstance();
     this.performanceManager = PerformanceManager.getInstance(sshService);
     this.networkService = NetworkService.getInstance(sshService);
+    this.configManager = MonitorConfigManager.getInstance();
   }
 
   /**
@@ -84,14 +87,7 @@ export class MonitorManager {
       port: config.port || 22,
       username: config.username || '',
       authType: config.authType || 'password',
-      ...config,
-      config: {
-        refreshInterval: 5000,
-        autoRefresh: true,
-        enableCache: true,
-        cacheExpiration: 30000,
-        ...config.config
-      }
+      ...config
     };
 
     this.sessions.set(session.id, session);
@@ -121,10 +117,17 @@ export class MonitorManager {
       console.time(`[Performance] 马上调用一次刷新耗时 ${sessionId}`);
       await this.refreshSession(sessionId);
       console.timeEnd(`[Performance] 马上调用一次刷新耗时 ${sessionId}`);
+      
       // 启动自动刷新
-      console.time(`[Performance] 启动自动刷新耗时 ${sessionId}`);
-      this.refreshService.startRefresh(session);
-      console.timeEnd(`[Performance] 启动自动刷新耗时 ${sessionId}`);
+      const config = this.configManager.getConfig();
+      if (config.autoRefresh) {
+        console.time(`[Performance] 启动自动刷新耗时 ${sessionId}`);
+        this.refreshService.startRefresh(session, {
+          interval: config.refreshInterval * 1000, // 转换为毫秒
+          autoRefresh: config.autoRefresh
+        });
+        console.timeEnd(`[Performance] 启动自动刷新耗时 ${sessionId}`);
+      }
     
     } catch (error) {
       session.status = 'error';

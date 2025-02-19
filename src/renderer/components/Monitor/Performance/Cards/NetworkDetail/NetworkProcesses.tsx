@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Table, Card, Space, Input, Drawer, Statistic, Alert, Spin, Badge, message, Row, Col } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { SearchOutlined } from '@ant-design/icons';
-import { NetworkDetailInfo, NetworkProcess } from '../../../../../types/monitor';
+import { NetworkDetailInfo, NetworkProcess } from '../../../../../types/monitor/monitor';
 import { formatBytes } from '../../../../../utils/format';
 import './NetworkProcesses.css';
 import { getServiceManager } from '../../../../../services/monitor/serviceManager';

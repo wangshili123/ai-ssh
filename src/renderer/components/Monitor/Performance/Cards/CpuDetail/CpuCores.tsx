@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
-import { CpuDetailInfo } from '../../../../../types/monitor';
+import { CpuDetailInfo } from '../../../../../types/monitor/monitor';
 import type { ECOption } from '../../../../../types/echarts';
 import './CpuDetailTab.css';
 

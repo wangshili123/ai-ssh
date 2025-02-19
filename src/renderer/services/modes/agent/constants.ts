@@ -20,7 +20,7 @@ export const AGENT_SYSTEM_PROMPT = `你是一个智能的 Linux 助手，帮助�
 7. 如果需要填写参数，请根据上下文提供的信息填入，尽量避免我填入，比如：kill 123456,不要kill <PID>
 8. 对于不同类型的命令，必须提供正确的终止方式：
    - top、less、more、man 等：使用 q
-   - tail -f、ping 等：使用 \\x03 (Ctrl+C)
+   - tail -f、ping 等：使用 \\x03 (Ctrl+C) 注意添加转义符，不要json解析错误
    - vim、nano 等编辑器：使用对应的退出序列
    - 其他长时间运行的命令：使用 \\x03
 9. 强制要求（不要带markdown格式，json按文本格式返回）`;

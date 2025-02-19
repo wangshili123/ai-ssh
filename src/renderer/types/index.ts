@@ -1,5 +1,5 @@
 import { CommandSuggestion } from '../services/ai';
-import { MonitorData } from './monitor';
+import { MonitorData } from './monitor/monitor';
 
 export interface Message {
   id: string;
@@ -46,16 +46,6 @@ export interface SessionInfo {
   group?: string;
   currentDirectory?: string;  // 当前工作目录
   groupOrder?: number;
-  // 通用配置
-  config?: {
-    refreshInterval: number;     // 刷新间隔(毫秒)
-    autoRefresh: boolean;       // 是否自动刷新
-    defaultPage?: 'process' | 'performance' | 'history' | 'startup' | 'user' | 'detail' | 'service';  // 默认页面
-    collectServiceInfo?: boolean;  // 启动时获取服务信息
-    recordHistory?: boolean;      // 记录历史数据
-    enableCache?: boolean;       // 是否启用缓存
-    cacheExpiration?: number;    // 缓存过期时间(毫秒)
-  };
   lastUpdated?: number;     // 最后更新时间
   error?: string;          // 错误信息
   monitorData?: MonitorData;  // 监控数据
@@ -69,4 +59,4 @@ export interface GroupInfo {
   name: string;
   expanded?: boolean;
   order: number;  // 改为必需字段
-} 
+}

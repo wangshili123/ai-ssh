@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Progress } from 'antd';
-import { DiskBasicInfo, DiskDetailInfo, MonitorData } from '../../../../types/monitor';
+import { DiskBasicInfo, DiskDetailInfo, MonitorData } from '../../../../types/monitor/monitor';
 import { formatBytes } from '../../../../utils/format';
 import { getProgressColor, getResourceStatus } from '../../../../utils/theme';
 import { DiskDetail } from './DiskDetail/DiskDetailTab';

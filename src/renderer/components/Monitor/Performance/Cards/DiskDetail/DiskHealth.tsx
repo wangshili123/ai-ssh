@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Table, Tag, Tooltip } from 'antd';
-import { DiskHealth as DiskHealthType } from '../../../../../types/monitor';
+import { DiskHealth as DiskHealthType } from '../../../../../types/monitor/monitor';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 

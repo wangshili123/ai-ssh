@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Tabs } from 'antd';
-import { NetworkDetailInfo, MonitorData } from '../../../../../types/monitor';
+import { NetworkDetailInfo, MonitorData } from '../../../../../types/monitor/monitor';
 import { NetworkBasicInfo } from './NetworkBasicInfo';
 import { NetworkConnections } from './NetworkConnections';
 import { NetworkProcesses } from './NetworkProcesses';

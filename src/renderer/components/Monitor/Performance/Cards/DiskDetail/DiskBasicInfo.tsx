@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Progress } from 'antd';
 import ReactECharts from 'echarts-for-react';
-import { DiskDetailInfo } from '../../../../../types/monitor';
+import { DiskDetailInfo } from '../../../../../types/monitor/monitor';
 import { formatBytes } from '../../../../../utils/format';
 import { getProgressColor } from '../../../../../utils/theme';
 import type { ECOption } from '../../../../../types/echarts';

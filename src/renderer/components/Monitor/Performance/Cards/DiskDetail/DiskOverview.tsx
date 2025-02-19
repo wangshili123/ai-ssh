@@ -1,6 +1,6 @@
 import React from 'react';
 import { Progress } from 'antd';
-import { DiskDetailInfo } from '../../../../../types/monitor';
+import { DiskDetailInfo } from '../../../../../types/monitor/monitor';
 import { formatBytes } from '../../../../../utils/format';
 
 interface DiskOverviewProps {

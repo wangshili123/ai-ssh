@@ -1,6 +1,5 @@
 import { registerStorageHandlers } from './storage';
 import { initSSHHandlers } from './ssh';
-import { registerAIConfigHandlers } from './ai-config';
 import { registerSFTPHandlers } from './sftp';
 import { ipcMain, app } from 'electron';
 
@@ -19,10 +18,6 @@ export function registerAllHandlers(): void {
     console.log('注册 SSH 处理程序...');
     initSSHHandlers();
     
-    // 注册 AI 配置处理程序
-    console.log('注册 AI 配置处理程序...');
-    registerAIConfigHandlers();
-
     // 注册 SFTP 处理程序
     console.log('注册 SFTP 处理程序...');
     registerSFTPHandlers();

@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { CpuBasicInfo, CpuDetailInfo } from '../../../types/monitor';
+import { CpuBasicInfo, CpuDetailInfo } from '../../../types/monitor/monitor';
 import { SSHService } from '../../../types';
 
 /**

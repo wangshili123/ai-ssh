@@ -3,7 +3,7 @@ import { CpuUsageCard } from './Cards/CpuUsageCard';
 import { MemoryUsageCard } from './Cards/MemoryUsageCard';
 import { DiskUsageCard } from './Cards/DiskUsageCard';
 import { NetworkUsageCard } from './Cards/NetworkUsageCard';
-import { MonitorData, PerformanceBasicData } from '../../../types/monitor';
+import { MonitorData, PerformanceBasicData } from '../../../types/monitor/monitor';
 import { MonitorManager } from '../../../services/monitor/monitorManager';
 import './PerformancePage.css';
 

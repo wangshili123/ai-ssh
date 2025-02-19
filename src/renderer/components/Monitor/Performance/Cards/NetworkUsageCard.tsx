@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tooltip } from 'antd';
-import { NetworkBasicInfo, NetworkDetailInfo, MonitorData } from '../../../../types/monitor';
+import { NetworkBasicInfo, NetworkDetailInfo, MonitorData } from '../../../../types/monitor/monitor';
 import { formatBytes } from '../../../../utils/format';
 import { NetworkDetail } from './NetworkDetail/NetworkDetailTab';
 import './NetworkUsageCard.css';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Progress, Table } from 'antd';
 import ReactECharts from 'echarts-for-react';
-import { MemoryBasicInfo, MemoryDetailInfo, MonitorData } from '../../../../types/monitor';
+import { MemoryBasicInfo, MemoryDetailInfo, MonitorData } from '../../../../types/monitor/monitor';
 import type { ECOption } from '../../../../types/echarts';
 import { formatBytes } from '../../../../utils/format';
 import { getProgressColor, getResourceStatus } from '../../../../utils/theme';

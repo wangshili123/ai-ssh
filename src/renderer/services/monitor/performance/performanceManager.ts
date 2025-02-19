@@ -1,5 +1,5 @@
 import { SSHService } from '../../../types';
-import { MonitorData, PerformanceData, PerformanceDetailData } from '../../../types/monitor';
+import { MonitorData, PerformanceData, PerformanceDetailData } from '../../../types/monitor/monitor';
 import { CpuMetricsService } from './cpuService';
 import { MemoryMetricsService } from './memoryService';
 import { DiskMetricsService } from './diskService';

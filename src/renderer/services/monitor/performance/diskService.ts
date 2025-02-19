@@ -1,4 +1,4 @@
-import { DiskBasicInfo, DiskDetailInfo } from '../../../types/monitor';
+import { DiskBasicInfo, DiskDetailInfo } from '../../../types/monitor/monitor';
 import { SSHService } from '../../../types';
 import { DiskHealthService } from './diskHealthService';
 import { DiskSpaceService } from './diskSpaceService';

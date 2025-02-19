@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Table, Card, Space, Select, Input, Badge, Drawer, Statistic } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { SearchOutlined } from '@ant-design/icons';
-import { NetworkDetailInfo, NetworkConnection } from '../../../../../types/monitor';
+import { NetworkDetailInfo, NetworkConnection } from '../../../../../types/monitor/monitor';
 import { formatBytes } from '../../../../../utils/format';
 import './NetworkConnections.css';  // 添加外部CSS文件引用
 

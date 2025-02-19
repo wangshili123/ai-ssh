@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { NetworkDetailInfo } from '../../../../../types/monitor';
+import { NetworkDetailInfo } from '../../../../../types/monitor/monitor';
 import { formatBytes } from '../../../../../utils/format';
 import './NetworkDetailTab.css';
 

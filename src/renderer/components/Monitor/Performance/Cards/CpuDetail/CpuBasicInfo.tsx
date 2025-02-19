@@ -3,7 +3,7 @@ import { Tooltip } from 'antd';
 import ReactECharts from 'echarts-for-react';
 
 import { ExclamationCircleOutlined } from '@ant-design/icons';
-import { CpuDetailInfo } from '../../../../../types/monitor';
+import { CpuDetailInfo } from '../../../../../types/monitor/monitor';
 import { formatFrequency } from '../../../../../utils/format';
 import './CpuDetailTab.css';
 import { ECOption } from '@/types/echarts';

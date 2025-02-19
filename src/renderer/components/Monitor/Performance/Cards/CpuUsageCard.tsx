@@ -1,6 +1,6 @@
 import React from 'react';
 import { Progress } from 'antd';
-import { CpuBasicInfo, CpuDetailInfo, MonitorData } from '../../../../types/monitor';
+import { CpuBasicInfo, CpuDetailInfo, MonitorData } from '../../../../types/monitor/monitor';
 import { formatFrequency } from '../../../../utils/format';
 import { getProgressColor, getResourceStatus } from '../../../../utils/theme';
 import { CpuDetail } from './CpuDetail/CpuDetailTab';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Tabs, Spin } from 'antd';
-import { DiskDetailInfo, MonitorData } from '../../../../../types/monitor';
+import { DiskDetailInfo, MonitorData } from '../../../../../types/monitor/monitor';
 import { DiskBasicInfo } from './DiskBasicInfo';
 import { DiskOverview } from './DiskOverview';
 import { DiskHealth } from './DiskHealth';

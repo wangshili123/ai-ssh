@@ -1,13 +1,8 @@
 import { ipcRenderer } from 'electron';
+import { AIConfigManager } from './config/AIConfig';
+import { AIConfig } from '../types/baseconfig/BaseConfigType';
+import { message } from 'antd';
 
-export interface AIConfig {
-  apiKey: string;
-  model: string;
-  temperature: number;
-  maxTokens: number;
-  baseURL: string;
-  proxyURL?: string;
-}
 
 export interface CommandParameter {
   name: string;
@@ -73,6 +68,7 @@ class AIService {
 
   constructor() {
     this.currentCommands = [];
+    this.configManager = AIConfigManager.getInstance();
   }
 
   public static getInstance(): AIService {
@@ -82,17 +78,11 @@ class AIService {
     return AIService.instance;
   }
 
-  private async getConfig(): Promise<AIConfig> {
-    const response = await ipcRenderer.invoke('ai-config:load');
-    console.log('AI 配置加载结果:', response);
-    if (!response.success) {
-      throw new Error(response.error);
-    }
-    const config = response.data;
-    if (!config.baseURL) {
-      throw new Error('未配置 API 基础 URL');
-    }
-    return config;
+  private configManager: AIConfigManager;
+
+
+  async getConfig(): Promise<AIConfig> {
+    return this.configManager.getConfig();
   }
 
   /**
@@ -237,7 +227,11 @@ class AIService {
           agent: proxyAgent
         });
       }
-
+      if (!config.baseURL) {
+        //弹框
+        message.error('未配置 API 基础 URL');
+        return '';
+      }
       const response = await fetch(config.baseURL, requestInit);
 
       if (!response.ok) {

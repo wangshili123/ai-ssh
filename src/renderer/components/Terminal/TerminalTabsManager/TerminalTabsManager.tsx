@@ -97,7 +97,7 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
 
     console.log('[TerminalTabsManager] 新标签页创建完成:', { tabId, shellId, sessionInfo });
     
-  }, [triggerNewTab, sessionInfo, mounted, tabs.length]);
+  }, [triggerNewTab]);
 
   // 监听连接状态变化
   useEffect(() => {

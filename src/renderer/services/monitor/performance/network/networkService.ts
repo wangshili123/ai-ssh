@@ -1,5 +1,5 @@
 import { SSHService } from '../../../../types';
-import { NetworkBasicInfo, NetworkDetailInfo } from '../../../../types/monitor';
+import { NetworkBasicInfo, NetworkDetailInfo } from '../../../../types/monitor/monitor';
 import { NetworkInterfaceService } from './networkInterfaceService';
 import { NetworkConnectionService } from './networkConnectionService';
 import { NetworkProcessService } from './networkProcessService';

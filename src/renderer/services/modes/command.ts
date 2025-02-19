@@ -1,5 +1,5 @@
 import { CommandSuggestion } from '../ai';
-import { aiConfigService } from '../ai-config';
+import { AIConfigManager } from '../config/AIConfig';
 
 const systemPrompt = `你是一个 Linux 命令专家，帮助用户将自然语言转换为准确的 Linux 命令。
 请遵循以下规则：
@@ -48,7 +48,7 @@ class CommandModeServiceImpl implements CommandModeService {
       const excludeCommands = this.getCurrentCommands();
       console.log('排除的命令列表:', excludeCommands);
 
-      const config = await aiConfigService.loadConfig();
+      const config = AIConfigManager.getInstance().getConfig();
       
       // 构建用户提示，包含已生成的命令信息
       let userPrompt = input;

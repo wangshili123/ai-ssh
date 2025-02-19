@@ -1,7 +1,61 @@
-命令输出: === TCP ===
-COMMAND     PID   USER   FD   TYPE     DEVICE SIZE/OFF NODE NAME
-sshd        302   root    3u  IPv4 1965597581      0t0  TCP 172.16.3.226:22->172.16.0.216:65185 (ESTABLISHED)
-sshd        321   root    3u  IPv4 1965597585      0t0  TCP 172.16.3.226:22->172.16.0.216:65186 (ESTABLISHED)
-sshd        322   root    3u  IPv4 1965597589      0t0  TCP 172.16.3.226:22->172.16.0.216:65187 (ESTABLISHED)
-sshd        323   root    3u  IPv4 1965597593      0t0  TCP 172.16.3.226:22->172.16.0.216:65188 (ESTABLISHED)
-sshd        341   root    3u  IPv4 1965597615      0t0  TCP 172.16.3.226:22->172.16.0.216:65192 (ESTABLISHED)
+performance","refreshInterval":51,"autoRefresh":true,"collectServiceInfo":false,"recordHistory":false,"enableCache":true,"cacheExpiration":30}}
+AnalysisStateManager.ts:185 
+        SELECT 
+          (SELECT COUNT(*) FROM command_usage) as totalCommands,
+          (SELECT COUNT(*) FROM completion_usage) as totalCompletions
+      
+AnalysisStateManager.ts:164 
+      SELECT COUNT(*) as count
+      FROM command_usage
+      WHERE id > 17.0
+    
+AnalysisStateManager.ts:171 
+      SELECT COUNT(*) as count
+      FROM completion_usage
+      WHERE id > 17.0
+    
+AnalysisStateManager.ts:210 [AnalysisStateManager] 数据检查结果: {commandCount: 28, completionCount: 1, changeRate: 0.8, minCommandCount: 10, minCompletionCount: 2, …}
+AnalysisStateManager.ts:135 [AnalysisStateManager] 数据充分性检查结果: {hasEnoughData: false, metrics: {…}}
+AnalysisScheduler.ts:62 [AnalysisScheduler] 数据量不足或变化不大: {newCommandCount: 28, newCompletionCount: 1, lastAnalysisTime: Mon Feb 10 2025 09:17:42 GMT+0800 (中国标准时间), dataChangeRate: 0.8}
+AnalysisScheduler.ts:121 [AnalysisScheduler] 数据量不足或变化不大，跳过分析
+node:electron/js2c/renderer_init:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ node:electron/js2c/renderer_init:2
+logSecurityWarnings @ node:electron/js2c/renderer_init:2
+（匿名） @ node:electron/js2c/renderer_init:2
+load（异步）
+securityWarnings @ node:electron/js2c/renderer_init:2
+./lib/renderer/common-init.ts @ node:electron/js2c/renderer_init:2
+__webpack_require__ @ node:electron/js2c/renderer_init:2
+（匿名） @ node:electron/js2c/renderer_init:2
+（匿名） @ node:electron/js2c/renderer_init:2
+___electron_webpack_init__ @ node:electron/js2c/renderer_init:2
+（匿名） @ node:electron/js2c/renderer_init:2
+compileForInternalLoader @ node:internal/bootstrap/loaders:334
+compileForPublicLoader @ node:internal/bootstrap/loaders:270
+loadBuiltinModule @ node:internal/modules/cjs/helpers:56
+Module._load @ node:internal/modules/cjs/loader:941
+f._load @ node:electron/js2c/asar_bundle:2
+executeUserEntryPoint @ node:internal/modules/run_main:96
+（匿名） @ node:internal/main/run_main_module:23
+App.tsx:78 [App] 加载UI设置: {isFileBrowserVisible: false, isAIVisible: false}
+App.tsx:81 [App] 基础服务初始化完成
+TerminalTabsManager.tsx:51 [TerminalTabsManager] 组件渲染: {sessionInfo: undefined, triggerNewTab: 0}
+TerminalTabsManager.tsx:196 [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
+index.js:485 [webpack-dev-server] Disconnected!
+index.js:485 [webpack-dev-server] Trying to reconnect...
+App.tsx:98 [App] 保存UI设置: {isFileBrowserVisible: false, isAIVisible: false}
+App.tsx:123 [App] 收到打开基础配置对话框的消息
+TerminalTabsManager.tsx:51 [TerminalTabsManager] 组件渲染: {sessionInfo: undefined, triggerNewTab: 0}sessionInfo: undefinedtriggerNewTab: 0[[Prototype]]: Object
+TerminalTabsManager.tsx:196 [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
+BaseConfigModal.tsx:60 monitorValues {}
+BaseConfigModal.tsx:61 aiValues {apiKey: '123', model: undefined, temperature: undefined, maxTokens: undefined, proxy: undefined, …}
+BaseConfig.ts:20 [BaseConfig] 保存配置: {ai: {…}, monitor: {…}}ai: {apiKey: '123', model: undefined, temperature: undefined, maxTokens: undefined, proxy: undefined, …}monitor: {}[[Prototype]]: Object
+TerminalTabsManager.tsx:51 [TerminalTabsManager] 组件渲染: {sessionInfo: undefined, triggerNewTab: 0}
+TerminalTabsManager.tsx:196 [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}

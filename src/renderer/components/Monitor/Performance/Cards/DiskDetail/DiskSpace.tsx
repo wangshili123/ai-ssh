@@ -1,6 +1,6 @@
 import React from 'react';
 import { Table, Card, Tooltip } from 'antd';
-import { DiskSpaceAnalysis } from '../../../../../types/monitor';
+import { DiskSpaceAnalysis } from '../../../../../types/monitor/monitor';
 import { formatBytes } from '../../../../../utils/format';
 import { format, formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';

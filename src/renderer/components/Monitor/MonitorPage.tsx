@@ -3,8 +3,9 @@ import { Tabs, message } from 'antd';
 import { PerformancePage } from './Performance/PerformancePage';
 import { getServiceManager } from '../../services/monitor/serviceManager';
 import { SessionInfo } from '../../types';
-import { MonitorData } from '../../types/monitor';
+import { MonitorData } from '../../types/monitor/monitor';
 import { LoadingOverlay } from '../Common/LoadingOverlay';
+import { MonitorConfigManager } from '../../services/config/MonitorConfig';
 import './MonitorPage.css';
 
 const { TabPane } = Tabs;
@@ -16,13 +17,14 @@ interface MonitorPageProps {
 export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
   const [monitorData, setMonitorData] = useState<MonitorData>();
   const [isLoading, setIsLoading] = useState(true);
-  const defaultPage = sessionInfo.config?.defaultPage || 'performance';
-  const [activeKey, setActiveKey] = useState<string>(defaultPage);
   const monitorManager = getServiceManager().getMonitorManager();
+  const configManager = MonitorConfigManager.getInstance();
+  const config = configManager.getConfig();
+  const [activeKey, setActiveKey] = useState<string>(config.defaultPage);
 
   // 初始化时设置 activeTab
   useEffect(() => {
-    monitorManager.setActiveTab(defaultPage);
+    monitorManager.setActiveTab(config.defaultPage);
   }, []);
 
   useEffect(() => {
@@ -34,16 +36,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
         // 创建监控会话
         console.time(`[Performance] 创建监控会话耗时 ${sessionInfo.id}`);
         const monitorSession = monitorManager.createSession({
-          ...sessionInfo,
-          config: {
-            refreshInterval: sessionInfo.config?.refreshInterval || 1000,
-            autoRefresh: sessionInfo.config?.autoRefresh ?? true,
-            defaultPage: defaultPage,
-            collectServiceInfo: sessionInfo.config?.collectServiceInfo ?? false,
-            recordHistory: sessionInfo.config?.recordHistory ?? false,
-            enableCache: sessionInfo.config?.enableCache ?? true,
-            cacheExpiration: sessionInfo.config?.cacheExpiration || 30000
-          }
+          ...sessionInfo
         });
         console.timeEnd(`[Performance] 创建监控会话耗时 ${sessionInfo.id}`);
 
@@ -109,7 +102,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
       <Tabs 
         activeKey={activeKey} 
         onChange={handleTabChange}
-        defaultActiveKey={defaultPage}
+        defaultActiveKey={config.defaultPage}
       >
         <TabPane tab="性能监控" key="performance">
           <PerformancePage 

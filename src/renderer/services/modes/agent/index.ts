@@ -1,5 +1,6 @@
-import { aiConfigService } from '@/renderer/services/ai-config';
+
 import { terminalOutputService } from '@/renderer/services/terminalOutput';
+import { AIConfigManager } from '@/renderer/services/config/AIConfig';
 import { 
   AgentModeService, 
   AgentState, 
@@ -161,7 +162,7 @@ class AgentModeServiceImpl implements AgentModeService {
       const history = terminalOutputService.getHistory();
       console.log('终端历史:', history);
 
-      const config = await aiConfigService.loadConfig();
+      const config = AIConfigManager.getInstance().getConfig();
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',

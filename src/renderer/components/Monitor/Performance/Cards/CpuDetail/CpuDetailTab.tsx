@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Tabs, Spin } from 'antd';
-import { CpuDetailInfo, MonitorData } from '../../../../../types/monitor';
+import { CpuDetailInfo, MonitorData } from '../../../../../types/monitor/monitor';
 import { CpuBasicInfo } from './CpuBasicInfo';
 import { CpuCores } from './CpuCores';
 import { MonitorManager } from '../../../../../services/monitor/monitorManager';

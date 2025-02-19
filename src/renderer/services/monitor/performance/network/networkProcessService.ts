@@ -1,5 +1,5 @@
 import { SSHService } from '../../../../types';
-import { NetworkDetailInfo, NetworkProcess } from '../../../../types/monitor';
+import { NetworkDetailInfo, NetworkProcess } from '../../../../types/monitor/monitor';
 
 /**
  * 网络进程监控服务

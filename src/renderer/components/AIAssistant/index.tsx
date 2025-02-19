@@ -14,7 +14,6 @@ import { terminalOutputService } from '../../services/terminalOutput';
 import { sshService } from '../../services/ssh';
 import { aiService } from '../../services/ai';
 import type { ContextResponse } from '../../services/ai';
-import AIConfigModal from '../AIConfigModal';
 import './style.css';
 import type { RadioChangeEvent } from 'antd';
 import { eventBus } from '../../services/eventBus';
@@ -352,10 +351,6 @@ const AIAssistant = ({ sessionId, isCollapsed = false, onCollapse }: AIAssistant
           </div>
         </>
       )}
-      <AIConfigModal
-        visible={configModalVisible}
-        onClose={handleConfigModalClose}
-      />
     </div>
   );
 };

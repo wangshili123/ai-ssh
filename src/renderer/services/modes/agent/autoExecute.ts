@@ -1,7 +1,8 @@
-import { aiConfigService } from '../../../services/ai-config';
+
 import { CommandRiskLevel } from './types';
 import { agentModeService } from '.';
 import { AgentState, AgentResponseStatus } from './types';
+import { AIConfigManager } from '../../config/AIConfig';
 
 /**
  * 命令自动执行服务
@@ -24,7 +25,7 @@ export class AutoExecuteService {
    */
   async canAutoExecute(commandRisk: CommandRiskLevel): Promise<boolean> {
     try {
-      const config = await aiConfigService.loadConfig();
+      const config = AIConfigManager.getInstance().getConfig();
       
       // 如果没有开启自动执行，直接返回 false
       if (!config.agentAutoRun) {

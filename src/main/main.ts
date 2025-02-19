@@ -18,10 +18,9 @@ function createMenu() {
       label: '设置',
       submenu: [
         { 
-          label: '模型配置',
+          label: '基础配置',
           click: () => {
-            // 通过 IPC 通知渲染进程打开模型配置
-            BrowserWindow.getFocusedWindow()?.webContents.send('open-ai-config');
+            BrowserWindow.getFocusedWindow()?.webContents.send('open-base-config');
           }
         }
       ]

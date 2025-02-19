@@ -3,6 +3,8 @@ import { ipcRenderer } from 'electron';
 import { DatabaseService } from '../../../../database/DatabaseService';
 import { CompletionSource, CompletionSuggestion, AICompletionResult } from '../../../types/completion.types';
 import { EnhancedContext } from '../../../core/types/context.types';
+import { AIConfigManager } from '@/renderer/services/config/AIConfig';
+import { AIConfig } from '@/renderer/types/baseconfig/BaseConfigType';
 
 /**
  * AI 分析器
@@ -11,9 +13,11 @@ import { EnhancedContext } from '../../../core/types/context.types';
 export class AIAnalyzer {
   private static instance: AIAnalyzer;
   private dbService: DatabaseService;
+  private configManager: AIConfigManager;
 
   private constructor() {
     this.dbService = DatabaseService.getInstance();
+    this.configManager = AIConfigManager.getInstance();
   }
 
   public static getInstance(): AIAnalyzer {
@@ -26,17 +30,9 @@ export class AIAnalyzer {
   /**
    * 获取 AI 配置
    */
-  private async getConfig() {
-    const response = await ipcRenderer.invoke('ai-config:load');
-    console.log('AI 配置加载结果:', response);
-    if (!response.success) {
-      throw new Error(response.error);
-    }
-    const config = response.data;
-    if (!config.baseURL) {
-      throw new Error('未配置 API 基础 URL');
-    }
-    return config;
+
+  async getConfig(): Promise<AIConfig> {
+    return this.configManager.getConfig();
   }
 
   /**

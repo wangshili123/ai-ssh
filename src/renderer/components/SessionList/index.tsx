@@ -428,14 +428,7 @@ const SessionList: React.FC<SessionListProps> = ({
       // 处理会话数据
       const sessionData = {
         ...values,
-        status: 'disconnected',
-        config: {
-          refreshInterval: (values.refreshInterval || 5) * 1000,
-          autoRefresh: values.autoRefresh ?? true,
-          defaultPage: values.defaultPage || 'process',
-          collectServiceInfo: values.collectServiceInfo ?? false,
-          recordHistory: values.recordHistory ?? false
-        }
+        status: 'disconnected'
       };
       
       if (editingSession) {
@@ -608,12 +601,7 @@ const SessionList: React.FC<SessionListProps> = ({
             layout="vertical"
             initialValues={{
               port: 22,
-              authType: 'password',
-              refreshInterval: 5,
-              autoRefresh: true,
-              defaultPage: 'process',
-              collectServiceInfo: false,
-              recordHistory: false
+              authType: 'password'
             }}
           >
             <Typography.Title level={5}>基本配置</Typography.Title>
@@ -712,45 +700,6 @@ const SessionList: React.FC<SessionListProps> = ({
                   </Select.Option>
                 ))}
               </Select>
-            </Form.Item>
-
-            <Divider />
-            <Typography.Title level={5}>监控配置</Typography.Title>
-            
-            <Form.Item
-              name="defaultPage"
-              label="默认页面"
-            >
-              <Select>
-                <Select.Option value="process">进程</Select.Option>
-                <Select.Option value="performance">性能</Select.Option>
-                <Select.Option value="history">应用历史记录</Select.Option>
-                <Select.Option value="startup">启动</Select.Option>
-                <Select.Option value="user">用户</Select.Option>
-                <Select.Option value="detail">详细信息</Select.Option>
-                <Select.Option value="service">服务</Select.Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="refreshInterval"
-              label="刷新间隔(秒)"
-            >
-              <InputNumber min={1} max={3600} style={{ width: '100%' }} />
-            </Form.Item>
-
-            <Form.Item
-              name="collectServiceInfo"
-              valuePropName="checked"
-            >
-              <Checkbox>启动时获取服务信息</Checkbox>
-            </Form.Item>
-
-            <Form.Item
-              name="recordHistory"
-              valuePropName="checked"
-            >
-              <Checkbox>记录历史数据</Checkbox>
             </Form.Item>
           </Form>
         </Modal>

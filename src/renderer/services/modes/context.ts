@@ -1,5 +1,5 @@
 import { CommandSuggestion } from '../ai';
-import { aiConfigService } from '../ai-config';
+import { AIConfigManager } from '../config/AIConfig';
 import { terminalOutputService } from '../terminalOutput';
 
 interface ChatMessage {
@@ -76,7 +76,7 @@ class ContextModeService {
         }
       }
 
-      const config = await aiConfigService.loadConfig();
+      const config = AIConfigManager.getInstance().getConfig();
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
