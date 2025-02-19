@@ -9,13 +9,15 @@ import { getServiceManager } from '@/renderer/services/monitor/serviceManager';
 import './NetworkDetailTab.css';
 
 interface NetworkDetailProps {
+  tabId: string;
   networkInfo: NetworkDetailInfo;
   sessionId: string;
 }
 
 export const NetworkDetail: React.FC<NetworkDetailProps> = ({ 
   networkInfo,
-  sessionId
+  sessionId,
+  tabId
 }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set(['basic']));
@@ -27,7 +29,7 @@ export const NetworkDetail: React.FC<NetworkDetailProps> = ({
     monitorManager.setActiveDetailTab('network', tab);
     if (!loadedTabs.has(tab)) {
       // 第一次切换时立即触发刷新，等待刷新完成
-      const newData = await monitorManager.refreshSession(sessionId);
+      const newData = await monitorManager.refreshSession(sessionId, tabId);
       if (newData?.performance?.detail?.network) {
         setMonitorData(newData);
       }

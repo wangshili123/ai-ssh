@@ -15,13 +15,15 @@ const BasicResourceCard = React.memo(({
   basicData, 
   isSelected, 
   onSelect,
-  sessionId 
+  sessionId,
+  tabId
 }: {
   type: ResourceType;
   basicData: PerformanceBasicData;
   isSelected: boolean;
   onSelect: (type: ResourceType) => void;
   sessionId: string;
+  tabId: string;
 }) => {
   const monitorData: MonitorData = {
     performance: {
@@ -33,13 +35,13 @@ const BasicResourceCard = React.memo(({
   const renderCard = () => {
     switch (type) {
       case 'cpu':
-        return <CpuUsageCard sessionId={sessionId} monitorData={monitorData} simple />;
+        return <CpuUsageCard sessionId={sessionId} monitorData={monitorData} simple tabId={tabId} />;
       case 'memory':
-        return <MemoryUsageCard sessionId={sessionId} monitorData={monitorData} simple />;
+        return <MemoryUsageCard sessionId={sessionId} monitorData={monitorData} simple tabId={tabId} />;
       case 'disk':
-        return <DiskUsageCard sessionId={sessionId} monitorData={monitorData} simple />;
+        return <DiskUsageCard sessionId={sessionId} monitorData={monitorData} simple tabId={tabId} />;
       case 'network':
-        return <NetworkUsageCard sessionId={sessionId} monitorData={monitorData} simple />;
+        return <NetworkUsageCard sessionId={sessionId} monitorData={monitorData} simple tabId={tabId} />;
     }
   };
 
@@ -58,12 +60,14 @@ const DetailResourceCard = React.memo(({
   type, 
   detailData,
   basicData,
-  sessionId 
+  sessionId ,
+  tabId
 }: {
   type: ResourceType;
   detailData: any;
   basicData: PerformanceBasicData;
   sessionId: string;
+  tabId: string;
 }) => {
   const monitorData: MonitorData = {
     performance: {
@@ -77,25 +81,27 @@ const DetailResourceCard = React.memo(({
 
   switch (type) {
     case 'cpu':
-      return <CpuUsageCard sessionId={sessionId} monitorData={monitorData} detailed />;
+      return <CpuUsageCard sessionId={sessionId} monitorData={monitorData} detailed tabId={tabId} />;
     case 'memory':
-      return <MemoryUsageCard sessionId={sessionId} monitorData={monitorData} detailed />;
+      return <MemoryUsageCard sessionId={sessionId} monitorData={monitorData} detailed tabId={tabId} />;
     case 'disk':
-      return <DiskUsageCard sessionId={sessionId} monitorData={monitorData} detailed />;
+      return <DiskUsageCard sessionId={sessionId} monitorData={monitorData} detailed tabId={tabId} />;
     case 'network':
-      return <NetworkUsageCard sessionId={sessionId} monitorData={monitorData} detailed />;
+      return <NetworkUsageCard sessionId={sessionId} monitorData={monitorData} detailed tabId={tabId} />;
     default:
       return null;
   }
 });
 
 interface PerformancePageProps {
+  tabId: string;
   sessionId: string;
   monitorData?: MonitorData;
   monitorManager: MonitorManager;
 }
 
 export const PerformancePage: React.FC<PerformancePageProps> = ({ 
+  tabId,
   sessionId,
   monitorData,
   monitorManager
@@ -180,6 +186,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
             isSelected={selectedResource === type}
             onSelect={handleResourceSelect}
             sessionId={sessionId}
+            tabId={tabId}
           />
         ))}
       </div>
@@ -187,6 +194,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
         {/* 保持所有详细面板挂载，通过 CSS 控制显示/隐藏 */}
         <div style={{ display: selectedResource === 'cpu' ? 'block' : 'none' }}>
           <DetailResourceCard
+            tabId={tabId}
             type="cpu"
             detailData={detailData?.cpu}
             basicData={basicData}
@@ -195,6 +203,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
         </div>
         <div style={{ display: selectedResource === 'memory' ? 'block' : 'none' }}>
           <DetailResourceCard
+            tabId={tabId}
             type="memory"
             detailData={detailData?.memory}
             basicData={basicData}
@@ -203,6 +212,7 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
         </div>
         <div style={{ display: selectedResource === 'disk' ? 'block' : 'none' }}>
           <DetailResourceCard
+            tabId={tabId}
             type="disk"
             detailData={detailData?.disk}
             basicData={basicData}
@@ -211,10 +221,12 @@ export const PerformancePage: React.FC<PerformancePageProps> = ({
         </div>
         <div style={{ display: selectedResource === 'network' ? 'block' : 'none' }}>
           <DetailResourceCard
+            tabId={tabId}
             type="network"
             detailData={detailData?.network}
             basicData={basicData}
             sessionId={sessionId}
+
           />
         </div>
       </div>

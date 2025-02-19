@@ -6,7 +6,6 @@ import { MonitorConfigManager } from '../config/MonitorConfig';
 
 interface RefreshOptions {
   interval: number;      // 刷新间隔(毫秒)
-
 }
 
 interface RefreshTask {
@@ -22,7 +21,7 @@ interface RefreshTask {
  */
 export class RefreshService extends EventEmitter {
   private static instance: RefreshService;
-  private refreshTasks: Map<string, RefreshTask> = new Map();
+  private refreshTasks: Map<string, RefreshTask> = new Map();  // key 为 tabId
   private globalRefreshTimer: number | null = null;
   private configManager: MonitorConfigManager;
   private initialized: boolean = false;
@@ -38,30 +37,15 @@ export class RefreshService extends EventEmitter {
    * 初始化服务
    */
   private async init() {
-    // 等待配置加载完成
-    await this.waitForConfig();
-    this.initGlobalRefresh();
-    this.initialized = true;
-    console.log('[RefreshService] 初始化完成');
-  }
-
-  /**
-   * 等待配置加载完成
-   */
-  private async waitForConfig() {
-    return new Promise<void>((resolve) => {
-      const checkConfig = () => {
-        const config = this.configManager.getConfig();
-        if (config && config.refreshInterval) {
-          console.log('[RefreshService] 配置加载完成:', config);
-          resolve();
-        } else {
-          console.log('[RefreshService] 等待配置加载...');
-          setTimeout(checkConfig, 100);
-        }
-      };
-      checkConfig();
-    });
+    try {
+      // 获取配置
+      const config = await this.configManager.getConfig();
+      this.initGlobalRefresh();
+      this.initialized = true;
+      console.log('[RefreshService] 初始化完成');
+    } catch (error) {
+      console.error('[RefreshService] 初始化失败:', error);
+    }
   }
 
   /**
@@ -77,22 +61,21 @@ export class RefreshService extends EventEmitter {
   /**
    * 初始化全局刷新定时器
    */
-  private initGlobalRefresh() {
+  private async initGlobalRefresh() {
     if (this.globalRefreshTimer) {
       window.clearInterval(this.globalRefreshTimer);
     }
 
-    const config = this.configManager.getConfig();
+    const config = await this.configManager.getConfig();
     console.log('[RefreshService] 初始化全局刷新定时器:', config);
     this.globalRefreshTimer = window.setInterval(() => {
       const currentTabId = eventBus.getCurrentTabId();
       if (!currentTabId) return;
 
       // 查找当前标签页对应的刷新任务
-      for (const [_, task] of this.refreshTasks) {
-        if (task.tabId === currentTabId) {
-          this.refreshSession(task);
-        }
+      const task = this.refreshTasks.get(currentTabId);
+      if (task) {
+        this.refreshSession(task);
       }
     }, config.refreshInterval * 1000); // 使用配置的刷新间隔（秒转毫秒）
 
@@ -105,28 +88,43 @@ export class RefreshService extends EventEmitter {
    * 刷新指定会话的数据
    */
   private async refreshSession(task: RefreshTask) {
+    console.log('[RefreshService] 开始刷新会话数据:', {
+      sessionId: task.sessionId,
+      tabId: task.tabId,
+      timestamp: new Date().toISOString()
+    });
+
     const monitorManager = getServiceManager().getMonitorManager();
-    const updatedData = await monitorManager.refreshSession(task.sessionId);
-    this.emit('refresh', task.sessionId);
+    const updatedData = await monitorManager.refreshSession(task.sessionId, task.tabId);
+    
+    console.log('[RefreshService] 会话数据刷新完成:', {
+      sessionId: task.sessionId,
+      tabId: task.tabId,
+      hasData: !!updatedData,
+      timestamp: new Date().toISOString()
+    });
+
+    this.emit('refresh', task.sessionId, task.tabId);
   }
 
   /**
    * 启动刷新任务
    */
-  async startRefresh(session: SessionInfo, tabId: string) {
+  async startRefresh(sessionInfo: SessionInfo, tabId: string) {
     // 确保服务已初始化
     if (!this.initialized) {
       console.log('[RefreshService] 等待服务初始化...');
-      await this.waitForConfig();
+      await this.init();
     }
 
-    // 如果已存在任务则先停止
-    this.stopRefresh(session.id);
+    // 如果已存在任务则先停止（使用 tabId 检查）
+    this.stopRefresh(tabId);
 
     // 使用全局配置
-    const config = this.configManager.getConfig();
+    const config = await this.configManager.getConfig();
 
-    console.log(`[RefreshService] 启动刷新任务-${session.id}`, { 
+    console.log(`[RefreshService] 启动刷新任务:`, { 
+      sessionId: sessionInfo.id,
       tabId, 
       config
     });
@@ -134,36 +132,47 @@ export class RefreshService extends EventEmitter {
     // 创建刷新任务
     const task: RefreshTask = {
       timerId: 0,
-      sessionId: session.id,
+      sessionId: sessionInfo.id,
       tabId,
       options: {
         interval: config.refreshInterval * 1000
-      
       }
     };
 
     // 立即执行一次刷新
     void this.refreshSession(task);
 
-    // 保存任务
-    this.refreshTasks.set(session.id, task);
+    // 保存任务（使用 tabId 作为 key）
+    this.refreshTasks.set(tabId, task);
   }
 
   /**
    * 停止刷新任务
    */
-  stopRefresh(sessionId: string): void {
-    const task = this.refreshTasks.get(sessionId);
+  stopRefresh(tabId: string): void {
+    console.log('[RefreshService] 准备停止刷新任务:', {
+      tabId,
+      existingTasks: Array.from(this.refreshTasks.keys()),
+      hasTask: this.refreshTasks.has(tabId)
+    });
+
+    const task = this.refreshTasks.get(tabId);
     if (task) {
-      this.refreshTasks.delete(sessionId);
-      console.log(`[RefreshService] 停止刷新任务-${sessionId}`);
+      console.log('[RefreshService] 找到要停止的任务:', {
+        sessionId: task.sessionId,
+        tabId: task.tabId,
+        options: task.options
+      });
+      
+      this.refreshTasks.delete(tabId);
+      console.log(`[RefreshService] 停止刷新任务:`, {
+        tabId,
+        remainingTasks: Array.from(this.refreshTasks.keys())
+      });
+    } else {
+      console.log('[RefreshService] 未找到要停止的任务:', { tabId });
     }
   }
-
-
-
-
-
 
   /**
    * 销毁实例
@@ -176,8 +185,8 @@ export class RefreshService extends EventEmitter {
     }
 
     // 停止所有刷新任务
-    for (const [sessionId] of this.refreshTasks) {
-      this.stopRefresh(sessionId);
+    for (const [tabId] of this.refreshTasks) {
+      this.stopRefresh(tabId);
     }
     
     this.removeAllListeners();

@@ -7,13 +7,25 @@ import { NetworkService } from './performance/network/networkService';
 import { NetworkProcessService } from './performance/network/networkProcessService';
 import { MonitorConfigManager } from '../config/MonitorConfig';
 
+interface SessionStatus {
+  status: 'connected' | 'disconnected' | 'connecting' | 'refreshing' | 'error';
+  refCount: number;
+  error?: string;
+}
+
 /**
  * 监控管理器
  * 用于统一管理所有监控相关服务
  */
 export class MonitorManager {
   private static instance: MonitorManager;
-  private sessions: Map<string, SessionInfo> = new Map();
+  // 使用 tabId 存储监控数据
+  private monitorData: Map<string, MonitorData> = new Map();
+  // 记录会话状态
+  private sessionStatus: Map<string, SessionStatus> = new Map();
+  // 记录 tabId 和 sessionId 的关系
+  private tabSessionMap: Map<string, string> = new Map();
+  
   private refreshService: RefreshService;
   private performanceManager: PerformanceManager;
   private sshService: SSHService;
@@ -75,108 +87,141 @@ export class MonitorManager {
   }
 
   /**
-   * 创建新的监控会话
+   * 创建并连接监控会话
    */
-  createSession(config: Partial<Omit<SessionInfo, 'id' | 'type' | 'status'>>): SessionInfo {
-    console.time(`[Performance] 创建会话总耗时`);
-    const session: SessionInfo = {
-      id: Date.now().toString(),
-      type: 'monitor',
-      status: 'disconnected',
-      host: config.host || '',
-      port: config.port || 22,
-      username: config.username || '',
-      authType: config.authType || 'password',
-      ...config
-    };
+  async createSession(sessionInfo: SessionInfo, tabId: string): Promise<void> {
+    console.log('[MonitorManager] 创建监控会话:', {
+      sessionId: sessionInfo.id,
+      tabId
+    });
 
-    this.sessions.set(session.id, session);
-    console.timeEnd(`[Performance] 创建会话总耗时`);
-    return session;
-  }
-
-  /**
-   * 连接会话
-   */
-  async connectSession(sessionId: string): Promise<void> {
-    console.time(`[Performance] 连接会话总耗时 ${sessionId}`);
-    const session = this.sessions.get(sessionId);
-    if (!session) {
-      throw new Error('Session not found');
-    }
-
-    session.status = 'connecting';
-
-    try {
-      console.time(`[Performance] SSH连接耗时 ${sessionId}`);
-      await this.sshService.connect(session);
-      console.timeEnd(`[Performance] SSH连接耗时 ${sessionId}`);
-      
-      session.status = 'connected';
-      // 马上调用一次刷新
-      console.time(`[Performance] 马上调用一次刷新耗时 ${sessionId}`);
-      await this.refreshSession(sessionId);
-      console.timeEnd(`[Performance] 马上调用一次刷新耗时 ${sessionId}`);
+    // 记录 tabId 和 sessionId 的关系
+    this.tabSessionMap.set(tabId, sessionInfo.id);
     
-    } catch (error) {
-      session.status = 'error';
-      session.error = (error as Error).message;
-      throw error;
+    // 获取或初始化会话状态
+    let status = this.sessionStatus.get(sessionInfo.id);
+    if (!status) {
+      status = {
+        status: 'disconnected',
+        refCount: 0
+      };
+      this.sessionStatus.set(sessionInfo.id, status);
     }
-    console.timeEnd(`[Performance] 连接会话总耗时 ${sessionId}`);
+
+    // 增加引用计数
+    status.refCount++;
+    
+    // 如果会话未连接，建立连接
+    if (status.status === 'disconnected') {
+      status.status = 'connecting';
+      try {
+        await this.sshService.connect(sessionInfo);
+        status.status = 'connected';
+        
+        // 立即执行一次刷新
+        await this.refreshSession(sessionInfo.id, tabId);
+      } catch (error) {
+        status.status = 'error';
+        status.error = (error as Error).message;
+        throw error;
+      }
+    }
   }
 
   /**
    * 断开会话连接
    */
-  disconnectSession(sessionId: string): void {
-    const session = this.sessions.get(sessionId);
-    if (!session) return;
+  disconnectSession(sessionId: string, tabId: string): void {
+    console.log('[MonitorManager] 准备断开会话连接:', {
+      sessionId,
+      tabId,
+      hasData: this.monitorData.has(tabId),
+      hasTabSession: this.tabSessionMap.has(tabId),
+      allTabSessions: Array.from(this.tabSessionMap.entries())
+    });
 
-    this.refreshService.stopRefresh(sessionId);
-    this.sshService.disconnect(sessionId);
-    session.status = 'disconnected';
+    // 删除该标签页的数据
+    this.monitorData.delete(tabId);
+    this.tabSessionMap.delete(tabId);
+
+    const status = this.sessionStatus.get(sessionId);
+    if (!status) {
+      console.log('[MonitorManager] 未找到会话状态:', { sessionId });
+      return;
+    }
+
+    // 减少引用计数
+    status.refCount--;
+    console.log('[MonitorManager] 断开会话连接:', {
+      sessionId,
+      tabId,
+      remainingRefs: status.refCount,
+      currentStatus: status.status,
+      remainingTabs: Array.from(this.tabSessionMap.entries())
+        .filter(([_, sid]) => sid === sessionId)
+        .map(([tid]) => tid)
+    });
+    
+    // 如果没有其他标签页使用这个会话，则断开连接
+    if (status.refCount <= 0) {
+      console.log('[MonitorManager] 会话无引用，完全断开连接:', { 
+        sessionId,
+        finalStatus: status.status
+      });
+      this.sshService.disconnect(sessionId);
+      this.sessionStatus.delete(sessionId);
+    }
   }
 
   /**
    * 获取会话
    */
   getSession(sessionId: string): SessionInfo | undefined {
-    return this.sessions.get(sessionId);
+    return undefined;
   }
 
   /**
-   * 获取所有会话
+   * 获取指定标签页的监控数据
    */
-  getAllSessions(): SessionInfo[] {
-    return Array.from(this.sessions.values());
-  }
-
-  /**
-   * 获取活跃会话
-   */
-  getActiveSessions(): SessionInfo[] {
-    return Array.from(this.sessions.values()).filter(
-      session => session.status === 'connected'
-    );
+  getTabData(tabId: string): MonitorData | undefined {
+    return this.monitorData.get(tabId);
   }
 
   /**
    * 刷新会话数据
    */
-  async refreshSession(sessionId: string): Promise<MonitorData> {
+  async refreshSession(sessionId: string, tabId: string): Promise<MonitorData> {
     console.time(`[Performance] 刷新会话总耗时-开始 ${sessionId}`);
-    const session = this.sessions.get(sessionId);
-    if (!session || session.status !== 'connected') return {} as MonitorData;
+    
+    console.log('[MonitorManager] 开始刷新会话:', {
+      sessionId,
+      tabId,
+      hasStatus: this.sessionStatus.has(sessionId),
+      status: this.sessionStatus.get(sessionId)?.status,
+      refCount: this.sessionStatus.get(sessionId)?.refCount,
+      hasTabMapping: this.tabSessionMap.has(tabId),
+      mappedSession: this.tabSessionMap.get(tabId)
+    });
+
+    const status = this.sessionStatus.get(sessionId);
+    if (!status || status.status !== 'connected') {
+      console.log('[MonitorManager] 会话状态不正确，跳过刷新:', {
+        sessionId,
+        status: status?.status,
+        refCount: status?.refCount
+      });
+      return {} as MonitorData;
+    }
 
     // 生成新的请求ID
     const requestId = Date.now();
-    this.refreshRequestIds.set(sessionId, requestId);
+    this.refreshRequestIds.set(tabId, requestId);
 
     try {
-      session.status = 'refreshing';
+      status.status = 'refreshing';
       console.log('[MonitorManager] 刷新会话数据:', {
         sessionId,
+        tabId,
         requestId,
         activeTab: this.activeTab,
         activeCard: this.activeCard,
@@ -199,29 +244,35 @@ export class MonitorManager {
       }
       
       // 检查请求ID是否仍然匹配
-      if (this.refreshRequestIds.get(sessionId) === requestId) {
-        session.monitorData = monitorData;
-        session.status = 'connected';
-        session.lastUpdated = Date.now();
+      if (this.refreshRequestIds.get(tabId) === requestId) {
+        this.monitorData.set(tabId, monitorData);
+        status.status = 'connected';
+        console.log('[MonitorManager] 数据更新成功:', {
+          tabId,
+          sessionId,
+          requestId,
+          dataTimestamp: monitorData.timestamp
+        });
       } else {
         console.log('[MonitorManager] 跳过数据更新：检测到更新的请求', {
-          sessionId,
-          currentRequestId: this.refreshRequestIds.get(sessionId),
+          tabId,
+          currentRequestId: this.refreshRequestIds.get(tabId),
           thisRequestId: requestId
         });
       }
       return monitorData;
     } catch (error) {
-      console.error('刷新会话数据失败:', {
+      console.error('[MonitorManager] 刷新会话数据失败:', {
         sessionId,
+        tabId,
         requestId,
         error: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString()
       });
       // 检查请求ID是否仍然匹配
-      if (this.refreshRequestIds.get(sessionId) === requestId) {
-        session.status = 'error';
-        session.error = (error as Error).message;
+      if (this.refreshRequestIds.get(tabId) === requestId) {
+        status.status = 'error';
+        status.error = (error as Error).message;
       }
       return {} as MonitorData;
     } finally {
@@ -235,10 +286,17 @@ export class MonitorManager {
   destroy(): void {
     this.refreshService.destroy();
     this.performanceManager.destroy();
-    for (const [sessionId] of this.sessions) {
-      this.disconnectSession(sessionId);
+    
+    // 清理所有会话
+    for (const [sessionId, status] of this.sessionStatus) {
+      if (status.status === 'connected') {
+        this.sshService.disconnect(sessionId);
+      }
     }
-    this.sessions.clear();
+    
+    this.monitorData.clear();
+    this.sessionStatus.clear();
+    this.tabSessionMap.clear();
     MonitorManager.instance = null as any;
   }
 

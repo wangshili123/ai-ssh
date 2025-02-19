@@ -12,13 +12,15 @@ interface MemoryUsageCardProps {
   monitorData?: MonitorData;
   simple?: boolean;
   detailed?: boolean;
+  tabId: string;
 }
 
 export const MemoryUsageCard: React.FC<MemoryUsageCardProps> = ({ 
   sessionId, 
   monitorData,
   simple, 
-  detailed 
+  detailed,
+  tabId
 }) => {
   // 定义默认的交换空间数据
   const defaultSwap = {

@@ -6,6 +6,7 @@ import { NetworkDetail } from './NetworkDetail/NetworkDetailTab';
 import './NetworkUsageCard.css';
 
 interface NetworkUsageCardProps {
+  tabId: string;
   sessionId: string;
   monitorData?: MonitorData;
   simple?: boolean;
@@ -13,6 +14,7 @@ interface NetworkUsageCardProps {
 }
 
 export const NetworkUsageCard: React.FC<NetworkUsageCardProps> = ({ 
+  tabId,
   sessionId, 
   monitorData,
   simple, 
@@ -99,7 +101,7 @@ export const NetworkUsageCard: React.FC<NetworkUsageCardProps> = ({
   if (detailed) {
     return (
       <div className="network-details-view">
-        <NetworkDetail networkInfo={networkDetail} sessionId={sessionId} />
+        <NetworkDetail networkInfo={networkDetail} sessionId={sessionId} tabId={tabId} />
       </div>
     );
   }

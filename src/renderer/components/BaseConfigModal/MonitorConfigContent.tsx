@@ -58,9 +58,20 @@ export const MonitorConfigContent = forwardRef<FormInstance, MonitorConfigConten
       <Form.Item
         name="refreshInterval"
         label="刷新间隔(秒)"
-        rules={[{ required: true, message: '请输入刷新间隔' }]}
+        rules={[
+          { required: true, message: '请输入刷新间隔' },
+          { type: 'number', message: '请输入有效的数字' }
+        ]}
       >
-        <InputNumber min={1} max={3600} style={{ width: '100%' }} />
+        <InputNumber
+          min={3}
+          max={3600}
+          defaultValue={5}
+          style={{ width: '100%' }}
+          controls={false}
+          type="number"
+          precision={0}
+        />
       </Form.Item>
 
 
@@ -76,7 +87,8 @@ export const MonitorConfigContent = forwardRef<FormInstance, MonitorConfigConten
         label="缓存过期时间(秒)"
         rules={[{ required: true, message: '请输入缓存过期时间' }]}
       >
-        <InputNumber min={5} max={3600} style={{ width: '100%' }} />
+        <InputNumber min={5} max={3600} style={{ width: '100%' }}  controls={false}
+          type="number"/>
       </Form.Item>
     </Form>
   );

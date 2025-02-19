@@ -11,13 +11,15 @@ interface DiskUsageCardProps {
   monitorData?: MonitorData;
   simple?: boolean;
   detailed?: boolean;
+  tabId: string;
 }
 
 export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({ 
   sessionId, 
   monitorData,
   simple, 
-  detailed 
+  detailed,
+  tabId
 }) => {
   const [activeTab, setActiveTab] = useState('basic');
 
@@ -114,7 +116,7 @@ export const DiskUsageCard: React.FC<DiskUsageCardProps> = ({
 
   // 详细视图
   if (detailed) {
-    return <DiskDetail diskInfo={diskDetail} sessionId={sessionId} />;
+    return <DiskDetail diskInfo={diskDetail} sessionId={sessionId} tabId={tabId} />;
   }
 
   return null;

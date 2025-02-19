@@ -59,21 +59,12 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
       const monitorManager = getServiceManager().getMonitorManager();
       const refreshService = getServiceManager().getRefreshService();
 
-      // 创建监控会话
-      console.time(`[Performance] 创建监控会话耗时 ${tab.sessionInfo.id}`);
-      const monitorSession = monitorManager.createSession({
-        ...tab.sessionInfo
-      });
-      console.timeEnd(`[Performance] 创建监控会话耗时 ${tab.sessionInfo.id}`);
-
-      // 连接监控会话
-      console.time(`[Performance] 连接监控会话耗时 ${tab.sessionInfo.id}`);
-      await monitorManager.connectSession(monitorSession.id);
-      console.timeEnd(`[Performance] 连接监控会话耗时 ${tab.sessionInfo.id}`);
+      // 创建并连接监控会话
+      await monitorManager.createSession(tab.sessionInfo, tab.tabId);
 
       // 启动自动刷新
       console.time(`[Performance] 启动自动刷新耗时 ${tab.sessionInfo.id}`);
-      refreshService.startRefresh(monitorSession, tab.tabId);
+      refreshService.startRefresh(tab.sessionInfo, tab.tabId);
       console.timeEnd(`[Performance] 启动自动刷新耗时 ${tab.sessionInfo.id}`);
 
       console.timeEnd(`[Performance] 监控页面初始化总耗时 ${tab.sessionInfo.id}`);
@@ -210,7 +201,7 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
           const monitorManager = getServiceManager().getMonitorManager();
           const refreshService = getServiceManager().getRefreshService();
           refreshService.stopRefresh(tabToRemove.sessionInfo.id);
-          monitorManager.disconnectSession(tabToRemove.sessionInfo.id);
+          monitorManager.disconnectSession(tabToRemove.sessionInfo.id, tabToRemove.tabId);
         }
 
         eventBus.emit('completion:tab-remove', {
@@ -229,7 +220,10 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
     // 根据会话类型渲染不同的内容
     if (tab.sessionInfo.type === 'monitor') {
       return (
-        <MonitorPage sessionInfo={tab.sessionInfo} />
+        <MonitorPage 
+          sessionInfo={tab.sessionInfo} 
+          tabId={tab.tabId}
+        />
       );
     }
 

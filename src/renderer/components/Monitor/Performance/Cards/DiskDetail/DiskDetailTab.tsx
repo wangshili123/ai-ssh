@@ -10,11 +10,13 @@ import './DiskDetailTab.css';
 import { getServiceManager } from '@/renderer/services/monitor/serviceManager';
 
 interface DiskDetailProps {
+  tabId: string;
   diskInfo: DiskDetailInfo;
   sessionId: string;
 }
 
 export const DiskDetail: React.FC<DiskDetailProps> = React.memo(({ 
+  tabId,
   diskInfo,
   sessionId
 }) => {
@@ -28,7 +30,7 @@ export const DiskDetail: React.FC<DiskDetailProps> = React.memo(({
     monitorManager.setActiveDetailTab('disk', tab);
     if (!loadedTabs.has(tab)) {
       // 第一次切换时立即触发刷新，等待刷新完成
-      const newData = await monitorManager.refreshSession(sessionId);
+      const newData = await monitorManager.refreshSession(sessionId,tabId);
       if (newData?.performance?.detail?.disk) {
         setMonitorData(newData);
       }

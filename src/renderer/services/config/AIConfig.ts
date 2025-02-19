@@ -17,10 +17,6 @@ export class AIConfigManager extends BaseConfig {
 
   private constructor() {
     super();
-    // 确保配置已初始化
-    if (!BaseConfig.getConfig('ai')) {
-      BaseConfig.setConfig('ai', DEFAULT_AI_CONFIG);
-    }
   }
 
   static getInstance(): AIConfigManager {
@@ -30,8 +26,8 @@ export class AIConfigManager extends BaseConfig {
     return AIConfigManager.instance;
   }
 
-  getConfig(): AIConfig {
-    return BaseConfig.getConfig('ai') as AIConfig || DEFAULT_AI_CONFIG;
+   getConfig(): AIConfig {
+    return  BaseConfig.getConfig('ai') as AIConfig || DEFAULT_AI_CONFIG;
   }
 
   saveConfig(config: AIConfig): void {

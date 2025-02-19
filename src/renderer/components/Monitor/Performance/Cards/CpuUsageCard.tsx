@@ -11,13 +11,15 @@ interface CpuUsageCardProps {
   monitorData?: MonitorData;
   simple?: boolean;
   detailed?: boolean;
+  tabId: string;
 }
 
 export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({ 
   sessionId, 
   monitorData,
   simple, 
-  detailed 
+  detailed,
+  tabId
 }) => {
   // 定义默认的缓存对象
   const defaultCache = {
@@ -95,7 +97,7 @@ export const CpuUsageCard: React.FC<CpuUsageCardProps> = ({
 
   // 详细视图
   if (detailed) {
-    return <CpuDetail cpuInfo={cpuDetail} sessionId={sessionId} />;
+    return <CpuDetail cpuInfo={cpuDetail} sessionId={sessionId} tabId={tabId} />;
   }
 
   return null;

@@ -13,10 +13,6 @@ export class MonitorConfigManager extends BaseConfig {
 
   private constructor() {
     super();
-    // 确保配置已初始化
-    if (!BaseConfig.getConfig('monitor')) {
-      BaseConfig.setConfig('monitor', DEFAULT_MONITOR_CONFIG);
-    }
   }
 
   static getInstance(): MonitorConfigManager {
@@ -27,7 +23,9 @@ export class MonitorConfigManager extends BaseConfig {
   }
 
   getConfig(): MonitorConfig {
-    return BaseConfig.getConfig('monitor') as MonitorConfig || DEFAULT_MONITOR_CONFIG;
+    const config =  BaseConfig.getConfig('monitor') as MonitorConfig;
+    console.log('[MonitorConfigManager] 获取配置:', config);
+    return config || DEFAULT_MONITOR_CONFIG;
   }
 
   saveConfig(config: MonitorConfig): void {

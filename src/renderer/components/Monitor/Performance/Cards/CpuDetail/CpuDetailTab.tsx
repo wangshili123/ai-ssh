@@ -11,9 +11,10 @@ import { getServiceManager } from '@/renderer/services/monitor/serviceManager';
 interface CpuDetailProps {
   cpuInfo: CpuDetailInfo;
   sessionId: string;
+  tabId: string;
 }
 
-export const CpuDetail: React.FC<CpuDetailProps> = React.memo(({ cpuInfo, sessionId }) => {
+export const CpuDetail: React.FC<CpuDetailProps> = React.memo(({ cpuInfo, sessionId, tabId }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set(['basic']));
   const [monitorData, setMonitorData] = useState<MonitorData>();
@@ -26,7 +27,7 @@ export const CpuDetail: React.FC<CpuDetailProps> = React.memo(({ cpuInfo, sessio
     if (!loadedTabs.has(tab)) {
       // 第一次切换时立即触发刷新，等待刷新完成
       console.log('CpuDetail刷新会话数据', sessionId);
-      const newData = await monitorManager.refreshSession(sessionId);
+      const newData = await monitorManager.refreshSession(sessionId, tabId);
       if (newData?.performance?.detail?.cpu) {
         setMonitorData(newData);
       }

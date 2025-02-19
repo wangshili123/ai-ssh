@@ -1,61 +1,417 @@
-performance","refreshInterval":51,"autoRefresh":true,"collectServiceInfo":false,"recordHistory":false,"enableCache":true,"cacheExpiration":30}}
-AnalysisStateManager.ts:185 
-        SELECT 
-          (SELECT COUNT(*) FROM command_usage) as totalCommands,
-          (SELECT COUNT(*) FROM completion_usage) as totalCompletions
-      
-AnalysisStateManager.ts:164 
-      SELECT COUNT(*) as count
-      FROM command_usage
-      WHERE id > 17.0
-    
-AnalysisStateManager.ts:171 
-      SELECT COUNT(*) as count
-      FROM completion_usage
-      WHERE id > 17.0
-    
-AnalysisStateManager.ts:210 [AnalysisStateManager] 数据检查结果: {commandCount: 28, completionCount: 1, changeRate: 0.8, minCommandCount: 10, minCompletionCount: 2, …}
-AnalysisStateManager.ts:135 [AnalysisStateManager] 数据充分性检查结果: {hasEnoughData: false, metrics: {…}}
-AnalysisScheduler.ts:62 [AnalysisScheduler] 数据量不足或变化不大: {newCommandCount: 28, newCompletionCount: 1, lastAnalysisTime: Mon Feb 10 2025 09:17:42 GMT+0800 (中国标准时间), dataChangeRate: 0.8}
-AnalysisScheduler.ts:121 [AnalysisScheduler] 数据量不足或变化不大，跳过分析
-node:electron/js2c/renderer_init:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
-  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
-  this app to unnecessary security risks.
+eventBus.ts:48 [EventBus] 获取当前 tabId: default-tab
+App.tsx:133 [App] 会话选择: {id: '1739848334260', name: '252', host: '10.10.18.252', port: 22, username: 'root', …}
+TerminalTabsManager.tsx:52 [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 1}
+TerminalTabsManager.tsx:231 [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
+warning.js:30 Warning: bodyStyle is deprecated, please use styles instead.
+warning @ warning.js:30
+（匿名） @ index.js:49
+Dialog @ index.js:47
+renderWithHooks @ react-dom.development.js:15486
+updateFunctionComponent @ react-dom.development.js:19617
+beginWork @ react-dom.development.js:21640
+beginWork$1 @ react-dom.development.js:27465
+performUnitOfWork @ react-dom.development.js:26599
+workLoopSync @ react-dom.development.js:26505
+renderRootSync @ react-dom.development.js:26473
+performSyncWorkOnRoot @ react-dom.development.js:26124
+flushSyncCallbacks @ react-dom.development.js:12042
+（匿名） @ react-dom.development.js:25690
+（匿名） @ node:internal/process/task_queues:140
+runInAsyncScope @ node:async_hooks:204
+runMicrotask @ node:internal/process/task_queues:137
+TerminalTabsManager.tsx:99 [TerminalTabsManager] triggerNewTab变化: {triggerNewTab: 1, prevTrigger: undefined, mounted: true, sessionInfo: {…}}
+TerminalTabsManager.tsx:112 [TerminalTabsManager] 触发新标签页创建: {sessionInfo: {…}}
+TerminalTabsManager.tsx:126 [TerminalTabsManager] 新标签页数据: {key: '1739975975465', title: '252', sessionInfo: {…}, instanceId: '1739975975465', tabId: 'tab-1739975975465', …}
+TerminalTabsManager.tsx:129 [TerminalTabsManager] 更新标签页列表: {prev: Array(0), newTab: {…}}
+eventBus.ts:37 [EventBus] 设置当前 tabId: tab-1739975975465
+eventBus.ts:55 [EventBus] 触发事件: tabIdChanged ['tab-1739975975465']
+App.tsx:112 [App] 标签页ID变化: tab-1739975975465
+eventBus.ts:30 [EventBus] 设置当前 shellId: 1739848334260-1739975975465
+eventBus.ts:55 [EventBus] 触发事件: shellIdChanged ['1739848334260-1739975975465']
+eventBus.ts:55 [EventBus] 触发事件: tab-create [{…}]
+monitorManager.ts:75 [MonitorManager] 创建监控会话: {sessionId: '1739848334260', tabId: 'tab-1739975975465'}
+TerminalTabsManager.tsx:154 [TerminalTabsManager] 新标签页创建完成: {tabId: 'tab-1739975975465', shellId: '1739848334260-1739975975465', sessionInfo: {…}}
+TerminalTabsManager.tsx:52 [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 1}
+TerminalTabsManager.tsx:231 [TerminalTabsManager] 渲染组件: {tabs: Array(1), activeKey: '1739975975465'}
+MonitorConfig.ts:23 [MonitorConfigManager] 获取配置: {defaultPage: 'performance', refreshInterval: 5, enableCache: true, cacheExpiration: 30}
+LoadingOverlay.tsx:11 LoadingOverlay render: {tip: '正在初始化监控数据...', spinning: true}
+warning.js:30 Warning: [antd: Tabs] `Tabs.TabPane` is deprecated. Please use `items` instead.
+warning @ warning.js:30
+call @ warning.js:51
+warningOnce @ warning.js:58
+warning @ warning.js:13
+typeWarning @ warning.js:46
+typeWarning.deprecated @ warning.js:51
+useLegacyItems @ useLegacyItems.js:18
+Tabs @ index.js:82
+renderWithHooks @ react-dom.development.js:15486
+mountIndeterminateComponent @ react-dom.development.js:20103
+beginWork @ react-dom.development.js:21626
+beginWork$1 @ react-dom.development.js:27465
+performUnitOfWork @ react-dom.development.js:26599
+workLoopSync @ react-dom.development.js:26505
+renderRootSync @ react-dom.development.js:26473
+performConcurrentWorkOnRoot @ react-dom.development.js:25777
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+processImmediate @ node:internal/timers:476
+warning.js:30 Warning: bodyStyle is deprecated, please use styles instead.
+warning @ warning.js:30
+（匿名） @ index.js:49
+Dialog @ index.js:47
+renderWithHooks @ react-dom.development.js:15486
+updateFunctionComponent @ react-dom.development.js:19617
+beginWork @ react-dom.development.js:21640
+beginWork$1 @ react-dom.development.js:27465
+performUnitOfWork @ react-dom.development.js:26599
+workLoopSync @ react-dom.development.js:26505
+renderRootSync @ react-dom.development.js:26473
+performConcurrentWorkOnRoot @ react-dom.development.js:25777
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+processImmediate @ node:internal/timers:476
+3log.js:59 [ECharts] Can't get DOM width or height. Please check dom.clientWidth and dom.clientHeight. They should not be 0.For example, you may need to call this in the callback of window.onload.
+outputLog @ log.js:59
+warn @ log.js:66
+init @ echarts.js:1996
+EChartsReactCore.getEchartsInstance @ core.js:65
+EChartsReactCore.updateEChartsOption @ core.js:126
+EChartsReactCore.renderNewEcharts @ core.js:89
+EChartsReactCore.componentDidMount @ core.js:21
+commitLayoutEffectOnFiber @ react-dom.development.js:23349
+commitLayoutMountEffects_complete @ react-dom.development.js:24727
+commitLayoutEffects_begin @ react-dom.development.js:24713
+commitLayoutEffects @ react-dom.development.js:24651
+commitRootImpl @ react-dom.development.js:26862
+commitRoot @ react-dom.development.js:26721
+finishConcurrentRender @ react-dom.development.js:26020
+performConcurrentWorkOnRoot @ react-dom.development.js:25848
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+processImmediate @ node:internal/timers:476
+PerformancePage.tsx:130 初始化 PerformancePage: {sessionId: '1739848334260'}
+warning.js:30 Warning: bodyStyle is deprecated, please use styles instead.
+warning @ warning.js:30
+（匿名） @ index.js:49
+Dialog @ index.js:47
+renderWithHooks @ react-dom.development.js:15486
+updateFunctionComponent @ react-dom.development.js:19617
+beginWork @ react-dom.development.js:21640
+beginWork$1 @ react-dom.development.js:27465
+performUnitOfWork @ react-dom.development.js:26599
+workLoopSync @ react-dom.development.js:26505
+renderRootSync @ react-dom.development.js:26473
+performConcurrentWorkOnRoot @ react-dom.development.js:25777
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+processImmediate @ node:internal/timers:476
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739975975465
+TerminalTabsManager.tsx:52 [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 1}
+TerminalTabsManager.tsx:231 [TerminalTabsManager] 渲染组件: {tabs: Array(1), activeKey: '1739975975465'}
+MonitorConfig.ts:23 [MonitorConfigManager] 获取配置: {defaultPage: 'performance', refreshInterval: 5, enableCache: true, cacheExpiration: 30}
+LoadingOverlay.tsx:11 LoadingOverlay render: {tip: '正在初始化监控数据...', spinning: true}
+warning.js:30 Warning: bodyStyle is deprecated, please use styles instead.
+warning @ warning.js:30
+（匿名） @ index.js:49
+Dialog @ index.js:47
+renderWithHooks @ react-dom.development.js:15486
+updateFunctionComponent @ react-dom.development.js:19617
+beginWork @ react-dom.development.js:21640
+beginWork$1 @ react-dom.development.js:27465
+performUnitOfWork @ react-dom.development.js:26599
+workLoopSync @ react-dom.development.js:26505
+renderRootSync @ react-dom.development.js:26473
+performSyncWorkOnRoot @ react-dom.development.js:26124
+flushSyncCallbacks @ react-dom.development.js:12042
+（匿名） @ react-dom.development.js:25690
+（匿名） @ node:internal/process/task_queues:140
+runInAsyncScope @ node:async_hooks:204
+runMicrotask @ node:internal/process/task_queues:137
+warning.js:30 Warning: bodyStyle is deprecated, please use styles instead.
+warning @ warning.js:30
+（匿名） @ index.js:49
+Dialog @ index.js:47
+renderWithHooks @ react-dom.development.js:15486
+updateFunctionComponent @ react-dom.development.js:19617
+beginWork @ react-dom.development.js:21640
+beginWork$1 @ react-dom.development.js:27465
+performUnitOfWork @ react-dom.development.js:26599
+workLoopSync @ react-dom.development.js:26505
+renderRootSync @ react-dom.development.js:26473
+performConcurrentWorkOnRoot @ react-dom.development.js:25777
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+processImmediate @ node:internal/timers:476
+3eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739975975465
+monitorManager.ts:165 [MonitorManager] 开始刷新会话: {sessionId: '1739848334260', tabId: 'tab-1739975975465', hasStatus: true, status: 'connected', refCount: 1, …}
+monitorManager.ts:188 [MonitorManager] 刷新会话数据: {sessionId: '1739848334260', tabId: 'tab-1739975975465', requestId: 1739975995858, activeTab: 'performance', activeCard: 'cpu', …}
+performanceManager.ts:60 开始采集性能指标数据: {sessionId: '1739848334260', activeCard: 'cpu', activeDetailTab: 'basic', timestamp: '2025-02-19T14:39:55.858Z'}
+memoryService.ts:73 free -b 结果:               total        used        free      shared  buff/cache   available
+Mem:    67266519040 35463659520   498569216  3409362944 31304290304 27844698112
+Swap:             0           0           0
 
-For more information and help, consult
-https://electronjs.org/docs/tutorial/security.
-This warning will not show up
-once the app is packaged.
-warnAboutInsecureCSP @ node:electron/js2c/renderer_init:2
-logSecurityWarnings @ node:electron/js2c/renderer_init:2
-（匿名） @ node:electron/js2c/renderer_init:2
-load（异步）
-securityWarnings @ node:electron/js2c/renderer_init:2
-./lib/renderer/common-init.ts @ node:electron/js2c/renderer_init:2
-__webpack_require__ @ node:electron/js2c/renderer_init:2
-（匿名） @ node:electron/js2c/renderer_init:2
-（匿名） @ node:electron/js2c/renderer_init:2
-___electron_webpack_init__ @ node:electron/js2c/renderer_init:2
-（匿名） @ node:electron/js2c/renderer_init:2
-compileForInternalLoader @ node:internal/bootstrap/loaders:334
-compileForPublicLoader @ node:internal/bootstrap/loaders:270
-loadBuiltinModule @ node:internal/modules/cjs/helpers:56
-Module._load @ node:internal/modules/cjs/loader:941
-f._load @ node:electron/js2c/asar_bundle:2
-executeUserEntryPoint @ node:internal/modules/run_main:96
-（匿名） @ node:internal/main/run_main_module:23
-App.tsx:78 [App] 加载UI设置: {isFileBrowserVisible: false, isAIVisible: false}
-App.tsx:81 [App] 基础服务初始化完成
-TerminalTabsManager.tsx:51 [TerminalTabsManager] 组件渲染: {sessionInfo: undefined, triggerNewTab: 0}
-TerminalTabsManager.tsx:196 [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
-index.js:485 [webpack-dev-server] Disconnected!
-index.js:485 [webpack-dev-server] Trying to reconnect...
-App.tsx:98 [App] 保存UI设置: {isFileBrowserVisible: false, isAIVisible: false}
-App.tsx:123 [App] 收到打开基础配置对话框的消息
-TerminalTabsManager.tsx:51 [TerminalTabsManager] 组件渲染: {sessionInfo: undefined, triggerNewTab: 0}sessionInfo: undefinedtriggerNewTab: 0[[Prototype]]: Object
-TerminalTabsManager.tsx:196 [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
-BaseConfigModal.tsx:60 monitorValues {}
-BaseConfigModal.tsx:61 aiValues {apiKey: '123', model: undefined, temperature: undefined, maxTokens: undefined, proxy: undefined, …}
-BaseConfig.ts:20 [BaseConfig] 保存配置: {ai: {…}, monitor: {…}}ai: {apiKey: '123', model: undefined, temperature: undefined, maxTokens: undefined, proxy: undefined, …}monitor: {}[[Prototype]]: Object
-TerminalTabsManager.tsx:51 [TerminalTabsManager] 组件渲染: {sessionInfo: undefined, triggerNewTab: 0}
-TerminalTabsManager.tsx:196 [TerminalTabsManager] 渲染组件: {tabs: Array(0), activeKey: undefined}
+memoryService.ts:84 解析的内存数据: (7) ['Mem:', '67266519040', '35463659520', '498569216', '3409362944', '31304290304', '27844698112']
+networkService.ts:63 [NetworkService] collectBasicMetrics 1739848334260: 364.0419921875 ms
+cpuService.ts:349 [CpuService] collectBasicMetrics 1739848334260: 402.14306640625 ms
+cpuService.ts:493 [CpuService] collectDetailMetrics 1739848334260: 334.98388671875 ms
+performanceManager.ts:106 [Performance] 采集性能指标数据完成，用时: 740ms
+networkService.ts:159 [NetworkService] collectDetailMetrics 1739848334260: 0.375 ms
+monitorManager.ts:202 [Performance] 性能指标采集耗时 1739848334260: 741.152099609375 ms
+monitorManager.ts:203 [MonitorManager] 性能指标采集结果: {basic: {…}, detail: {…}}
+monitorManager.ts:209 [MonitorManager] 数据更新成功: {tabId: 'tab-1739975975465', sessionId: '1739848334260', requestId: 1739975995858, dataTimestamp: 1739975995858}
+monitorManager.ts:241 [Performance] 刷新会话总耗时-开始 1739848334260: 742.500244140625 ms
+refreshService.ts:124 [RefreshService] 准备停止刷新任务: {sessionId: '1739848334260', existingTasks: Array(0), hasTask: false}
+refreshService.ts:142 [RefreshService] 未找到要停止的任务: {sessionId: '1739848334260'}
+MonitorConfig.ts:23 [MonitorConfigManager] 获取配置: {defaultPage: 'performance', refreshInterval: 5, enableCache: true, cacheExpiration: 30}
+TerminalTabsManager.tsx:89 [Performance] 启动自动刷新耗时 1739848334260: 0.995361328125 ms
+TerminalTabsManager.tsx:90 [Performance] 监控页面初始化总耗时 1739848334260: 21132.643310546875 ms
+refreshService.ts:102 [RefreshService] 启动刷新任务-1739848334260 {tabId: 'tab-1739975975465', config: {…}}
+refreshService.ts:74 [RefreshService] 开始刷新会话数据: {sessionId: '1739848334260', tabId: 'tab-1739975975465', timestamp: '2025-02-19T14:39:56.601Z'}
+monitorManager.ts:165 [MonitorManager] 开始刷新会话: {sessionId: '1739848334260', tabId: 'tab-1739975975465', hasStatus: true, status: 'connected', refCount: 1, …}
+monitorManager.ts:188 [MonitorManager] 刷新会话数据: {sessionId: '1739848334260', tabId: 'tab-1739975975465', requestId: 1739975996602, activeTab: 'performance', activeCard: 'cpu', …}
+performanceManager.ts:60 开始采集性能指标数据: {sessionId: '1739848334260', activeCard: 'cpu', activeDetailTab: 'basic', timestamp: '2025-02-19T14:39:56.602Z'}
+memoryService.ts:73 free -b 结果:               total        used        free      shared  buff/cache   available
+Mem:    67266519040 35471982592   490246144  3409362944 31304290304 27836379136
+Swap:             0           0           0
+
+memoryService.ts:84 解析的内存数据: (7) ['Mem:', '67266519040', '35471982592', '490246144', '3409362944', '31304290304', '27836379136']
+memoryService.ts:73 free -b 结果:               total        used        free      shared  buff/cache   available
+Mem:    67266519040 35473899520   488230912  3409461248 31304388608 27834363904
+Swap:             0           0           0
+
+memoryService.ts:84 解析的内存数据: (7) ['Mem:', '67266519040', '35473899520', '488230912', '3409461248', '31304388608', '27834363904']
+networkService.ts:63 [NetworkService] collectBasicMetrics 1739848334260: 313.470947265625 ms
+cpuService.ts:349 [CpuService] collectBasicMetrics 1739848334260: 391.05712890625 ms
+diskService.ts:150 原始lsblk输出: sda    disk    0 sata   
+├─sda1 part    0        /boot
+├─sda2 part    0        /
+└─sda3 part    0        
+sdb    disk    1 sata   
+└─sdb1 part    1        /home
+
+diskService.ts:151 根设备: /dev/sda2
+diskService.ts:160 处理lsblk行: {line: 'sda    disk    0 sata   ', parts: Array(4), cleanName: 'sda', type: 'disk', mountpoint: 'sata'}
+diskService.ts:182 检测到SATA SSD: sda
+diskService.ts:188 设置磁盘类型: {name: 'sda', diskType: 'SSD'}
+diskService.ts:160 处理lsblk行: {line: '├─sda1 part    0        /boot', parts: Array(4), cleanName: 'sda1', type: 'part', mountpoint: '/boot'}
+diskService.ts:160 处理lsblk行: {line: '├─sda2 part    0        /', parts: Array(4), cleanName: 'sda2', type: 'part', mountpoint: '/'}
+diskService.ts:170 找到根分区设备: sda
+diskService.ts:160 处理lsblk行: {line: '└─sda3 part    0        ', parts: Array(3), cleanName: 'sda3', type: 'part', mountpoint: '0'}
+diskService.ts:160 处理lsblk行: {line: 'sdb    disk    1 sata   ', parts: Array(4), cleanName: 'sdb', type: 'disk', mountpoint: 'sata'}
+diskService.ts:188 设置磁盘类型: {name: 'sdb', diskType: 'HDD'}
+diskService.ts:160 处理lsblk行: {line: '└─sdb1 part    1        /home', parts: Array(4), cleanName: 'sdb1', type: 'part', mountpoint: '/home'}
+diskService.ts:192 最终磁盘类型映射: {sda: 'SSD', sdb: 'HDD'}
+diskService.ts:193 根设备名: sda
+diskService.ts:215 处理分区: {device: 'devtmpfs', mountpoint: '/dev', fullDeviceName: 'devtmpfs', baseDeviceName: 'devtmpfs', foundType: undefined, …}
+diskService.ts:253 最终分区信息: {device: 'devtmpfs', mountpoint: '/dev', diskType: '虚拟分区'}
+diskService.ts:215 处理分区: {device: 'tmpfs', mountpoint: '/dev/shm', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+diskService.ts:253 最终分区信息: {device: 'tmpfs', mountpoint: '/dev/shm', diskType: '虚拟分区'}
+diskService.ts:215 处理分区: {device: 'tmpfs', mountpoint: '/run', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+diskService.ts:253 最终分区信息: {device: 'tmpfs', mountpoint: '/run', diskType: '虚拟分区'}
+diskService.ts:215 处理分区: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+diskService.ts:253 最终分区信息: {device: 'tmpfs', mountpoint: '/sys/fs/cgroup', diskType: '虚拟分区'}
+diskService.ts:215 处理分区: {device: '/dev/sda2', mountpoint: '/', fullDeviceName: 'sda2', baseDeviceName: 'sda', foundType: 'SSD', …}
+diskService.ts:237 尝试获取磁盘类型: {baseDeviceName: 'sda', diskType: 'SSD', startWithVd: false}
+diskService.ts:253 最终分区信息: {device: '/dev/sda2', mountpoint: '/', diskType: 'SSD'}
+diskService.ts:215 处理分区: {device: '/dev/sda1', mountpoint: '/boot', fullDeviceName: 'sda1', baseDeviceName: 'sda', foundType: 'SSD', …}
+diskService.ts:237 尝试获取磁盘类型: {baseDeviceName: 'sda', diskType: 'SSD', startWithVd: false}
+diskService.ts:253 最终分区信息: {device: '/dev/sda1', mountpoint: '/boot', diskType: 'SSD'}
+diskService.ts:215 处理分区: {device: '/dev/sdb1', mountpoint: '/home', fullDeviceName: 'sdb1', baseDeviceName: 'sdb', foundType: 'HDD', …}
+diskService.ts:237 尝试获取磁盘类型: {baseDeviceName: 'sdb', diskType: 'HDD', startWithVd: false}
+diskService.ts:253 最终分区信息: {device: '/dev/sdb1', mountpoint: '/home', diskType: 'HDD'}
+diskService.ts:215 处理分区: {device: 'tmpfs', mountpoint: '/run/user/0', fullDeviceName: 'tmpfs', baseDeviceName: 'tmpfs', foundType: undefined, …}
+diskService.ts:253 最终分区信息: {device: 'tmpfs', mountpoint: '/run/user/0', diskType: '虚拟分区'}
+diskService.ts:215 处理分区: {device: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', fullDeviceName: 'overlay', baseDeviceName: 'overlay', foundType: undefined, …}
+diskService.ts:253 最终分区信息: {device: 'overlay', mountpoint: '/var/lib/docker/overlay2/127cf0eae039ba61bcd1fd2c32b8d3522ffa9a3947e6ca94142b300bef5052c4/merged', diskType: 'Docker存储'}
+diskService.ts:422 采集磁盘基础数据: {diskUsage: {…}, diskIO: {…}}
+cpuService.ts:493 [CpuService] collectDetailMetrics 1739848334260: 324.490966796875 ms
+performanceManager.ts:106 [Performance] 采集性能指标数据完成，用时: 716ms
+monitorManager.ts:202 [Performance] 性能指标采集耗时 1739848334260: 716.2900390625 ms
+monitorManager.ts:203 [MonitorManager] 性能指标采集结果: {basic: {…}, detail: {…}}
+monitorManager.ts:209 [MonitorManager] 数据更新成功: {tabId: 'tab-1739975975465', sessionId: '1739848334260', requestId: 1739975996602, dataTimestamp: 1739975996602}
+monitorManager.ts:241 [Performance] 刷新会话总耗时-开始 1739848334260: 717.197021484375 ms
+refreshService.ts:81 [RefreshService] 会话数据刷新完成: {sessionId: '1739848334260', tabId: 'tab-1739975975465', hasData: true, timestamp: '2025-02-19T14:39:57.319Z'}
+MonitorPage.tsx:68 [Performance] 数据更新耗时 1739848334260: 0.306884765625 ms
+MonitorConfig.ts:23 [MonitorConfigManager] 获取配置: {defaultPage: 'performance', refreshInterval: 5, enableCache: true, cacheExpiration: 30}
+App.tsx:133 [App] 会话选择: {id: '1739848334260', name: '252', host: '10.10.18.252', port: 22, username: 'root', …}
+TerminalTabsManager.tsx:52 [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 2}
+TerminalTabsManager.tsx:231 [TerminalTabsManager] 渲染组件: {tabs: Array(1), activeKey: '1739975975465'}
+MonitorConfig.ts:23 [MonitorConfigManager] 获取配置: {defaultPage: 'performance', refreshInterval: 5, enableCache: true, cacheExpiration: 30}
+warning.js:30 Warning: bodyStyle is deprecated, please use styles instead.
+warning @ warning.js:30
+（匿名） @ index.js:49
+Dialog @ index.js:47
+renderWithHooks @ react-dom.development.js:15486
+updateFunctionComponent @ react-dom.development.js:19617
+beginWork @ react-dom.development.js:21640
+beginWork$1 @ react-dom.development.js:27465
+performUnitOfWork @ react-dom.development.js:26599
+workLoopSync @ react-dom.development.js:26505
+renderRootSync @ react-dom.development.js:26473
+performSyncWorkOnRoot @ react-dom.development.js:26124
+flushSyncCallbacks @ react-dom.development.js:12042
+（匿名） @ react-dom.development.js:25690
+（匿名） @ node:internal/process/task_queues:140
+runInAsyncScope @ node:async_hooks:204
+runMicrotask @ node:internal/process/task_queues:137
+TerminalTabsManager.tsx:99 [TerminalTabsManager] triggerNewTab变化: {triggerNewTab: 2, prevTrigger: 1, mounted: true, sessionInfo: {…}}
+TerminalTabsManager.tsx:112 [TerminalTabsManager] 触发新标签页创建: {sessionInfo: {…}}
+TerminalTabsManager.tsx:126 [TerminalTabsManager] 新标签页数据: {key: '1739975998424', title: '252', sessionInfo: {…}, instanceId: '1739975998424', tabId: 'tab-1739975998424', …}
+TerminalTabsManager.tsx:129 [TerminalTabsManager] 更新标签页列表: {prev: Array(1), newTab: {…}}
+eventBus.ts:37 [EventBus] 设置当前 tabId: tab-1739975998424
+eventBus.ts:55 [EventBus] 触发事件: tabIdChanged ['tab-1739975998424']
+App.tsx:112 [App] 标签页ID变化: tab-1739975998424
+eventBus.ts:30 [EventBus] 设置当前 shellId: 1739848334260-1739975998424
+eventBus.ts:55 [EventBus] 触发事件: shellIdChanged ['1739848334260-1739975998424']
+eventBus.ts:55 [EventBus] 触发事件: tab-create [{…}]
+monitorManager.ts:75 [MonitorManager] 创建监控会话: {sessionId: '1739848334260', tabId: 'tab-1739975998424'}
+TerminalTabsManager.tsx:154 [TerminalTabsManager] 新标签页创建完成: {tabId: 'tab-1739975998424', shellId: '1739848334260-1739975998424', sessionInfo: {…}}
+refreshService.ts:124 [RefreshService] 准备停止刷新任务: {sessionId: '1739848334260', existingTasks: Array(1), hasTask: true}
+refreshService.ts:131 [RefreshService] 找到要停止的任务: {sessionId: '1739848334260', tabId: 'tab-1739975975465', options: {…}}
+refreshService.ts:137 [RefreshService] 停止刷新任务-1739848334260 {remainingTasks: Array(0)}
+MonitorConfig.ts:23 [MonitorConfigManager] 获取配置: {defaultPage: 'performance', refreshInterval: 5, enableCache: true, cacheExpiration: 30}
+TerminalTabsManager.tsx:89 [Performance] 启动自动刷新耗时 1739848334260: 0.753173828125 ms
+TerminalTabsManager.tsx:90 [Performance] 监控页面初始化总耗时 1739848334260: 4.396728515625 ms
+refreshService.ts:102 [RefreshService] 启动刷新任务-1739848334260 {tabId: 'tab-1739975998424', config: {…}}
+refreshService.ts:74 [RefreshService] 开始刷新会话数据: {sessionId: '1739848334260', tabId: 'tab-1739975998424', timestamp: '2025-02-19T14:39:58.431Z'}
+monitorManager.ts:165 [MonitorManager] 开始刷新会话: {sessionId: '1739848334260', tabId: 'tab-1739975998424', hasStatus: true, status: 'connected', refCount: 2, …}
+monitorManager.ts:188 [MonitorManager] 刷新会话数据: {sessionId: '1739848334260', tabId: 'tab-1739975998424', requestId: 1739975998431, activeTab: 'performance', activeCard: 'cpu', …}
+performanceManager.ts:60 开始采集性能指标数据: {sessionId: '1739848334260', activeCard: 'cpu', activeDetailTab: 'basic', timestamp: '2025-02-19T14:39:58.431Z'}
+TerminalTabsManager.tsx:52 [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 2}
+TerminalTabsManager.tsx:231 [TerminalTabsManager] 渲染组件: {tabs: Array(2), activeKey: '1739975998424'}
+MonitorConfig.ts:23 [MonitorConfigManager] 获取配置: {defaultPage: 'performance', refreshInterval: 5, enableCache: true, cacheExpiration: 30}
+MonitorConfig.ts:23 [MonitorConfigManager] 获取配置: {defaultPage: 'performance', refreshInterval: 5, enableCache: true, cacheExpiration: 30}
+LoadingOverlay.tsx:11 LoadingOverlay render: {tip: '正在初始化监控数据...', spinning: true}
+warning.js:30 Warning: bodyStyle is deprecated, please use styles instead.
+warning @ warning.js:30
+（匿名） @ index.js:49
+Dialog @ index.js:47
+renderWithHooks @ react-dom.development.js:15486
+updateFunctionComponent @ react-dom.development.js:19617
+beginWork @ react-dom.development.js:21640
+beginWork$1 @ react-dom.development.js:27465
+performUnitOfWork @ react-dom.development.js:26599
+workLoopSync @ react-dom.development.js:26505
+renderRootSync @ react-dom.development.js:26473
+performConcurrentWorkOnRoot @ react-dom.development.js:25777
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+processImmediate @ node:internal/timers:476
+3log.js:59 [ECharts] Can't get DOM width or height. Please check dom.clientWidth and dom.clientHeight. They should not be 0.For example, you may need to call this in the callback of window.onload.
+outputLog @ log.js:59
+warn @ log.js:66
+init @ echarts.js:1996
+EChartsReactCore.getEchartsInstance @ core.js:65
+EChartsReactCore.updateEChartsOption @ core.js:126
+EChartsReactCore.renderNewEcharts @ core.js:89
+EChartsReactCore.componentDidMount @ core.js:21
+commitLayoutEffectOnFiber @ react-dom.development.js:23349
+commitLayoutMountEffects_complete @ react-dom.development.js:24727
+commitLayoutEffects_begin @ react-dom.development.js:24713
+commitLayoutEffects @ react-dom.development.js:24651
+commitRootImpl @ react-dom.development.js:26862
+commitRoot @ react-dom.development.js:26721
+finishConcurrentRender @ react-dom.development.js:26020
+performConcurrentWorkOnRoot @ react-dom.development.js:25848
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+processImmediate @ node:internal/timers:476
+PerformancePage.tsx:130 初始化 PerformancePage: {sessionId: '1739848334260'}
+memoryService.ts:73 free -b 结果:               total        used        free      shared  buff/cache   available
+Mem:    67266519040 35475103744   487010304  3409461248 31304404992 27833159680
+Swap:             0           0           0
+
+memoryService.ts:84 解析的内存数据: (7) ['Mem:', '67266519040', '35475103744', '487010304', '3409461248', '31304404992', '27833159680']
+networkService.ts:63 [NetworkService] collectBasicMetrics 1739848334260: 199.9130859375 ms
+cpuService.ts:349 [CpuService] collectBasicMetrics 1739848334260: 306.916015625 ms
+warning.js:30 Warning: bodyStyle is deprecated, please use styles instead.
+warning @ warning.js:30
+（匿名） @ index.js:49
+Dialog @ index.js:47
+renderWithHooks @ react-dom.development.js:15486
+updateFunctionComponent @ react-dom.development.js:19617
+beginWork @ react-dom.development.js:21640
+beginWork$1 @ react-dom.development.js:27465
+performUnitOfWork @ react-dom.development.js:26599
+workLoopSync @ react-dom.development.js:26505
+renderRootSync @ react-dom.development.js:26473
+performConcurrentWorkOnRoot @ react-dom.development.js:25777
+workLoop @ scheduler.development.js:266
+flushWork @ scheduler.development.js:239
+performWorkUntilDeadline @ scheduler.development.js:533
+processImmediate @ node:internal/timers:476
+cpuService.ts:493 [CpuService] collectDetailMetrics 1739848334260: 307.76171875 ms
+performanceManager.ts:106 [Performance] 采集性能指标数据完成，用时: 615ms
+monitorManager.ts:202 [Performance] 性能指标采集耗时 1739848334260: 615.707275390625 ms
+monitorManager.ts:203 [MonitorManager] 性能指标采集结果: {basic: {…}, detail: {…}}
+monitorManager.ts:209 [MonitorManager] 数据更新成功: {tabId: 'tab-1739975998424', sessionId: '1739848334260', requestId: 1739975998431, dataTimestamp: 1739975998431}
+monitorManager.ts:241 [Performance] 刷新会话总耗时-开始 1739848334260: 617.5048828125 ms
+refreshService.ts:81 [RefreshService] 会话数据刷新完成: {sessionId: '1739848334260', tabId: 'tab-1739975998424', hasData: true, timestamp: '2025-02-19T14:39:59.049Z'}
+MonitorPage.tsx:68 [Performance] 数据更新耗时 1739848334260: 0.275146484375 ms
+MonitorConfig.ts:23 [MonitorConfigManager] 获取配置: {defaultPage: 'performance', refreshInterval: 5, enableCache: true, cacheExpiration: 30}
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739975998424
+refreshService.ts:74 [RefreshService] 开始刷新会话数据: {sessionId: '1739848334260', tabId: 'tab-1739975998424', timestamp: '2025-02-19T14:39:59.284Z'}
+monitorManager.ts:165 [MonitorManager] 开始刷新会话: {sessionId: '1739848334260', tabId: 'tab-1739975998424', hasStatus: true, status: 'connected', refCount: 2, …}
+monitorManager.ts:188 [MonitorManager] 刷新会话数据: {sessionId: '1739848334260', tabId: 'tab-1739975998424', requestId: 1739975999285, activeTab: 'performance', activeCard: 'cpu', …}
+performanceManager.ts:60 开始采集性能指标数据: {sessionId: '1739848334260', activeCard: 'cpu', activeDetailTab: 'basic', timestamp: '2025-02-19T14:39:59.285Z'}
+memoryService.ts:73 free -b 结果:               total        used        free      shared  buff/cache   available
+Mem:    67266519040 35476443136   485666816  3409461248 31304409088 27831816192
+Swap:             0           0           0
+
+memoryService.ts:84 解析的内存数据: (7) ['Mem:', '67266519040', '35476443136', '485666816', '3409461248', '31304409088', '27831816192']
+networkService.ts:63 [NetworkService] collectBasicMetrics 1739848334260: 171.070068359375 ms
+cpuService.ts:349 [CpuService] collectBasicMetrics 1739848334260: 172.256103515625 ms
+cpuService.ts:493 [CpuService] collectDetailMetrics 1739848334260: 337.464111328125 ms
+performanceManager.ts:106 [Performance] 采集性能指标数据完成，用时: 510ms
+monitorManager.ts:202 [Performance] 性能指标采集耗时 1739848334260: 510.518798828125 ms
+monitorManager.ts:203 [MonitorManager] 性能指标采集结果: {basic: {…}, detail: {…}}
+monitorManager.ts:209 [MonitorManager] 数据更新成功: {tabId: 'tab-1739975998424', sessionId: '1739848334260', requestId: 1739975999285, dataTimestamp: 1739975999285}
+monitorManager.ts:241 [Performance] 刷新会话总耗时-开始 1739848334260: 511.47509765625 ms
+refreshService.ts:81 [RefreshService] 会话数据刷新完成: {sessionId: '1739848334260', tabId: 'tab-1739975998424', hasData: true, timestamp: '2025-02-19T14:39:59.796Z'}
+MonitorPage.tsx:68 [Performance] 数据更新耗时 1739848334260: 0.14013671875 ms
+MonitorConfig.ts:23 [MonitorConfigManager] 获取配置: {defaultPage: 'performance', refreshInterval: 5, enableCache: true, cacheExpiration: 30}
+TerminalTabsManager.tsx:175 [TerminalTabsManager] 编辑标签页: {targetKey: '1739975998424', action: 'remove'}
+eventBus.ts:37 [EventBus] 设置当前 tabId: tab-1739975975465
+eventBus.ts:55 [EventBus] 触发事件: tabIdChanged ['tab-1739975975465']
+App.tsx:112 [App] 标签页ID变化: tab-1739975975465
+eventBus.ts:30 [EventBus] 设置当前 shellId: 1739848334260-1739975975465
+eventBus.ts:55 [EventBus] 触发事件: shellIdChanged ['1739848334260-1739975975465']
+eventBus.ts:71 [EventBus] 移除标签页: tab-1739975998424
+refreshService.ts:124 [RefreshService] 准备停止刷新任务: {sessionId: '1739848334260', existingTasks: Array(1), hasTask: true}
+refreshService.ts:131 [RefreshService] 找到要停止的任务: {sessionId: '1739848334260', tabId: 'tab-1739975998424', options: {…}}
+refreshService.ts:137 [RefreshService] 停止刷新任务-1739848334260 {remainingTasks: Array(0)}
+monitorManager.ts:112 [MonitorManager] 准备断开会话连接: {sessionId: '1739848334260', tabId: 'tab-1739975998424', hasData: true, hasTabSession: true, allTabSessions: Array(2)}
+monitorManager.ts:129 [MonitorManager] 断开会话连接: {sessionId: '1739848334260', tabId: 'tab-1739975998424', remainingRefs: 1, currentStatus: 'connected', remainingTabs: Array(1)}
+eventBus.ts:55 [EventBus] 触发事件: completion:tab-remove [{…}]
+CommandExecutor.ts:10 [CommandExecutor] 标签页被删除，准备清理连接: {tabId: 'tab-1739975998424', shellId: '1739848334260-1739975998424', sessionInfo: {…}}
+eventBus.ts:113 [EventBus] 检查其他标签页: {currentTabId: 'tab-1739975998424', sessionId: '1739848334260'}
+CommandExecutor.ts:19 [CommandExecutor] 还有其他标签页使用此连接，保持连接: 1739848334260
+TerminalTabsManager.tsx:52 [TerminalTabsManager] 组件渲染: {sessionInfo: {…}, triggerNewTab: 2}
+TerminalTabsManager.tsx:231 [TerminalTabsManager] 渲染组件: {tabs: Array(1), activeKey: '1739975975465'}
+MonitorConfig.ts:23 [MonitorConfigManager] 获取配置: {defaultPage: 'performance', refreshInterval: 5, enableCache: true, cacheExpiration: 30}
+warning.js:30 Warning: bodyStyle is deprecated, please use styles instead.
+warning @ warning.js:30
+（匿名） @ index.js:49
+Dialog @ index.js:47
+renderWithHooks @ react-dom.development.js:15486
+updateFunctionComponent @ react-dom.development.js:19617
+beginWork @ react-dom.development.js:21640
+beginWork$1 @ react-dom.development.js:27465
+performUnitOfWork @ react-dom.development.js:26599
+workLoopSync @ react-dom.development.js:26505
+renderRootSync @ react-dom.development.js:26473
+performSyncWorkOnRoot @ react-dom.development.js:26124
+flushSyncCallbacks @ react-dom.development.js:12042
+（匿名） @ react-dom.development.js:25690
+（匿名） @ node:internal/process/task_queues:140
+runInAsyncScope @ node:async_hooks:204
+runMicrotask @ node:internal/process/task_queues:137
+MonitorPage.tsx:74 [MonitorPage] 清理监控资源: 1739848334260
+eventBus.ts:48 [EventBus] 获取当前 tabId: tab-1739975975465

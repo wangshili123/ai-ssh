@@ -12,9 +12,10 @@ const { TabPane } = Tabs;
 
 interface MonitorPageProps {
   sessionInfo: SessionInfo;
+  tabId: string;
 }
 
-export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
+export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo, tabId }) => {
   const [monitorData, setMonitorData] = useState<MonitorData>();
   const [isLoading, setIsLoading] = useState(true);
   const monitorManager = getServiceManager().getMonitorManager();
@@ -29,11 +30,14 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
 
   // 监听刷新事件
   useEffect(() => {
-    const handleRefresh = () => {
+    const handleRefresh = (sessionId: string, refreshTabId: string) => {
+      // 只处理属于当前标签页的刷新
+      if (refreshTabId !== tabId) return;
+      
       console.time(`[Performance] 数据更新耗时 ${sessionInfo.id}`);
-      const updatedSession = monitorManager.getSession(sessionInfo.id);
-      if (updatedSession?.monitorData) {
-        setMonitorData(updatedSession.monitorData);
+      const updatedData = monitorManager.getTabData(tabId);
+      if (updatedData) {
+        setMonitorData(updatedData);
         setIsLoading(false);
       }
       console.timeEnd(`[Performance] 数据更新耗时 ${sessionInfo.id}`);
@@ -47,7 +51,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
       console.log('[MonitorPage] 清理监控资源:', sessionInfo.id);
       refreshService.off('refresh', handleRefresh);
     };
-  }, [sessionInfo.id]);
+  }, [sessionInfo.id, tabId]);
 
   // 处理标签页切换
   const handleTabChange = (key: string) => {
@@ -71,6 +75,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
       >
         <TabPane tab="性能监控" key="performance">
           <PerformancePage 
+            tabId={tabId}
             sessionId={sessionInfo.id} 
             monitorData={monitorData} 
             monitorManager={monitorManager}
