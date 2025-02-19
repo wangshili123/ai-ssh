@@ -60,7 +60,19 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
       const refreshService = getServiceManager().getRefreshService();
 
       // 创建并连接监控会话
-      await monitorManager.createSession(tab.sessionInfo, tab.tabId);
+      let status = await monitorManager.createSession(tab.sessionInfo, tab.tabId);
+      console.log('[TerminalTabsManager] 监控会话连接成功:', {status});
+      if (status.status === 'connected') {
+        // 更新标签页的连接状态
+        setTabs(prevTabs => 
+          prevTabs.map(tab => {
+            if (tab.tabId === tab.tabId) {
+              return { ...tab, connected: true };
+            }
+            return tab;
+          })
+        );
+      }
 
       // 启动自动刷新
       console.time(`[Performance] 启动自动刷新耗时 ${tab.sessionInfo.id}`);

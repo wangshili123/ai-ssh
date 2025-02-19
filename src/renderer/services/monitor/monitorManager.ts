@@ -89,7 +89,7 @@ export class MonitorManager {
   /**
    * 创建并连接监控会话
    */
-  async createSession(sessionInfo: SessionInfo, tabId: string): Promise<void> {
+  async createSession(sessionInfo: SessionInfo, tabId: string): Promise<SessionStatus> {
     console.log('[MonitorManager] 创建监控会话:', {
       sessionId: sessionInfo.id,
       tabId
@@ -126,6 +126,7 @@ export class MonitorManager {
         throw error;
       }
     }
+    return status;
   }
 
   /**
