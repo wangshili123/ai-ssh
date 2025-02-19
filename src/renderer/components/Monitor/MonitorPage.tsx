@@ -65,7 +65,8 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
 
         const refreshService = getServiceManager().getRefreshService();
         refreshService.on('refresh', handleRefresh);
-        
+        // 马上调用一次
+        handleRefresh();
         // 设置清理函数
         cleanup = () => {
           console.log('[MonitorPage] 清理监控资源:', monitorSession.id);
