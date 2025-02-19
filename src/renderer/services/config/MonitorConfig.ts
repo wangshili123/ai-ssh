@@ -3,10 +3,7 @@ import type { MonitorConfig } from '../../types/baseconfig/BaseConfigType';
 
 const DEFAULT_MONITOR_CONFIG: MonitorConfig = {
   refreshInterval: 5,
-  autoRefresh: true,
   defaultPage: 'performance',
-  collectServiceInfo: false,
-  recordHistory: false,
   enableCache: true,
   cacheExpiration: 30
 };

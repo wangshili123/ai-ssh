@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Tabs, Badge } from 'antd';
+import { Tabs, Badge, message } from 'antd';
 import TerminalTabContent from '../TerminalTabContent/TerminalTabContent';
 import { MonitorPage } from '../../Monitor/MonitorPage';
 import { eventBus, TabInfo } from '../../../services/eventBus';
 import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
 import { FileBrowserConnectionManager } from '../../FileBrowser/FileBrowserMain/FileBrowserConnectionManager';
+import { getServiceManager } from '../../../services/monitor/serviceManager';
+import { MonitorConfigManager } from '../../../services/config/MonitorConfig';
 import type { SessionInfo } from '../../../types';
 import type { TerminalTab, TerminalTabsManagerProps } from '../types/terminal.types';
 import './TerminalTabsManager.css';
@@ -33,6 +35,53 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
       setMounted(true);
     }
   }, []);
+
+  // 处理标签切换
+  const handleTabChange = (key: string) => {
+    console.log('[TerminalTabsManager] 切换标签页:', { key, tabs });
+    const tab = tabs.find(t => t.key === key);
+    if (tab && tab.sessionInfo) {
+      const shellId = `${tab.sessionInfo.id}-${tab.instanceId}`;
+      
+      // 设置当前标签页和shell
+      eventBus.setCurrentTabId(tab.tabId);
+      eventBus.setCurrentShellId(shellId);
+      setActiveKey(key);
+    }
+  };
+
+  // 初始化监控会话
+  const initMonitorSession = async (tab: TerminalTab) => {
+    if (!tab.sessionInfo) return;
+    
+    console.time(`[Performance] 监控页面初始化总耗时 ${tab.sessionInfo.id}`);
+    try {
+      const monitorManager = getServiceManager().getMonitorManager();
+      const refreshService = getServiceManager().getRefreshService();
+
+      // 创建监控会话
+      console.time(`[Performance] 创建监控会话耗时 ${tab.sessionInfo.id}`);
+      const monitorSession = monitorManager.createSession({
+        ...tab.sessionInfo
+      });
+      console.timeEnd(`[Performance] 创建监控会话耗时 ${tab.sessionInfo.id}`);
+
+      // 连接监控会话
+      console.time(`[Performance] 连接监控会话耗时 ${tab.sessionInfo.id}`);
+      await monitorManager.connectSession(monitorSession.id);
+      console.timeEnd(`[Performance] 连接监控会话耗时 ${tab.sessionInfo.id}`);
+
+      // 启动自动刷新
+      console.time(`[Performance] 启动自动刷新耗时 ${tab.sessionInfo.id}`);
+      refreshService.startRefresh(monitorSession, tab.tabId);
+      console.timeEnd(`[Performance] 启动自动刷新耗时 ${tab.sessionInfo.id}`);
+
+      console.timeEnd(`[Performance] 监控页面初始化总耗时 ${tab.sessionInfo.id}`);
+    } catch (error) {
+      console.error('[TerminalTabsManager] 监控连接失败:', error);
+      message.error('监控连接失败: ' + (error as Error).message);
+    }
+  };
 
   // 监听 triggerNewTab 的变化来创建新标签页
   useEffect(() => {
@@ -89,11 +138,16 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
     eventBus.addTabInfo(tabInfo);
     eventBus.emit('tab-create', tabInfo as TabInfo & { isNew: boolean });
 
-    // 预初始化SSH连接
-    void (async () => {
-      const { CommandExecutor } = await import('@/services/completion/analyzers/execution/CommandExecutor');
-      await CommandExecutor.initializeConnection();
-    })();
+    // 如果是监控会话，初始化监控
+    if (sessionInfo.type === 'monitor') {
+      void initMonitorSession(newTab);
+    } else {
+      // 预初始化SSH连接
+      void (async () => {
+        const { CommandExecutor } = await import('@/services/completion/analyzers/execution/CommandExecutor');
+        await CommandExecutor.initializeConnection();
+      })();
+    }
 
     console.log('[TerminalTabsManager] 新标签页创建完成:', { tabId, shellId, sessionInfo });
     
@@ -120,27 +174,13 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
     };
   }, []);
 
-  // 处理标签切换
-  const handleTabChange = (key: string) => {
-    console.log('[TerminalTabsManager] 切换标签页:', { key, tabs });
-    const tab = tabs.find(t => t.key === key);
-    if (tab && tab.sessionInfo) {
-      const shellId = `${tab.sessionInfo.id}-${tab.instanceId}`;
-      
-      // 设置当前标签页和shell
-      eventBus.setCurrentTabId(tab.tabId);
-      eventBus.setCurrentShellId(shellId);
-      setActiveKey(key);
-    }
-  };
-
   // 处理标签编辑（添加/删除）
   const handleEdit = (targetKey: React.MouseEvent | React.KeyboardEvent | string, action: 'add' | 'remove') => {
     console.log('[TerminalTabsManager] 编辑标签页:', { targetKey, action });
     if (action === 'add') {
       // 打开会话列表
       if (onTabChange) {
-        onTabChange({} as SessionInfo); // 传递一个空的会话信息来触发打开会话列表
+        onTabChange({} as SessionInfo);
       }
     } else if (action === 'remove' && typeof targetKey === 'string') {
       const tabToRemove = tabs.find(tab => tab.key === targetKey);
@@ -164,12 +204,20 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
         // 清理被删除标签页的状态
         eventBus.removeTab(tabToRemove.tabId);
         sftpConnectionManager.closeConnection(tabToRemove.tabId);
+        
+        // 如果是监控会话，停止刷新并断开连接
+        if (tabToRemove.sessionInfo?.type === 'monitor') {
+          const monitorManager = getServiceManager().getMonitorManager();
+          const refreshService = getServiceManager().getRefreshService();
+          refreshService.stopRefresh(tabToRemove.sessionInfo.id);
+          monitorManager.disconnectSession(tabToRemove.sessionInfo.id);
+        }
+
         eventBus.emit('completion:tab-remove', {
           tabId: tabToRemove.tabId,
           shellId:`${tabToRemove.sessionInfo?.id}-${tabToRemove.instanceId}`,
           sessionInfo: tabToRemove.sessionInfo
         });
-
       }
     }
   };

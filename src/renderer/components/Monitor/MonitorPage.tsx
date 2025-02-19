@@ -27,60 +27,25 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo }) => {
     monitorManager.setActiveTab(config.defaultPage);
   }, []);
 
+  // 监听刷新事件
   useEffect(() => {
-    let cleanup: (() => void) | undefined;
-
-    const initMonitor = async () => {
-      console.time(`[Performance] 监控页面初始化总耗时 ${sessionInfo.id}`);
-      try {
-        // 创建监控会话
-        console.time(`[Performance] 创建监控会话耗时 ${sessionInfo.id}`);
-        const monitorSession = monitorManager.createSession({
-          ...sessionInfo
-        });
-        console.timeEnd(`[Performance] 创建监控会话耗时 ${sessionInfo.id}`);
-
-        // 连接监控会话
-        console.time(`[Performance] 连接监控会话耗时 ${sessionInfo.id}`);
-        await monitorManager.connectSession(monitorSession.id);
-        console.timeEnd(`[Performance] 连接监控会话耗时 ${sessionInfo.id}`);
-        
-        // 监听刷新事件
-        const handleRefresh = () => {
-          console.time(`[Performance] 数据更新耗时 ${sessionInfo.id}`);
-          const updatedSession = monitorManager.getSession(monitorSession.id);
-          if (updatedSession?.monitorData) {
-            setMonitorData(updatedSession.monitorData);
-            setIsLoading(false);
-          }
-          console.timeEnd(`[Performance] 数据更新耗时 ${sessionInfo.id}`);
-        };
-
-        const refreshService = getServiceManager().getRefreshService();
-        refreshService.on('refresh', handleRefresh);
-        // 马上调用一次
-        handleRefresh();
-        // 设置清理函数
-        cleanup = () => {
-          console.log('[MonitorPage] 清理监控资源:', monitorSession.id);
-          refreshService.off('refresh', handleRefresh);
-          monitorManager.disconnectSession(monitorSession.id);
-        };
-      } catch (error) {
-        console.error('[MonitorPage] 监控连接失败:', error);
-        message.error('监控连接失败: ' + (error as Error).message);
+    const handleRefresh = () => {
+      console.time(`[Performance] 数据更新耗时 ${sessionInfo.id}`);
+      const updatedSession = monitorManager.getSession(sessionInfo.id);
+      if (updatedSession?.monitorData) {
+        setMonitorData(updatedSession.monitorData);
         setIsLoading(false);
       }
-      console.timeEnd(`[Performance] 监控页面初始化总耗时 ${sessionInfo.id}`);
+      console.timeEnd(`[Performance] 数据更新耗时 ${sessionInfo.id}`);
     };
 
-    initMonitor();
+    const refreshService = getServiceManager().getRefreshService();
+    refreshService.on('refresh', handleRefresh);
 
     // 返回清理函数
     return () => {
-      if (cleanup) {
-        cleanup();
-      }
+      console.log('[MonitorPage] 清理监控资源:', sessionInfo.id);
+      refreshService.off('refresh', handleRefresh);
     };
   }, [sessionInfo.id]);
 

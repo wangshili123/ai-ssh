@@ -113,21 +113,10 @@ export class MonitorManager {
       console.timeEnd(`[Performance] SSH连接耗时 ${sessionId}`);
       
       session.status = 'connected';
-      // 马上调用一次
+      // 马上调用一次刷新
       console.time(`[Performance] 马上调用一次刷新耗时 ${sessionId}`);
       await this.refreshSession(sessionId);
       console.timeEnd(`[Performance] 马上调用一次刷新耗时 ${sessionId}`);
-      
-      // 启动自动刷新
-      const config = this.configManager.getConfig();
-      if (config.autoRefresh) {
-        console.time(`[Performance] 启动自动刷新耗时 ${sessionId}`);
-        this.refreshService.startRefresh(session, {
-          interval: config.refreshInterval * 1000, // 转换为毫秒
-          autoRefresh: config.autoRefresh
-        });
-        console.timeEnd(`[Performance] 启动自动刷新耗时 ${sessionId}`);
-      }
     
     } catch (error) {
       session.status = 'error';

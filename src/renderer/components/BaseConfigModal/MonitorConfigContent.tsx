@@ -63,26 +63,6 @@ export const MonitorConfigContent = forwardRef<FormInstance, MonitorConfigConten
         <InputNumber min={1} max={3600} style={{ width: '100%' }} />
       </Form.Item>
 
-      <Form.Item
-        name="autoRefresh"
-        valuePropName="checked"
-      >
-        <Checkbox>自动刷新</Checkbox>
-      </Form.Item>
-
-      <Form.Item
-        name="collectServiceInfo"
-        valuePropName="checked"
-      >
-        <Checkbox>启动时获取服务信息</Checkbox>
-      </Form.Item>
-
-      <Form.Item
-        name="recordHistory"
-        valuePropName="checked"
-      >
-        <Checkbox>记录历史数据</Checkbox>
-      </Form.Item>
 
       <Form.Item
         name="enableCache"
