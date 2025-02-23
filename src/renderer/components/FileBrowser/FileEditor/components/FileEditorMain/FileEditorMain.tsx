@@ -12,9 +12,10 @@ import { EditorErrorType, EditorEvents, RemoteFileInfo } from '../../types/FileE
 import { useEditorStore } from '../../store/FileEditorStore';
 import { ErrorManager, ErrorType } from '../../core/ErrorManager';
 import './FileEditorMain.css';
+import '../../styles/FileEditor.css';  // 添加主题样式引入
 import { EditorContextMenu } from '../ContextMenu/EditorContextMenu';
-import { Alert, Button, Select, Space, Tooltip } from 'antd';
-import { CloudOutlined, DisconnectOutlined, LoadingOutlined, SaveOutlined } from '@ant-design/icons';
+import { Alert, Button, Select, Space, Tooltip, Modal, Input, Checkbox } from 'antd';
+import { CloudOutlined, DisconnectOutlined, LoadingOutlined, SaveOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import { FileEditorToolbar } from '../FileEditorToolbar/FileEditorToolbar';
 import { FileStatusBar } from '../FileStatusBar/FileStatusBar';
 import { FileEditorStore, EditorStoreContext } from '../../store/FileEditorStore';
@@ -60,6 +61,11 @@ const FileEditorMainInner = observer(forwardRef<FileEditorMainRef, FileEditorMai
   const [showLoadCompletePrompt, setShowLoadCompletePrompt] = useState(false);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [filterText, setFilterText] = useState('');
+  const [isRegex, setIsRegex] = useState(false);
+  const [isCaseSensitive, setIsCaseSensitive] = useState(false);
+  const [isWholeWord, setIsWholeWord] = useState(false);
 
   // 初始化 store
   useEffect(() => {
@@ -278,13 +284,73 @@ const FileEditorMainInner = observer(forwardRef<FileEditorMainRef, FileEditorMai
 
   // 处理搜索
   const handleSearch = useCallback(() => {
-    setShowSearchPanel(true);
-  }, []);
+    Modal.confirm({
+      title: '搜索',
+      icon: <SearchOutlined />,
+      content: (
+        <div className="search-dialog">
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="输入搜索内容..."
+            onChange={e => setSearchText(e.target.value)}
+          />
+          <div className="search-options">
+            <Checkbox onChange={e => setIsRegex(e.target.checked)}>使用正则表达式</Checkbox>
+            <Checkbox onChange={e => setIsCaseSensitive(e.target.checked)}>区分大小写</Checkbox>
+            <Checkbox onChange={e => setIsWholeWord(e.target.checked)}>全词匹配</Checkbox>
+          </div>
+        </div>
+      ),
+      okText: '搜索',
+      cancelText: '取消',
+      onOk: async () => {
+        if (searchText && editorRef.current?.getSearchManager()) {
+          const searchManager = editorRef.current.getSearchManager();
+          await searchManager.startSearch({
+            pattern: searchText,
+            isRegex,
+            caseSensitive: isCaseSensitive,
+            wholeWord: isWholeWord
+          });
+          setShowSearchPanel(true);
+        }
+      }
+    });
+  }, [searchText, isRegex, isCaseSensitive, isWholeWord]);
 
   // 处理过滤
   const handleFilter = useCallback(() => {
-    setShowFilterPanel(true);
-  }, []);
+    Modal.confirm({
+      title: '过滤',
+      icon: <FilterOutlined />,
+      content: (
+        <div className="filter-dialog">
+          <Input
+            prefix={<FilterOutlined />}
+            placeholder="输入过滤条件..."
+            onChange={e => setFilterText(e.target.value)}
+          />
+          <div className="filter-options">
+            <Checkbox onChange={e => setIsRegex(e.target.checked)}>使用正则表达式</Checkbox>
+            <Checkbox onChange={e => setIsCaseSensitive(e.target.checked)}>区分大小写</Checkbox>
+          </div>
+        </div>
+      ),
+      okText: '应用过滤',
+      cancelText: '取消',
+      onOk: async () => {
+        if (filterText && editorRef.current?.getFilterManager()) {
+          const filterManager = editorRef.current.getFilterManager();
+          await filterManager.applyFilter({
+            pattern: filterText,
+            isRegex,
+            caseSensitive: isCaseSensitive
+          });
+          setShowFilterPanel(true);
+        }
+      }
+    });
+  }, [filterText, isRegex, isCaseSensitive]);
 
   // 处理搜索面板关闭
   const handleSearchClose = useCallback(() => {
@@ -294,6 +360,37 @@ const FileEditorMainInner = observer(forwardRef<FileEditorMainRef, FileEditorMai
   // 处理过滤面板关闭
   const handleFilterClose = useCallback(() => {
     setShowFilterPanel(false);
+  }, []);
+
+  // 配置 Monaco Editor 主题
+  const configureMonacoTheme = () => {
+    monaco.editor.defineTheme('customTheme', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        { token: 'keyword', foreground: '0d6efd' },
+        { token: 'string', foreground: '198754' },
+        { token: 'comment', foreground: '6c757d' },
+        { token: 'number', foreground: 'fd7e14' },
+        { token: 'function', foreground: '6f42c1' },
+        { token: 'variable', foreground: '2c3e50' },
+        { token: 'operator', foreground: 'dc3545' },
+        { token: 'type', foreground: '0dcaf0' }
+      ],
+      colors: {
+        'editor.background': '#ffffff',
+        'editor.foreground': '#2c3e50',
+        'editorLineNumber.foreground': '#6c757d',
+        'editor.lineHighlightBackground': '#f8f9fa',
+        'editor.selectionBackground': '#e3f2fd',
+        'editorCursor.foreground': '#1976d2'
+      }
+    });
+  };
+
+  // 在初始化编辑器时应用主题
+  useEffect(() => {
+    configureMonacoTheme();
   }, []);
 
   return (

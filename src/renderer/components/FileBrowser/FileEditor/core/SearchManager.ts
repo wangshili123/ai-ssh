@@ -18,6 +18,7 @@ export class SearchManager extends EventEmitter {
   private searchedBytes: number = 0;
   private totalBytes: number = 0;
   private chunkSize: number = 1024 * 1024; // 1MB
+  private currentPattern: string = '';
 
   /**
    * 初始化搜索管理器
@@ -36,6 +37,7 @@ export class SearchManager extends EventEmitter {
     }
 
     this.searchConfig = config;
+    this.currentPattern = config.pattern;
     this.isSearching = true;
     this.shouldStop = false;
     this.currentMatch = 0;
@@ -229,6 +231,13 @@ export class SearchManager extends EventEmitter {
   destroy(): void {
     this.stopSearch();
     this.removeAllListeners();
+  }
+
+  /**
+   * 获取当前搜索模式
+   */
+  getCurrentPattern(): string {
+    return this.currentPattern;
   }
 }
 

@@ -1,0 +1,65 @@
+:root {
+  /* 主色调 */
+  --editor-bg: #f8f9fa;
+  --editor-text: #2c3e50;
+  --editor-border: #dee2e6;
+  
+  /* 工具栏和状态栏 */
+  --toolbar-bg: #ffffff;
+  --toolbar-border: #e9ecef;
+  --toolbar-text: #2c3e50;
+  --toolbar-hover: #f8f9fa;
+  
+  /* 编辑器区域 */
+  --editor-content-bg: #ffffff;
+  --editor-content-text: #2c3e50;
+  --editor-line-number: #6c757d;
+  --editor-line-highlight: #f8f9fa;
+  --editor-selection: #e3f2fd;
+  --editor-cursor: #1976d2;
+  
+  /* 搜索和过滤 */
+  --search-highlight-bg: #fff3cd;
+  --search-highlight-border: #ffeeba;
+  --search-panel-bg: #ffffff;
+  --search-panel-border: #e9ecef;
+  --search-match-bg: #e3f2fd;
+  --search-match-border: #bbdefb;
+  
+  /* 状态信息 */
+  --status-info: #0d6efd;
+  --status-info-hover: #0b5ed7;
+  --status-success: #198754;
+  --status-success-hover: #157347;
+  --status-warning: #ffc107;
+  --status-warning-hover: #ffca2c;
+  --status-error: #dc3545;
+  --status-error-hover: #bb2d3b;
+  
+  /* 滚动条 */
+  --scrollbar-thumb: #adb5bd;
+  --scrollbar-thumb-hover: #6c757d;
+  --scrollbar-track: #f8f9fa;
+  
+  /* 其他 */
+  --shadow-color: rgba(0, 0, 0, 0.075);
+  --overlay-bg: rgba(255, 255, 255, 0.9);
+  
+  /* 语法高亮 */
+  --syntax-keyword: #0d6efd;
+  --syntax-string: #198754;
+  --syntax-comment: #6c757d;
+  --syntax-number: #fd7e14;
+  --syntax-function: #6f42c1;
+  --syntax-variable: #2c3e50;
+  --syntax-operator: #dc3545;
+  --syntax-type: #0dcaf0;
+  
+  /* 编辑器主题 */
+  --monaco-theme-bg: #ffffff;
+  --monaco-theme-text: #2c3e50;
+  --monaco-theme-line-number: #6c757d;
+  --monaco-theme-line-highlight: #f8f9fa;
+  --monaco-theme-selection: #e3f2fd;
+  --monaco-theme-cursor: #1976d2;
+} 

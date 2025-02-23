@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Modal } from 'antd';
 import { FileEditorMain, FileEditorMainRef } from '../FileEditorMain/FileEditorMain';
+import { createRoot } from 'react-dom/client';
 import './EditorDialog.css';
 
 interface EditorDialogProps {

@@ -9,7 +9,7 @@ import { FilterManager } from '../../core/FilterManager';
 import { useEditorStore } from '../../store/FileEditorStore';
 import './FileFilterPanel.css';
 import { Button, Input, Space, Switch, Tooltip, Progress } from 'antd';
-import { FilterOutlined, CloseOutlined } from '@ant-design/icons';
+import { FilterOutlined, CloseOutlined, ReloadOutlined } from '@ant-design/icons';
 
 export interface FileFilterPanelProps {
   filterManager: FilterManager | null;
@@ -35,6 +35,18 @@ export const FileFilterPanel: React.FC<FileFilterPanelProps> = observer(({
     totalLines: 0,
     processedSize: 0
   });
+
+  // 初始化时加载当前过滤配置
+  useEffect(() => {
+    if (filterManager) {
+      const currentConfig = filterManager.getFilterConfig();
+      if (currentConfig) {
+        setFilterText(currentConfig.pattern);
+        setIsRegex(currentConfig.isRegex);
+        setIsCaseSensitive(currentConfig.caseSensitive);
+      }
+    }
+  }, [filterManager]);
 
   // 处理过滤文本变化
   const handleFilterTextChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,6 +79,21 @@ export const FileFilterPanel: React.FC<FileFilterPanelProps> = observer(({
       setIsFiltering(false);
     }
   }, [filterManager, isRegex, isCaseSensitive]);
+
+  // 处理重新加载
+  const handleReload = useCallback(async () => {
+    if (!filterManager) return;
+
+    try {
+      setIsFiltering(true);
+      setFilterError(null);
+      await filterManager.reloadWithFilter();
+    } catch (error) {
+      setFilterError((error as Error).message);
+    } finally {
+      setIsFiltering(false);
+    }
+  }, [filterManager]);
 
   // 处理选项变化
   const handleOptionChange = useCallback((option: 'regex' | 'case') => {
@@ -154,6 +181,14 @@ export const FileFilterPanel: React.FC<FileFilterPanelProps> = observer(({
               icon={<span>Aa</span>}
               onClick={() => handleOptionChange('case')}
               disabled={!filterManager}
+            />
+          </Tooltip>
+          <Tooltip title="重新加载">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleReload}
+              disabled={!filterManager || !filterText}
+              loading={isFiltering}
             />
           </Tooltip>
           <Button

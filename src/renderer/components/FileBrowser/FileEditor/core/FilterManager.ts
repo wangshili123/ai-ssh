@@ -18,6 +18,7 @@ export class FilterManager extends EventEmitter {
   private matchedLines: number = 0;
   private processedSize: number = 0;
   private chunkSize: number = 1024 * 1024; // 1MB
+  private currentConfig: FilterConfig | null = null;
 
   /**
    * 初始化过滤管理器
@@ -35,6 +36,18 @@ export class FilterManager extends EventEmitter {
     this.isRegex = config.isRegex;
     this.caseSensitive = config.caseSensitive;
     this.filterActive = true;
+    this.currentConfig = config;
+
+    await this.reloadWithFilter();
+  }
+
+  /**
+   * 重新加载并应用过滤
+   */
+  async reloadWithFilter(): Promise<void> {
+    if (!this.filterActive || !this.currentConfig) {
+      return;
+    }
 
     // 重置统计信息
     this.totalLines = 0;
@@ -62,6 +75,13 @@ export class FilterManager extends EventEmitter {
           processedSize: this.processedSize,
           totalSize
         });
+
+        // 如果文件内容已更新，重新开始过滤
+        const newStats = await sftpService.stat(this.sessionId, this.filePath);
+        if (newStats.size !== totalSize || newStats.modifyTime !== stats.modifyTime) {
+          console.log('[FilterManager] 文件已更新，重新开始过滤');
+          return this.reloadWithFilter();
+        }
       }
 
       // 发出过滤完成事件
@@ -132,6 +152,7 @@ export class FilterManager extends EventEmitter {
     this.isRegex = false;
     this.caseSensitive = false;
     this.filterActive = false;
+    this.currentConfig = null;
     this.totalLines = 0;
     this.matchedLines = 0;
     this.processedSize = 0;
@@ -150,15 +171,7 @@ export class FilterManager extends EventEmitter {
    * 获取当前过滤配置
    */
   getFilterConfig(): FilterConfig | null {
-    if (!this.filterActive) {
-      return null;
-    }
-
-    return {
-      pattern: this.pattern,
-      isRegex: this.isRegex,
-      caseSensitive: this.caseSensitive
-    };
+    return this.currentConfig;
   }
 
   /**

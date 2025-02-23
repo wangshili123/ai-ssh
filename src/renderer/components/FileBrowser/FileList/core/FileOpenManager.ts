@@ -10,16 +10,18 @@ import { Modal } from 'antd';
 import { EditorDialog } from '../../FileEditor/components/EditorDialog/EditorDialog';
 import { uiSettingsManager } from '../../../../services/UISettingsManager';
 import { sftpService } from '../../../../services/sftp';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 class FileOpenManager {
   private static instance: FileOpenManager;
   private dialogContainer: HTMLDivElement | null = null;
+  private root: ReturnType<typeof createRoot> | null = null;
 
   private constructor() {
     // 创建对话框容器
     this.dialogContainer = document.createElement('div');
     document.body.appendChild(this.dialogContainer);
+    this.root = createRoot(this.dialogContainer);
   }
 
   static getInstance(): FileOpenManager {
@@ -39,26 +41,25 @@ class FileOpenManager {
         await sftpService.createClient(tabId, sessionInfo);
 
         // 渲染编辑器对话框
-        if (this.dialogContainer) {
+        if (this.dialogContainer && this.root) {
           const handleClose = async () => {
             // 关闭 SFTP 客户端
             await sftpService.close(tabId);
             
             // 卸载组件
-            if (this.dialogContainer) {
-              ReactDOM.unmountComponentAtNode(this.dialogContainer);
+            if (this.root) {
+              this.root.render(null);
             }
           };
 
-          ReactDOM.render(
+          this.root.render(
             React.createElement(EditorDialog, {
               visible: true,
               title: `编辑 - ${file.name}`,
               filePath: file.path,
               sessionId: tabId,
               onClose: handleClose
-            }),
-            this.dialogContainer
+            })
           );
         }
       } catch (error) {

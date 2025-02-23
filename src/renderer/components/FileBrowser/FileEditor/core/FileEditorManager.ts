@@ -204,7 +204,7 @@ export class FileEditorManager extends EventEmitter {
       this.editor = monaco.editor.create(container, {
         value: '',
         language: this.getLanguage(filePath),
-        theme: this.config.theme,
+        theme: 'customTheme',
         fontSize: this.config.fontSize,
         tabSize: this.config.tabSize,
         wordWrap: this.config.wordWrap,
@@ -213,7 +213,17 @@ export class FileEditorManager extends EventEmitter {
         scrollBeyondLastLine: false,
         automaticLayout: true,
         formatOnPaste: true,
-        formatOnType: true
+        formatOnType: true,
+        lineNumbers: 'on',
+        lineNumbersMinChars: 3,
+        renderLineHighlight: 'all',
+        scrollbar: {
+          useShadows: false,
+          verticalScrollbarSize: 8,
+          horizontalScrollbarSize: 8
+        },
+        fixedOverflowWidgets: true,
+        contextmenu: false
       });
 
       // 如果文件不为空，加载文件内容
@@ -280,6 +290,23 @@ export class FileEditorManager extends EventEmitter {
       );
 
       this.emit(EditorEvents.FILE_LOADED, this.currentModel.getValue());
+
+      // 在 initialize 方法中添加事件监听
+      this.filterManager.on(EditorEvents.FILTER_PARTIAL_RESULTS, (lines: string[]) => {
+        this.handleFilterResults(lines);
+      });
+
+      // 在 SearchManager 中添加搜索结果处理
+      this.searchManager.on(EditorEvents.SEARCH_MATCH_CHANGED, (index: number) => {
+        if (!this.editor) return;
+        
+        const decorations = this.editor.getModel()?.getAllDecorations() || [];
+        if (decorations.length > index) {
+          const decoration = decorations[index];
+          this.editor.revealLineInCenter(decoration.range.startLineNumber);
+          this.editor.setSelection(decoration.range);
+        }
+      });
     } catch (error) {
       this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
       throw error;
@@ -699,5 +726,42 @@ export class FileEditorManager extends EventEmitter {
    */
   public getFilterManager(): FilterManager {
     return this.filterManager;
+  }
+
+  /**
+   * 更新编辑器内容
+   */
+  private updateEditorContent(content: string, isFiltered: boolean = false) {
+    if (!this.editor || !this.currentModel) return;
+
+    const position = this.editor.getPosition();
+    const selections = this.editor.getSelections();
+
+    // 更新模型内容
+    this.currentModel.setValue(content);
+
+    // 恢复光标位置和选择
+    if (position) {
+      this.editor.setPosition(position);
+    }
+    if (selections) {
+      this.editor.setSelections(selections);
+    }
+
+    // 如果是过滤结果，发出事件
+    if (isFiltered) {
+      this.emit(EditorEvents.FILTER_COMPLETED);
+    }
+  }
+
+  /**
+   * 处理过滤结果
+   */
+  private handleFilterResults(lines: string[]) {
+    if (!this.editor || !this.currentModel) return;
+
+    // 将过滤后的行组合成文本
+    const content = lines.join('\n');
+    this.updateEditorContent(content, true);
   }
 } 

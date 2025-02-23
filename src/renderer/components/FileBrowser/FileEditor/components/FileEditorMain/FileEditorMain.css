@@ -66,4 +66,67 @@
   border-radius: 4px;
   color: #fff;
   font-size: 12px;
+}
+
+.search-dialog,
+.filter-dialog {
+  padding: 16px;
+}
+
+.search-dialog .ant-input-affix-wrapper,
+.filter-dialog .ant-input-affix-wrapper {
+  margin-bottom: 16px;
+}
+
+.search-options,
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 对话框样式 */
+.ant-modal-confirm .ant-modal-confirm-btns {
+  margin-top: 24px;
+}
+
+.ant-modal-confirm .ant-modal-confirm-content {
+  margin-top: 16px;
+}
+
+.ant-modal-confirm .ant-modal-confirm-title {
+  color: var(--editor-text);
+}
+
+.ant-modal-confirm .ant-checkbox-wrapper {
+  color: var(--editor-text);
+}
+
+.ant-modal-confirm .ant-input-affix-wrapper {
+  background-color: var(--editor-content-bg);
+  border-color: var(--editor-border);
+}
+
+.ant-modal-confirm .ant-input-affix-wrapper:hover,
+.ant-modal-confirm .ant-input-affix-wrapper:focus {
+  border-color: var(--status-info);
+}
+
+.ant-modal-confirm .ant-input {
+  background-color: transparent;
+  color: var(--editor-text);
+}
+
+.ant-modal-confirm .ant-input::placeholder {
+  color: var(--editor-line-number);
+}
+
+.ant-modal-confirm .ant-btn-primary {
+  background-color: var(--status-info);
+  border-color: var(--status-info);
+}
+
+.ant-modal-confirm .ant-btn-primary:hover {
+  background-color: var(--status-info-hover);
+  border-color: var(--status-info-hover);
 } 

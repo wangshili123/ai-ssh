@@ -1,16 +1,39 @@
-{
-    "fileInfo": {
-        "size": 182,
-        "modifyTime": 1740322482000,
-        "isDirectory": false,
-        "permissions": 33188,
-        "encoding": "UTF-8",
-        "isPartiallyLoaded": false
-    },
-    "currentFile": "/usr/test.xml",
-    "encoding": "UTF-8",
-    "cursorPosition": {
-        "line": 46,
-        "column": 4
-    }
-}
+ Warning: ReactDOM.render is no longer supported in React 18. Use createRoot instead. Until you switch to the new API, your app will behave as if it's running React 17. Learn more: https://reactjs.org/link/switch-to-createroot
+printWarning @ renderer.js:547527
+error @ renderer.js:547501
+render @ renderer.js:577152
+openFile @ renderer.js:668113
+await in openFile (async)
+handleRowDoubleClick @ renderer.js:667796
+onDoubleClick @ renderer.js:667882
+callCallback @ renderer.js:551605
+invokeGuardedCallbackDev @ renderer.js:551654
+invokeGuardedCallback @ renderer.js:551718
+invokeGuardedCallbackAndCatchFirstError @ renderer.js:551732
+executeDispatch @ renderer.js:556482
+processDispatchQueueItemsInOrder @ renderer.js:556514
+processDispatchQueue @ renderer.js:556527
+dispatchEventsForPlugins @ renderer.js:556538
+(anonymous) @ renderer.js:556729
+batchedUpdates$1 @ renderer.js:573615
+batchedUpdates @ renderer.js:551432
+dispatchEventForPluginEventSystem @ renderer.js:556728
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ renderer.js:553906
+dispatchEvent @ renderer.js:553898
+dispatchDiscreteEvent @ renderer.js:553871
+ FileStatusBar render: {fileInfo: null, currentFile: null, encoding: 'UTF-8', cursorPosition: null}
+ Missing data: {fileInfo: null, currentFile: null}
+ FileStatusBar render: {fileInfo: null, currentFile: '/usr/test.xml', encoding: 'UTF-8', cursorPosition: null}
+ Missing data: {fileInfo: null, currentFile: '/usr/test.xml'}
+ FileStatusBar render: {fileInfo: Proxy(Object), currentFile: '/usr/test.xml', encoding: 'UTF-8', cursorPosition: null}
+ [OPERATION_FAILED] Illegal value for token color: var(--monaco-theme-text) Error: Illegal value for token color: var(--monaco-theme-text)
+    at ColorMap.getId (renderer.js:396026:19)
+    at resolveParsedTokenThemeRules (renderer.js:396003:40)
+    at TokenTheme.createFromParsedTokenTheme (renderer.js:396047:16)
+    at TokenTheme.createFromRawTokenTheme (renderer.js:396044:21)
+    at get tokenTheme [as tokenTheme] (renderer.js:474581:115)
+    at StandaloneThemeService._updateThemeOrColorMap (renderer.js:474772:64)
+    at StandaloneThemeService._updateActualTheme (renderer.js:474730:14)
+    at StandaloneThemeService.setTheme (renderer.js:474722:14)
+    at new StandaloneEditor (renderer.js:471994:26)
+    at InstantiationService._createInstance (renderer.js:484984:24)
