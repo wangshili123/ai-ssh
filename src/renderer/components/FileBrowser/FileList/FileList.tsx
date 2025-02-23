@@ -123,6 +123,20 @@ const getFileIcon = (file: FileEntry): string => {
   return iconMap[file.extension] || '📄';
 };
 
+// 修改右键菜单状态的类型定义
+type MenuItem = {
+  key: string;
+  label: string;
+  danger?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
+  children?: (MenuItem | MenuDivider)[];
+};
+
+type MenuDivider = {
+  type: 'divider';
+};
+
 const FileList: React.FC<FileListProps> = ({
   sessionInfo,
   tabId,
@@ -140,12 +154,7 @@ const FileList: React.FC<FileListProps> = ({
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
-    items: {
-      label: string;
-      type?: 'checkbox';
-      checked?: boolean;
-      onClick: () => void;
-    }[];
+    file: FileEntry;
   } | null>(null);
 
   // 监听容器高度变化
@@ -189,29 +198,15 @@ const FileList: React.FC<FileListProps> = ({
   };
 
   // 修改处理右键菜单的函数
-  const handleContextMenu = useCallback(async (event: React.MouseEvent, file: FileEntry) => {
+  const handleContextMenu = useCallback((event: React.MouseEvent, file: FileEntry) => {
     event.preventDefault();
-    
-    // 获取当前文件的默认编辑器设置
-    const defaultEditor = await fileOpenManager.getDefaultEditor(file);
     
     setContextMenu({
       x: event.clientX,
       y: event.clientY,
-      items: [
-        {
-          label: '使用内置编辑器打开',
-          onClick: () => fileOpenManager.openFile(file, sessionInfo!, tabId, 'built-in')
-        },
-        {
-          label: '设为默认打开方式',
-          type: 'checkbox',
-          checked: defaultEditor === 'built-in',
-          onClick: () => fileOpenManager.setDefaultEditor(file.extension || '*', 'built-in')
-        }
-      ]
+      file
     });
-  }, [sessionInfo, tabId]);
+  }, []);
 
   // 处理关闭右键菜单
   const handleCloseContextMenu = useCallback(() => {
@@ -315,7 +310,10 @@ const FileList: React.FC<FileListProps> = ({
         <FileListContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          items={contextMenu.items}
+          file={contextMenu.file}
+          sessionInfo={sessionInfo}
+          tabId={tabId}
+          currentPath={currentPath}
           onClose={handleCloseContextMenu}
         />
       )}

@@ -1,13 +1,67 @@
 .file-list-context-menu {
-  position: fixed;
-  min-width: 180px;
+  min-width: 200px;
   background-color: #1E1E1E;
   border: 1px solid #333;
   border-radius: 4px;
-  padding: 4px 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   user-select: none;
+}
+
+.context-menu.ant-menu {
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+}
+
+.context-menu.ant-menu .ant-menu-item,
+.context-menu.ant-menu .ant-menu-submenu-title {
+  height: 32px;
+  line-height: 32px;
+  margin: 0;
+  padding: 0 16px;
+  color: #D4D4D4;
+  font-size: 13px;
+}
+
+.context-menu.ant-menu .ant-menu-item:hover,
+.context-menu.ant-menu .ant-menu-submenu-title:hover {
+  background: #2D2D2D;
+}
+
+.context-menu.ant-menu .ant-menu-item.ant-menu-item-danger {
+  color: #ff4d4f;
+}
+
+.context-menu.ant-menu .ant-menu-submenu-arrow {
+  color: #D4D4D4;
+}
+
+.context-menu.ant-menu .ant-menu-submenu > .ant-menu {
+  background-color: #1E1E1E;
+  border: 1px solid #333;
+  border-radius: 4px;
+  margin-top: -4px;
+}
+
+.context-menu.ant-menu .ant-menu-item-disabled {
+  color: #666 !important;
+  cursor: not-allowed;
+}
+
+.context-menu.ant-menu .ant-menu-item-disabled:hover {
+  background: none !important;
+}
+
+.context-menu.ant-menu .ant-menu-item-divider {
+  background-color: #333;
+  margin: 4px 0;
+}
+
+/* 图标样式 */
+.context-menu.ant-menu .anticon {
+  margin-right: 8px;
+  font-size: 14px;
 }
 
 .file-list-context-menu .menu-item {
