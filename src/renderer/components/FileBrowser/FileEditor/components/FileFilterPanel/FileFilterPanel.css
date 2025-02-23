@@ -1,0 +1,105 @@
+.file-filter-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 320px;
+  background-color: #1e1e1e;
+  border-left: 1px solid #333;
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-filter-panel .filter-header {
+  padding: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.file-filter-panel .filter-header .ant-space {
+  width: 100%;
+  display: flex;
+}
+
+.file-filter-panel .filter-header .ant-input-affix-wrapper {
+  flex: 1;
+}
+
+.file-filter-panel .filter-progress {
+  padding: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.file-filter-panel .filter-progress .ant-progress {
+  margin: 0;
+  line-height: 1;
+}
+
+.file-filter-panel .filter-stats {
+  padding: 8px;
+  color: #d4d4d4;
+  font-size: 12px;
+  text-align: center;
+  background-color: #2d2d2d;
+  border-bottom: 1px solid #333;
+}
+
+.file-filter-panel .filter-error {
+  padding: 8px;
+  color: #ff4d4f;
+  font-size: 12px;
+  text-align: center;
+  background-color: #2d2d2d;
+}
+
+/* 按钮样式 */
+.file-filter-panel .ant-btn {
+  color: #d4d4d4;
+  border-color: transparent;
+  background: transparent;
+}
+
+.file-filter-panel .ant-btn:hover {
+  color: #1890ff;
+  border-color: transparent;
+  background: #2d2d2d;
+}
+
+.file-filter-panel .ant-btn[disabled] {
+  color: #666;
+  background: transparent;
+}
+
+.file-filter-panel .ant-btn-primary {
+  color: #fff;
+  background: #1890ff;
+}
+
+.file-filter-panel .ant-btn-primary:hover {
+  background: #40a9ff;
+}
+
+/* 输入框样式 */
+.file-filter-panel .ant-input-affix-wrapper {
+  background-color: #2d2d2d;
+  border-color: #444;
+}
+
+.file-filter-panel .ant-input-affix-wrapper:hover,
+.file-filter-panel .ant-input-affix-wrapper:focus {
+  border-color: #1890ff;
+}
+
+.file-filter-panel .ant-input {
+  background-color: transparent;
+  color: #d4d4d4;
+}
+
+.file-filter-panel .ant-input::placeholder {
+  color: #666;
+}
+
+/* 进度条样式 */
+.file-filter-panel .ant-progress-bg {
+  background-color: #1890ff;
+} 

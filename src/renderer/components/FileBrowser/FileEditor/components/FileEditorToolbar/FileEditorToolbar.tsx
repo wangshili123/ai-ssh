@@ -13,15 +13,24 @@ import {
   DisconnectOutlined,
   EyeOutlined,
   SaveOutlined,
+  SearchOutlined,
+  FilterOutlined,
   VerticalAlignBottomOutlined
 } from '@ant-design/icons';
 
 interface FileEditorToolbarProps {
   onSave: () => void;
   onReconnect: () => void;
+  onSearch: () => void;
+  onFilter: () => void;
 }
 
-export const FileEditorToolbar: React.FC<FileEditorToolbarProps> = observer(({ onSave, onReconnect }) => {
+export const FileEditorToolbar: React.FC<FileEditorToolbarProps> = observer(({
+  onSave,
+  onReconnect,
+  onSearch,
+  onFilter
+}) => {
   const editorStore = useEditorStore();
 
   return (
@@ -63,6 +72,24 @@ export const FileEditorToolbar: React.FC<FileEditorToolbarProps> = observer(({ o
             />
           </Tooltip>
         )}
+
+        {/* 搜索按钮 */}
+        <Tooltip title="搜索">
+          <Button
+            type="text"
+            icon={<SearchOutlined />}
+            onClick={onSearch}
+          />
+        </Tooltip>
+
+        {/* 过滤按钮 */}
+        <Tooltip title="过滤">
+          <Button
+            type={editorStore.filterActive ? "primary" : "text"}
+            icon={<FilterOutlined />}
+            onClick={onFilter}
+          />
+        </Tooltip>
 
         {/* 实时监控开关 */}
         <Tooltip title="实时监控">

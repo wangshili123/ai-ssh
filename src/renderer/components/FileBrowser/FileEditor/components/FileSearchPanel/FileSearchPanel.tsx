@@ -7,17 +7,19 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { observer } from 'mobx-react';
 import { SearchManager, SearchConfig, SearchResult } from '../../core/SearchManager';
 import { useEditorStore } from '../../store/FileEditorStore';
-import './FileSearchPanel.less';
+import './FileSearchPanel.css';
+import { Button, Input, Space, Switch, Tooltip } from 'antd';
+import { SearchOutlined, CloseOutlined, UpOutlined, DownOutlined } from '@ant-design/icons';
 
-interface FileSearchPanelProps {
-  searchManager: SearchManager;
+export interface FileSearchPanelProps {
+  searchManager: SearchManager | null;
   onClose: () => void;
 }
 
-export const FileSearchPanel: React.FC<FileSearchPanelProps> = observer((props) => {
-  const { searchManager, onClose } = props;
-  const editorStore = useEditorStore();
-
+export const FileSearchPanel: React.FC<FileSearchPanelProps> = observer(({
+  searchManager,
+  onClose
+}) => {
   // 搜索状态
   const [searchText, setSearchText] = useState('');
   const [isRegex, setIsRegex] = useState(false);
@@ -43,17 +45,19 @@ export const FileSearchPanel: React.FC<FileSearchPanelProps> = observer((props) 
 
     // 设置新的定时器
     searchDebounceRef.current = setTimeout(() => {
-      if (value) {
+      if (value && searchManager) {
         startSearch(value);
       } else {
         setSearchResults([]);
         setCurrentResultIndex(-1);
       }
     }, 300);
-  }, [isRegex, isCaseSensitive, isWholeWord]);
+  }, [isRegex, isCaseSensitive, isWholeWord, searchManager]);
 
   // 开始搜索
   const startSearch = useCallback(async (text: string) => {
+    if (!searchManager) return;
+
     try {
       setIsSearching(true);
       setSearchError(null);
@@ -75,6 +79,8 @@ export const FileSearchPanel: React.FC<FileSearchPanelProps> = observer((props) 
 
   // 处理选项变化
   const handleOptionChange = useCallback((option: 'regex' | 'case' | 'word') => {
+    if (!searchManager) return;
+
     switch (option) {
       case 'regex':
         setIsRegex(!isRegex);
@@ -91,21 +97,23 @@ export const FileSearchPanel: React.FC<FileSearchPanelProps> = observer((props) 
     if (searchText) {
       startSearch(searchText);
     }
-  }, [isRegex, isCaseSensitive, isWholeWord, searchText, startSearch]);
+  }, [isRegex, isCaseSensitive, isWholeWord, searchText, startSearch, searchManager]);
 
   // 处理导航
   const handleNavigation = useCallback((direction: 'next' | 'prev') => {
-    const result = direction === 'next' 
-      ? searchManager.nextMatch()
-      : searchManager.previousMatch();
+    if (!searchManager) return;
 
-    if (result) {
-      // TODO: 通知编辑器跳转到对应位置
+    if (direction === 'next') {
+      searchManager.nextMatch();
+    } else {
+      searchManager.previousMatch();
     }
   }, [searchManager]);
 
   // 监听搜索事件
   useEffect(() => {
+    if (!searchManager) return;
+
     const handleSearchResults = (results: SearchResult[]) => {
       setSearchResults(results);
       setCurrentResultIndex(results.length > 0 ? 0 : -1);
@@ -134,120 +142,77 @@ export const FileSearchPanel: React.FC<FileSearchPanelProps> = observer((props) 
     };
   }, []);
 
-  const handleNextMatch = () => {
-    if (searchManager && searchManager.nextMatch()) {
-      // 更新当前匹配项
-      setCurrentResultIndex(searchManager.getCurrentMatchIndex());
-    }
-  };
-
-  const handlePreviousMatch = () => {
-    if (searchManager && searchManager.previousMatch()) {
-      // 更新当前匹配项
-      setCurrentResultIndex(searchManager.getCurrentMatchIndex());
-    }
-  };
-
   return (
     <div className="file-search-panel">
-      {/* 搜索输入区域 */}
-      <div className="search-input-area">
-        <div className="search-input-wrapper">
-          <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            className="search-input"
+      <div className="search-header">
+        <Space>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="搜索..."
             value={searchText}
             onChange={handleSearchTextChange}
-            placeholder="搜索..."
+            disabled={!searchManager}
           />
-          {searchText && (
-            <button
-              className="clear-button"
-              onClick={() => setSearchText('')}
-              title="清除搜索"
-            >
-              ×
-            </button>
-          )}
-        </div>
-
-        {/* 搜索选项 */}
-        <div className="search-options">
-          <button
-            className={`option-button ${isRegex ? 'active' : ''}`}
-            onClick={() => handleOptionChange('regex')}
-            title="使用正则表达式"
-          >
-            .*
-          </button>
-          <button
-            className={`option-button ${isCaseSensitive ? 'active' : ''}`}
-            onClick={() => handleOptionChange('case')}
-            title="区分大小写"
-          >
-            Aa
-          </button>
-          <button
-            className={`option-button ${isWholeWord ? 'active' : ''}`}
-            onClick={() => handleOptionChange('word')}
-            title="全词匹配"
-          >
-            ⟨ab⟩
-          </button>
-        </div>
-
-        <button className="close-button" onClick={onClose} title="关闭搜索">
-          ×
-        </button>
+          <Tooltip title="使用正则表达式">
+            <Button
+              type={isRegex ? "primary" : "text"}
+              icon={<span>.*</span>}
+              onClick={() => handleOptionChange('regex')}
+              disabled={!searchManager}
+            />
+          </Tooltip>
+          <Tooltip title="区分大小写">
+            <Button
+              type={isCaseSensitive ? "primary" : "text"}
+              icon={<span>Aa</span>}
+              onClick={() => handleOptionChange('case')}
+              disabled={!searchManager}
+            />
+          </Tooltip>
+          <Tooltip title="全词匹配">
+            <Button
+              type={isWholeWord ? "primary" : "text"}
+              icon={<span>⟨ab⟩</span>}
+              onClick={() => handleOptionChange('word')}
+              disabled={!searchManager}
+            />
+          </Tooltip>
+          <Button
+            icon={<CloseOutlined />}
+            onClick={onClose}
+          />
+        </Space>
       </div>
 
-      {/* 搜索结果导航 */}
       {searchResults.length > 0 && (
-        <div className="search-results-nav">
-          <div className="results-count">
-            {currentResultIndex + 1} / {searchResults.length} 个结果
-          </div>
-          <div className="nav-buttons">
-            <button
+        <div className="search-navigation">
+          <Space>
+            <span className="search-stats">
+              {currentResultIndex + 1} / {searchResults.length} 个结果
+            </span>
+            <Button
+              icon={<UpOutlined />}
               onClick={() => handleNavigation('prev')}
               disabled={currentResultIndex <= 0}
-              title="上一个匹配项"
-            >
-              ◀️
-            </button>
-            <button
+            />
+            <Button
+              icon={<DownOutlined />}
               onClick={() => handleNavigation('next')}
               disabled={currentResultIndex >= searchResults.length - 1}
-              title="下一个匹配项"
-            >
-              ▶️
-            </button>
-          </div>
+            />
+          </Space>
         </div>
       )}
 
-      {/* 搜索状态/错误信息 */}
       {isSearching && (
         <div className="search-status">
           正在搜索...
         </div>
       )}
+
       {searchError && (
         <div className="search-error">
           搜索错误: {searchError}
-        </div>
-      )}
-
-      {/* 当前匹配项预览 */}
-      {searchResults.length > 0 && currentResultIndex >= 0 && (
-        <div className="result-preview">
-          <div className="preview-header">
-            预览:
-          </div>
-          <div className="preview-content">
-            {searchResults[currentResultIndex].previewText}
-          </div>
         </div>
       )}
     </div>

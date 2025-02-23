@@ -14,8 +14,12 @@ export enum EditorEvents {
   SAVE_REQUESTED = 'save-requested',
   
   // 过滤相关事件
-  FILTER_APPLIED = 'filter-applied',
+  FILTER_STARTED = 'filter-started',
+  FILTER_PROGRESS = 'filter-progress',
+  FILTER_COMPLETED = 'filter-completed',
+  FILTER_ERROR = 'filter-error',
   FILTER_CLEARED = 'filter-cleared',
+  FILTER_PARTIAL_RESULTS = 'filter-partial-results',
   
   // 监控相关事件
   WATCH_STARTED = 'watch-started',

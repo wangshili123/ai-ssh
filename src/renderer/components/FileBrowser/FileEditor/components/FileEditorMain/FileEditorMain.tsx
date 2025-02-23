@@ -19,6 +19,8 @@ import { FileEditorToolbar } from '../FileEditorToolbar/FileEditorToolbar';
 import { FileStatusBar } from '../FileStatusBar/FileStatusBar';
 import { FileEditorStore, EditorStoreContext } from '../../store/FileEditorStore';
 import { sftpService } from '../../../../../services/sftp';
+import { FileSearchPanel } from '../FileSearchPanel/FileSearchPanel';
+import { FileFilterPanel } from '../FileFilterPanel/FileFilterPanel';
 
 interface FileEditorMainProps {
   filePath: string;
@@ -56,6 +58,8 @@ const FileEditorMainInner = observer(forwardRef<FileEditorMainRef, FileEditorMai
   // 文件状态
   const [isPartiallyLoaded, setIsPartiallyLoaded] = useState(false);
   const [showLoadCompletePrompt, setShowLoadCompletePrompt] = useState(false);
+  const [showSearchPanel, setShowSearchPanel] = useState(false);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
 
   // 初始化 store
   useEffect(() => {
@@ -272,6 +276,26 @@ const FileEditorMainInner = observer(forwardRef<FileEditorMainRef, FileEditorMai
     return false;
   }, []);
 
+  // 处理搜索
+  const handleSearch = useCallback(() => {
+    setShowSearchPanel(true);
+  }, []);
+
+  // 处理过滤
+  const handleFilter = useCallback(() => {
+    setShowFilterPanel(true);
+  }, []);
+
+  // 处理搜索面板关闭
+  const handleSearchClose = useCallback(() => {
+    setShowSearchPanel(false);
+  }, []);
+
+  // 处理过滤面板关闭
+  const handleFilterClose = useCallback(() => {
+    setShowFilterPanel(false);
+  }, []);
+
   return (
     <div className="file-editor-main">
       {editorStore.isLoading ? (
@@ -299,6 +323,8 @@ const FileEditorMainInner = observer(forwardRef<FileEditorMainRef, FileEditorMai
           <FileEditorToolbar
             onSave={() => editorRef.current?.save()}
             onReconnect={handleReconnect}
+            onSearch={handleSearch}
+            onFilter={handleFilter}
           />
 
           {showLoadCompletePrompt && (
@@ -322,6 +348,22 @@ const FileEditorMainInner = observer(forwardRef<FileEditorMainRef, FileEditorMai
             ref={containerRef}
             onContextMenu={handleContextMenu}
           />
+
+          {/* 搜索面板 */}
+          {showSearchPanel && (
+            <FileSearchPanel
+              searchManager={editorRef.current?.getSearchManager() || null}
+              onClose={handleSearchClose}
+            />
+          )}
+
+          {/* 过滤面板 */}
+          {showFilterPanel && (
+            <FileFilterPanel
+              filterManager={editorRef.current?.getFilterManager() || null}
+              onClose={handleFilterClose}
+            />
+          )}
 
           {contextMenu && (
             <EditorContextMenu

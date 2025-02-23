@@ -9,6 +9,8 @@ import { EditorEvents, EditorErrorType, RemoteFileInfo, EncodingType } from '../
 import { ErrorManager, ErrorType } from './ErrorManager';
 import { sftpService } from '../../../../services/sftp';
 import { detectEncoding, isValidEncoding } from '../utils/FileEncodingUtils';
+import { SearchManager } from './SearchManager';
+import { FilterManager } from './FilterManager';
 
 // 配置 Monaco Editor 的 worker
 self.MonacoEnvironment = {
@@ -119,6 +121,8 @@ export class FileEditorManager extends EventEmitter {
   private editor: monaco.editor.IStandaloneCodeEditor | null = null;
   private currentModel: monaco.editor.ITextModel | null = null;
   private errorManager: ErrorManager;
+  private searchManager: SearchManager;
+  private filterManager: FilterManager;
   private config: EditorConfig;
   private disposables: monaco.IDisposable[] = [];
   private isDirty: boolean = false;
@@ -129,6 +133,8 @@ export class FileEditorManager extends EventEmitter {
   constructor(errorManager: ErrorManager, config: EditorConfig = {}) {
     super();
     this.errorManager = errorManager;
+    this.searchManager = new SearchManager();
+    this.filterManager = new FilterManager();
     this.config = {
       theme: 'vs-dark',
       fontSize: 14,
@@ -178,6 +184,10 @@ export class FileEditorManager extends EventEmitter {
     try {
       this.sessionId = sessionId;
       this.filePath = filePath;
+
+      // 初始化搜索和过滤管理器
+      this.searchManager.initialize(sessionId, filePath);
+      this.filterManager.initialize(sessionId, filePath);
 
       // 获取文件信息
       const stats = await sftpService.stat(this.sessionId, this.filePath);
@@ -591,6 +601,10 @@ export class FileEditorManager extends EventEmitter {
       this.editor = null;
     }
 
+    // 清理搜索和过滤管理器
+    this.searchManager.destroy();
+    this.filterManager.destroy();
+
     this.removeAllListeners();
   }
 
@@ -671,5 +685,19 @@ export class FileEditorManager extends EventEmitter {
     if (!this.editor) return false;
     const selection = this.editor.getSelection();
     return selection ? !selection.isEmpty() : false;
+  }
+
+  /**
+   * 获取搜索管理器
+   */
+  public getSearchManager(): SearchManager {
+    return this.searchManager;
+  }
+
+  /**
+   * 获取过滤管理器
+   */
+  public getFilterManager(): FilterManager {
+    return this.filterManager;
   }
 } 

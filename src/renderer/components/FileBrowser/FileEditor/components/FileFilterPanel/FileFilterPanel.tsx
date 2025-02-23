@@ -5,245 +5,183 @@
 
 import React, { useCallback, useState, useEffect } from 'react';
 import { observer } from 'mobx-react';
+import { FilterManager } from '../../core/FilterManager';
 import { useEditorStore } from '../../store/FileEditorStore';
-import './FileFilterPanel.less';
+import './FileFilterPanel.css';
+import { Button, Input, Space, Switch, Tooltip, Progress } from 'antd';
+import { FilterOutlined, CloseOutlined } from '@ant-design/icons';
 
-interface FilterPreset {
-  id: string;
-  name: string;
-  pattern: string;
-  isRegex: boolean;
-  caseSensitive: boolean;
+export interface FileFilterPanelProps {
+  filterManager: FilterManager | null;
+  onClose: () => void;
 }
 
-interface FileFilterPanelProps {
-  onFilterChange: (filter: {
-    pattern: string;
-    isRegex: boolean;
-    caseSensitive: boolean;
-  }) => void;
-}
-
-export const FileFilterPanel: React.FC<FileFilterPanelProps> = observer((props) => {
-  const { onFilterChange } = props;
-  const editorStore = useEditorStore();
-
-  // 过滤条件状态
+export const FileFilterPanel: React.FC<FileFilterPanelProps> = observer(({
+  filterManager,
+  onClose
+}) => {
+  // 过滤状态
   const [filterText, setFilterText] = useState('');
   const [isRegex, setIsRegex] = useState(false);
   const [isCaseSensitive, setIsCaseSensitive] = useState(false);
-  
-  // 预设列表状态
-  const [presets, setPresets] = useState<FilterPreset[]>([
-    {
-      id: '1',
-      name: '错误日志',
-      pattern: 'error|exception|fail',
-      isRegex: true,
-      caseSensitive: false
-    },
-    {
-      id: '2',
-      name: '警告日志',
-      pattern: 'warning|warn',
-      isRegex: true,
-      caseSensitive: false
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [filterError, setFilterError] = useState<string | null>(null);
+  const [filterStats, setFilterStats] = useState<{
+    matchedLines: number;
+    totalLines: number;
+    processedSize: number;
+  }>({
+    matchedLines: 0,
+    totalLines: 0,
+    processedSize: 0
+  });
+
+  // 处理过滤文本变化
+  const handleFilterTextChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFilterText(value);
+
+    if (value && filterManager) {
+      applyFilter(value);
+    } else if (filterManager) {
+      filterManager.clearFilter();
     }
-  ]);
-  
-  // 预设管理状态
-  const [selectedPreset, setSelectedPreset] = useState<string>('');
-  const [isEditingPreset, setIsEditingPreset] = useState(false);
-  const [newPresetName, setNewPresetName] = useState('');
+  }, [filterManager]);
 
-  // 应用过滤条件
-  const handleApplyFilter = useCallback(() => {
-    if (!filterText.trim()) {
-      return;
+  // 应用过滤
+  const applyFilter = useCallback(async (text: string) => {
+    if (!filterManager) return;
+
+    try {
+      setIsFiltering(true);
+      setFilterError(null);
+
+      await filterManager.applyFilter({
+        pattern: text,
+        isRegex,
+        caseSensitive: isCaseSensitive
+      });
+    } catch (error) {
+      setFilterError((error as Error).message);
+    } finally {
+      setIsFiltering(false);
     }
+  }, [filterManager, isRegex, isCaseSensitive]);
 
-    onFilterChange({
-      pattern: filterText,
-      isRegex,
-      caseSensitive: isCaseSensitive
-    });
-  }, [filterText, isRegex, isCaseSensitive, onFilterChange]);
+  // 处理选项变化
+  const handleOptionChange = useCallback((option: 'regex' | 'case') => {
+    if (!filterManager) return;
 
-  // 清除过滤条件
-  const handleClearFilter = useCallback(() => {
-    setFilterText('');
-    setIsRegex(false);
-    setIsCaseSensitive(false);
-    onFilterChange({
-      pattern: '',
-      isRegex: false,
-      caseSensitive: false
-    });
-  }, [onFilterChange]);
-
-  // 选择预设
-  const handlePresetSelect = useCallback((presetId: string) => {
-    const preset = presets.find(p => p.id === presetId);
-    if (preset) {
-      setFilterText(preset.pattern);
-      setIsRegex(preset.isRegex);
-      setIsCaseSensitive(preset.caseSensitive);
-      setSelectedPreset(presetId);
-    }
-  }, [presets]);
-
-  // 保存当前过滤条件为预设
-  const handleSaveAsPreset = useCallback(() => {
-    if (!filterText.trim() || !newPresetName.trim()) {
-      return;
+    switch (option) {
+      case 'regex':
+        setIsRegex(!isRegex);
+        break;
+      case 'case':
+        setIsCaseSensitive(!isCaseSensitive);
+        break;
     }
 
-    const newPreset: FilterPreset = {
-      id: Date.now().toString(),
-      name: newPresetName,
-      pattern: filterText,
-      isRegex,
-      caseSensitive: isCaseSensitive
+    // 如果有过滤文本，重新应用过滤
+    if (filterText) {
+      applyFilter(filterText);
+    }
+  }, [filterManager, isRegex, isCaseSensitive, filterText, applyFilter]);
+
+  // 监听过滤事件
+  useEffect(() => {
+    if (!filterManager) return;
+
+    const handleFilterProgress = (stats: {
+      processedSize: number;
+      totalSize: number;
+    }) => {
+      setFilterStats(prevStats => ({
+        ...prevStats,
+        processedSize: stats.processedSize
+      }));
     };
 
-    setPresets(prev => [...prev, newPreset]);
-    setNewPresetName('');
-    setIsEditingPreset(false);
-  }, [filterText, isRegex, isCaseSensitive, newPresetName]);
+    const handleFilterCompleted = (stats: {
+      matchedLines: number;
+      totalLines: number;
+    }) => {
+      setFilterStats(prevStats => ({
+        ...prevStats,
+        matchedLines: stats.matchedLines,
+        totalLines: stats.totalLines
+      }));
+      setIsFiltering(false);
+    };
 
-  // 删除预设
-  const handleDeletePreset = useCallback((presetId: string) => {
-    setPresets(prev => prev.filter(p => p.id !== presetId));
-    if (selectedPreset === presetId) {
-      setSelectedPreset('');
-    }
-  }, [selectedPreset]);
+    const handleFilterError = (error: Error) => {
+      setFilterError(error.message);
+      setIsFiltering(false);
+    };
 
-  // 监听过滤条件变化
-  useEffect(() => {
-    if (filterText.trim()) {
-      handleApplyFilter();
-    }
-  }, [filterText, isRegex, isCaseSensitive]);
+    filterManager.on('filter-progress', handleFilterProgress);
+    filterManager.on('filter-completed', handleFilterCompleted);
+    filterManager.on('filter-error', handleFilterError);
+
+    return () => {
+      filterManager.off('filter-progress', handleFilterProgress);
+      filterManager.off('filter-completed', handleFilterCompleted);
+      filterManager.off('filter-error', handleFilterError);
+    };
+  }, [filterManager]);
 
   return (
     <div className="file-filter-panel">
-      {/* 过滤条件输入区域 */}
-      <div className="filter-input-area">
-        <input
-          type="text"
-          className="filter-input"
-          value={filterText}
-          onChange={e => setFilterText(e.target.value)}
-          placeholder="输入过滤文本..."
-        />
-        <label className="filter-option">
-          <input
-            type="checkbox"
-            checked={isRegex}
-            onChange={e => setIsRegex(e.target.checked)}
+      <div className="filter-header">
+        <Space>
+          <Input
+            prefix={<FilterOutlined />}
+            placeholder="过滤..."
+            value={filterText}
+            onChange={handleFilterTextChange}
+            disabled={!filterManager}
           />
-          <span>正则表达式</span>
-        </label>
-        <label className="filter-option">
-          <input
-            type="checkbox"
-            checked={isCaseSensitive}
-            onChange={e => setIsCaseSensitive(e.target.checked)}
-          />
-          <span>区分大小写</span>
-        </label>
-        <button
-          className="apply-button"
-          onClick={handleApplyFilter}
-          disabled={!filterText.trim()}
-        >
-          应用过滤
-        </button>
-        <button
-          className="clear-button"
-          onClick={handleClearFilter}
-          disabled={!filterText.trim()}
-        >
-          清除
-        </button>
-      </div>
-
-      {/* 预设管理区域 */}
-      <div className="preset-area">
-        <div className="preset-header">
-          <span>预设过滤条件</span>
-          <button
-            className="add-preset-button"
-            onClick={() => setIsEditingPreset(true)}
-          >
-            新建预设
-          </button>
-        </div>
-
-        {/* 预设列表 */}
-        <div className="preset-list">
-          {presets.map(preset => (
-            <div
-              key={preset.id}
-              className={`preset-item ${selectedPreset === preset.id ? 'selected' : ''}`}
-            >
-              <span
-                className="preset-name"
-                onClick={() => handlePresetSelect(preset.id)}
-              >
-                {preset.name}
-              </span>
-              <button
-                className="delete-preset-button"
-                onClick={() => handleDeletePreset(preset.id)}
-                title="删除预设"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* 新建预设表单 */}
-        {isEditingPreset && (
-          <div className="new-preset-form">
-            <input
-              type="text"
-              className="preset-name-input"
-              value={newPresetName}
-              onChange={e => setNewPresetName(e.target.value)}
-              placeholder="预设名称..."
+          <Tooltip title="使用正则表达式">
+            <Button
+              type={isRegex ? "primary" : "text"}
+              icon={<span>.*</span>}
+              onClick={() => handleOptionChange('regex')}
+              disabled={!filterManager}
             />
-            <button
-              className="save-preset-button"
-              onClick={handleSaveAsPreset}
-              disabled={!newPresetName.trim() || !filterText.trim()}
-            >
-              保存
-            </button>
-            <button
-              className="cancel-preset-button"
-              onClick={() => {
-                setIsEditingPreset(false);
-                setNewPresetName('');
-              }}
-            >
-              取消
-            </button>
-          </div>
-        )}
+          </Tooltip>
+          <Tooltip title="区分大小写">
+            <Button
+              type={isCaseSensitive ? "primary" : "text"}
+              icon={<span>Aa</span>}
+              onClick={() => handleOptionChange('case')}
+              disabled={!filterManager}
+            />
+          </Tooltip>
+          <Button
+            icon={<CloseOutlined />}
+            onClick={onClose}
+          />
+        </Space>
       </div>
 
-      {/* 过滤统计信息 */}
-      {editorStore.filterActive && (
+      {isFiltering && (
+        <div className="filter-progress">
+          <Progress
+            percent={Math.round((filterStats.processedSize / filterStats.totalLines) * 100)}
+            size="small"
+            status="active"
+          />
+        </div>
+      )}
+
+      {filterStats.totalLines > 0 && (
         <div className="filter-stats">
-          <span>
-            匹配行数: {editorStore.filterStats.matchedLines} / {editorStore.filterStats.totalLines}
-          </span>
-          <span>
-            已处理: {Math.round(editorStore.filterStats.processedSize / 1024 / 1024 * 100) / 100} MB
-          </span>
+          匹配 {filterStats.matchedLines} / {filterStats.totalLines} 行
+        </div>
+      )}
+
+      {filterError && (
+        <div className="filter-error">
+          过滤错误: {filterError}
         </div>
       )}
     </div>

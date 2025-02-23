@@ -202,16 +202,9 @@ export class SearchManager extends EventEmitter {
   }
 
   /**
-   * 获取当前匹配项索引
-   */
-  public getCurrentMatchIndex(): number {
-    return this.currentMatch;
-  }
-
-  /**
    * 跳转到下一个匹配项
    */
-  public nextMatch(): boolean {
+  nextMatch(): boolean {
     if (this.totalMatches === 0) return false;
     
     this.currentMatch = (this.currentMatch + 1) % this.totalMatches;
@@ -222,13 +215,21 @@ export class SearchManager extends EventEmitter {
   /**
    * 跳转到上一个匹配项
    */
-  public previousMatch(): boolean {
+  previousMatch(): boolean {
     if (this.totalMatches === 0) return false;
     
     this.currentMatch = (this.currentMatch - 1 + this.totalMatches) % this.totalMatches;
     this.emit(EditorEvents.SEARCH_MATCH_CHANGED, this.currentMatch);
     return true;
   }
-} 
+
+  /**
+   * 销毁搜索管理器
+   */
+  destroy(): void {
+    this.stopSearch();
+    this.removeAllListeners();
+  }
+}
 
 export { SearchResult, SearchConfig };
