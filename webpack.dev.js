@@ -16,10 +16,14 @@ module.exports = merge(common, {
   mode: 'development',
   devtool: 'inline-source-map',
   target: 'electron-renderer',
+  node: {
+    __dirname: false,
+    __filename: false
+  },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.wasm'],
     fallback: {
-      path: require.resolve('path-browserify'),
+      path: false,
       fs: false,
       crypto: false
     }
@@ -123,6 +127,12 @@ module.exports = merge(common, {
     }
   },
   externals: {
-    'better-sqlite3': 'commonjs better-sqlite3'
+    'electron': 'commonjs electron',
+    'better-sqlite3': 'commonjs better-sqlite3',
+    'chokidar': 'commonjs chokidar',
+    'readdirp': 'commonjs readdirp',
+    'fs': 'commonjs fs',
+    'path': 'commonjs path',
+    'os': 'commonjs os'
   }
 }); 

@@ -4,126 +4,129 @@
  */
 
 import { EventEmitter } from 'events';
-import * as chokidar from 'chokidar';
-import { debounceTime, Subject } from 'rxjs';
+import chokidar from 'chokidar';
 import { EditorEvents } from '../types/FileEditorTypes';
+import fs from 'fs';
+import { platform } from 'os';
 
 export class FileWatchManager extends EventEmitter {
   private watcher: chokidar.FSWatcher | null = null;
-  private fileChangeSubject = new Subject<void>();
-  private currentFile: string | null = null;
+  private fallbackInterval: NodeJS.Timeout | null = null;
+  private lastModified: number = 0;
   private isWatching: boolean = false;
-  private debounceInterval: number = 300; // 防抖间隔，单位毫秒
+  private readonly isWindows: boolean = platform() === 'win32';
 
   constructor() {
     super();
-    this.setupChangeHandler();
   }
 
   /**
-   * 开始监控文件
-   * @param filePath 文件路径
+   * 开始监控文件变化
+   * Windows: 使用轮询为主，事件监听为辅的策略
+   * 其他平台: 使用事件监听为主，轮询为辅的策略
    */
-  public startWatch(filePath: string): void {
-    // 如果已经在监控同一个文件，则不需要重新启动
-    if (this.currentFile === filePath && this.isWatching) {
-      return;
-    }
-
-    // 如果正在监控其他文件，先停止
-    this.stopWatch();
-
-    this.currentFile = filePath;
-    
+  async startWatch(filePath: string): Promise<void> {
     try {
-      // 创建文件监控器
-      this.watcher = chokidar.watch(filePath, {
+      // 如果已经在监听，先停止
+      if (this.isWatching) {
+        await this.stopWatch();
+      }
+
+      this.isWatching = true;
+
+      // 获取文件初始状态
+      try {
+        const stats = await fs.promises.stat(filePath);
+        this.lastModified = stats.mtimeMs;
+      } catch (error) {
+        console.warn('获取文件状态失败:', error);
+      }
+
+      // 根据平台配置不同的监听策略
+      const watchOptions: chokidar.WatchOptions = {
         persistent: true,
         ignoreInitial: true,
+        usePolling: this.isWindows, // Windows 下使用轮询
+        interval: this.isWindows ? 1000 : undefined, // Windows 下设置轮询间隔
         awaitWriteFinish: {
-          stabilityThreshold: 200,
-          pollInterval: 100
+          stabilityThreshold: this.isWindows ? 500 : 200,
+          pollInterval: this.isWindows ? 200 : 100
         }
-      });
+      };
 
-      // 监听文件变化事件
+      // 设置监听器
+      this.watcher = chokidar.watch(filePath, watchOptions);
+
       this.watcher
-        .on('change', () => {
-          this.fileChangeSubject.next();
-        })
-        .on('unlink', () => {
-          this.emit(EditorEvents.ERROR_OCCURRED, new Error('文件已被删除'));
-          this.stopWatch();
+        .on('change', async (path) => {
+          try {
+            const stats = await fs.promises.stat(path);
+            if (stats.mtimeMs > this.lastModified) {
+              this.lastModified = stats.mtimeMs;
+              this.emit(EditorEvents.FILE_CHANGED);
+            }
+          } catch (error) {
+            console.warn('检查文件变化失败:', error);
+          }
         })
         .on('error', (error) => {
           this.emit(EditorEvents.ERROR_OCCURRED, error);
-          this.stopWatch();
         });
 
-      this.isWatching = true;
-      this.emit(EditorEvents.WATCH_STARTED, filePath);
+      // 在非 Windows 平台上使用更短的轮询间隔作为备用
+      // 在 Windows 平台上使用更长的轮询间隔作为主要机制
+      this.startFallbackPolling(filePath);
+
     } catch (error) {
       this.emit(EditorEvents.ERROR_OCCURRED, error);
     }
   }
 
   /**
+   * 启动轮询机制
+   * Windows: 作为主要机制，使用较短的间隔
+   * 其他平台: 作为备用机制，使用较长的间隔
+   */
+  private startFallbackPolling(filePath: string): void {
+    const pollingInterval = this.isWindows ? 2000 : 5000;
+    
+    this.fallbackInterval = setInterval(async () => {
+      if (!this.isWatching) return;
+
+      try {
+        const stats = await fs.promises.stat(filePath);
+        if (stats.mtimeMs > this.lastModified) {
+          this.lastModified = stats.mtimeMs;
+          this.emit(EditorEvents.FILE_CHANGED);
+        }
+      } catch (error) {
+        console.warn('轮询检查文件失败:', error);
+      }
+    }, pollingInterval);
+  }
+
+  /**
    * 停止文件监控
    */
-  public stopWatch(): void {
+  async stopWatch(): Promise<void> {
+    this.isWatching = false;
+
     if (this.watcher) {
-      this.watcher.close();
+      await this.watcher.close();
       this.watcher = null;
     }
-    this.currentFile = null;
-    this.isWatching = false;
-    this.emit(EditorEvents.WATCH_STOPPED);
-  }
 
-  /**
-   * 设置变化检测的防抖间隔
-   * @param interval 间隔时间（毫秒）
-   */
-  public setDebounceInterval(interval: number): void {
-    this.debounceInterval = interval;
-    this.setupChangeHandler();
-  }
-
-  /**
-   * 获取当前监控状态
-   */
-  public getStatus(): {
-    isWatching: boolean;
-    currentFile: string | null;
-    debounceInterval: number;
-  } {
-    return {
-      isWatching: this.isWatching,
-      currentFile: this.currentFile,
-      debounceInterval: this.debounceInterval
-    };
-  }
-
-  /**
-   * 设置变化处理器
-   */
-  private setupChangeHandler(): void {
-    // 使用 RxJS 的 debounceTime 操作符来防抖
-    this.fileChangeSubject.pipe(
-      debounceTime(this.debounceInterval)
-    ).subscribe(() => {
-      if (this.currentFile) {
-        this.emit(EditorEvents.FILE_CHANGED, this.currentFile);
-      }
-    });
+    if (this.fallbackInterval) {
+      clearInterval(this.fallbackInterval);
+      this.fallbackInterval = null;
+    }
   }
 
   /**
    * 销毁实例
    */
-  public destroy(): void {
+  destroy(): void {
     this.stopWatch();
-    this.fileChangeSubject.complete();
     this.removeAllListeners();
   }
 } 

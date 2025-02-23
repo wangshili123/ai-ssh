@@ -4,7 +4,9 @@
 
 import React, { useCallback, useEffect, useRef } from 'react';
 import { observer } from 'mobx-react';
-import './EditorContextMenu.less';
+import { Menu } from 'antd';
+import type { MenuProps } from 'antd';
+import './EditorContextMenu.css';
 
 interface EditorContextMenuProps {
   x: number;

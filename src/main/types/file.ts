@@ -10,4 +10,5 @@ export interface FileEntry {
   permissions: number;   // 权限
   owner?: number;        // 所有者UID（可选）
   group?: number;        // 组ID（可选）
+  extension: string;     // 文件扩展名
 } 

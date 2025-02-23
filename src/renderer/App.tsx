@@ -11,10 +11,10 @@ import { BaseConfigModal } from './components/BaseConfigModal/BaseConfigModal';
 import type { SessionInfo, SSHService } from './types';
 import { eventBus } from './services/eventBus';
 import { DatabaseService } from '../services/database/DatabaseService';
-import { storageService } from './services/storage';
 import { sshService } from './services/ssh';
 import { initializeServices } from './services/monitor/serviceManager';
 import { BaseConfig } from './services/config/BaseConfig';
+import { uiSettingsManager } from './services/UISettingsManager';
 import './App.css';
 import { ipcRenderer } from 'electron';
 
@@ -44,9 +44,9 @@ const App: React.FC = () => {
         // 初始化基础配置
         BaseConfig.init();
         
-        // 加载UI设置
-        const settings = await storageService.loadUISettings();
-        console.log('[App] 加载UI设置:', settings);
+        // 初始化并加载UI设置
+        await uiSettingsManager.init();
+        const settings = uiSettingsManager.getSettings();
         setIsFileBrowserVisible(settings.isFileBrowserVisible);
         setIsCollapsed(!settings.isAIVisible);
         
@@ -59,27 +59,12 @@ const App: React.FC = () => {
     initializeApp();
   }, []);
 
-
-
-  // 保存UI设置
+  // 监听UI设置变化
   useEffect(() => {
-    const saveSettings = async () => {
-      try {
-        // 添加延迟以避免过于频繁的保存
-        const settings = {
-          isFileBrowserVisible,
-          isAIVisible: !isCollapsed
-        };
-        console.log('[App] 保存UI设置:', settings);
-        await storageService.saveUISettings(settings);
-      } catch (error) {
-        console.error('[App] 保存UI设置失败:', error);
-      }
-    };
-
-    // 使用延迟来避免过于频繁的保存
-    const timeoutId = setTimeout(saveSettings, 500);
-    return () => clearTimeout(timeoutId);
+    uiSettingsManager.updateSettings({
+      isFileBrowserVisible,
+      isAIVisible: !isCollapsed
+    });
   }, [isFileBrowserVisible, isCollapsed]);
 
   // 监听标签页ID变化

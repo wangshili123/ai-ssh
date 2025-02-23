@@ -1,0 +1,94 @@
+.file-list-context-menu {
+  position: fixed;
+  min-width: 180px;
+  background-color: #1E1E1E;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  user-select: none;
+}
+
+.file-list-context-menu .menu-item {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  color: #D4D4D4;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.file-list-context-menu .menu-item:hover {
+  background-color: #2D2D2D;
+}
+
+.file-list-context-menu .menu-item.has-submenu {
+  padding-right: 24px;
+}
+
+.file-list-context-menu .menu-item.has-submenu .submenu-arrow {
+  position: absolute;
+  right: 8px;
+  font-size: 10px;
+  color: #666;
+}
+
+.file-list-context-menu .menu-item .menu-item-text {
+  margin-right: 16px;
+}
+
+.file-list-context-menu .menu-item .checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.file-list-context-menu .menu-item .checkbox input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.file-list-context-menu .menu-item .checkbox .checkbox-label {
+  font-size: 11px;
+  color: #666;
+}
+
+.file-list-context-menu .submenu {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  min-width: 160px;
+  background-color: #1E1E1E;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.file-list-context-menu .ant-menu {
+  background: transparent;
+  border: none;
+}
+
+.file-list-context-menu .ant-menu .ant-menu-item {
+  color: #D4D4D4;
+}
+
+.file-list-context-menu .ant-menu .ant-menu-item:hover {
+  background: #2D2D2D;
+}
+
+.file-list-context-menu .ant-menu .ant-menu-item.menu-item-checkbox {
+  position: relative;
+  padding-right: 24px;
+}
+
+.file-list-context-menu .ant-menu .ant-menu-item.menu-item-checkbox.checked::after {
+  content: '✓';
+  position: absolute;
+  right: 8px;
+  color: #1890ff;
+} 

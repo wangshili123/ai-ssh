@@ -1,0 +1,67 @@
+.file-editor-main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+.file-editor-main .editor-container {
+  flex: 1;
+  overflow: hidden;
+}
+
+.file-editor-main .loading-indicator,
+.file-editor-main .error-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+}
+
+.file-editor-main .error-message .error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.file-editor-main .error-message .error-text {
+  color: #ff4d4f;
+}
+
+.file-editor-main .error-message .retry-button {
+  padding: 4px 15px;
+  border: 1px solid #d9d9d9;
+  border-radius: 2px;
+  cursor: pointer;
+  background: transparent;
+  color: #fff;
+}
+
+.file-editor-main .error-message .retry-button:hover {
+  border-color: #40a9ff;
+  color: #40a9ff;
+}
+
+.file-editor-main .filter-stats {
+  position: absolute;
+  bottom: 8px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+}
+
+.file-editor-main .refresh-indicator {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 12px;
+} 

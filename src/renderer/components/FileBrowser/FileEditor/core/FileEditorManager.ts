@@ -158,7 +158,7 @@ export class FileEditorManager extends EventEmitter {
 
       this.emit(EditorEvents.CONTENT_CHANGED);
     } catch (error) {
-      this.errorManager.handleError(error as Error, EditorErrorType.OPERATION_FAILED);
+      this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
     }
   }
 
@@ -199,7 +199,7 @@ export class FileEditorManager extends EventEmitter {
         }]);
       }
     } catch (error) {
-      this.errorManager.handleError(error as Error, EditorErrorType.OPERATION_FAILED);
+        this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
     }
   }
 
@@ -221,7 +221,7 @@ export class FileEditorManager extends EventEmitter {
         }]);
       }
     } catch (error) {
-      this.errorManager.handleError(error as Error, EditorErrorType.OPERATION_FAILED);
+      this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
     }
   }
 

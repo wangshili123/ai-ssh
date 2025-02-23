@@ -1,0 +1,33 @@
+.editor-context-menu {
+  position: fixed;
+  min-width: 160px;
+  background-color: #1E1E1E;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  user-select: none;
+}
+
+.editor-context-menu .ant-menu {
+  background: transparent;
+  border: none;
+}
+
+.editor-context-menu .ant-menu .ant-menu-item {
+  color: #D4D4D4;
+}
+
+.editor-context-menu .ant-menu .ant-menu-item:hover {
+  background: #2D2D2D;
+}
+
+.editor-context-menu .ant-menu .ant-menu-item.disabled {
+  color: #666;
+  cursor: not-allowed;
+}
+
+.editor-context-menu .ant-menu .ant-menu-item.disabled:hover {
+  background: none;
+} 

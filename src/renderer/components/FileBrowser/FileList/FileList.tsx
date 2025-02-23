@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Table, Spin } from 'antd';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
@@ -6,6 +6,8 @@ import dayjs from 'dayjs';
 import { getUserName, getGroupName } from '../../../utils';
 import type { FileEntry } from '../../../../main/types/file';
 import type { SessionInfo } from '../../../types';
+import { FileListContextMenu } from './components/ContextMenu/FileListContextMenu';
+import { fileOpenManager } from './core/FileOpenManager';
 import './FileList.css';
 
 interface FileListProps {
@@ -73,6 +75,54 @@ const formatFileSize = (size: number): string => {
   return `${fileSize.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
 };
 
+// 获取文件图标
+const getFileIcon = (file: FileEntry): string => {
+  if (file.isDirectory) {
+    return '📁';
+  }
+
+  // 根据文件扩展名返回对应图标
+  const iconMap: { [key: string]: string } = {
+    // 文本文件
+    'txt': '📄',
+    'log': '📋',
+    'md': '📝',
+    // 代码文件
+    'js': '📜',
+    'ts': '📜',
+    'jsx': '📜',
+    'tsx': '📜',
+    'json': '📜',
+    'html': '📜',
+    'css': '📜',
+    'less': '📜',
+    'scss': '📜',
+    // 图片文件
+    'jpg': '🖼️',
+    'jpeg': '🖼️',
+    'png': '🖼️',
+    'gif': '🖼️',
+    'svg': '🖼️',
+    // 压缩文件
+    'zip': '📦',
+    'rar': '📦',
+    'tar': '📦',
+    'gz': '📦',
+    // 可执行文件
+    'exe': '⚙️',
+    'sh': '⚙️',
+    'bat': '⚙️',
+    // 配置文件
+    'conf': '⚙️',
+    'config': '⚙️',
+    'yml': '⚙️',
+    'yaml': '⚙️',
+    'env': '⚙️',
+  };
+
+  return iconMap[file.extension] || '📄';
+};
+
 const FileList: React.FC<FileListProps> = ({
   sessionInfo,
   tabId,
@@ -80,11 +130,23 @@ const FileList: React.FC<FileListProps> = ({
   fileList,
   loading,
   onFileListChange,
-  onDirectorySelect,
+  onDirectorySelect
 }) => {
   const [sortedInfo, setSortedInfo] = useState<SorterResult<FileEntry>>({});
   const [tableHeight, setTableHeight] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // 修改右键菜单状态的类型定义
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    items: {
+      label: string;
+      type?: 'checkbox';
+      checked?: boolean;
+      onClick: () => void;
+    }[];
+  } | null>(null);
 
   // 监听容器高度变化
   useEffect(() => {
@@ -106,15 +168,16 @@ const FileList: React.FC<FileListProps> = ({
   }, []);
 
   // 处理双击事件
-  const handleRowDoubleClick = (record: FileEntry) => {
-    if (!record.isDirectory) return;
-    
-    // 构建新路径
-    const newPath = `${currentPath === '/' ? '' : currentPath}/${record.name}`.replace(/\/+/g, '/');
-    console.log('[FileList] 双击目录:', { name: record.name, newPath });
-    
-    // 调用目录选择回调
-    onDirectorySelect?.(newPath);
+  const handleRowDoubleClick = async (record: FileEntry) => {
+    if (record.isDirectory) {
+      // 如果是目录，进入该目录
+      const newPath = `${currentPath === '/' ? '' : currentPath}/${record.name}`.replace(/\/+/g, '/');
+      console.log('[FileList] 双击目录:', { name: record.name, newPath });
+      onDirectorySelect?.(newPath);
+    } else {
+      // 如果是文件，使用默认方式打开
+      await fileOpenManager.openFile(record, sessionInfo!, tabId);
+    }
   };
 
   const handleTableChange = (
@@ -124,6 +187,36 @@ const FileList: React.FC<FileListProps> = ({
   ) => {
     setSortedInfo(Array.isArray(sorter) ? sorter[0] || {} : sorter);
   };
+
+  // 修改处理右键菜单的函数
+  const handleContextMenu = useCallback(async (event: React.MouseEvent, file: FileEntry) => {
+    event.preventDefault();
+    
+    // 获取当前文件的默认编辑器设置
+    const defaultEditor = await fileOpenManager.getDefaultEditor(file);
+    
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      items: [
+        {
+          label: '使用内置编辑器打开',
+          onClick: () => fileOpenManager.openFile(file, sessionInfo!, tabId, 'built-in')
+        },
+        {
+          label: '设为默认打开方式',
+          type: 'checkbox',
+          checked: defaultEditor === 'built-in',
+          onClick: () => fileOpenManager.setDefaultEditor(file.extension || '*', 'built-in')
+        }
+      ]
+    });
+  }, [sessionInfo, tabId]);
+
+  // 处理关闭右键菜单
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
 
   const columns = [
     {
@@ -140,7 +233,7 @@ const FileList: React.FC<FileListProps> = ({
       sortOrder: sortedInfo.columnKey === 'name' ? sortedInfo.order : null,
       render: (text: string, record: FileEntry) => (
         <span className="file-name-cell">
-          <span className="file-icon">{record.isDirectory ? '📁' : '📄'}</span>
+          <span className="file-icon">{getFileIcon(record)}</span>
           <span className="file-name">{text}</span>
         </span>
       ),
@@ -214,8 +307,18 @@ const FileList: React.FC<FileListProps> = ({
         showSorterTooltip={false}
         onRow={(record) => ({
           onDoubleClick: () => handleRowDoubleClick(record),
+          onContextMenu: (e) => handleContextMenu(e, record),
         })}
       />
+
+      {contextMenu && (
+        <FileListContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={contextMenu.items}
+          onClose={handleCloseContextMenu}
+        />
+      )}
     </div>
   );
 };

@@ -83,20 +83,21 @@
 .file-name-cell {
   display: flex;
   align-items: center;
-  cursor: default;
+  gap: 8px;
 }
 
 .file-name {
-  cursor: default;
-  user-select: none;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 文件图标样式 */
 .file-icon {
-  margin-right: 6px;
-  font-size: 14px;
-  cursor: default;
-  user-select: none;
+  font-size: 16px;
+  min-width: 20px;
+  text-align: center;
 }
 
 /* 加载状态样式 */
@@ -109,4 +110,10 @@
 
 .file-list-loading .ant-spin {
   margin: 20px 0;
+}
+
+/* 文件图标悬停效果 */
+.file-name-cell:hover .file-icon {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
 } 

@@ -12,7 +12,7 @@ import { EditorErrorType, EditorEvents } from '../../types/FileEditorTypes';
 import { useEditorStore } from '../../store/FileEditorStore';
 import { VirtualScroller, ScrollConfig } from '../../core/VirtualScroller';
 import { ErrorManager, ErrorInfo, ErrorType } from '../../core/ErrorManager';
-import './FileEditorMain.less';
+import './FileEditorMain.css';
 import { EditorContextMenu } from '../ContextMenu/EditorContextMenu';
 
 interface FileEditorMainProps {
@@ -27,7 +27,12 @@ interface FileEditorMainProps {
   };
 }
 
-export const FileEditorMain: React.FC<FileEditorMainProps> = observer((props) => {
+export interface FileEditorMainRef {
+  isDirty: boolean;
+  save: () => Promise<void>;
+}
+
+export const FileEditorMain = React.forwardRef<FileEditorMainRef, FileEditorMainProps>((props, ref) => {
   const { filePath, initialConfig } = props;
   
   // 编辑器实例引用
@@ -385,6 +390,19 @@ export const FileEditorMain: React.FC<FileEditorMainProps> = observer((props) =>
       errorManager.current.off('retryFailed', handleRetryFailed);
     };
   }, [editorStore, fileLoader, fileWatcher, scroller]);
+
+  // 暴露方法给父组件
+  React.useImperativeHandle(ref, () => ({
+    isDirty: editorStore.isDirty,
+    save: async () => {
+      // 实现保存逻辑
+      if (editorRef.current) {
+        const content = editorRef.current.getValue();
+        // TODO: 调用保存文件的方法
+        editorStore.setDirty(false);
+      }
+    }
+  }));
 
   return (
     <div className="file-editor-main">

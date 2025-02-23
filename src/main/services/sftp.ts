@@ -2,6 +2,7 @@ import { Client } from 'ssh2';
 import type { SessionInfo } from '../../renderer/types';
 import type { FileEntry } from '../types/file';
 import { convertPermissionsToOctal, isDirectory, isSymlink, shouldFilterRegularFile } from '../../renderer/utils/fileUtils';
+import * as path from 'path';
 
 
 /**
@@ -98,16 +99,23 @@ class SFTPClient {
           return;
         }
         
-        const entries: FileEntry[] = list.map(item => ({
-          name: item.filename,
-          path: `${path}/${item.filename}`.replace(/\/+/g, '/'),
-          isDirectory: !shouldFilterRegularFile(item.attrs.mode),
-          size: item.attrs.size,
-          modifyTime: item.attrs.mtime * 1000,
-          permissions: item.attrs.mode,
-          owner: item.attrs.uid,
-          group: item.attrs.gid
-        }));
+        const entries: FileEntry[] = list.map(item => {
+          const filename = item.filename;
+          const isDir = !shouldFilterRegularFile(item.attrs.mode);
+          const ext = isDir ? '' : filename.includes('.') ? filename.split('.').pop()?.toLowerCase() || '' : '';
+          
+          return {
+            name: filename,
+            path: `${path}/${filename}`.replace(/\/+/g, '/'),
+            isDirectory: isDir,
+            size: item.attrs.size,
+            modifyTime: item.attrs.mtime * 1000,
+            permissions: item.attrs.mode,
+            owner: item.attrs.uid,
+            group: item.attrs.gid,
+            extension: ext
+          };
+        });
         
         // 更新缓存
         this.cache.directoryCache.set(path, entries);

@@ -12,12 +12,21 @@ export interface GroupInfo {
   order: number;
 }
 
-
-
 // UI设置接口
 export interface UISettings {
   isFileBrowserVisible: boolean;
   isAIVisible: boolean;
+  fileOpenSettings: FileOpenSettings;  // 添加文件打开设置
+}
+
+// 文件打开设置接口
+export interface FileOpenSettings {
+  defaultEditor: 'built-in';
+  fileTypeAssociations: {
+    [extension: string]: {
+      editor: 'built-in';
+    }
+  }
 }
 
 // 加密密钥，实际应用中应该使用更安全的方式存储
@@ -207,6 +216,36 @@ class StorageService {
     }
   }
 
+  // 加载UI设置
+  async loadUISettings(): Promise<UISettings> {
+    try {
+      if (!fs.existsSync(this.uiSettingsPath)) {
+        // 默认设置
+        return {
+          isFileBrowserVisible: true,
+          isAIVisible: false,
+          fileOpenSettings: {
+            defaultEditor: 'built-in',
+            fileTypeAssociations: {}
+          }
+        };
+      }
+      const data = await fs.promises.readFile(this.uiSettingsPath, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('加载UI设置失败:', error);
+      // 发生错误时返回默认设置
+      return {
+        isFileBrowserVisible: true,
+        isAIVisible: false,
+        fileOpenSettings: {
+          defaultEditor: 'built-in',
+          fileTypeAssociations: {}
+        }
+      };
+    }
+  }
+
   // 保存UI设置
   async saveUISettings(settings: UISettings): Promise<void> {
     try {
@@ -220,25 +259,52 @@ class StorageService {
     }
   }
 
-  // 加载UI设置
-  async loadUISettings(): Promise<UISettings> {
+  // 获取文件的默认打开方式
+  async getDefaultEditor(filePath: string): Promise<'built-in'> {
     try {
-      if (!fs.existsSync(this.uiSettingsPath)) {
-        // 默认设置
-        return {
-          isFileBrowserVisible: true,
-          isAIVisible: false
+      const settings = await this.loadUISettings();
+      const extension = path.extname(filePath).toLowerCase();
+      
+      // 检查是否有针对该文件类型的特定设置
+      if (extension && settings.fileOpenSettings.fileTypeAssociations[extension]) {
+        return settings.fileOpenSettings.fileTypeAssociations[extension].editor;
+      }
+      
+      // 返回全局默认设置
+      return settings.fileOpenSettings.defaultEditor;
+    } catch (error) {
+      console.error('获取默认打开方式失败:', error);
+      return 'built-in'; // 出错时返回默认值
+    }
+  }
+
+  // 设置文件类型的默认打开方式
+  async setDefaultEditor(extension: string, editor: 'built-in'): Promise<void> {
+    try {
+      const settings = await this.loadUISettings();
+      
+      if (!settings.fileOpenSettings) {
+        settings.fileOpenSettings = {
+          defaultEditor: 'built-in',
+          fileTypeAssociations: {}
         };
       }
-      const data = await fs.promises.readFile(this.uiSettingsPath, 'utf8');
-      return JSON.parse(data);
+
+      if (extension === '*') {
+        // 设置全局默认
+        settings.fileOpenSettings.defaultEditor = editor;
+      } else {
+        // 设置特定文件类型
+        const normalizedExtension = extension.toLowerCase();
+        settings.fileOpenSettings.fileTypeAssociations[normalizedExtension] = {
+          editor
+        };
+      }
+
+      await this.saveUISettings(settings);
     } catch (error) {
-      console.error('加载UI设置失败:', error);
-      // 发生错误时返回默认设置
-      return {
-        isFileBrowserVisible: true,
-        isAIVisible: false
-      };
+      console.error('设置默认打开方式失败:', error);
+      throw error;
     }
   }
 }
