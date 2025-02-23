@@ -5,10 +5,17 @@
 
 import { EventEmitter } from 'events';
 import * as monaco from 'monaco-editor';
-import { EditorEvents, EditorErrorType, RemoteFileInfo } from '../types/FileEditorTypes';
+import { EditorEvents, EditorErrorType, RemoteFileInfo, EncodingType } from '../types/FileEditorTypes';
 import { ErrorManager, ErrorType } from './ErrorManager';
 import { sftpService } from '../../../../services/sftp';
-import { detectEncoding } from '../utils/FileEncodingUtils';
+import { detectEncoding, isValidEncoding } from '../utils/FileEncodingUtils';
+
+// 配置 Monaco Editor 的 worker
+self.MonacoEnvironment = {
+  getWorkerUrl: function (moduleId, label) {
+    return '/vs/base/worker/workerMain.js';
+  }
+};
 
 export interface EditorConfig {
   // 编辑器配置
@@ -32,6 +39,81 @@ export interface EditorSelection {
   endLine: number;
   endColumn: number;
 }
+
+// 语言映射配置
+const LANGUAGE_MAP: { [key: string]: string } = {
+  // 脚本语言
+  'js': 'javascript',
+  'jsx': 'javascript',
+  'ts': 'typescript',
+  'tsx': 'typescript',
+  'py': 'python',
+  'rb': 'ruby',
+  'php': 'php',
+  'pl': 'perl',
+  'lua': 'lua',
+  'sh': 'shell',
+  'bash': 'shell',
+  'zsh': 'shell',
+  'ps1': 'powershell',
+
+  // 标记语言
+  'html': 'html',
+  'htm': 'html',
+  'xml': 'xml',
+  'xaml': 'xml',
+  'svg': 'xml',
+  'md': 'markdown',
+  'markdown': 'markdown',
+  'mdown': 'markdown',
+
+  // 样式表
+  'css': 'css',
+  'scss': 'scss',
+  'sass': 'scss',
+  'less': 'less',
+
+  // 配置文件
+  'json': 'json',
+  'jsonc': 'jsonc',
+  'yaml': 'yaml',
+  'yml': 'yaml',
+  'toml': 'toml',
+  'ini': 'ini',
+  'conf': 'ini',
+  'config': 'ini',
+
+  // 编译语言
+  'java': 'java',
+  'cpp': 'cpp',
+  'c': 'cpp',
+  'h': 'cpp',
+  'hpp': 'cpp',
+  'cc': 'cpp',
+  'cs': 'csharp',
+  'go': 'go',
+  'rs': 'rust',
+  'swift': 'swift',
+  'kt': 'kotlin',
+  'scala': 'scala',
+
+  // 数据库
+  'sql': 'sql',
+  'mysql': 'sql',
+  'pgsql': 'sql',
+  'plsql': 'sql',
+
+  // 其他
+  'log': 'log',
+  'txt': 'plaintext',
+  'env': 'plaintext',
+  'properties': 'properties',
+  'gradle': 'groovy',
+  'dockerfile': 'dockerfile',
+  'makefile': 'makefile',
+  'gitignore': 'ignore',
+  'editorconfig': 'editorconfig'
+};
 
 export class FileEditorManager extends EventEmitter {
   private editor: monaco.editor.IStandaloneCodeEditor | null = null;
@@ -60,6 +142,36 @@ export class FileEditorManager extends EventEmitter {
   }
 
   /**
+   * 获取文件的语言类型
+   */
+  private getLanguage(filePath: string): string {
+    // 获取文件扩展名
+    let extension = filePath.split('.').pop()?.toLowerCase() || '';
+    
+    // 处理特殊文件名
+    if (!extension || extension === filePath.toLowerCase()) {
+      const filename = filePath.split('/').pop()?.toLowerCase() || '';
+      switch (filename) {
+        case 'dockerfile':
+          return 'dockerfile';
+        case 'makefile':
+          return 'makefile';
+        case '.gitignore':
+          return 'ignore';
+        case '.editorconfig':
+          return 'editorconfig';
+        case '.env':
+          return 'properties';
+        default:
+          return 'plaintext';
+      }
+    }
+
+    // 从映射表中获取语言类型
+    return LANGUAGE_MAP[extension] || 'plaintext';
+  }
+
+  /**
    * 初始化编辑器
    */
   public async initialize(container: HTMLElement, sessionId: string, filePath: string): Promise<void> {
@@ -67,10 +179,21 @@ export class FileEditorManager extends EventEmitter {
       this.sessionId = sessionId;
       this.filePath = filePath;
 
+      // 获取文件信息
+      const stats = await sftpService.stat(this.sessionId, this.filePath);
+      this.fileInfo = {
+        size: stats.size,
+        modifyTime: stats.modifyTime,
+        isDirectory: stats.isDirectory,
+        permissions: stats.permissions,
+        encoding: this.config.encoding || 'UTF-8',
+        isPartiallyLoaded: false
+      };
+
       // 创建编辑器实例
       this.editor = monaco.editor.create(container, {
         value: '',
-        language: 'plaintext',
+        language: this.getLanguage(filePath),
         theme: this.config.theme,
         fontSize: this.config.fontSize,
         tabSize: this.config.tabSize,
@@ -78,8 +201,40 @@ export class FileEditorManager extends EventEmitter {
         readOnly: this.config.readOnly,
         minimap: { enabled: this.config.minimap },
         scrollBeyondLastLine: false,
-        automaticLayout: true
+        automaticLayout: true,
+        formatOnPaste: true,
+        formatOnType: true
       });
+
+      // 如果文件不为空，加载文件内容
+      if (stats.size > 0) {
+        // 加载文件内容
+        const result = await sftpService.readFile(
+          this.sessionId,
+          this.filePath,
+          0,
+          -1,
+          this.config.encoding as BufferEncoding
+        );
+
+        // 创建新的 model
+        if (this.currentModel) {
+          this.currentModel.dispose();
+        }
+
+        this.currentModel = monaco.editor.createModel(
+          result.content,
+          this.getLanguage(filePath)
+        );
+        this.editor.setModel(this.currentModel);
+      } else {
+        // 对于空文件，创建一个空的 model
+        this.currentModel = monaco.editor.createModel(
+          '',
+          this.getLanguage(filePath)
+        );
+        this.editor.setModel(this.currentModel);
+      }
 
       // 添加快捷键处理
       this.addKeybindings();
@@ -114,11 +269,10 @@ export class FileEditorManager extends EventEmitter {
         })
       );
 
-      // 获取文件信息
-      await this.loadFileInfo();
-
+      this.emit(EditorEvents.FILE_LOADED, this.currentModel.getValue());
     } catch (error) {
       this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
+      throw error;
     }
   }
 

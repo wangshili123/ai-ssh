@@ -111,6 +111,22 @@ export function registerSFTPHandlers(): void {
     }>> => {
       try {
         console.log(`[SFTP] 读取文件 - connectionId: ${connectionId}, path: ${filePath}, start: ${start}, length: ${length}`);
+        
+        // 先获取文件状态
+        const stats = await sftpManager.stat(connectionId, filePath);
+        
+        // 如果文件大小为0，直接返回空内容
+        if (stats.size === 0) {
+          return {
+            success: true,
+            data: {
+              content: '',
+              totalSize: 0,
+              bytesRead: 0
+            }
+          };
+        }
+
         const result = await sftpManager.readFile(connectionId, filePath, start, length, encoding);
         return {
           success: true,

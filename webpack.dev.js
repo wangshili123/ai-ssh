@@ -94,6 +94,26 @@ module.exports = merge(common, {
         {
           from: 'node_modules/tree-sitter-bash/tree-sitter-bash.wasm',
           to: 'wasm/'
+        },
+        {
+          from: 'node_modules/monaco-editor/min/vs/base/worker',
+          to: 'vs/base/worker'
+        },
+        {
+          from: 'node_modules/monaco-editor/min/vs/base/browser',
+          to: 'vs/base/browser'
+        },
+        {
+          from: 'node_modules/monaco-editor/min/vs/basic-languages',
+          to: 'vs/basic-languages'
+        },
+        {
+          from: 'node_modules/monaco-editor/min/vs/language',
+          to: 'vs/language'
+        },
+        {
+          from: 'node_modules/monaco-editor/min/vs/editor',
+          to: 'vs/editor'
         }
       ]
     }),
@@ -119,6 +139,10 @@ module.exports = merge(common, {
       {
         directory: path.join(__dirname, 'node_modules/tree-sitter-bash'),
         publicPath: '/wasm'
+      },
+      {
+        directory: path.join(__dirname, 'node_modules/monaco-editor/min'),
+        publicPath: '/'
       }
     ],
     headers: {

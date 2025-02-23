@@ -28,7 +28,7 @@ class SFTPService {
    * 关闭SFTP客户端
    */
   async close(sessionId: string): Promise<void> {
-    const result = await ipcRenderer.invoke('sftp:close', sessionId);
+    const result = await ipcRenderer.invoke('sftp:close-client', sessionId);
     if (!result.success) {
       throw new Error(result.error);
     }

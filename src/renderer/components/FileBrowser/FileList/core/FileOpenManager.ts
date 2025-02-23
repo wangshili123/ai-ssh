@@ -57,12 +57,24 @@ class FileOpenManager {
             })
           ),
           width: '80%',
-          maskClosable: false,
-          okText: '关闭',
+          maskClosable: true,
+          okText: '保存',
+          cancelText: '关闭',
           className: 'file-editor-modal',
           style: { top: 20 },
           bodyStyle: { padding: 0 },
+          keyboard: true,
+          closable: true,
+          type: 'confirm',
           onOk: async () => {
+            try {
+              await editorRef.current?.save();
+            } finally {
+              // 确保关闭 SFTP 客户端
+              await sftpService.close(tabId);
+            }
+          },
+          onCancel: async () => {
             try {
               // 如果文件有修改，提示保存
               if (editorRef.current?.isDirty) {
@@ -78,13 +90,9 @@ class FileOpenManager {
                 }
               }
             } finally {
-              // 确保关闭 SFTP 客户端
+              // 确保在取消时也关闭 SFTP 客户端
               await sftpService.close(tabId);
             }
-          },
-          onCancel: async () => {
-            // 确保在取消时也关闭 SFTP 客户端
-            await sftpService.close(tabId);
           }
         });
       } catch (error) {

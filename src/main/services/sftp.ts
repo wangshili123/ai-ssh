@@ -177,6 +177,17 @@ class SFTPClient {
         }
 
         const totalSize = stats.size;
+        
+        // 如果文件大小为0，直接返回空内容
+        if (totalSize === 0) {
+          resolve({
+            content: '',
+            totalSize: 0,
+            bytesRead: 0
+          });
+          return;
+        }
+
         const readLength = length === -1 ? totalSize - start : length;
         const buffer = Buffer.alloc(readLength);
 
