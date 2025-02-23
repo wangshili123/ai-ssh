@@ -1,0 +1,149 @@
+.file-status-bar {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  background-color: #1E1E1E;
+  border-top: 1px solid #333;
+  color: #D4D4D4;
+  font-size: 12px;
+  user-select: none;
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    border-right: 1px solid #333;
+    height: 100%;
+
+    &:last-child {
+      border-right: none;
+    }
+
+    .icon {
+      margin-right: 4px;
+      font-size: 14px;
+    }
+
+    .text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    // 文件信息
+    &.file-info {
+      max-width: 200px;
+      min-width: 100px;
+      flex-shrink: 1;
+
+      .text {
+        color: #D4D4D4;
+      }
+    }
+
+    // 编码信息
+    &.encoding-info {
+      min-width: 100px;
+      
+      .encoding-select {
+        background-color: transparent;
+        border: none;
+        color: inherit;
+        font-size: inherit;
+        padding: 0 4px;
+        cursor: pointer;
+        outline: none;
+
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        option {
+          background-color: #1E1E1E;
+          color: #D4D4D4;
+        }
+      }
+    }
+
+    // 光标位置
+    &.cursor-info {
+      min-width: 120px;
+      color: #666;
+    }
+
+    // 内存使用
+    &.memory-info {
+      min-width: 150px;
+      color: #666;
+    }
+
+    // 加载状态
+    &.loading-info {
+      color: #007ACC;
+
+      .loading-indicator {
+        width: 12px;
+        height: 12px;
+        margin-right: 6px;
+        border: 2px solid transparent;
+        border-top-color: #007ACC;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    }
+
+    // 实时模式状态
+    &.realtime-info {
+      color: #4CAF50;
+
+      .icon {
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 0.5;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0.5;
+        }
+      }
+    }
+
+    // 过滤状态
+    &.filter-info {
+      color: #FFD700;
+    }
+  }
+
+  // 鼠标悬停效果
+  .status-item {
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  // 响应式布局
+  @media (max-width: 768px) {
+    .status-item {
+      &.encoding-info,
+      &.memory-info {
+        display: none;
+      }
+
+      &.file-info {
+        max-width: 150px;
+      }
+    }
+  }
+} 

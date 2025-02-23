@@ -1,0 +1,49 @@
+.editor-context-menu {
+  position: fixed;
+  min-width: 160px;
+  background-color: #1E1E1E;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  user-select: none;
+
+  .menu-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    color: #D4D4D4;
+    cursor: pointer;
+    font-size: 12px;
+
+    &:hover {
+      background-color: #2D2D2D;
+    }
+
+    &.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+
+      &:hover {
+        background-color: transparent;
+      }
+    }
+
+    .menu-item-text {
+      margin-right: 16px;
+    }
+
+    .shortcut {
+      color: #666;
+      font-size: 11px;
+    }
+  }
+
+  .menu-separator {
+    height: 1px;
+    background-color: #333;
+    margin: 4px 0;
+  }
+} 
