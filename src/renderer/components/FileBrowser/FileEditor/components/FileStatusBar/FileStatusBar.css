@@ -6,12 +6,19 @@
   border-top: 1px solid #333;
   font-size: 12px;
   color: #d4d4d4;
+  height: 24px;
 }
 
 .file-status-bar .status-item {
   display: flex;
   align-items: center;
   gap: 4px;
+  padding: 0 8px;
+  border-right: 1px solid #333;
+}
+
+.file-status-bar .status-item:last-child {
+  border-right: none;
 }
 
 .file-status-bar .anticon {
@@ -24,5 +31,13 @@
 }
 
 .file-status-bar .ant-space {
-  gap: 24px;
+  gap: 0 !important;
+}
+
+.file-status-bar .status-item.warning {
+  color: #faad14;
+}
+
+.file-status-bar .status-item.warning .status-text {
+  color: #faad14;
 } 

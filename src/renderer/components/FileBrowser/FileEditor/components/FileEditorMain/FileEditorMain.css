@@ -3,11 +3,13 @@
   flex-direction: column;
   height: 100%;
   position: relative;
+  overflow: hidden;
 }
 
 .file-editor-main .editor-container {
   flex: 1;
   overflow: hidden;
+  margin-bottom: 24px; /* 为状态栏留出空间 */
 }
 
 .file-editor-main .loading-indicator,
@@ -46,7 +48,7 @@
 
 .file-editor-main .filter-stats {
   position: absolute;
-  bottom: 8px;
+  bottom: 32px; /* 调整位置，避免与状态栏重叠 */
   right: 16px;
   background: rgba(0, 0, 0, 0.6);
   padding: 4px 8px;

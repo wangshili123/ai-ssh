@@ -1,0 +1,24 @@
+.editor-dialog .ant-modal-content {
+  padding: 0;
+  overflow: hidden;
+}
+
+.editor-dialog .ant-modal-header {
+  margin: 0;
+  padding: 16px 24px;
+  border-bottom: 1px solid #333;
+}
+
+.editor-dialog .ant-modal-body {
+  height: calc(90vh - 55px);
+  padding: 0;
+}
+
+.editor-dialog .editor-dialog-content {
+  height: 100%;
+  background-color: #1e1e1e;
+}
+
+.editor-dialog .file-editor-main {
+  height: 100%;
+} 

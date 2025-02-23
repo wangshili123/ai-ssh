@@ -18,6 +18,7 @@ import { CloudOutlined, DisconnectOutlined, LoadingOutlined, SaveOutlined } from
 import { FileEditorToolbar } from '../FileEditorToolbar/FileEditorToolbar';
 import { FileStatusBar } from '../FileStatusBar/FileStatusBar';
 import { FileEditorStore, EditorStoreContext } from '../../store/FileEditorStore';
+import { sftpService } from '../../../../../services/sftp';
 
 interface FileEditorMainProps {
   filePath: string;
@@ -92,9 +93,28 @@ const FileEditorMainInner = observer(forwardRef<FileEditorMainRef, FileEditorMai
     setFileWatcher(watcher);
 
     // 初始化编辑器
-    editor.initialize(containerRef.current, sessionId, filePath).catch(error => {
-      editorStore.setError(error as Error);
-    });
+    const initEditor = async () => {
+      try {
+        // 先获取文件信息
+        const stats = await sftpService.stat(sessionId, filePath);
+        const fileInfo = {
+          size: stats.size,
+          modifyTime: stats.modifyTime,
+          isDirectory: stats.isDirectory,
+          permissions: stats.permissions,
+          encoding: initialConfig?.encoding || 'UTF-8',
+          isPartiallyLoaded: false
+        };
+        editorStore.setFileInfo(fileInfo);
+
+        // 然后初始化编辑器
+        await editor.initialize(containerRef.current!, sessionId, filePath);
+      } catch (error) {
+        editorStore.setError(error as Error);
+      }
+    };
+
+    initEditor();
 
     // 监听编辑器事件
     editor.on(EditorEvents.CONTENT_CHANGED, () => {
