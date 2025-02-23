@@ -1,125 +1,80 @@
 /**
  * 过滤管理器
- * 负责文件内容的过滤功能
+ * 负责处理文件内容的过滤功能
  */
 
 import { EventEmitter } from 'events';
-import { EditorEvents } from '../types/FileEditorTypes';
-import { ErrorManager, ErrorType } from './ErrorManager';
-import { FileWorker } from './FileWorker';
-
-export interface FilterConfig {
-  pattern: string;
-  isRegex: boolean;
-  caseSensitive: boolean;
-}
-
-export interface FilterStats {
-  matchedLines: number;
-  totalLines: number;
-  processedSize: number;
-}
+import { FilterConfig } from '../types/FileEditorTypes';
 
 export class FilterManager extends EventEmitter {
-  private worker: FileWorker;
-  private errorManager: ErrorManager;
-  private currentConfig: FilterConfig | null = null;
-  private stats: FilterStats = {
-    matchedLines: 0,
-    totalLines: 0,
-    processedSize: 0
-  };
-
-  constructor(errorManager: ErrorManager) {
-    super();
-    this.errorManager = errorManager;
-    this.worker = new FileWorker();
-  }
+  private pattern: string = '';
+  private isRegex: boolean = false;
+  private caseSensitive: boolean = false;
+  private filterActive: boolean = false;
 
   /**
-   * 设置过滤条件
+   * 应用过滤条件
    */
-  public setFilter(config: FilterConfig): void {
-    this.currentConfig = config;
-    this.resetStats();
-    this.emit(EditorEvents.FILTER_APPLIED, config);
+  applyFilter(config: FilterConfig): void {
+    this.pattern = config.pattern;
+    this.isRegex = config.isRegex;
+    this.caseSensitive = config.caseSensitive;
+    this.filterActive = true;
   }
 
   /**
    * 清除过滤条件
    */
-  public clearFilter(): void {
-    this.currentConfig = null;
-    this.resetStats();
-    this.emit(EditorEvents.FILTER_CLEARED);
+  clearFilter(): void {
+    this.pattern = '';
+    this.isRegex = false;
+    this.caseSensitive = false;
+    this.filterActive = false;
   }
 
   /**
-   * 处理文本块
+   * 过滤文本内容
    */
-  public async processChunk(lines: string[]): Promise<string[]> {
+  filterContent(content: string[]): string[] {
+    if (!this.filterActive || !this.pattern) {
+      return content;
+    }
+
     try {
-      if (!this.currentConfig || !this.currentConfig.pattern) {
-        this.updateStats(lines.length, lines.length, this.calculateSize(lines));
-        return lines;
+      let regex: RegExp;
+      if (this.isRegex) {
+        regex = new RegExp(this.pattern, this.caseSensitive ? 'g' : 'gi');
+      } else {
+        const escaped = this.pattern.replace(/[-/\\^$*+?.()|[\\]{}]/g, '\\$&');
+        regex = new RegExp(escaped, this.caseSensitive ? 'g' : 'gi');
       }
 
-      const filteredLines = await this.worker.execute<string[]>({
-        type: 'filter',
-        data: {
-          content: lines,
-          ...this.currentConfig
-        }
-      });
-
-      this.updateStats(filteredLines.length, lines.length, this.calculateSize(lines));
-      return filteredLines;
+      return content.filter(line => regex.test(line));
     } catch (error) {
-      this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
-      return lines;
+      console.error('过滤内容失败:', error);
+      return content;
     }
   }
 
   /**
-   * 获取过滤统计信息
+   * 检查是否有活动的过滤器
    */
-  public getStats(): FilterStats {
-    return { ...this.stats };
+  isFilterActive(): boolean {
+    return this.filterActive;
   }
 
   /**
-   * 重置统计信息
+   * 获取当前过滤配置
    */
-  private resetStats(): void {
-    this.stats = {
-      matchedLines: 0,
-      totalLines: 0,
-      processedSize: 0
+  getFilterConfig(): FilterConfig | null {
+    if (!this.filterActive) {
+      return null;
+    }
+
+    return {
+      pattern: this.pattern,
+      isRegex: this.isRegex,
+      caseSensitive: this.caseSensitive
     };
-  }
-
-  /**
-   * 更新统计信息
-   */
-  private updateStats(matchedLines: number, totalLines: number, processedSize: number): void {
-    this.stats.matchedLines += matchedLines;
-    this.stats.totalLines += totalLines;
-    this.stats.processedSize += processedSize;
-    this.emit('statsUpdated', this.stats);
-  }
-
-  /**
-   * 计算文本大小（字节）
-   */
-  private calculateSize(lines: string[]): number {
-    return lines.reduce((size, line) => size + line.length * 2, 0); // 假设每个字符占2字节
-  }
-
-  /**
-   * 销毁实例
-   */
-  public destroy(): void {
-    this.worker.destroy();
-    this.removeAllListeners();
   }
 } 

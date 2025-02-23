@@ -4,8 +4,9 @@
 
 import { makeAutoObservable } from 'mobx';
 import { createContext, useContext } from 'react';
-import { FilterStats } from '../types/FileEditorTypes';
+import { FilterStats, RemoteFileInfo, RemoteSessionInfo } from '../types/FileEditorTypes';
 import { IFileEditorStore } from './FileEditorStoreTypes';
+import { sftpService } from '../../../../services/sftp';
 
 export class FileEditorStore implements IFileEditorStore {
   // 文件状态
@@ -29,6 +30,13 @@ export class FileEditorStore implements IFileEditorStore {
     totalLines: 0,
     processedSize: 0
   };
+
+  // 远程会话状态
+  sessionInfo: RemoteSessionInfo | null = null;
+  fileInfo: RemoteFileInfo | null = null;
+  encoding: string = 'UTF-8';
+  isConnected: boolean = false;
+  cursorPosition: { line: number; column: number } | null = null;
 
   // 错误状态
   errorRecoverable: boolean = false;
@@ -85,6 +93,59 @@ export class FileEditorStore implements IFileEditorStore {
     this.filterStats = stats;
   };
 
+  // 远程会话操作
+  setSessionInfo = (info: RemoteSessionInfo) => {
+    this.sessionInfo = info;
+    this.isConnected = info.isConnected;
+  };
+
+  setConnected = (connected: boolean) => {
+    this.isConnected = connected;
+  };
+
+  setFileInfo = (info: RemoteFileInfo) => {
+    this.fileInfo = info;
+    this.encoding = info.encoding;
+  };
+
+  setCursorPosition = (position: { line: number; column: number } | null) => {
+    this.cursorPosition = position;
+  };
+
+  setEncoding = (encoding: string) => {
+    this.encoding = encoding;
+  };
+
+  reconnect = async (): Promise<void> => {
+    if (!this.sessionInfo) return;
+
+    try {
+      this.isLoading = true;
+      await sftpService.close(this.sessionInfo.sessionId);
+      // 重新连接的逻辑将由 sftpService 自动处理
+      this.isConnected = true;
+      this.error = null;
+    } catch (error) {
+      this.error = error as Error;
+      this.isConnected = false;
+    } finally {
+      this.isLoading = false;
+    }
+  };
+
+  checkConnection = async (): Promise<boolean> => {
+    if (!this.sessionInfo) return false;
+
+    try {
+      const stats = await sftpService.stat(this.sessionInfo.sessionId, this.currentFile || '');
+      this.isConnected = true;
+      return true;
+    } catch (error) {
+      this.isConnected = false;
+      return false;
+    }
+  };
+
   // 重置状态
   reset = () => {
     this.currentFile = null;
@@ -101,6 +162,10 @@ export class FileEditorStore implements IFileEditorStore {
       totalLines: 0,
       processedSize: 0
     };
+    this.sessionInfo = null;
+    this.fileInfo = null;
+    this.encoding = 'UTF-8';
+    this.isConnected = false;
   };
 }
 

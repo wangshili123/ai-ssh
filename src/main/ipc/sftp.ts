@@ -101,4 +101,70 @@ export function registerSFTPHandlers(): void {
       }
     }
   );
+
+  // 读取文件内容
+  ipcMain.handle('sftp:read-file',
+    async (event, connectionId: string, filePath: string, start: number = 0, length: number = -1, encoding: BufferEncoding | 'binary' = 'utf8'): Promise<Result<{
+      content: string;
+      totalSize: number;
+      bytesRead: number;
+    }>> => {
+      try {
+        console.log(`[SFTP] 读取文件 - connectionId: ${connectionId}, path: ${filePath}, start: ${start}, length: ${length}`);
+        const result = await sftpManager.readFile(connectionId, filePath, start, length, encoding);
+        return {
+          success: true,
+          data: result
+        };
+      } catch (error) {
+        console.error(`[SFTP] 读取文件失败:`, error);
+        return {
+          success: false,
+          error: (error as Error).message
+        };
+      }
+    }
+  );
+
+  // 写入文件内容
+  ipcMain.handle('sftp:write-file',
+    async (event, connectionId: string, filePath: string, content: string, encoding: BufferEncoding = 'utf8'): Promise<Result<void>> => {
+      try {
+        console.log(`[SFTP] 写入文件 - connectionId: ${connectionId}, path: ${filePath}`);
+        await sftpManager.writeFile(connectionId, filePath, content, encoding);
+        return { success: true };
+      } catch (error) {
+        console.error(`[SFTP] 写入文件失败:`, error);
+        return {
+          success: false,
+          error: (error as Error).message
+        };
+      }
+    }
+  );
+
+  // 获取文件状态
+  ipcMain.handle('sftp:stat',
+    async (event, connectionId: string, filePath: string): Promise<Result<{
+      size: number;
+      modifyTime: number;
+      isDirectory: boolean;
+      permissions: number;
+    }>> => {
+      try {
+        console.log(`[SFTP] 获取文件状态 - connectionId: ${connectionId}, path: ${filePath}`);
+        const stats = await sftpManager.stat(connectionId, filePath);
+        return {
+          success: true,
+          data: stats
+        };
+      } catch (error) {
+        console.error(`[SFTP] 获取文件状态失败:`, error);
+        return {
+          success: false,
+          error: (error as Error).message
+        };
+      }
+    }
+  );
 } 

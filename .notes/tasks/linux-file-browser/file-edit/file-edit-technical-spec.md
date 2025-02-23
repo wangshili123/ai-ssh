@@ -1,6 +1,6 @@
-# 文件编辑器技术规格说明书
+# 远程文件编辑器技术规格说明书
 
-## 一、项目结构
+## 一、项目定位
 
 ### 1. 目录结构
 ```
@@ -57,336 +57,200 @@ src/renderer/components/FileBrowser/
 ## 二、技术栈选型
 
 ### 1. 核心技术
-- **框架**: React 18 + TypeScript
-- **状态管理**: Mobx
+- **运行环境**: Electron + Node.js
+- **前端框架**: React 18 + TypeScript
 - **编辑器核心**: Monaco Editor
-- **样式方案**: Less + CSS Modules
+- **远程连接**: SSH2 + SFTP
+- **状态管理**: MobX
 - **构建工具**: Webpack 5
 
 ### 2. 关键依赖包
 ```json
 {
   "dependencies": {
-    "monaco-editor": "^0.45.0",    // 编辑器核心
-    "mobx": "^6.12.0",            // 状态管理
-    "mobx-react": "^9.1.0",       // React绑定
-    "rxjs": "^7.8.1",             // 响应式编程
-    "chokidar": "^3.5.3",         // 文件监控
+    "electron": "^28.0.0",        // Electron 运行环境
+    "monaco-editor": "^0.45.0",   // 代码编辑器核心
+    "ssh2": "^1.15.0",           // SSH/SFTP 客户端
+    "mobx": "^6.12.0",           // 状态管理
+    "mobx-react": "^9.1.0",      // React 状态绑定
+    "iconv-lite": "^0.6.3",      // 字符编码转换
+    "jschardet": "^3.0.0"        // 编码检测
   }
 }
 ```
 
 ## 三、核心模块设计
 
-### 1. 文件加载模块
+### 1. 远程会话管理
 ```typescript
-interface IFileLoader {
-  // 加载指定范围的文件内容
-  loadChunk(start: number, end: number): Promise<string[]>;
+interface ISessionManager {
+  // 创建新的远程会话
+  createSession(config: SSHConfig): Promise<string>;
   
-  // 获取文件基本信息
-  getFileInfo(): Promise<FileInfo>;
+  // 获取现有会话
+  getSession(sessionId: string): Session;
   
-  // 应用过滤条件
-  applyFilter(filter: FilterConfig): void;
+  // 关闭会话
+  closeSession(sessionId: string): Promise<void>;
   
-  // 清除过滤
-  clearFilter(): void;
+  // 会话状态管理
+  isConnected(sessionId: string): boolean;
+  reconnect(sessionId: string): Promise<void>;
 }
 
-interface FileInfo {
+interface SSHConfig {
+  host: string;
+  port: number;
+  username: string;
+  password?: string;
+  privateKey?: string;
+  passphrase?: string;
+}
+```
+
+### 2. 远程文件管理
+```typescript
+interface IRemoteFileManager {
+  // 文件读写
+  readFile(sessionId: string, path: string, start?: number, length?: number): Promise<Buffer>;
+  writeFile(sessionId: string, path: string, content: string): Promise<void>;
+  
+  // 文件信息
+  stat(sessionId: string, path: string): Promise<FileStat>;
+  
+  // 文件锁定
+  lockFile(sessionId: string, path: string): Promise<void>;
+  unlockFile(sessionId: string, path: string): Promise<void>;
+  isLocked(sessionId: string, path: string): boolean;
+}
+
+interface FileStat {
   size: number;
-  lineCount: number;
-  encoding: string;
-  lastModified: Date;
-}
-
-interface FilterConfig {
-  pattern: string;
-  isRegex: boolean;
-  caseSensitive: boolean;
+  modifyTime: number;
+  isDirectory: boolean;
+  permissions: number;
 }
 ```
 
-### 2. 过滤引擎
+### 3. 文件监控管理
 ```typescript
-interface IFilterEngine {
-  // 设置过滤条件
-  setFilter(config: FilterConfig): void;
-  
-  // 处理文本块
-  processChunk(text: string): string[];
-  
-  // 获取过滤状态
-  getStats(): FilterStats;
-}
-
-interface FilterStats {
-  matchedLines: number;
-  totalLines: number;
-  processedSize: number;
-}
-```
-
-### 3. 文件监控
-```typescript
-interface IFileWatcher {
-  // 开始监控文件变化
-  watch(path: string): void;
+interface IFileWatchManager {
+  // 开始监控（使用 tail -f）
+  startWatch(sessionId: string, filePath: string): Promise<void>;
   
   // 停止监控
-  stop(): void;
+  stopWatch(): void;
   
-  // 设置变化处理器
-  onChanged(handler: (content: string) => void): void;
+  // 事件监听
+  onFileChanged(callback: (content: string) => void): void;
+  onError(callback: (error: Error) => void): void;
+}
+```
+
+### 4. 编辑器管理
+```typescript
+interface IEditorManager {
+  // 编辑器初始化
+  initialize(container: HTMLElement, options: EditorOptions): void;
+  
+  // 内容管理
+  setValue(content: string): void;
+  getValue(): string;
+  
+  // 编码处理
+  setEncoding(encoding: string): void;
+  detectEncoding(content: Buffer): string;
+  
+  // 状态管理
+  isDirty(): boolean;
+  save(): Promise<void>;
 }
 ```
 
 ## 四、性能优化策略
 
-### 1. 大文件处理
-- 使用虚拟滚动技术
-- 分块加载，默认块大小2MB
-- LRU缓存管理已加载内容
-- 后台预加载临近块
+### 1. 远程文件处理
+- SFTP 连接池管理
+- 文件分块加载（默认块大小 1MB）
+- 本地缓存策略
+- 压缩传输
 
-### 2. 过滤优化
-- 流式处理，边读边过滤
-- 多线程处理大文件
-- 增量处理新内容
-- 过滤结果缓存
+### 2. 大文件支持
+- 虚拟滚动技术
+- 动态加载和卸载
+- 内存使用限制
+- 后台预加载
 
-### 3. 内存管理
-- 设置最大内存使用限制（默认512MB）
-- 超出限制时自动释放远端内容
-- 定期清理未使用的缓存
+### 3. 网络优化
+- 断点续传
+- 请求队列管理
+- 失败重试机制
+- 连接保活
 
-## 五、接口规范
-
-### 1. 事件定义
-```typescript
-enum EditorEvents {
-  CONTENT_CHANGED = 'content-changed',
-  FILTER_APPLIED = 'filter-applied',
-  FILTER_CLEARED = 'filter-cleared',
-  FILE_LOADED = 'file-loaded',
-  ERROR_OCCURRED = 'error-occurred'
-}
-```
-
-### 2. 状态定义
-```typescript
-interface EditorState {
-  isLoading: boolean;
-  currentFile: string;
-  filterActive: boolean;
-  filterStats: FilterStats;
-  error: Error | null;
-}
-```
-
-## 六、错误处理
+## 五、错误处理
 
 ### 1. 错误类型
 ```typescript
-enum EditorErrorType {
+enum RemoteFileError {
+  // 连接错误
+  CONNECTION_LOST = 'CONNECTION_LOST',
+  CONNECTION_TIMEOUT = 'CONNECTION_TIMEOUT',
+  
+  // 文件错误
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
-  PERMISSION_DENIED = 'PERMISSION_DENIED',
-  ENCODING_ERROR = 'ENCODING_ERROR',
-  MEMORY_EXCEEDED = 'MEMORY_EXCEEDED',
-  FILTER_ERROR = 'FILTER_ERROR'
-}
-```
-
-### 7. 文件打开方式实现
-
-#### 数据结构
-```typescript
-// 文件打开设置
-interface FileOpenSettings {
-  defaultEditor: 'built-in';
-  fileTypeAssociations: {
-    [extension: string]: {
-      editor: 'built-in';
-    }
-  }
-}
-
-// 扩展现有的 UISettings
-interface UISettings {
-  isFileBrowserVisible: boolean;
-  isAIVisible: boolean;
-  fileOpenSettings: FileOpenSettings;
-}
-```
-
-#### 核心模块
-- **FileListContextMenu**：
-  - 位置：`src/renderer/components/FileBrowser/FileList/components/ContextMenu`
-  - 职责：实现文件列表的右键菜单UI和交互
+  FILE_PERMISSION_DENIED = 'FILE_PERMISSION_DENIED',
+  FILE_LOCKED = 'FILE_LOCKED',
   
-- **FileOpenManager**：
-  - 位置：`src/renderer/components/FileBrowser/FileList/core`
-  - 职责：管理文件打开方式的配置和执行
-
-#### 实现流程
-1. 存储层：
-   - 扩展 StorageService 添加文件打开设置的存储和读取
-   - 实现配置的自动保存
-
-2. 组件层：
-   - 实现右键菜单组件
-   - 集成到 FileList 组件
-   - 处理菜单事件
-
-3. 状态管理：
-   - 在 Store 中维护打开方式配置
-   - 实现配置变更的响应式更新
-
-4. 事件处理：
-   - 右键菜单事件
-   - 双击文件事件
-   - 打开方式选择事件
-
-#### 接口定义
-```typescript
-interface FileOpenManager {
-  // 获取文件的默认打开方式
-  getDefaultEditor(filePath: string): 'built-in';
+  // 网络错误
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  SFTP_ERROR = 'SFTP_ERROR',
+  SSH_ERROR = 'SSH_ERROR',
   
-  // 设置文件类型的默认打开方式
-  setDefaultEditor(extension: string, editor: 'built-in'): void;
-  
-  // 使用指定方式打开文件
-  openFile(filePath: string, editor?: 'built-in'): void;
-}
-
-interface FileListContextMenu {
-  // 显示右键菜单
-  show(x: number, y: number, file: FileInfo): void;
-  
-  // 隐藏右键菜单
-  hide(): void;
-  
-  // 处理菜单项选择
-  onMenuItemSelect(action: string, file: FileInfo): void;
+  // 编码错误
+  ENCODING_ERROR = 'ENCODING_ERROR'
 }
 ```
 
-### 8. FileList与FileEditor集成
+### 2. 错误恢复策略
+- 自动重连机制
+- 编辑内容本地备份
+- 错误状态恢复
+- 用户操作重试
 
-#### 组件关系
-```
-应用程序/
-├── FileBrowser/           # 文件浏览器窗口
-│   └── FileList/         # 文件列表模块
-│       ├── FileList.tsx  # 文件列表组件
-│       └── core/
-│           └── FileOpenManager.ts  # 打开方式管理
-└── FileEditor/           # 独立的编辑器窗口
-    ├── index.ts         # 入口文件
-    └── core/
-        └── FileEditorManager.ts
-```
+## 六、安全考虑
 
-#### 集成流程
-1. 在主进程中添加新窗口创建逻辑：
-```typescript
-// main/services/window.ts
-interface CreateEditorWindowOptions {
-  file: FileEntry;
-  sessionInfo: SessionInfo;
-}
+### 1. 认证安全
+- SSH 密钥管理
+- 密码加密存储
+- 会话超时处理
 
-class WindowManager {
-  // 创建编辑器窗口
-  createEditorWindow(options: CreateEditorWindowOptions): BrowserWindow {
-    const win = new BrowserWindow({
-      width: 1024,
-      height: 768,
-      title: `编辑器 - ${options.file.name}`,
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false
-      }
-    });
+### 2. 数据安全
+- 本地缓存加密
+- 传输数据加密
+- 临时文件清理
 
-    // 加载编辑器页面
-    win.loadURL(`file://${__dirname}/editor.html`);
-    
-    // 传递文件信息
-    win.webContents.on('did-finish-load', () => {
-      win.webContents.send('init-editor', options);
-    });
+### 3. 权限控制
+- 文件权限检查
+- 操作权限验证
+- 会话权限管理
 
-    return win;
-  }
-}
-```
+## 七、用户体验
 
-2. 在渲染进程中处理文件打开：
-```typescript
-// renderer/components/FileBrowser/FileList/FileList.tsx
-const handleFileOpen = async (file: FileEntry) => {
-  // 通过IPC调用主进程打开新窗口
-  ipcRenderer.send('open-editor', {
-    file,
-    sessionInfo,
-    connectionId
-  });
-};
-```
+### 1. 编辑功能
+- 代码高亮
+- 自动补全
+- 代码折叠
+- 查找替换
+- 多光标编辑
 
-3. 文件打开流程：
-```
-FileList双击文件
-    ↓
-发送IPC消息到主进程
-    ↓
-主进程创建新窗口
-    ↓
-加载编辑器页面
-    ↓
-初始化编辑器并加载文件
-```
+### 2. 状态反馈
+- 连接状态显示
+- 加载进度提示
+- 错误信息展示
+- 操作结果反馈
 
-#### 窗口通信
-```typescript
-// IPC事件定义
-interface IPCEvents {
-  // 主进程 -> 渲染进程
-  'init-editor': {
-    file: FileEntry;
-    sessionInfo: SessionInfo;
-  };
-  
-  // 渲染进程 -> 主进程
-  'open-editor': {
-    file: FileEntry;
-    sessionInfo: SessionInfo;
-    connectionId: string;
-  };
-  
-  // 编辑器状态事件
-  'editor-file-saved': {
-    file: FileEntry;
-  };
-}
-```
-
-#### 编辑器窗口
-- 独立的窗口进程
-- 包含完整的编辑器功能
-- 支持多窗口打开
-- 窗口间状态独立
-
-#### 状态管理
-- 每个编辑器窗口维护自己的状态
-- 通过IPC与主进程通信
-- 支持窗口关闭时保存状态
-
-#### 用户界面
-- 独立的编辑器窗口
-- 窗口标题显示文件名
-- 支持窗口大小调整
-- 支持窗口最大化/最小化
+### 3. 实时特性
+- 文件变更提示
+- 自动保存选项
+- 实时预览
+- 协同编辑支持

@@ -134,6 +134,20 @@ export const FileSearchPanel: React.FC<FileSearchPanelProps> = observer((props) 
     };
   }, []);
 
+  const handleNextMatch = () => {
+    if (searchManager && searchManager.nextMatch()) {
+      // 更新当前匹配项
+      setCurrentResultIndex(searchManager.getCurrentMatchIndex());
+    }
+  };
+
+  const handlePreviousMatch = () => {
+    if (searchManager && searchManager.previousMatch()) {
+      // 更新当前匹配项
+      setCurrentResultIndex(searchManager.getCurrentMatchIndex());
+    }
+  };
+
   return (
     <div className="file-search-panel">
       {/* 搜索输入区域 */}

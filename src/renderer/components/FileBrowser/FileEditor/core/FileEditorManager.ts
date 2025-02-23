@@ -5,8 +5,10 @@
 
 import { EventEmitter } from 'events';
 import * as monaco from 'monaco-editor';
-import { EditorEvents, EditorErrorType } from '../types/FileEditorTypes';
+import { EditorEvents, EditorErrorType, RemoteFileInfo } from '../types/FileEditorTypes';
 import { ErrorManager, ErrorType } from './ErrorManager';
+import { sftpService } from '../../../../services/sftp';
+import { detectEncoding } from '../utils/FileEncodingUtils';
 
 export interface EditorConfig {
   // 编辑器配置
@@ -16,6 +18,7 @@ export interface EditorConfig {
   wordWrap?: 'on' | 'off';
   readOnly?: boolean;
   minimap?: boolean;
+  encoding?: string;
 }
 
 export interface EditorPosition {
@@ -37,6 +40,9 @@ export class FileEditorManager extends EventEmitter {
   private config: EditorConfig;
   private disposables: monaco.IDisposable[] = [];
   private isDirty: boolean = false;
+  private sessionId: string = '';
+  private filePath: string = '';
+  private fileInfo: RemoteFileInfo | null = null;
 
   constructor(errorManager: ErrorManager, config: EditorConfig = {}) {
     super();
@@ -48,6 +54,7 @@ export class FileEditorManager extends EventEmitter {
       wordWrap: 'on',
       readOnly: false,
       minimap: true,
+      encoding: 'UTF-8',
       ...config
     };
   }
@@ -55,8 +62,11 @@ export class FileEditorManager extends EventEmitter {
   /**
    * 初始化编辑器
    */
-  public initialize(container: HTMLElement): void {
+  public async initialize(container: HTMLElement, sessionId: string, filePath: string): Promise<void> {
     try {
+      this.sessionId = sessionId;
+      this.filePath = filePath;
+
       // 创建编辑器实例
       this.editor = monaco.editor.create(container, {
         value: '',
@@ -103,8 +113,31 @@ export class FileEditorManager extends EventEmitter {
           });
         })
       );
+
+      // 获取文件信息
+      await this.loadFileInfo();
+
     } catch (error) {
       this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
+    }
+  }
+
+  /**
+   * 加载文件信息
+   */
+  private async loadFileInfo(): Promise<void> {
+    try {
+      const stats = await sftpService.stat(this.sessionId, this.filePath);
+      this.fileInfo = {
+        size: stats.size,
+        modifyTime: stats.modifyTime,
+        isDirectory: stats.isDirectory,
+        permissions: stats.permissions,
+        encoding: this.config.encoding || 'UTF-8',
+        isPartiallyLoaded: false
+      };
+    } catch (error) {
+      this.errorManager.handleError(error as Error, ErrorType.FILE_NOT_FOUND);
     }
   }
 
@@ -141,7 +174,7 @@ export class FileEditorManager extends EventEmitter {
   /**
    * 设置编辑器内容
    */
-  public setContent(content: string): void {
+  public async setContent(content: string): Promise<void> {
     try {
       if (!this.editor) {
         throw new Error('编辑器未初始化');
@@ -152,6 +185,14 @@ export class FileEditorManager extends EventEmitter {
         this.currentModel.dispose();
       }
 
+      // 检测文件编码
+      const buffer = Buffer.from(content);
+      const detectedEncoding = detectEncoding(buffer);
+      if (detectedEncoding && detectedEncoding !== this.config.encoding) {
+        this.config.encoding = detectedEncoding;
+        this.emit(EditorEvents.ENCODING_CHANGED, detectedEncoding);
+      }
+
       this.currentModel = monaco.editor.createModel(content, 'plaintext');
       this.editor.setModel(this.currentModel);
       this.isDirty = false;
@@ -159,6 +200,38 @@ export class FileEditorManager extends EventEmitter {
       this.emit(EditorEvents.CONTENT_CHANGED);
     } catch (error) {
       this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
+    }
+  }
+
+  /**
+   * 保存文件内容
+   */
+  public async save(): Promise<void> {
+    try {
+      if (!this.editor || !this.currentModel) {
+        throw new Error('编辑器未初始化');
+      }
+
+      const content = this.currentModel.getValue();
+      await sftpService.writeFile(
+        this.sessionId,
+        this.filePath,
+        content,
+        this.config.encoding as BufferEncoding
+      );
+
+      this.isDirty = false;
+      this.emit(EditorEvents.FILE_SAVED);
+
+      // 更新文件信息
+      await this.loadFileInfo();
+    } catch (error) {
+      if ((error as Error).message.includes('ECONNRESET')) {
+        this.emit(EditorEvents.CONNECTION_LOST);
+        this.errorManager.handleError(error as Error, ErrorType.CONNECTION_LOST);
+      } else {
+        this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
+      }
     }
   }
 
@@ -365,5 +438,84 @@ export class FileEditorManager extends EventEmitter {
     }
 
     this.removeAllListeners();
+  }
+
+  /**
+   * 设置文件编码
+   */
+  public setEncoding(encoding: string): void {
+    if (this.config.encoding === encoding) return;
+
+    this.config.encoding = encoding;
+    this.emit(EditorEvents.ENCODING_CHANGED, encoding);
+
+    // 如果有内容，重新加载以使用新编码
+    if (this.currentModel) {
+      const content = this.currentModel.getValue();
+      this.setContent(content);
+    }
+  }
+
+  /**
+   * 获取文件信息
+   */
+  public getFileInfo(): RemoteFileInfo | null {
+    return this.fileInfo;
+  }
+
+  /**
+   * 检查连接状态
+   */
+  public async checkConnection(): Promise<boolean> {
+    try {
+      await sftpService.stat(this.sessionId, this.filePath);
+      return true;
+    } catch (error) {
+      this.emit(EditorEvents.CONNECTION_LOST);
+      return false;
+    }
+  }
+
+  /**
+   * 重新加载文件
+   */
+  public async reload(): Promise<void> {
+    try {
+      const result = await sftpService.readFile(this.sessionId, this.filePath);
+      await this.setContent(result.content);
+    } catch (error) {
+      this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
+    }
+  }
+
+  /**
+   * 执行编辑器命令
+   */
+  public executeCommand(command: string): void {
+    if (!this.editor) return;
+
+    switch (command) {
+      case 'copy':
+        this.editor.trigger('keyboard', 'editor.action.clipboardCopyAction', null);
+        break;
+      case 'paste':
+        this.editor.trigger('keyboard', 'editor.action.clipboardPasteAction', null);
+        break;
+      case 'cut':
+        this.editor.trigger('keyboard', 'editor.action.clipboardCutAction', null);
+        break;
+      case 'selectAll':
+        this.editor.trigger('keyboard', 'editor.action.selectAll', null);
+        break;
+    }
+  }
+
+  /**
+   * 检查是否有选中文本
+   */
+  public hasSelection(): boolean {
+    if (!this.editor) return false;
+    const selection = this.editor.getSelection();
+    return selection ? !selection.isEmpty() : false;
   }
 } 

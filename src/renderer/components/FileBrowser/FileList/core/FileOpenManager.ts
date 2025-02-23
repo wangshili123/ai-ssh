@@ -9,6 +9,7 @@ import { SessionInfo } from '../../../../types';
 import { Modal } from 'antd';
 import { FileEditorMain, FileEditorMainRef } from '../../FileEditor/components/FileEditorMain/FileEditorMain';
 import { uiSettingsManager } from '../../../../services/UISettingsManager';
+import { sftpService } from '../../../../services/sftp';
 import '../../FileEditor/components/EditorModal.css';
 
 class FileOpenManager {
@@ -28,50 +29,70 @@ class FileOpenManager {
    */
   async openFile(file: FileEntry, sessionInfo: SessionInfo, tabId: string, editor: 'built-in' = 'built-in'): Promise<void> {
     if (editor === 'built-in') {
-      const editorRef = React.createRef<FileEditorMainRef>();
+      try {
+        // 先创建 SFTP 客户端
+        await sftpService.createClient(tabId, sessionInfo);
 
-      // 使用内置编辑器打开
-      Modal.info({
-        title: `编辑 - ${file.name}`,
-        content: React.createElement('div', 
-          { 
-            style: { 
-              height: '80vh', 
-              marginTop: 16, 
-              marginBottom: 16,
-              padding: 0
-            } 
-          },
-          React.createElement(FileEditorMain, {
-            filePath: file.path,
-            initialConfig: {
-              readOnly: false
+        const editorRef = React.createRef<FileEditorMainRef>();
+
+        // 使用内置编辑器打开
+        Modal.info({
+          title: `编辑 - ${file.name}`,
+          content: React.createElement('div', 
+            { 
+              style: { 
+                height: '80vh', 
+                marginTop: 16, 
+                marginBottom: 16,
+                padding: 0
+              } 
             },
-            ref: editorRef
-          })
-        ),
-        width: '80%',
-        maskClosable: false,
-        okText: '关闭',
-        className: 'file-editor-modal',
-        style: { top: 20 },
-        bodyStyle: { padding: 0 },
-        onOk: async () => {
-          // 如果文件有修改，提示保存
-          if (editorRef.current?.isDirty) {
-            const result = await Modal.confirm({
-              title: '保存更改',
-              content: '文件已修改，是否保存更改？',
-              okText: '保存',
-              cancelText: '不保存'
-            });
-            
-            if (result) {
-              await editorRef.current.save();
+            React.createElement(FileEditorMain, {
+              filePath: file.path,
+              sessionId: tabId,
+              initialConfig: {
+                readOnly: false
+              },
+              ref: editorRef
+            })
+          ),
+          width: '80%',
+          maskClosable: false,
+          okText: '关闭',
+          className: 'file-editor-modal',
+          style: { top: 20 },
+          bodyStyle: { padding: 0 },
+          onOk: async () => {
+            try {
+              // 如果文件有修改，提示保存
+              if (editorRef.current?.isDirty) {
+                const result = await Modal.confirm({
+                  title: '保存更改',
+                  content: '文件已修改，是否保存更改？',
+                  okText: '保存',
+                  cancelText: '不保存'
+                });
+                
+                if (result) {
+                  await editorRef.current.save();
+                }
+              }
+            } finally {
+              // 确保关闭 SFTP 客户端
+              await sftpService.close(tabId);
             }
+          },
+          onCancel: async () => {
+            // 确保在取消时也关闭 SFTP 客户端
+            await sftpService.close(tabId);
           }
-        }
-      });
+        });
+      } catch (error) {
+        Modal.error({
+          title: '打开文件失败',
+          content: `无法打开文件: ${(error as Error).message}`
+        });
+      }
     }
   }
 

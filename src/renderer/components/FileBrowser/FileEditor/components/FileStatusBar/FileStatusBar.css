@@ -1,0 +1,28 @@
+.file-status-bar {
+  display: flex;
+  align-items: center;
+  padding: 4px 16px;
+  background-color: #1e1e1e;
+  border-top: 1px solid #333;
+  font-size: 12px;
+  color: #d4d4d4;
+}
+
+.file-status-bar .status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.file-status-bar .anticon {
+  font-size: 14px;
+  color: #888;
+}
+
+.file-status-bar .status-text {
+  color: #d4d4d4;
+}
+
+.file-status-bar .ant-space {
+  gap: 24px;
+} 

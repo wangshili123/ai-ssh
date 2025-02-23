@@ -6,137 +6,85 @@
 import React, { useCallback } from 'react';
 import { observer } from 'mobx-react';
 import { useEditorStore } from '../../store/FileEditorStore';
-import './FileEditorToolbar.less';
+import './FileEditorToolbar.css';
+import { Button, Select, Space, Switch, Tooltip } from 'antd';
+import {
+  CloudOutlined,
+  DisconnectOutlined,
+  EyeOutlined,
+  SaveOutlined,
+  VerticalAlignBottomOutlined
+} from '@ant-design/icons';
 
 interface FileEditorToolbarProps {
-  onSave?: () => Promise<void>;
-  onRefresh?: () => Promise<void>;
-  onSearch?: () => void;
-  onSettings?: () => void;
+  onSave: () => void;
+  onReconnect: () => void;
 }
 
-export const FileEditorToolbar: React.FC<FileEditorToolbarProps> = observer((props) => {
-  const {
-    onSave,
-    onRefresh,
-    onSearch,
-    onSettings
-  } = props;
-
+export const FileEditorToolbar: React.FC<FileEditorToolbarProps> = observer(({ onSave, onReconnect }) => {
   const editorStore = useEditorStore();
-  const {
-    isRealtime,
-    isAutoScroll,
-    toggleRealtime,
-    toggleAutoScroll,
-    isSaving,
-    isRefreshing
-  } = editorStore;
-
-  // 处理保存
-  const handleSave = useCallback(async () => {
-    if (onSave && !isSaving) {
-      await onSave();
-    }
-  }, [onSave, isSaving]);
-
-  // 处理刷新
-  const handleRefresh = useCallback(async () => {
-    if (onRefresh && !isRefreshing) {
-      await onRefresh();
-    }
-  }, [onRefresh, isRefreshing]);
-
-  // 处理实时模式切换
-  const handleRealtimeToggle = useCallback(() => {
-    toggleRealtime();
-  }, [toggleRealtime]);
-
-  // 处理自动滚动切换
-  const handleAutoScrollToggle = useCallback(() => {
-    toggleAutoScroll();
-  }, [toggleAutoScroll]);
-
-  // 处理搜索
-  const handleSearch = useCallback(() => {
-    if (onSearch) {
-      onSearch();
-    }
-  }, [onSearch]);
-
-  // 处理设置
-  const handleSettings = useCallback(() => {
-    if (onSettings) {
-      onSettings();
-    }
-  }, [onSettings]);
 
   return (
-    <div className="file-editor-toolbar">
-      {/* 保存按钮 */}
-      <button
-        className={`toolbar-button ${isSaving ? 'loading' : ''}`}
-        onClick={handleSave}
-        disabled={isSaving}
-        title="保存文件 (Ctrl+S)"
-      >
-        <span className="icon">💾</span>
-        <span className="text">保存</span>
-      </button>
-
-      {/* 刷新按钮 */}
-      <button
-        className={`toolbar-button ${isRefreshing ? 'loading' : ''}`}
-        onClick={handleRefresh}
-        disabled={isRefreshing}
-        title="刷新文件"
-      >
-        <span className="icon">🔄</span>
-        <span className="text">刷新</span>
-      </button>
-
-      {/* 实时模式开关 */}
-      <div className="toolbar-toggle">
-        <button
-          className={`toggle-button ${isRealtime ? 'active' : ''}`}
-          onClick={handleRealtimeToggle}
-          title="实时模式"
+    <div className="editor-toolbar">
+      <Space>
+        {/* 编码选择 */}
+        <Select
+          value={editorStore.encoding}
+          onChange={encoding => editorStore.setEncoding(encoding)}
+          style={{ width: 120 }}
         >
-          <span className="icon">📡</span>
-          <span className="text">实时模式</span>
-          <span className={`status ${isRealtime ? 'on' : 'off'}`} />
-        </button>
-        {isRealtime && (
-          <label className="auto-scroll-label">
-            <input
-              type="checkbox"
-              checked={isAutoScroll}
-              onChange={handleAutoScrollToggle}
+          <Select.Option value="UTF-8">UTF-8</Select.Option>
+          <Select.Option value="GBK">GBK</Select.Option>
+          <Select.Option value="GB2312">GB2312</Select.Option>
+          <Select.Option value="UTF-16">UTF-16</Select.Option>
+        </Select>
+
+        {/* 连接状态 */}
+        <Tooltip title={editorStore.isConnected ? '已连接' : '未连接'}>
+          {editorStore.isConnected ? (
+            <CloudOutlined className="status-icon connected" />
+          ) : (
+            <Button
+              type="text"
+              icon={<DisconnectOutlined className="status-icon disconnected" />}
+              onClick={onReconnect}
             />
-            <span>自动滚动</span>
-          </label>
+          )}
+        </Tooltip>
+
+        {/* 保存按钮 */}
+        {editorStore.isDirty && (
+          <Tooltip title="保存">
+            <Button
+              type="text"
+              icon={<SaveOutlined />}
+              loading={editorStore.isSaving}
+              onClick={onSave}
+            />
+          </Tooltip>
         )}
-      </div>
 
-      {/* 搜索按钮 */}
-      <button
-        className="toolbar-button"
-        onClick={handleSearch}
-        title="搜索 (Ctrl+F)"
-      >
-        <span className="icon">🔍</span>
-        <span className="text">搜索</span>
-      </button>
+        {/* 实时监控开关 */}
+        <Tooltip title="实时监控">
+          <Switch
+            checkedChildren={<EyeOutlined />}
+            unCheckedChildren={<EyeOutlined />}
+            checked={editorStore.isRealtime}
+            onChange={editorStore.toggleRealtime}
+          />
+        </Tooltip>
 
-      {/* 设置按钮 */}
-      <button
-        className="toolbar-button"
-        onClick={handleSettings}
-        title="设置"
-      >
-        <span className="icon">⚙️</span>
-        <span className="text">设置</span>
-      </button>
+        {/* 自动滚动开关 */}
+        <Tooltip title="自动滚动到底部">
+          <Switch
+            checkedChildren={<VerticalAlignBottomOutlined />}
+            unCheckedChildren={<VerticalAlignBottomOutlined />}
+            checked={editorStore.isAutoScroll}
+            onChange={editorStore.toggleAutoScroll}
+            disabled={!editorStore.isRealtime}
+          />
+        </Tooltip>
+      </Space>
     </div>
   );
 }); 

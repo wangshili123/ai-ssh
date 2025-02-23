@@ -156,6 +156,125 @@ class SFTPClient {
   }
 
   /**
+   * 读取文件内容
+   * @param filePath 文件路径
+   * @param start 起始位置
+   * @param length 读取长度
+   * @param encoding 编码方式
+   */
+  async readFile(filePath: string, start: number = 0, length: number = -1, encoding: BufferEncoding | 'binary' = 'utf8'): Promise<{
+    content: string;
+    totalSize: number;
+    bytesRead: number;
+  }> {
+    console.log(`[SFTPClient] 读取文件 - connectionId: ${this.connectionId}, path: ${filePath}, start: ${start}, length: ${length}`);
+    
+    return new Promise((resolve, reject) => {
+      this.sftp.stat(filePath, (err: Error, stats: any) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        const totalSize = stats.size;
+        const readLength = length === -1 ? totalSize - start : length;
+        const buffer = Buffer.alloc(readLength);
+
+        this.sftp.open(filePath, 'r', (err: Error, handle: Buffer) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          this.sftp.read(handle, buffer, 0, readLength, start, (err: Error, bytesRead: number, buffer: Buffer) => {
+            this.sftp.close(handle, () => {
+              if (err) {
+                reject(err);
+                return;
+              }
+
+              let content: string;
+              if (encoding === 'binary') {
+                content = buffer.slice(0, bytesRead).toString('binary');
+              } else {
+                try {
+                  content = buffer.slice(0, bytesRead).toString(encoding);
+                } catch (e) {
+                  content = buffer.slice(0, bytesRead).toString('utf8');
+                }
+              }
+
+              resolve({
+                content,
+                totalSize,
+                bytesRead
+              });
+            });
+          });
+        });
+      });
+    });
+  }
+
+  /**
+   * 写入文件内容
+   * @param filePath 文件路径
+   * @param content 文件内容
+   * @param encoding 编码方式
+   */
+  async writeFile(filePath: string, content: string, encoding: BufferEncoding = 'utf8'): Promise<void> {
+    console.log(`[SFTPClient] 写入文件 - connectionId: ${this.connectionId}, path: ${filePath}`);
+    
+    return new Promise((resolve, reject) => {
+      const buffer = Buffer.from(content, encoding as BufferEncoding);
+
+      this.sftp.open(filePath, 'w', (err: Error, handle: Buffer) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        this.sftp.write(handle, buffer, 0, buffer.length, 0, (err: Error) => {
+          this.sftp.close(handle, () => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve();
+          });
+        });
+      });
+    });
+  }
+
+  /**
+   * 获取文件状态
+   * @param filePath 文件路径
+   */
+  async stat(filePath: string): Promise<{
+    size: number;
+    modifyTime: number;
+    isDirectory: boolean;
+    permissions: number;
+  }> {
+    return new Promise((resolve, reject) => {
+      this.sftp.stat(filePath, (err: Error, stats: any) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve({
+          size: stats.size,
+          modifyTime: stats.mtime * 1000,
+          isDirectory: !!(stats.mode & 0x4000),
+          permissions: stats.mode
+        });
+      });
+    });
+  }
+
+  /**
    * 关闭连接
    */
   async close(): Promise<void> {
@@ -251,6 +370,39 @@ class SFTPManager {
       throw new Error('SFTP连接不存在');
     }
     return client.getPathHistory();
+  }
+
+  /**
+   * 读取文件内容
+   */
+  async readFile(connectionId: string, filePath: string, start: number = 0, length: number = -1, encoding: BufferEncoding | 'binary' = 'utf8') {
+    const client = this.getClient(connectionId);
+    if (!client) {
+      throw new Error('SFTP连接不存在');
+    }
+    return client.readFile(filePath, start, length, encoding);
+  }
+
+  /**
+   * 写入文件内容
+   */
+  async writeFile(connectionId: string, filePath: string, content: string, encoding: BufferEncoding = 'utf8') {
+    const client = this.getClient(connectionId);
+    if (!client) {
+      throw new Error('SFTP连接不存在');
+    }
+    return client.writeFile(filePath, content, encoding);
+  }
+
+  /**
+   * 获取文件状态
+   */
+  async stat(connectionId: string, filePath: string) {
+    const client = this.getClient(connectionId);
+    if (!client) {
+      throw new Error('SFTP连接不存在');
+    }
+    return client.stat(filePath);
   }
 
   /**
