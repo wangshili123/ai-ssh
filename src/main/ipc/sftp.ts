@@ -183,4 +183,32 @@ export function registerSFTPHandlers(): void {
       }
     }
   );
+
+  // 服务端过滤文件内容
+  ipcMain.handle('sftp:grep-file',
+    async (event, connectionId: string, filePath: string, pattern: string, options: {
+      isRegex: boolean;
+      caseSensitive: boolean;
+    }): Promise<Result<{
+      content: string[];
+      totalLines: number;
+      matchedLines: number;
+    }>> => {
+      try {
+        console.log(`[SFTP] 服务端过滤文件 - connectionId: ${connectionId}, path: ${filePath}, pattern: ${pattern}`);
+        const result = await sftpManager.grepFile(connectionId, filePath, pattern, options);
+        console.log(`[SFTP] 服务端过滤文件结果:`, result);
+        return {
+          success: true,
+          data: result
+        };
+      } catch (error) {
+        console.error(`[SFTP] 服务端过滤失败:`, error);
+        return {
+          success: false,
+          error: (error as Error).message
+        };
+      }
+    }
+  );
 } 

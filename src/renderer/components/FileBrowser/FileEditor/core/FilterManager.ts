@@ -16,8 +16,6 @@ export class FilterManager extends EventEmitter {
   private filterActive: boolean = false;
   private totalLines: number = 0;
   private matchedLines: number = 0;
-  private processedSize: number = 0;
-  private chunkSize: number = 1024 * 1024; // 1MB
   private currentConfig: FilterConfig | null = null;
 
   /**
@@ -49,40 +47,27 @@ export class FilterManager extends EventEmitter {
       return;
     }
 
-    // 重置统计信息
-    this.totalLines = 0;
-    this.matchedLines = 0;
-    this.processedSize = 0;
-
     try {
-      // 获取文件大小
-      const stats = await sftpService.stat(this.sessionId, this.filePath);
-      const totalSize = stats.size;
-
       // 发出过滤开始事件
       this.emit(EditorEvents.FILTER_STARTED);
 
-      // 分块过滤
-      let offset = 0;
-      while (offset < totalSize) {
-        const length = Math.min(this.chunkSize, totalSize - offset);
-        await this.filterChunk(offset, length);
-        offset += length;
-
-        // 更新进度
-        this.processedSize = offset;
-        this.emit(EditorEvents.FILTER_PROGRESS, {
-          processedSize: this.processedSize,
-          totalSize
-        });
-
-        // 如果文件内容已更新，重新开始过滤
-        const newStats = await sftpService.stat(this.sessionId, this.filePath);
-        if (newStats.size !== totalSize || newStats.modifyTime !== stats.modifyTime) {
-          console.log('[FilterManager] 文件已更新，重新开始过滤');
-          return this.reloadWithFilter();
+      // 使用服务端grep过滤
+      const result = await sftpService.grepFile(
+        this.sessionId,
+        this.filePath,
+        this.pattern,
+        {
+          isRegex: this.isRegex,
+          caseSensitive: this.caseSensitive
         }
-      }
+      );
+
+      // 更新统计信息
+      this.totalLines = result.totalLines;
+      this.matchedLines = result.matchedLines;
+
+      // 发送过滤结果
+      this.emit(EditorEvents.FILTER_PARTIAL_RESULTS, result.content);
 
       // 发出过滤完成事件
       this.emit(EditorEvents.FILTER_COMPLETED, {
@@ -92,55 +77,6 @@ export class FilterManager extends EventEmitter {
     } catch (error) {
       this.emit(EditorEvents.FILTER_ERROR, error);
       throw error;
-    }
-  }
-
-  /**
-   * 过滤文件块
-   */
-  private async filterChunk(offset: number, length: number): Promise<void> {
-    try {
-      // 读取文件块
-      const result = await sftpService.readFile(
-        this.sessionId,
-        this.filePath,
-        offset,
-        length
-      );
-
-      const lines = result.content.split(/\r?\n/);
-      const filteredLines = this.filterLines(lines);
-
-      this.totalLines += lines.length;
-      this.matchedLines += filteredLines.length;
-
-      // 发出部分结果事件
-      this.emit(EditorEvents.FILTER_PARTIAL_RESULTS, filteredLines);
-    } catch (error) {
-      console.error('过滤文件块失败:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 过滤文本行
-   */
-  private filterLines(lines: string[]): string[] {
-    if (!this.pattern) return lines;
-
-    try {
-      let regex: RegExp;
-      if (this.isRegex) {
-        regex = new RegExp(this.pattern, this.caseSensitive ? 'g' : 'gi');
-      } else {
-        const escaped = this.pattern.replace(/[-/\\^$*+?.()|[\\]{}]/g, '\\$&');
-        regex = new RegExp(escaped, this.caseSensitive ? 'g' : 'gi');
-      }
-
-      return lines.filter(line => regex.test(line));
-    } catch (error) {
-      console.error('过滤文本失败:', error);
-      return lines;
     }
   }
 
@@ -155,7 +91,6 @@ export class FilterManager extends EventEmitter {
     this.currentConfig = null;
     this.totalLines = 0;
     this.matchedLines = 0;
-    this.processedSize = 0;
 
     this.emit(EditorEvents.FILTER_CLEARED);
   }
@@ -180,12 +115,10 @@ export class FilterManager extends EventEmitter {
   getFilterStats(): {
     matchedLines: number;
     totalLines: number;
-    processedSize: number;
   } {
     return {
       matchedLines: this.matchedLines,
-      totalLines: this.totalLines,
-      processedSize: this.processedSize
+      totalLines: this.totalLines
     };
   }
 

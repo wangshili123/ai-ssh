@@ -125,6 +125,33 @@ class SFTPService {
     }
     return result.data!;
   }
+
+  /**
+   * 使用服务端grep过滤文件内容
+   * @param sessionId 会话ID
+   * @param filePath 文件路径
+   * @param pattern 过滤模式
+   * @param options 过滤选项
+   */
+  async grepFile(
+    sessionId: string,
+    filePath: string,
+    pattern: string,
+    options: {
+      isRegex: boolean;
+      caseSensitive: boolean;
+    }
+  ): Promise<{
+    content: string[];
+    totalLines: number;
+    matchedLines: number;
+  }> {
+    const result = await ipcRenderer.invoke('sftp:grep-file', sessionId, filePath, pattern, options);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+    return result.data!;
+  }
 }
 
 export const sftpService = new SFTPService(); 

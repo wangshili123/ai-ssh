@@ -295,6 +295,86 @@ class SFTPClient {
       resolve();
     });
   }
+
+  /**
+   * 使用服务端grep命令过滤文件内容
+   * @param filePath 文件路径
+   * @param pattern 过滤模式
+   * @param options 过滤选项
+   */
+  async grepFile(
+    filePath: string,
+    pattern: string,
+    options: {
+      isRegex: boolean;
+      caseSensitive: boolean;
+    }
+  ): Promise<{
+    content: string[];
+    totalLines: number;
+    matchedLines: number;
+  }> {
+    console.log(`[SFTPClient] 服务端过滤文件 - connectionId: ${this.connectionId}, path: ${filePath}, pattern: ${pattern}`);
+
+    return new Promise((resolve, reject) => {
+      // 构建grep命令
+      let grepCmd = 'grep';
+      if (!options.caseSensitive) {
+        grepCmd += ' -i';
+      }
+      if (options.isRegex) {
+        grepCmd += ' -E';
+      } else {
+        grepCmd += ' -F';
+      }
+      grepCmd += ` "${pattern.replace(/"/g, '\\"')}" "${filePath}"`;
+      
+      // 添加统计命令
+      const countCmd = `wc -l "${filePath}"`;
+      
+      // 组合命令
+      const cmd = `${countCmd}; ${grepCmd}`;
+
+      // 在SSH会话中执行命令
+      this.client.exec(cmd, (err: Error | undefined, stream: any) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        let output = '';
+        let totalLines = 0;
+        let matchedLines: string[] = [];
+
+        stream.on('data', (data: Buffer) => {
+          output += data.toString();
+        });
+
+        stream.stderr.on('data', (data: Buffer) => {
+          console.error(`[SFTPClient] Grep错误 - ${data.toString()}`);
+        });
+
+        stream.on('close', () => {
+          try {
+            // 解析结果
+            const lines = output.split('\n');
+            // 第一行是总行数
+            totalLines = parseInt(lines[0].trim(), 10);
+            // 剩下的是匹配行
+            matchedLines = lines.slice(1).filter(line => line.trim());
+
+            resolve({
+              content: matchedLines,
+              totalLines,
+              matchedLines: matchedLines.length
+            });
+          } catch (error) {
+            reject(new Error('解析过滤结果失败: ' + error));
+          }
+        });
+      });
+    });
+  }
 }
 
 /**
@@ -428,6 +508,25 @@ class SFTPManager {
       this.clients.delete(connectionId);
       console.log(`[SFTPManager] 客户端已关闭 - connectionId: ${connectionId}, remaining: ${this.clients.size}`);
     }
+  }
+
+  /**
+   * 使用服务端grep过滤文件
+   */
+  async grepFile(
+    connectionId: string,
+    filePath: string,
+    pattern: string,
+    options: {
+      isRegex: boolean;
+      caseSensitive: boolean;
+    }
+  ) {
+    const client = this.getClient(connectionId);
+    if (!client) {
+      throw new Error('SFTP连接不存在');
+    }
+    return client.grepFile(filePath, pattern, options);
   }
 }
 
