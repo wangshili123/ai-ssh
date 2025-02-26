@@ -90,7 +90,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     showSearchPanel: false,
     showFilterPanel: false,
     contextMenu: null,
-    currentMode: EditorMode.EDIT
+    currentMode: EditorMode.BROWSE
   });
 
   const { showSearchPanel, showFilterPanel, contextMenu, currentMode } = uiState;
@@ -107,7 +107,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     showLoadCompletePrompt: false,
     isRefreshing: false,
     isSaving: false,
-    mode: EditorMode.EDIT
+    mode: EditorMode.BROWSE
   });
 
   // 添加useEffect钩子来初始化编辑器

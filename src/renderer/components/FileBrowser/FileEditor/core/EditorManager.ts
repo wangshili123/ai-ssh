@@ -46,7 +46,7 @@ export class EditorManager extends EventEmitter {
     showLoadCompletePrompt: false,
     isRefreshing: false,
     isSaving: false,
-    mode: EditorMode.EDIT
+    mode: EditorMode.BROWSE
   };
 
   private sessionId: string;
