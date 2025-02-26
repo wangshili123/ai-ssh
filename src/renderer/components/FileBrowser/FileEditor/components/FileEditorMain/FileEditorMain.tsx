@@ -524,12 +524,12 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
       // 使用函数式更新，避免依赖于editorState
       setEditorState(prev => ({ ...prev, isLoading: true }));
       
-      // 如果是切换到编辑模式，需要保存文件
-      if (targetMode === EditorMode.EDIT && editorState.isDirty) {
+      // 如果是切换到只读模式，需要保存文件
+      if (targetMode === EditorMode.BROWSE && editorState.isDirty) {
         const shouldSave = await new Promise<boolean>(resolve => {
           Modal.confirm({
             title: '保存文件',
-            content: '切换到编辑模式前需要保存文件，是否继续？',
+            content: '切换到只读模式前需要保存文件，是否继续？',
             onOk: () => resolve(true),
             onCancel: () => resolve(false)
           });
