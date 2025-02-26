@@ -101,6 +101,7 @@ export class EditorManager extends EventEmitter {
         contextmenu: true,
         fixedOverflowWidgets: true,
         overviewRulerBorder: false,
+        readOnly: this.state.mode === EditorMode.BROWSE, // 浏览模式下设置为只读
         scrollbar: {
           useShadows: false,
           verticalScrollbarSize: 10,
@@ -109,6 +110,11 @@ export class EditorManager extends EventEmitter {
         },
         ...options
       });
+
+      // 添加自定义的只读错误提示处理
+      if (this.state.mode === EditorMode.BROWSE) {
+        this.setupCustomReadOnlyHandler();
+      }
 
       console.log('[EditorManager] 编辑器实例创建完成');
       this.debugState();
@@ -445,6 +451,20 @@ export class EditorManager extends EventEmitter {
       this.state.mode = mode;
       this.state.isLoading = false;
       
+      // 设置编辑器的只读状态
+      if (this.editor) {
+        const isReadOnly = mode === EditorMode.BROWSE;
+        console.log(`[EditorManager] 设置编辑器只读状态: ${isReadOnly}`);
+        this.editor.updateOptions({ readOnly: isReadOnly });
+        
+        // 如果是浏览模式，设置自定义的只读错误处理
+        if (isReadOnly) {
+          this.setupCustomReadOnlyHandler();
+        } else {
+          this.removeCustomReadOnlyHandler();
+        }
+      }
+      
       console.log(`[EditorManager] 切换到${mode}模式完成`);
       this.emit('stateChanged', this.state);
       this.emit(EditorEvents.MODE_SWITCHING_COMPLETED, { mode });
@@ -525,6 +545,133 @@ export class EditorManager extends EventEmitter {
     } catch (error) {
       console.error('[EditorManager] 设置自动滚动失败:', error);
       this.setError(error as Error);
+    }
+  }
+
+  // 设置自定义的只读错误提示处理器
+  private setupCustomReadOnlyHandler() {
+    if (!this.editor) return;
+    
+    // 清除之前的处理器
+    this.removeCustomReadOnlyHandler();
+    
+    // 创建并保存一个自定义工具提示元素
+    const tooltipElement = document.createElement('div');
+    tooltipElement.className = 'custom-readonly-tooltip';
+    tooltipElement.style.position = 'absolute';
+    tooltipElement.style.zIndex = '1000';
+    tooltipElement.style.backgroundColor = '#e74c3c';
+    tooltipElement.style.color = 'white';
+    tooltipElement.style.padding = '5px 10px';
+    tooltipElement.style.borderRadius = '3px';
+    tooltipElement.style.fontSize = '12px';
+    tooltipElement.style.display = 'none';
+    tooltipElement.textContent = '浏览模式下无法编辑文件';
+    
+    // 将提示元素添加到编辑器容器中
+    const domNode = this.editor.getDomNode();
+    if (domNode && domNode.parentNode) {
+      domNode.parentNode.appendChild(tooltipElement);
+      (this as any)._customTooltipElement = tooltipElement;
+    }
+    
+    // 添加键盘和鼠标事件监听器
+    (this as any)._keydownDisposable = this.editor.onKeyDown((e) => {
+      // 如果用户尝试输入或删除内容
+      if (this.state.mode === EditorMode.BROWSE && 
+          (e.keyCode >= monaco.KeyCode.Digit0 && e.keyCode <= monaco.KeyCode.KeyZ || 
+           e.keyCode === monaco.KeyCode.Backspace || 
+           e.keyCode === monaco.KeyCode.Delete)) {
+        
+        // 显示自定义提示
+        this.showCustomTooltip();
+        
+        // 阻止默认行为
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+    
+    // 添加鼠标点击监听器
+    (this as any)._mouseDownDisposable = this.editor.onMouseDown((e) => {
+      if (this.state.mode === EditorMode.BROWSE) {
+        // 点击时隐藏提示
+        this.hideCustomTooltip();
+      }
+    });
+  }
+  
+  // 移除自定义处理器
+  private removeCustomReadOnlyHandler() {
+    // 清理事件监听器
+    if ((this as any)._keydownDisposable) {
+      (this as any)._keydownDisposable.dispose();
+      (this as any)._keydownDisposable = null;
+    }
+    
+    if ((this as any)._mouseDownDisposable) {
+      (this as any)._mouseDownDisposable.dispose();
+      (this as any)._mouseDownDisposable = null;
+    }
+    
+    // 移除提示元素
+    if ((this as any)._customTooltipElement) {
+      const tooltipElement = (this as any)._customTooltipElement;
+      if (tooltipElement.parentNode) {
+        tooltipElement.parentNode.removeChild(tooltipElement);
+      }
+      (this as any)._customTooltipElement = null;
+    }
+    
+    // 清除超时计时器
+    if ((this as any)._tooltipTimeout) {
+      clearTimeout((this as any)._tooltipTimeout);
+      (this as any)._tooltipTimeout = null;
+    }
+  }
+  
+  // 显示自定义提示
+  private showCustomTooltip() {
+    if (!(this as any)._customTooltipElement || !this.editor) return;
+    
+    const tooltipElement = (this as any)._customTooltipElement;
+    const position = this.editor.getPosition();
+    
+    if (position) {
+      // 获取光标位置的坐标
+      const coordinates = this.editor.getScrolledVisiblePosition(position);
+      
+      if (coordinates) {
+        const editorDomNode = this.editor.getDomNode();
+        if (editorDomNode) {
+          // 设置提示位置
+          tooltipElement.style.top = `${coordinates.top + editorDomNode.getBoundingClientRect().top}px`;
+          tooltipElement.style.left = `${coordinates.left + editorDomNode.getBoundingClientRect().left}px`;
+          tooltipElement.style.display = 'block';
+          
+          // 3秒后自动隐藏
+          if ((this as any)._tooltipTimeout) {
+            clearTimeout((this as any)._tooltipTimeout);
+          }
+          
+          (this as any)._tooltipTimeout = setTimeout(() => {
+            this.hideCustomTooltip();
+          }, 3000);
+        }
+      }
+    }
+  }
+  
+  // 隐藏自定义提示
+  private hideCustomTooltip() {
+    if ((this as any)._customTooltipElement) {
+      const tooltipElement = (this as any)._customTooltipElement;
+      tooltipElement.style.display = 'none';
+    }
+    
+    if ((this as any)._tooltipTimeout) {
+      clearTimeout((this as any)._tooltipTimeout);
+      (this as any)._tooltipTimeout = null;
     }
   }
 } 
