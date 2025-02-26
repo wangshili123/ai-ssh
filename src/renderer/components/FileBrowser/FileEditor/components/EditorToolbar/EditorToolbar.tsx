@@ -80,7 +80,7 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
     <div className="editor-toolbar">
       <div className="editor-toolbar-left">
         <Space>
-          <Tooltip title="保存1">
+          <Tooltip title="保存">
             <Button 
               icon={<SaveOutlined />} 
               onClick={onSave}
