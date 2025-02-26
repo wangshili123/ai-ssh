@@ -12,6 +12,7 @@ export enum EditorEvents {
   FILE_LOADED = 'fileLoaded',
   FILE_CHANGED = 'file-changed',
   SAVE_REQUESTED = 'save-requested',
+  ENCODING_CHANGED = 'encoding-changed',
   
   // 过滤相关事件
   FILTER_STARTED = 'filter-started',
@@ -20,6 +21,7 @@ export enum EditorEvents {
   FILTER_ERROR = 'filter-error',
   FILTER_CLEARED = 'filter-cleared',
   FILTER_PARTIAL_RESULTS = 'filter-partial-results',
+  FILTER_STATE_CHANGED = 'filter-state-changed',
   
   // 监控相关事件
   WATCH_STARTED = 'watch-started',
@@ -47,59 +49,129 @@ export enum EditorEvents {
   // SFTP 相关事件
   CONNECTION_LOST = 'connectionLost',
   CONNECTION_RESTORED = 'connection-restored',
-  ENCODING_CHANGED = 'encodingChanged',
-  FILE_LOCKED = 'file-locked',
-  FILE_UNLOCKED = 'file-unlocked'
+  
+  // 模式切换相关事件
+  MODE_SWITCHING_STARTED = 'mode-switching-started',
+  MODE_SWITCHING_COMPLETED = 'mode-switching-completed',
+  MODE_SWITCHING_FAILED = 'mode-switching-failed',
+  MODE_SWITCHING_CANCELLED = 'mode-switching-cancelled',
+  
+  // 文件事件
+  FILE_CLOSED = 'file-closed',
+  
+  // 内容事件
+  SELECTION_CHANGED = 'selection-changed',
+  CURSOR_MOVED = 'cursor-moved',
+  
+  // 错误事件
+  ERRORS_CLEARED = 'errors-cleared',
+  
+  // 自动滚动事件
+  AUTO_SCROLL_CHANGED = 'auto-scroll-changed'
 }
 
-// 错误类型
+// 编辑器错误类型
 export enum EditorErrorType {
-  // 文件错误
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
-  FILE_PERMISSION_DENIED = 'FILE_PERMISSION_DENIED',
-  FILE_TOO_LARGE = '文件过大',
-  FILE_CORRUPTED = '文件已损坏',
-  FILE_LOCKED = 'FILE_LOCKED',
-  
-  // 操作错误
-  OPERATION_FAILED = 'OPERATION_FAILED',
+  FILE_TOO_LARGE = 'FILE_TOO_LARGE',
+  PERMISSION_DENIED = 'PERMISSION_DENIED',
+  ENCODING_ERROR = 'ENCODING_ERROR',
   OPERATION_TIMEOUT = 'OPERATION_TIMEOUT',
-  OPERATION_CANCELLED = '操作已取消',
-  
-  // 内存错误
-  MEMORY_LIMIT_EXCEEDED = '内存使用超出限制',
-  SYSTEM_MEMORY_LOW = 'SYSTEM_MEMORY_LOW',
-  
-  // 编码错误
-  ENCODING_ERROR = '文件编码错误',
-  
-  // 过滤错误
-  FILTER_ERROR = '过滤表达式无效',
-  
-  // 监控错误
-  WATCH_ERROR = 'WATCH_ERROR',
-  
-  // 搜索错误
-  SEARCH_ERROR = '搜索表达式无效',
-  
-  // 连接错误
-  CONNECTION_TIMEOUT = 'CONNECTION_TIMEOUT',
-  SSH_ERROR = 'SSH_ERROR',
-  SFTP_ERROR = 'SFTP_ERROR',
-  
-  // 其他错误
-  UNKNOWN_ERROR = '未知错误'
+  MODE_SWITCH_ERROR = 'MODE_SWITCH_ERROR',
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR'
 }
 
-// 编辑器状态
-export interface EditorState {
-  isLoading: boolean;
-  currentFile: string;
-  filterActive: boolean;
-  filterStats: FilterStats;
-  error: Error | null;
-  isWatching: boolean;
-  isAutoScrollEnabled: boolean;
+// 编辑器模式
+export enum EditorMode {
+  BROWSE = 'browse',  // 浏览模式（默认）
+  EDIT = 'edit'       // 编辑模式
+}
+
+// 远程文件信息
+export interface RemoteFileInfo {
+  path: string;
+  size: number;
+  modifyTime: number;
+  isDirectory: boolean;
+  permissions: string;
+  owner: string;
+  group: string;
+  encoding?: string;
+  isPartiallyLoaded?: boolean;
+}
+
+// 远程会话信息
+export interface RemoteSessionInfo {
+  sessionId: string;
+  connectionId: string;
+  isConnected: boolean;
+  lastError: Error | null;
+}
+
+// 编码类型
+export enum EncodingType {
+  UTF8 = 'utf8',
+  UTF16LE = 'utf16le',
+  ASCII = 'ascii',
+  LATIN1 = 'latin1',
+  BASE64 = 'base64',
+  HEX = 'hex',
+  BINARY = 'binary',
+  AUTO = 'auto'
+}
+
+/**
+ * 编辑器配置
+ */
+export interface EditorConfig {
+  // 主题
+  theme?: string;
+  // 字体大小
+  fontSize?: number;
+  // 行高
+  lineHeight?: number;
+  // 制表符大小
+  tabSize?: number;
+  // 是否使用空格代替制表符
+  insertSpaces?: boolean;
+  // 自动换行
+  wordWrap?: 'off' | 'on' | 'wordWrapColumn' | 'bounded';
+  // 自动缩进
+  autoIndent?: boolean;
+  // 输入时格式化
+  formatOnType?: boolean;
+  // 粘贴时格式化
+  formatOnPaste?: boolean;
+  // 自动保存
+  autoSave?: boolean;
+  // 自动保存间隔（毫秒）
+  autoSaveInterval?: number;
+  // 大文件大小阈值（字节）
+  largeFileSize?: number;
+  // 最大文件大小（字节）
+  maxFileSize?: number;
+}
+
+// 编辑器位置
+export interface EditorPosition {
+  line: number;
+  column: number;
+}
+
+// 编辑器选择区域
+export interface EditorSelection {
+  startLine: number;
+  startColumn: number;
+  endLine: number;
+  endColumn: number;
+}
+
+// 文件块信息
+export interface FileChunk {
+  content: string[];
+  startLine: number;
+  endLine: number;
+  lastAccessed: number;
 }
 
 // 过滤配置
@@ -107,23 +179,7 @@ export interface FilterConfig {
   pattern: string;
   isRegex: boolean;
   caseSensitive: boolean;
-}
-
-// 过滤统计
-export interface FilterStats {
-  matchedLines: number;
-  totalLines: number;
-  processedSize: number;
-}
-
-// 编辑器配置
-export interface EditorConfig {
-  chunkSize: number;
-  maxMemoryUsage: number;
-  defaultEncoding: string;
-  watchDebounceInterval: number;
-  searchDebounceInterval: number;
-  searchChunkSize: number;
+  contextLines?: number;  // 上下文行数
 }
 
 // 搜索配置
@@ -136,36 +192,138 @@ export interface SearchConfig {
 
 // 搜索结果
 export interface SearchResult {
-  lineNumber: number;
-  matchStart: number;
-  matchEnd: number;
-  previewText: string;
+  line: number;
+  column: number;
+  length: number;
+  text: string;
 }
 
-// 搜索统计
-export interface SearchStats {
-  totalMatches: number;
-  currentMatch: number;
-  searchedBytes: number;
-  totalBytes: number;
-  isSearching: boolean;
+// 浏览模式状态
+export interface BrowseModeState {
+  visibleRange: [number, number];  // 可见行范围
+  loadedChunks: {                  // 已加载块
+    [key: string]: FileChunk;
+  };
+  totalLines?: number;             // 总行数(可能未知)
+  isFiltered: boolean;             // 是否已过滤
+  filterPattern?: string;          // 过滤模式
+  isRealtime: boolean;             // 是否实时模式
+  isAutoScroll: boolean;           // 是否自动滚动
 }
 
-// 新增 SFTP 相关接口
-export interface RemoteFileInfo {
-  size: number;
-  modifyTime: number;
-  isDirectory: boolean;
-  permissions: number;
-  encoding: string;
-  isPartiallyLoaded: boolean;
+/**
+ * 编辑模式状态
+ */
+export interface EditModeState {
+  // 文件是否已加载
+  isLoaded: boolean;
+  // 是否正在保存
+  isSaving: boolean;
+  // 当前选择区域
+  selection: EditorSelection | null;
+  // 当前光标位置
+  cursorPosition: EditorPosition;
+  // 撤销栈
+  undoStack: string[];
+  // 重做栈
+  redoStack: string[];
 }
 
-export interface RemoteSessionInfo {
-  sessionId: string;
-  connectionId: string;
-  isConnected: boolean;
-  lastError: Error | null;
+// 标签数据结构
+export interface EditorTab {
+  id: string;                      // 唯一标识
+  filePath: string;                // 文件路径
+  sessionId: string;               // 会话ID
+  title: string;                   // 显示标题
+  mode: EditorMode;                // 当前模式
+  isActive: boolean;               // 是否激活
+  isModified: boolean;             // 是否已修改
+  viewState: {                     // 视图状态
+    scrollPosition: number;        // 滚动位置
+    filterText?: string;           // 过滤文本
+    searchText?: string;           // 搜索文本
+    isRealtime: boolean;           // 是否实时模式
+  };
+  fileState: {                     // 文件状态
+    size: number;                  // 文件大小
+    lastModified: number;          // 最后修改时间
+    encoding: string;              // 文件编码
+    totalLines?: number;           // 总行数(可能未知)
+  };
+  browseState?: BrowseModeState;   // 浏览模式状态
+  editState?: EditModeState;       // 编辑模式状态
+}
+
+/**
+ * 模式切换选项
+ */
+export interface ModeSwitchOptions {
+  // 切换时是否保存文件
+  saveOnSwitch?: boolean;
+  // 切换超时时间（毫秒）
+  timeout?: number;
+  // 自定义切换参数
+  params?: Record<string, any>;
+}
+
+/**
+ * 模式切换结果
+ */
+export interface ModeSwitchResult {
+  // 切换是否成功
+  success: boolean;
+  // 当前模式
+  mode?: EditorMode;
+  // 错误信息
+  error?: string;
+  // 切换耗时（毫秒）
+  timeTaken?: number;
+}
+
+// 标签管理器接口
+export interface ITabManager {
+  // 标签基本操作
+  addTab(options: Partial<EditorTab>): string;
+  closeTab(tabId: string): Promise<boolean>;
+  activateTab(tabId: string): void;
+  
+  // 标签状态管理
+  getTabState(tabId: string): EditorTab | undefined;
+  updateTabState(tabId: string, updates: Partial<EditorTab>): void;
+  
+  // 模式切换
+  switchTabMode(tabId: string, mode: EditorMode, options?: ModeSwitchOptions): Promise<ModeSwitchResult>;
+  
+  // 标签内容操作
+  saveTabContent(tabId: string): Promise<boolean>;
+  reloadTabContent(tabId: string): Promise<boolean>;
+}
+
+// 创建上下文
+export const EditorContext = createContext<any>(null);
+
+// 使用上下文的钩子
+export function useEditor() {
+  return useContext(EditorContext);
+}
+
+// 编辑器状态
+export interface EditorState {
+  isLoading: boolean;
+  currentFile: string;
+  filterActive: boolean;
+  filterStats: FilterStats;
+  error: Error | null;
+  isWatching: boolean;
+  isAutoScrollEnabled: boolean;
+  sessionInfo: RemoteSessionInfo | null;
+}
+
+// 过滤统计
+export interface FilterStats {
+  matchedLines: number;
+  totalLines: number;
+  processedSize: number;
 }
 
 // Store 接口
@@ -227,4 +385,84 @@ export const useEditorStore = () => {
   return store;
 };
 
-export type EncodingType = 'UTF-8' | 'UTF-16LE' | 'UTF-16BE' | 'GB18030' | 'GBK' | 'GB2312' | 'BIG5' | 'EUC-JP' | 'SHIFT-JIS' | 'EUC-KR' | 'ASCII' | 'ISO-8859-1'; 
+// 文件监控配置
+export interface FileWatchConfig {
+  // 轮询间隔范围（毫秒）
+  minInterval: number;
+  maxInterval: number;
+  // 初始轮询间隔
+  initialInterval: number;
+  // 退避系数
+  backoffFactor: number;
+  // 最大重试次数
+  maxRetries: number;
+  // 缓冲区大小限制（字节）
+  bufferSizeLimit: number;
+  // 增量获取大小（字节）
+  incrementalSize: number;
+  // 批量更新大小
+  batchSize: number;
+  // 更新节流时间（毫秒）
+  throttleInterval: number;
+}
+
+/**
+ * 文件监控状态
+ */
+export interface FileWatchState {
+  isWatching: boolean;
+  currentInterval: number;
+  lastCheckTime: number;
+  lastSize: number;
+  lastReadPosition: number;
+  retryCount: number;
+  isPaused: boolean;
+  bufferUsage: number;
+  sessionId: string;
+  filePath: string;
+  lastModified: number;
+  stats: {
+    totalUpdates: number;
+    failedUpdates: number;
+    lastUpdateTime: number;
+    averageUpdateSize: number;
+    newLines: number;
+    totalLines: number;
+    updateSize: number;
+  };
+}
+
+/**
+ * 文件监控事件数据
+ */
+export interface FileWatchEventData {
+  type: 'update' | 'error' | 'warning' | 'info';
+  filePath: string;
+  sessionId: string;
+  timestamp: number;
+  content?: string[];
+  error?: Error;
+  warning?: string;
+  info?: string;
+  stats: {
+    totalUpdates: number;
+    failedUpdates: number;
+    lastUpdateTime: number;
+    averageUpdateSize: number;
+    newLines: number;
+    totalLines: number;
+    updateSize: number;
+  };
+}
+
+/**
+ * 标签页信息
+ */
+export interface TabInfo {
+  id: string;
+  filePath: string;
+  sessionId: string;
+  title: string;
+  isActive: boolean;
+  mode?: EditorMode;
+} 

@@ -1,0 +1,34 @@
+.encoding-selector {
+  display: flex;
+  align-items: center;
+  margin-right: 10px;
+}
+
+.encoding-selector .ant-select {
+  margin-right: 5px;
+}
+
+.encoding-selector .ant-select-selector {
+  border-radius: 4px;
+  height: 28px !important;
+}
+
+.encoding-selector .ant-btn {
+  padding: 0 8px;
+  height: 28px;
+  line-height: 28px;
+}
+
+.encoding-selector .ant-btn-text {
+  color: #666;
+}
+
+.encoding-selector .ant-btn-text:hover {
+  color: #1890ff;
+  background-color: rgba(24, 144, 255, 0.1);
+}
+
+.encoding-selector-dropdown .ant-select-item {
+  padding: 6px 8px;
+  font-size: 12px;
+} 

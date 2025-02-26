@@ -1,0 +1,52 @@
+.editor-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-tabs .ant-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-tabs .ant-tabs-content {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.editor-tabs .ant-tabs-tabpane {
+  height: 100%;
+}
+
+.editor-tabs .ant-tabs-nav {
+  margin: 0;
+}
+
+.editor-tabs .ant-tabs-tab {
+  padding: 8px 16px;
+  background-color: #252526;
+  border: none;
+  border-right: 1px solid #333;
+}
+
+.editor-tabs .ant-tabs-tab-active {
+  background-color: #1e1e1e;
+}
+
+.editor-tabs .ant-tabs-tab-btn {
+  color: #ccc;
+}
+
+.editor-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #fff;
+}
+
+.editor-tabs .ant-tabs-content-holder {
+  overflow: hidden;
+}
+
+.editor-tabs .file-editor-main {
+  height: 100%;
+} 

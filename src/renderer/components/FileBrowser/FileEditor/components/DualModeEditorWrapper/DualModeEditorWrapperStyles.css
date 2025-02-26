@@ -1,0 +1,31 @@
+/**
+ * 双模式编辑器包装组件样式
+ */
+
+.dual-mode-editor-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+.dual-mode-editor-wrapper .loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dual-mode-editor-wrapper .loading-text {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #666;
+}
+
+.dual-mode-editor-wrapper .ant-alert {
+  margin: 20px;
+} 

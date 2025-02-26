@@ -20,6 +20,10 @@ module.exports = merge(common, {
     __dirname: false,
     __filename: false
   },
+  entry: {
+    renderer: './src/renderer/index.tsx',
+    editor: './src/renderer/editor-entry.tsx'
+  },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.wasm'],
     fallback: {
@@ -76,14 +80,21 @@ module.exports = merge(common, {
     noParse: /tree-sitter\.wasm$/
   },
   output: {
-    filename: 'renderer.js',
+    filename: '[name].js',
     path: path.resolve(__dirname, 'dist/renderer'),
     publicPath: '/',
     assetModuleFilename: 'assets/[name][ext]'
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: './src/renderer/index.html'
+      template: './src/renderer/index.html',
+      filename: 'index.html',
+      chunks: ['renderer']
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/renderer/editor.html',
+      filename: 'editor.html',
+      chunks: ['editor']
     }),
     new CopyWebpackPlugin({
       patterns: [
@@ -96,24 +107,12 @@ module.exports = merge(common, {
           to: 'wasm/'
         },
         {
-          from: 'node_modules/monaco-editor/min/vs/base/worker',
-          to: 'vs/base/worker'
+          from: 'node_modules/monaco-editor/min/vs',
+          to: 'vs'
         },
         {
-          from: 'node_modules/monaco-editor/min/vs/base/browser',
-          to: 'vs/base/browser'
-        },
-        {
-          from: 'node_modules/monaco-editor/min/vs/basic-languages',
-          to: 'vs/basic-languages'
-        },
-        {
-          from: 'node_modules/monaco-editor/min/vs/language',
-          to: 'vs/language'
-        },
-        {
-          from: 'node_modules/monaco-editor/min/vs/editor',
-          to: 'vs/editor'
+          from: 'node_modules/monaco-editor/min-maps',
+          to: 'min-maps'
         }
       ]
     }),
@@ -143,6 +142,10 @@ module.exports = merge(common, {
       {
         directory: path.join(__dirname, 'node_modules/monaco-editor/min'),
         publicPath: '/'
+      },
+      {
+        directory: path.join(__dirname, 'node_modules/monaco-editor/min-maps'),
+        publicPath: '/min-maps'
       }
     ],
     headers: {

@@ -1,244 +1,267 @@
 /**
  * 搜索管理器
- * 负责处理文件内容的搜索功能
+ * 提供文件内容搜索功能
  */
 
 import { EventEmitter } from 'events';
+import * as monaco from 'monaco-editor';
 import { EditorEvents, SearchConfig, SearchResult } from '../types/FileEditorTypes';
-import { sftpService } from '../../../../services/sftp';
 
+/**
+ * 搜索管理器
+ * 负责在编辑器中执行搜索和导航功能
+ */
 export class SearchManager extends EventEmitter {
-  private sessionId: string = '';
-  private filePath: string = '';
-  private searchConfig: SearchConfig | null = null;
-  private isSearching: boolean = false;
-  private shouldStop: boolean = false;
-  private currentMatch: number = 0;
-  private totalMatches: number = 0;
-  private searchedBytes: number = 0;
-  private totalBytes: number = 0;
-  private chunkSize: number = 1024 * 1024; // 1MB
-  private currentPattern: string = '';
+  private editor: monaco.editor.IStandaloneCodeEditor;
+  private findController: any;
+  private currentResults: SearchResult[] = [];
+  private currentMatchIndex: number = -1;
+  private searchConfig: SearchConfig = {
+    pattern: '',
+    isRegex: false,
+    caseSensitive: false,
+    wholeWord: false
+  };
 
   /**
-   * 初始化搜索管理器
+   * 构造函数
+   * @param editor Monaco编辑器实例
    */
-  initialize(sessionId: string, filePath: string): void {
-    this.sessionId = sessionId;
-    this.filePath = filePath;
+  constructor(editor: monaco.editor.IStandaloneCodeEditor) {
+    super();
+    this.editor = editor;
+    
+    // 获取Monaco编辑器的查找控制器
+    this.findController = this.editor.getContribution('editor.contrib.findController');
+    
+    // 监听搜索状态变更
+    this.setupEventListeners();
   }
 
   /**
-   * 开始搜索
+   * 设置事件监听
    */
-  async startSearch(config: SearchConfig): Promise<void> {
-    if (this.isSearching) {
-      await this.stopSearch();
-    }
-
-    this.searchConfig = config;
-    this.currentPattern = config.pattern;
-    this.isSearching = true;
-    this.shouldStop = false;
-    this.currentMatch = 0;
-    this.totalMatches = 0;
-    this.searchedBytes = 0;
-
-    try {
-      // 获取文件大小
-      const stats = await sftpService.stat(this.sessionId, this.filePath);
-      this.totalBytes = stats.size;
-
-      // 发出搜索开始事件
-      this.emit(EditorEvents.SEARCH_STARTED);
-
-      // 分块搜索
-      let offset = 0;
-      while (offset < this.totalBytes && !this.shouldStop) {
-        const length = Math.min(this.chunkSize, this.totalBytes - offset);
-        await this.searchChunk(offset, length);
-        offset += length;
-
-        // 更新进度
-        this.searchedBytes = offset;
-        this.emit(EditorEvents.SEARCH_PROGRESS, {
-          searchedBytes: this.searchedBytes,
-          totalBytes: this.totalBytes
-        });
+  private setupEventListeners(): void {
+    // 监听编辑器内容变化，可能需要重新搜索
+    this.editor.onDidChangeModelContent(() => {
+      if (this.searchConfig.pattern) {
+        this.search(this.searchConfig);
       }
+    });
+  }
 
+  /**
+   * 执行搜索
+   * @param config 搜索配置
+   * @returns 搜索结果
+   */
+  public async search(config: SearchConfig): Promise<SearchResult[]> {
+    this.searchConfig = config;
+    
+    if (!config.pattern) {
+      this.emit(EditorEvents.SEARCH_STOPPED);
+      this.currentResults = [];
+      this.currentMatchIndex = -1;
+      return [];
+    }
+    
+    this.emit(EditorEvents.SEARCH_STARTED);
+    
+    try {
+      // 使用Monaco编辑器的查找功能
+      if (this.findController) {
+        // 设置查找选项
+        this.findController.getState().changeMatchCase(config.caseSensitive);
+        this.findController.getState().changeWholeWord(config.wholeWord);
+        this.findController.getState().changeRegex(config.isRegex);
+        
+        // 开始查找
+        this.findController.start({
+          forceRevealReplace: false,
+          seedSearchStringFromSelection: false,
+          shouldFocus: 0,
+          shouldAnimate: true,
+          updateSearchScope: false
+        });
+        
+        // 设置查找文本
+        this.findController.getState().change(config.pattern, this.findController.getState().replaceString);
+      }
+      
+      // 获取搜索结果
+      this.currentResults = this.collectSearchResults(config);
+      this.currentMatchIndex = this.currentResults.length > 0 ? 0 : -1;
+      
       // 发出搜索完成事件
       this.emit(EditorEvents.SEARCH_COMPLETED, {
-        totalMatches: this.totalMatches
+        results: this.currentResults,
+        matchIndex: this.currentMatchIndex
       });
+      
+      return this.currentResults;
     } catch (error) {
       this.emit(EditorEvents.SEARCH_ERROR, error);
-    } finally {
-      this.isSearching = false;
-    }
-  }
-
-  /**
-   * 搜索文件块
-   */
-  private async searchChunk(offset: number, length: number): Promise<void> {
-    if (!this.searchConfig) return;
-
-    try {
-      // 读取文件块
-      const result = await sftpService.readFile(
-        this.sessionId,
-        this.filePath,
-        offset,
-        length
-      );
-
-      const lines = result.content.split(/\r?\n/);
-      const matches = this.findMatches(lines, offset);
-
-      if (matches.length > 0) {
-        this.totalMatches += matches.length;
-        this.emit(EditorEvents.SEARCH_PARTIAL_RESULTS, matches);
-      }
-    } catch (error) {
-      console.error('搜索文件块失败:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 在文本中查找匹配
-   */
-  private findMatches(lines: string[], offset: number): SearchResult[] {
-    if (!this.searchConfig) return [];
-
-    const { pattern, isRegex, caseSensitive, wholeWord } = this.searchConfig;
-    const results: SearchResult[] = [];
-
-    try {
-      let regex: RegExp;
-      if (isRegex) {
-        regex = new RegExp(pattern, caseSensitive ? 'g' : 'gi');
-      } else {
-        const escaped = pattern.replace(/[-/\\^$*+?.()|[\\]{}]/g, '\\$&');
-        const searchPattern = wholeWord ? `\\b${escaped}\\b` : escaped;
-        regex = new RegExp(searchPattern, caseSensitive ? 'g' : 'gi');
-      }
-
-      let lineOffset = 0;
-      lines.forEach((line, index) => {
-        let match;
-        while ((match = regex.exec(line)) !== null) {
-          const previewStart = Math.max(0, match.index - 50);
-          const previewEnd = Math.min(line.length, match.index + match[0].length + 50);
-          const preview = line.substring(previewStart, previewEnd);
-
-          results.push({
-            lineNumber: index + 1,
-            matchStart: match.index,
-            matchEnd: match.index + match[0].length,
-            previewText: preview
-          });
-        }
-        lineOffset += line.length + 1; // +1 for newline
-      });
-
-      return results;
-    } catch (error) {
-      console.error('查找匹配失败:', error);
+      console.error('搜索失败:', error);
       return [];
     }
   }
 
   /**
+   * 收集搜索结果
+   * @param config 搜索配置
+   * @returns 搜索结果列表
+   */
+  private collectSearchResults(config: SearchConfig): SearchResult[] {
+    const model = this.editor.getModel();
+    if (!model) return [];
+    
+    const results: SearchResult[] = [];
+    const text = model.getValue();
+    const lines = text.split('\n');
+    
+    // 创建正则表达式
+    let regex: RegExp;
+    try {
+      if (config.isRegex) {
+        regex = new RegExp(config.pattern, config.caseSensitive ? 'g' : 'gi');
+      } else {
+        const escaped = config.pattern.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const word = config.wholeWord ? `\\b${escaped}\\b` : escaped;
+        regex = new RegExp(word, config.caseSensitive ? 'g' : 'gi');
+      }
+    } catch (e) {
+      console.error('创建正则表达式失败:', e);
+      return [];
+    }
+    
+    // 查找匹配项
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      let match;
+      
+      // 重置正则表达式的lastIndex
+      regex.lastIndex = 0;
+      
+      while ((match = regex.exec(line)) !== null) {
+        results.push({
+          line: i + 1,
+          column: match.index + 1,
+          length: match[0].length,
+          text: line
+        });
+      }
+    }
+    
+    return results;
+  }
+
+  /**
+   * 导航到下一个匹配项
+   * @param wrap 是否循环
+   */
+  public navigateToNextMatch(wrap: boolean = true): void {
+    if (this.currentResults.length === 0) return;
+    
+    // 计算下一个索引
+    let nextIndex = this.currentMatchIndex + 1;
+    if (nextIndex >= this.currentResults.length) {
+      if (wrap) {
+        nextIndex = 0; // 循环到第一个
+      } else {
+        return; // 不循环，已经是最后一个
+      }
+    }
+    
+    this.goToMatch(nextIndex);
+  }
+
+  /**
+   * 导航到上一个匹配项
+   * @param wrap 是否循环
+   */
+  public navigateToPreviousMatch(wrap: boolean = true): void {
+    if (this.currentResults.length === 0) return;
+    
+    // 计算上一个索引
+    let prevIndex = this.currentMatchIndex - 1;
+    if (prevIndex < 0) {
+      if (wrap) {
+        prevIndex = this.currentResults.length - 1; // 循环到最后一个
+      } else {
+        return; // 不循环，已经是第一个
+      }
+    }
+    
+    this.goToMatch(prevIndex);
+  }
+
+  /**
+   * 跳转到特定匹配项
+   * @param index 索引
+   */
+  private goToMatch(index: number): void {
+    if (index < 0 || index >= this.currentResults.length) return;
+    
+    const match = this.currentResults[index];
+    this.currentMatchIndex = index;
+    
+    // 创建选择范围
+    const selection = new monaco.Selection(
+      match.line,
+      match.column,
+      match.line,
+      match.column + match.length
+    );
+    
+    // 设置编辑器选择和滚动到可见区域
+    this.editor.setSelection(selection);
+    this.editor.revealRangeInCenter(selection);
+    
+    // 发出导航事件
+    this.emit(EditorEvents.SEARCH_MATCH_CHANGED, {
+      match,
+      index,
+      total: this.currentResults.length
+    });
+  }
+
+  /**
    * 停止搜索
    */
-  async stopSearch(): Promise<void> {
-    this.shouldStop = true;
-    while (this.isSearching) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+  public stopSearch(): void {
+    // 清除搜索结果
+    if (this.findController) {
+      this.findController.getState().change('', '');
     }
+    
+    this.currentResults = [];
+    this.currentMatchIndex = -1;
+    this.searchConfig.pattern = '';
+    
+    this.emit(EditorEvents.SEARCH_STOPPED);
   }
 
   /**
-   * 获取搜索状态
+   * 获取当前搜索结果
+   * @returns 搜索结果
    */
-  getSearchStats(): {
-    currentMatch: number;
-    totalMatches: number;
-    searchedBytes: number;
-    totalBytes: number;
-    isSearching: boolean;
-  } {
-    return {
-      currentMatch: this.currentMatch,
-      totalMatches: this.totalMatches,
-      searchedBytes: this.searchedBytes,
-      totalBytes: this.totalBytes,
-      isSearching: this.isSearching
-    };
-  }
-
-  /**
-   * 设置当前匹配
-   */
-  setCurrentMatch(index: number): void {
-    if (index >= 0 && index < this.totalMatches) {
-      this.currentMatch = index;
-      this.emit(EditorEvents.SEARCH_MATCH_CHANGED, this.currentMatch);
-    }
+  public getResults(): SearchResult[] {
+    return this.currentResults;
   }
 
   /**
    * 获取当前匹配索引
+   * @returns 当前匹配索引
    */
-  getCurrentMatch(): number {
-    return this.currentMatch;
+  public getCurrentMatchIndex(): number {
+    return this.currentMatchIndex;
   }
 
   /**
-   * 获取总匹配数
+   * 获取搜索结果数量
+   * @returns 搜索结果数量
    */
-  getTotalMatches(): number {
-    return this.totalMatches;
-  }
-
-  /**
-   * 跳转到下一个匹配项
-   */
-  nextMatch(): boolean {
-    if (this.totalMatches === 0) return false;
-    
-    this.currentMatch = (this.currentMatch + 1) % this.totalMatches;
-    this.emit(EditorEvents.SEARCH_MATCH_CHANGED, this.currentMatch);
-    return true;
-  }
-
-  /**
-   * 跳转到上一个匹配项
-   */
-  previousMatch(): boolean {
-    if (this.totalMatches === 0) return false;
-    
-    this.currentMatch = (this.currentMatch - 1 + this.totalMatches) % this.totalMatches;
-    this.emit(EditorEvents.SEARCH_MATCH_CHANGED, this.currentMatch);
-    return true;
-  }
-
-  /**
-   * 销毁搜索管理器
-   */
-  destroy(): void {
-    this.stopSearch();
-    this.removeAllListeners();
-  }
-
-  /**
-   * 获取当前搜索模式
-   */
-  getCurrentPattern(): string {
-    return this.currentPattern;
+  public getResultCount(): number {
+    return this.currentResults.length;
   }
 }
-
-export { SearchResult, SearchConfig };

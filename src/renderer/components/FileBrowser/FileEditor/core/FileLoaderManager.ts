@@ -4,8 +4,8 @@
  */
 
 import { EventEmitter } from 'events';
-import { EditorEvents, RemoteFileInfo, EncodingType } from '../types/FileEditorTypes';
-import { ErrorManager, ErrorType } from './ErrorManager';
+import { EditorEvents, RemoteFileInfo, EncodingType, EditorErrorType } from '../types/FileEditorTypes';
+import { ErrorManager } from './ErrorManager';
 import { sftpService } from '../../../../services/sftp';
 import { detectEncoding, isValidEncoding } from '../utils/FileEncodingUtils';
 import { VirtualScroller, ScrollConfig, ScrollState } from './VirtualScroller';
@@ -50,7 +50,7 @@ export class FileLoaderManager extends EventEmitter {
   private filePath: string;
   private errorManager: ErrorManager;
   private fileInfo: RemoteFileInfo | null = null;
-  private encoding: EncodingType = 'UTF-8';
+  private encoding: EncodingType = EncodingType.UTF8;
   private chunks: Map<number, FileChunk> = new Map();
   private virtualScroller: VirtualScroller;
   private containerHeight: number = 800; // 默认容器高度
@@ -84,8 +84,11 @@ export class FileLoaderManager extends EventEmitter {
         size: stats.size,
         modifyTime: stats.modifyTime,
         isDirectory: stats.isDirectory,
-        permissions: stats.permissions,
-        encoding: this.encoding,
+        permissions: String(stats.permissions),
+        encoding: String(this.encoding),
+        path: this.filePath,
+        owner: '',
+        group: '',
         isPartiallyLoaded: true
       };
 
@@ -101,7 +104,7 @@ export class FileLoaderManager extends EventEmitter {
       // 加载初始可见区域
       await this.loadInitialContent();
     } catch (error) {
-      this.errorManager.handleError(error as Error, ErrorType.FILE_NOT_FOUND);
+      this.errorManager.handleError(EditorErrorType.FILE_NOT_FOUND, `文件不存在或无法访问: ${(error as Error).message}`);
     }
   }
 
@@ -166,7 +169,7 @@ export class FileLoaderManager extends EventEmitter {
       this.emit(EditorEvents.PARTIAL_LOAD);
       this.emit(EditorEvents.LOADING_END);
     } catch (error) {
-      this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
+      this.errorManager.handleError(EditorErrorType.OPERATION_TIMEOUT, `操作失败: ${(error as Error).message}`);
     }
   }
 

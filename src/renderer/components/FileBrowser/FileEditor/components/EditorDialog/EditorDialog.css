@@ -1,24 +1,28 @@
-.editor-dialog .ant-modal-content {
-  padding: 0;
-  overflow: hidden;
+.editor-drawer .ant-drawer-content-wrapper {
+  height: 100% !important;
 }
 
-.editor-dialog .ant-modal-header {
-  margin: 0;
+.editor-drawer .ant-drawer-header {
   padding: 16px 24px;
   border-bottom: 1px solid #333;
+  background-color: #252526;
 }
 
-.editor-dialog .ant-modal-body {
-  height: calc(90vh - 55px);
+.editor-drawer .ant-drawer-title {
+  color: #fff;
+}
+
+.editor-drawer .ant-drawer-body {
   padding: 0;
+  height: calc(100% - 55px);
+  background-color: #1e1e1e;
 }
 
-.editor-dialog .editor-dialog-content {
+.editor-drawer .editor-dialog-content {
   height: 100%;
   background-color: #1e1e1e;
 }
 
-.editor-dialog .file-editor-main {
+.editor-drawer .file-editor-main {
   height: 100%;
 } 

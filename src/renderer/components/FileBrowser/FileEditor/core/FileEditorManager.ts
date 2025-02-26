@@ -1,767 +1,455 @@
 /**
  * 文件编辑器管理器
- * 负责编辑器核心功能和与 Monaco Editor 的集成
+ * 负责协调文件编辑器的各个组件，是整个编辑器的核心
  */
 
 import { EventEmitter } from 'events';
-import * as monaco from 'monaco-editor';
-import { EditorEvents, EditorErrorType, RemoteFileInfo, EncodingType } from '../types/FileEditorTypes';
-import { ErrorManager, ErrorType } from './ErrorManager';
-import { sftpService } from '../../../../services/sftp';
-import { detectEncoding, isValidEncoding } from '../utils/FileEncodingUtils';
-import { SearchManager } from './SearchManager';
-import { FilterManager } from './FilterManager';
+import * as path from 'path';
+import { promisify } from 'util';
+import * as fs from 'fs';
+import { 
+  EditorEvents, 
+  EditorErrorType, 
+  EditorMode,
+  EditorConfig,
+  EditorPosition,
+  EditorSelection,
+  FilterConfig,
+  SearchConfig,
+  SearchResult,
+  ModeSwitchOptions,
+  ModeSwitchResult
+} from '../types/FileEditorTypes';
+import { ErrorManager } from './ErrorManager';
+import { ModeManager } from './ModeManager';
+import { BrowseMode } from './BrowseMode';
+import { EditMode } from './EditMode';
 
-// 配置 Monaco Editor 的 worker
-self.MonacoEnvironment = {
-  getWorkerUrl: function (moduleId, label) {
-    return '/vs/base/worker/workerMain.js';
-  }
-};
+const statAsync = promisify(fs.stat);
 
-export interface EditorConfig {
-  // 编辑器配置
-  theme?: string;
-  fontSize?: number;
-  tabSize?: number;
-  wordWrap?: 'on' | 'off';
-  readOnly?: boolean;
-  minimap?: boolean;
-  encoding?: string;
-}
-
-export interface EditorPosition {
-  line: number;
-  column: number;
-}
-
-export interface EditorSelection {
-  startLine: number;
-  startColumn: number;
-  endLine: number;
-  endColumn: number;
-}
-
-// 语言映射配置
-const LANGUAGE_MAP: { [key: string]: string } = {
-  // 脚本语言
-  'js': 'javascript',
-  'jsx': 'javascript',
-  'ts': 'typescript',
-  'tsx': 'typescript',
-  'py': 'python',
-  'rb': 'ruby',
-  'php': 'php',
-  'pl': 'perl',
-  'lua': 'lua',
-  'sh': 'shell',
-  'bash': 'shell',
-  'zsh': 'shell',
-  'ps1': 'powershell',
-
-  // 标记语言
-  'html': 'html',
-  'htm': 'html',
-  'xml': 'xml',
-  'xaml': 'xml',
-  'svg': 'xml',
-  'md': 'markdown',
-  'markdown': 'markdown',
-  'mdown': 'markdown',
-
-  // 样式表
-  'css': 'css',
-  'scss': 'scss',
-  'sass': 'scss',
-  'less': 'less',
-
-  // 配置文件
-  'json': 'json',
-  'jsonc': 'jsonc',
-  'yaml': 'yaml',
-  'yml': 'yaml',
-  'toml': 'toml',
-  'ini': 'ini',
-  'conf': 'ini',
-  'config': 'ini',
-
-  // 编译语言
-  'java': 'java',
-  'cpp': 'cpp',
-  'c': 'cpp',
-  'h': 'cpp',
-  'hpp': 'cpp',
-  'cc': 'cpp',
-  'cs': 'csharp',
-  'go': 'go',
-  'rs': 'rust',
-  'swift': 'swift',
-  'kt': 'kotlin',
-  'scala': 'scala',
-
-  // 数据库
-  'sql': 'sql',
-  'mysql': 'sql',
-  'pgsql': 'sql',
-  'plsql': 'sql',
-
-  // 其他
-  'log': 'log',
-  'txt': 'plaintext',
-  'env': 'plaintext',
-  'properties': 'properties',
-  'gradle': 'groovy',
-  'dockerfile': 'dockerfile',
-  'makefile': 'makefile',
-  'gitignore': 'ignore',
-  'editorconfig': 'editorconfig'
-};
-
+/**
+ * 文件编辑器管理器
+ * 整个文件编辑器的核心，负责协调各个组件的工作
+ */
 export class FileEditorManager extends EventEmitter {
-  private editor: monaco.editor.IStandaloneCodeEditor | null = null;
-  private currentModel: monaco.editor.ITextModel | null = null;
+  private filePath: string;
+  private sessionId: string;
   private errorManager: ErrorManager;
-  private searchManager: SearchManager;
-  private filterManager: FilterManager;
+  private modeManager: ModeManager;
   private config: EditorConfig;
-  private disposables: monaco.IDisposable[] = [];
-  private isDirty: boolean = false;
-  private sessionId: string = '';
-  private filePath: string = '';
-  private fileInfo: RemoteFileInfo | null = null;
+  private isDisposed: boolean = false;
+  private _isAutoScrollEnabled: boolean = false;
 
-  constructor(errorManager: ErrorManager, config: EditorConfig = {}) {
+  /**
+   * 构造函数
+   * @param filePath 文件路径
+   * @param sessionId 会话ID
+   * @param config 编辑器配置
+   */
+  constructor(filePath: string, sessionId: string, config: EditorConfig = {}) {
     super();
-    this.errorManager = errorManager;
-    this.searchManager = new SearchManager();
-    this.filterManager = new FilterManager();
-    this.config = {
-      theme: 'vs-dark',
-      fontSize: 14,
-      tabSize: 2,
-      wordWrap: 'on',
-      readOnly: false,
-      minimap: true,
-      encoding: 'UTF-8',
-      ...config
-    };
-  }
-
-  /**
-   * 获取文件的语言类型
-   */
-  private getLanguage(filePath: string): string {
-    // 获取文件扩展名
-    let extension = filePath.split('.').pop()?.toLowerCase() || '';
+    this.filePath = filePath;
+    this.sessionId = sessionId;
+    this.config = this.mergeWithDefaultConfig(config);
     
-    // 处理特殊文件名
-    if (!extension || extension === filePath.toLowerCase()) {
-      const filename = filePath.split('/').pop()?.toLowerCase() || '';
-      switch (filename) {
-        case 'dockerfile':
-          return 'dockerfile';
-        case 'makefile':
-          return 'makefile';
-        case '.gitignore':
-          return 'ignore';
-        case '.editorconfig':
-          return 'editorconfig';
-        case '.env':
-          return 'properties';
-        default:
-          return 'plaintext';
-      }
-    }
-
-    // 从映射表中获取语言类型
-    return LANGUAGE_MAP[extension] || 'plaintext';
+    // 创建错误管理器
+    this.errorManager = new ErrorManager();
+    
+    // 创建模式管理器
+    this.modeManager = new ModeManager(filePath, sessionId, this.errorManager);
+    
+    // 转发模式管理器的事件
+    this.forwardEvents(this.modeManager);
+    
+    // 监听错误事件
+    this.errorManager.on(EditorEvents.ERROR_OCCURRED, (error) => {
+      this.emit(EditorEvents.ERROR_OCCURRED, error);
+    });
   }
 
   /**
-   * 初始化编辑器
+   * 合并默认配置
+   * @param config 用户配置
+   * @returns 合并后的配置
    */
-  public async initialize(container: HTMLElement, sessionId: string, filePath: string): Promise<void> {
+  private mergeWithDefaultConfig(config: EditorConfig): EditorConfig {
+    const defaultConfig: EditorConfig = {
+      theme: 'vs',
+      fontSize: 14,
+      lineHeight: 1.5,
+      tabSize: 2,
+      insertSpaces: true,
+      wordWrap: 'off',
+      autoIndent: true,
+      formatOnType: false,
+      formatOnPaste: false,
+      autoSave: false,
+      autoSaveInterval: 30000,
+      largeFileSize: 10 * 1024 * 1024,
+      maxFileSize: 50 * 1024 * 1024
+    };
+    
+    return { ...defaultConfig, ...config };
+  }
+
+  /**
+   * 转发事件
+   * @param emitter 事件发射器
+   */
+  private forwardEvents(emitter: EventEmitter): void {
+    // 获取所有 EditorEvents 枚举值
+    const events = Object.values(EditorEvents);
+    
+    // 为每个事件添加监听器
+    for (const event of events) {
+      emitter.on(event, (...args) => {
+        this.emit(event, ...args);
+      });
+    }
+  }
+
+  /**
+   * 加载文件
+   * 根据文件大小自动选择合适的模式
+   */
+  public async loadFile(): Promise<boolean> {
     try {
-      this.sessionId = sessionId;
-      this.filePath = filePath;
-
-      // 初始化搜索和过滤管理器
-      this.searchManager.initialize(sessionId, filePath);
-      this.filterManager.initialize(sessionId, filePath);
-
       // 获取文件信息
-      const stats = await sftpService.stat(this.sessionId, this.filePath);
-      this.fileInfo = {
-        size: stats.size,
-        modifyTime: stats.modifyTime,
-        isDirectory: stats.isDirectory,
-        permissions: stats.permissions,
-        encoding: this.config.encoding || 'UTF-8',
-        isPartiallyLoaded: false
-      };
-
-      // 创建编辑器实例
-      this.editor = monaco.editor.create(container, {
-        value: '',
-        language: this.getLanguage(filePath),
-        theme: 'customTheme',
-        fontSize: this.config.fontSize,
-        tabSize: this.config.tabSize,
-        wordWrap: this.config.wordWrap,
-        readOnly: this.config.readOnly,
-        minimap: { enabled: this.config.minimap },
-        scrollBeyondLastLine: false,
-        automaticLayout: true,
-        formatOnPaste: true,
-        formatOnType: true,
-        lineNumbers: 'on',
-        lineNumbersMinChars: 3,
-        renderLineHighlight: 'all',
-        scrollbar: {
-          useShadows: false,
-          verticalScrollbarSize: 8,
-          horizontalScrollbarSize: 8
-        },
-        fixedOverflowWidgets: true,
-        contextmenu: false
-      });
-
-      // 如果文件不为空，加载文件内容
-      if (stats.size > 0) {
-        // 加载文件内容
-        const result = await sftpService.readFile(
-          this.sessionId,
-          this.filePath,
-          0,
-          -1,
-          this.config.encoding as BufferEncoding
-        );
-
-        // 创建新的 model
-        if (this.currentModel) {
-          this.currentModel.dispose();
-        }
-
-        this.currentModel = monaco.editor.createModel(
-          result.content,
-          this.getLanguage(filePath)
-        );
-        this.editor.setModel(this.currentModel);
+      const stats = await statAsync(this.filePath);
+      const fileSize = stats.size;
+      
+      // 根据文件大小选择模式
+      if (fileSize > this.config.largeFileSize!) {
+        // 大文件使用浏览模式
+        return this.getBrowseMode().getTotalLines().then(() => true);
       } else {
-        // 对于空文件，创建一个空的 model
-        this.currentModel = monaco.editor.createModel(
-          '',
-          this.getLanguage(filePath)
-        );
-        this.editor.setModel(this.currentModel);
+        // 小文件使用编辑模式
+        return this.switchToMode(EditorMode.EDIT).then(result => result.success);
       }
-
-      // 添加快捷键处理
-      this.addKeybindings();
-
-      // 监听内容变化
-      this.disposables.push(
-        this.editor.onDidChangeModelContent(() => {
-          this.isDirty = true;
-          this.emit(EditorEvents.CONTENT_CHANGED);
-        })
+    } catch (error: any) {
+      this.errorManager.handleError(
+        EditorErrorType.FILE_NOT_FOUND,
+        `加载文件失败: ${error.message}`
       );
-
-      // 监听光标位置变化
-      this.disposables.push(
-        this.editor.onDidChangeCursorPosition((e) => {
-          this.emit('cursorChanged', {
-            line: e.position.lineNumber,
-            column: e.position.column
-          });
-        })
-      );
-
-      // 监听选择变化
-      this.disposables.push(
-        this.editor.onDidChangeCursorSelection((e) => {
-          this.emit('selectionChanged', {
-            startLine: e.selection.startLineNumber,
-            startColumn: e.selection.startColumn,
-            endLine: e.selection.endLineNumber,
-            endColumn: e.selection.endColumn
-          });
-        })
-      );
-
-      this.emit(EditorEvents.FILE_LOADED, this.currentModel.getValue());
-
-      // 在 initialize 方法中添加事件监听
-      this.filterManager.on(EditorEvents.FILTER_PARTIAL_RESULTS, (lines: string[]) => {
-        this.handleFilterResults(lines);
-      });
-
-      // 在 SearchManager 中添加搜索结果处理
-      this.searchManager.on(EditorEvents.SEARCH_MATCH_CHANGED, (index: number) => {
-        if (!this.editor) return;
-        
-        const decorations = this.editor.getModel()?.getAllDecorations() || [];
-        if (decorations.length > index) {
-          const decoration = decorations[index];
-          this.editor.revealLineInCenter(decoration.range.startLineNumber);
-          this.editor.setSelection(decoration.range);
-        }
-      });
-    } catch (error) {
-      this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
-      throw error;
+      return false;
     }
   }
 
   /**
-   * 加载文件信息
+   * 切换模式
+   * @param mode 目标模式
+   * @param options 切换选项
+   * @returns 切换结果
    */
-  private async loadFileInfo(): Promise<void> {
-    try {
-      const stats = await sftpService.stat(this.sessionId, this.filePath);
-      this.fileInfo = {
-        size: stats.size,
-        modifyTime: stats.modifyTime,
-        isDirectory: stats.isDirectory,
-        permissions: stats.permissions,
-        encoding: this.config.encoding || 'UTF-8',
-        isPartiallyLoaded: false
-      };
-    } catch (error) {
-      this.errorManager.handleError(error as Error, ErrorType.FILE_NOT_FOUND);
+  public async switchToMode(mode: EditorMode, options: ModeSwitchOptions = {}): Promise<ModeSwitchResult> {
+    if (mode === EditorMode.BROWSE) {
+      return this.modeManager.switchToBrowseMode(options);
+    } else {
+      return this.modeManager.switchToEditMode(options);
     }
   }
 
   /**
-   * 添加快捷键绑定
+   * 获取当前模式
+   * @returns 当前模式
    */
-  private addKeybindings(): void {
-    if (!this.editor) return;
-
-    // 添加保存快捷键 (Ctrl+S)
-    this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-      this.emit(EditorEvents.SAVE_REQUESTED);
-    });
-
-    // 添加搜索快捷键 (Ctrl+F)
-    this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () => {
-      this.emit(EditorEvents.SEARCH_REQUESTED);
-    });
-
-    // 添加撤销快捷键 (Ctrl+Z)
-    this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ, () => {
-      this.undo();
-    });
-
-    // 添加重做快捷键 (Ctrl+Y 或 Ctrl+Shift+Z)
-    this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY, () => {
-      this.redo();
-    });
-    this.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ, () => {
-      this.redo();
-    });
+  public getCurrentMode(): EditorMode {
+    return this.modeManager.getCurrentMode();
   }
 
   /**
-   * 设置编辑器内容
+   * 获取浏览模式实例
+   * @returns 浏览模式实例
    */
-  public async setContent(content: string): Promise<void> {
-    try {
-      if (!this.editor) {
-        throw new Error('编辑器未初始化');
-      }
-
-      // 创建新的 model
-      if (this.currentModel) {
-        this.currentModel.dispose();
-      }
-
-      // 检测文件编码
-      const buffer = Buffer.from(content);
-      const detectedEncoding = detectEncoding(buffer);
-      if (detectedEncoding && detectedEncoding !== this.config.encoding) {
-        this.config.encoding = detectedEncoding;
-        this.emit(EditorEvents.ENCODING_CHANGED, detectedEncoding);
-      }
-
-      this.currentModel = monaco.editor.createModel(content, 'plaintext');
-      this.editor.setModel(this.currentModel);
-      this.isDirty = false;
-
-      this.emit(EditorEvents.CONTENT_CHANGED);
-    } catch (error) {
-      this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
-    }
+  public getBrowseMode(): BrowseMode {
+    return this.modeManager.getBrowseMode();
   }
 
   /**
-   * 保存文件内容
+   * 获取编辑模式实例
+   * @returns 编辑模式实例
    */
-  public async save(): Promise<void> {
-    try {
-      if (!this.editor || !this.currentModel) {
-        throw new Error('编辑器未初始化');
-      }
-
-      const content = this.currentModel.getValue();
-      await sftpService.writeFile(
-        this.sessionId,
-        this.filePath,
-        content,
-        this.config.encoding as BufferEncoding
-      );
-
-      this.isDirty = false;
-      this.emit(EditorEvents.FILE_SAVED);
-
-      // 更新文件信息
-      await this.loadFileInfo();
-    } catch (error) {
-      if ((error as Error).message.includes('ECONNRESET')) {
-        this.emit(EditorEvents.CONNECTION_LOST);
-        this.errorManager.handleError(error as Error, ErrorType.CONNECTION_LOST);
-      } else {
-        this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
-      }
-    }
+  public getEditMode(): EditMode {
+    return this.modeManager.getEditMode();
   }
 
   /**
-   * 获取编辑器内容
+   * 保存文件
+   * 如果当前是编辑模式，则保存文件
+   * @returns 保存结果
    */
-  public getContent(): string {
-    if (!this.editor || !this.currentModel) {
-      return '';
+  public async saveFile(): Promise<boolean> {
+    if (this.getCurrentMode() === EditorMode.EDIT) {
+      return this.getEditMode().saveFile();
+    } else {
+      // 浏览模式下不支持保存
+      return true;
     }
-    return this.currentModel.getValue();
   }
 
   /**
-   * 插入内容
+   * 应用过滤条件
+   * 在浏览模式下过滤文件内容
+   * @param config 过滤配置
+   * @returns 过滤结果
    */
-  public insert(text: string, position?: EditorPosition): void {
-    try {
-      if (!this.editor || !this.currentModel) {
-        throw new Error('编辑器未初始化');
-      }
-
-      const pos = position ? {
-        lineNumber: position.line,
-        column: position.column
-      } : this.editor.getPosition();
-
-      if (pos) {
-        this.editor.executeEdits('', [{
-          range: new monaco.Range(
-            pos.lineNumber,
-            pos.column,
-            pos.lineNumber,
-            pos.column
-          ),
-          text: text,
-          forceMoveMarkers: true
-        }]);
-      }
-    } catch (error) {
-        this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
+  public async applyFilter(config: FilterConfig): Promise<string[]> {
+    if (this.getCurrentMode() === EditorMode.BROWSE) {
+      return this.getBrowseMode().applyFilter(config);
+    } else {
+      // 编辑模式下不支持过滤
+      return [];
     }
   }
 
   /**
-   * 替换选中内容
+   * 搜索文件内容
+   * @param config 搜索配置
+   * @returns 搜索结果
    */
-  public replace(text: string): void {
-    try {
-      if (!this.editor || !this.currentModel) {
-        throw new Error('编辑器未初始化');
-      }
-
-      const selection = this.editor.getSelection();
-      if (selection) {
-        this.editor.executeEdits('', [{
-          range: selection,
-          text: text,
-          forceMoveMarkers: true
-        }]);
-      }
-    } catch (error) {
-      this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
+  public async search(config: SearchConfig): Promise<SearchResult[]> {
+    if (this.getCurrentMode() === EditorMode.BROWSE) {
+      return this.getBrowseMode().search(config);
+    } else {
+      // 编辑模式下暂不支持搜索
+      return [];
     }
   }
 
   /**
-   * 获取当前位置
+   * 启动实时监控
+   * 在浏览模式下监控文件变化
    */
-  public getPosition(): EditorPosition | null {
-    if (!this.editor) {
-      return null;
+  public startRealtime(): void {
+    if (this.getCurrentMode() === EditorMode.BROWSE) {
+      this.getBrowseMode().startRealtime();
     }
-
-    const position = this.editor.getPosition();
-    if (!position) {
-      return null;
-    }
-
-    return {
-      line: position.lineNumber,
-      column: position.column
-    };
   }
 
   /**
-   * 设置位置
+   * 停止实时监控
    */
-  public setPosition(position: EditorPosition): void {
-    if (!this.editor) {
-      return;
+  public stopRealtime(): void {
+    if (this.getCurrentMode() === EditorMode.BROWSE) {
+      this.getBrowseMode().stopRealtime();
     }
-
-    this.editor.setPosition({
-      lineNumber: position.line,
-      column: position.column
-    });
   }
 
   /**
-   * 获取选中内容
+   * 更新文件内容
+   * 在编辑模式下更新文件内容
+   * @param content 新的文件内容
    */
-  public getSelection(): EditorSelection | null {
-    if (!this.editor) {
-      return null;
+  public updateContent(content: string): void {
+    if (this.getCurrentMode() === EditorMode.EDIT) {
+      this.getEditMode().updateContent(content);
     }
-
-    const selection = this.editor.getSelection();
-    if (!selection) {
-      return null;
-    }
-
-    return {
-      startLine: selection.startLineNumber,
-      startColumn: selection.startColumn,
-      endLine: selection.endLineNumber,
-      endColumn: selection.endColumn
-    };
   }
 
   /**
-   * 设置选中范围
+   * 更新光标位置
+   * @param position 新的光标位置
    */
-  public setSelection(selection: EditorSelection): void {
-    if (!this.editor) {
-      return;
+  public updateCursorPosition(position: EditorPosition): void {
+    if (this.getCurrentMode() === EditorMode.EDIT) {
+      this.getEditMode().updateCursorPosition(position);
     }
-
-    this.editor.setSelection(new monaco.Range(
-      selection.startLine,
-      selection.startColumn,
-      selection.endLine,
-      selection.endColumn
-    ));
   }
 
   /**
-   * 撤销
+   * 更新选择区域
+   * @param selection 新的选择区域
+   */
+  public updateSelection(selection: EditorSelection | null): void {
+    if (this.getCurrentMode() === EditorMode.EDIT) {
+      this.getEditMode().updateSelection(selection);
+    }
+  }
+
+  /**
+   * 撤销操作
+   * 在编辑模式下撤销操作
    */
   public undo(): void {
-    if (this.editor) {
-      this.editor.trigger('keyboard', 'undo', null);
+    if (this.getCurrentMode() === EditorMode.EDIT) {
+      this.getEditMode().undo();
     }
   }
 
   /**
-   * 重做
+   * 重做操作
+   * 在编辑模式下重做操作
    */
   public redo(): void {
-    if (this.editor) {
-      this.editor.trigger('keyboard', 'redo', null);
+    if (this.getCurrentMode() === EditorMode.EDIT) {
+      this.getEditMode().redo();
     }
+  }
+
+  /**
+   * 设置编码
+   * @param encoding 编码类型
+   */
+  public setEncoding(encoding: BufferEncoding): void {
+    this.getBrowseMode().setEncoding(encoding);
+    this.getEditMode().setEncoding(encoding);
+  }
+
+  /**
+   * 启用自动保存
+   * @param interval 自动保存间隔（毫秒）
+   */
+  public enableAutoSave(interval?: number): void {
+    this.getEditMode().enableAutoSave(interval);
+  }
+
+  /**
+   * 禁用自动保存
+   */
+  public disableAutoSave(): void {
+    this.getEditMode().disableAutoSave();
+  }
+
+  /**
+   * 获取文件路径
+   * @returns 文件路径
+   */
+  public getFilePath(): string {
+    return this.filePath;
+  }
+
+  /**
+   * 获取文件名
+   * @returns 文件名
+   */
+  public getFileName(): string {
+    return path.basename(this.filePath);
+  }
+
+  /**
+   * 获取会话ID
+   * @returns 会话ID
+   */
+  public getSessionId(): string {
+    return this.sessionId;
+  }
+
+  /**
+   * 获取配置
+   * @returns 编辑器配置
+   */
+  public getConfig(): EditorConfig {
+    return this.config;
   }
 
   /**
    * 更新配置
+   * @param config 新的配置
    */
   public updateConfig(config: Partial<EditorConfig>): void {
     this.config = { ...this.config, ...config };
-    if (this.editor) {
-      this.editor.updateOptions({
-        theme: this.config.theme,
-        fontSize: this.config.fontSize,
-        tabSize: this.config.tabSize,
-        wordWrap: this.config.wordWrap,
-        readOnly: this.config.readOnly,
-        minimap: { enabled: this.config.minimap }
-      });
-    }
+    this.emit(EditorEvents.CONTENT_CHANGED, { config: this.config });
   }
 
   /**
-   * 检查是否有未保存的更改
+   * 清理资源
    */
-  public hasUnsavedChanges(): boolean {
-    return this.isDirty;
-  }
-
-  /**
-   * 标记已保存状态
-   */
-  public markAsSaved(): void {
-    this.isDirty = false;
-  }
-
-  /**
-   * 销毁编辑器
-   */
-  public destroy(): void {
-    // 清理所有事件监听
-    this.disposables.forEach(d => d.dispose());
-    this.disposables = [];
-
-    // 清理 model
-    if (this.currentModel) {
-      this.currentModel.dispose();
-      this.currentModel = null;
+  public dispose(): void {
+    if (this.isDisposed) {
+      return;
     }
-
-    // 销毁编辑器
-    if (this.editor) {
-      this.editor.dispose();
-      this.editor = null;
-    }
-
-    // 清理搜索和过滤管理器
-    this.searchManager.destroy();
-    this.filterManager.destroy();
-
+    
+    this.isDisposed = true;
+    this.modeManager.dispose();
     this.removeAllListeners();
   }
 
   /**
-   * 设置文件编码
+   * 设置是否自动滚动
+   * 在实时模式下，控制是否自动滚动到最新内容
+   * @param enabled 是否启用自动滚动
    */
-  public setEncoding(encoding: string): void {
-    if (this.config.encoding === encoding) return;
-
-    this.config.encoding = encoding;
-    this.emit(EditorEvents.ENCODING_CHANGED, encoding);
-
-    // 如果有内容，重新加载以使用新编码
-    if (this.currentModel) {
-      const content = this.currentModel.getValue();
-      this.setContent(content);
+  public setAutoScroll(enabled: boolean): void {
+    if (this.getCurrentMode() === EditorMode.BROWSE) {
+      // 在浏览模式下，将自动滚动配置传递给浏览模式管理器
+      const browseMode = this.getBrowseMode();
+      if (browseMode) {
+        // 如果BrowseMode中有setAutoScroll方法，可直接调用
+        // 如果没有，可以考虑在BrowseMode中实现该方法
+        if (typeof browseMode.setAutoScroll === 'function') {
+          browseMode.setAutoScroll(enabled);
+        } else {
+          // 如果BrowseMode没有直接支持，可以通过事件通知或其他方式实现
+          this.emit(EditorEvents.AUTO_SCROLL_CHANGED, enabled);
+        }
+      }
     }
+    
+    // 保存状态，无论当前模式是什么
+    this._isAutoScrollEnabled = enabled;
+    
+    // 触发事件通知
+    this.emit(EditorEvents.AUTO_SCROLL_CHANGED, enabled);
   }
 
   /**
-   * 获取文件信息
+   * 获取是否启用自动滚动
+   * @returns 是否启用自动滚动
    */
-  public getFileInfo(): RemoteFileInfo | null {
-    return this.fileInfo;
+  public isAutoScrollEnabled(): boolean {
+    return this._isAutoScrollEnabled;
   }
 
   /**
-   * 检查连接状态
+   * 初始化文件编辑器
+   * @param filePath 文件路径
+   * @param sessionId 会话ID
    */
-  public async checkConnection(): Promise<boolean> {
-    try {
-      await sftpService.stat(this.sessionId, this.filePath);
-      return true;
-    } catch (error) {
-      this.emit(EditorEvents.CONNECTION_LOST);
-      return false;
+  public initialize(filePath: string, sessionId: string): Promise<void> {
+    this.filePath = filePath;
+    this.sessionId = sessionId;
+    
+    // 初始化逻辑
+    return Promise.resolve();
+  }
+
+  /**
+   * 切换编辑模式
+   * @param mode 目标模式
+   * @param options 切换选项
+   */
+  public switchMode(mode: EditorMode, options?: any): Promise<boolean> {
+    // 根据目标模式调用相应的切换方法
+    return this.modeManager.switchToMode(mode);
+  }
+
+  /**
+   * 获取当前内容
+   * @returns 当前文件内容
+   */
+  public getContent(): string {
+    // 根据当前模式获取内容
+    if (this.getCurrentMode() === EditorMode.EDIT) {
+      return this.getEditMode().getContent();
+    } else {
+      // BrowseMode可能需要实现类似方法
+      return '';
     }
   }
 
   /**
    * 重新加载文件
    */
-  public async reload(): Promise<void> {
-    try {
-      const result = await sftpService.readFile(this.sessionId, this.filePath);
-      await this.setContent(result.content);
-    } catch (error) {
-      this.errorManager.handleError(error as Error, ErrorType.OPERATION_FAILED);
-    }
+  public reload(): Promise<boolean> {
+    // 重新加载文件内容
+    return this.loadFile();
   }
 
   /**
-   * 执行编辑器命令
+   * 销毁编辑器实例
    */
-  public executeCommand(command: string): void {
-    if (!this.editor) return;
-
-    switch (command) {
-      case 'copy':
-        this.editor.trigger('keyboard', 'editor.action.clipboardCopyAction', null);
-        break;
-      case 'paste':
-        this.editor.trigger('keyboard', 'editor.action.clipboardPasteAction', null);
-        break;
-      case 'cut':
-        this.editor.trigger('keyboard', 'editor.action.clipboardCutAction', null);
-        break;
-      case 'selectAll':
-        this.editor.trigger('keyboard', 'editor.action.selectAll', null);
-        break;
-    }
-  }
-
-  /**
-   * 检查是否有选中文本
-   */
-  public hasSelection(): boolean {
-    if (!this.editor) return false;
-    const selection = this.editor.getSelection();
-    return selection ? !selection.isEmpty() : false;
-  }
-
-  /**
-   * 获取搜索管理器
-   */
-  public getSearchManager(): SearchManager {
-    return this.searchManager;
-  }
-
-  /**
-   * 获取过滤管理器
-   */
-  public getFilterManager(): FilterManager {
-    return this.filterManager;
-  }
-
-  /**
-   * 更新编辑器内容
-   */
-  private updateEditorContent(content: string, isFiltered: boolean = false) {
-    if (!this.editor || !this.currentModel) return;
-
-    const position = this.editor.getPosition();
-    const selections = this.editor.getSelections();
-
-    // 更新模型内容
-    this.currentModel.setValue(content);
-
-    // 恢复光标位置和选择
-    if (position) {
-      this.editor.setPosition(position);
-    }
-    if (selections) {
-      this.editor.setSelections(selections);
-    }
-
-    // 如果是过滤结果，发出事件
-    if (isFiltered) {
-      this.emit(EditorEvents.FILTER_COMPLETED);
-    }
-  }
-
-  /**
-   * 处理过滤结果
-   */
-  private handleFilterResults(lines: string[]) {
-    if (!this.editor || !this.currentModel) return;
-
-    // 将过滤后的行组合成文本
-    const content = lines.join('\n');
-    this.updateEditorContent(content, true);
+  public destroy(): void {
+    // 清理资源
+    this.modeManager.dispose();
   }
 } 

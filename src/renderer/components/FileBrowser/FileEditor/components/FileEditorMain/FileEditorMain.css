@@ -2,48 +2,131 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  position: relative;
-  overflow: hidden;
-}
-
-.file-editor-main .editor-container {
-  flex: 1;
-  overflow: hidden;
-  margin-bottom: 24px; /* 为状态栏留出空间 */
-}
-
-.file-editor-main .loading-indicator,
-.file-editor-main .error-message {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
   width: 100%;
+  position: relative;
+  background-color: var(--editor-bg);
+  overflow: hidden; /* 防止溢出 */
 }
 
-.file-editor-main .error-message .error-content {
+.editor-container {
+  flex: 1;
+  min-height: 0;  /* 重要：防止flex布局溢出 */
+  position: relative;
+  width: 100%;
+  height: 100%; /* 确保容器填满父元素 */
+  display: flex; /* 使Monaco编辑器能够正确计算尺寸 */
+  flex-direction: column;
+  z-index: 1; /* 确保编辑器在正常状态下可以交互 */
+}
+
+/* Monaco编辑器的容器样式 */
+.editor-container .monaco-editor {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 确保编辑器内容区域可见 */
+.editor-container .monaco-editor .overflow-guard {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 工具栏样式 */
+.file-editor-toolbar {
+  z-index: 2;
+  position: relative;
+}
+
+/* 状态栏样式 */
+.editor-status-bar {
+  z-index: 2;
+  position: relative;
+}
+
+/* 遮罩层基础样式 */
+.overlay-base {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* 默认不阻止点击 */
+}
+
+/* 加载指示器 */
+.loading-indicator {
+  composes: overlay-base;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  pointer-events: auto; /* 加载时阻止点击 */
+}
+
+/* 错误消息 */
+.error-message {
+  composes: overlay-base;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  pointer-events: auto; /* 错误时阻止点击 */
+}
+
+.error-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
+  padding: 24px;
+  background: var(--editor-content-bg);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  pointer-events: auto; /* 允许点击错误内容 */
 }
 
-.file-editor-main .error-message .error-text {
-  color: #ff4d4f;
+.error-text {
+  color: var(--status-error);
 }
 
-.file-editor-main .error-message .retry-button {
-  padding: 4px 15px;
-  border: 1px solid #d9d9d9;
-  border-radius: 2px;
-  cursor: pointer;
-  background: transparent;
-  color: #fff;
+/* 刷新指示器 */
+.refresh-indicator {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: var(--editor-content-bg);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 90;
+  pointer-events: none; /* 不阻止点击 */
 }
 
-.file-editor-main .error-message .retry-button:hover {
-  border-color: #40a9ff;
-  color: #40a9ff;
+/* 搜索和过滤面板 */
+.search-panel,
+.filter-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 300px;
+  background: var(--editor-content-bg);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  pointer-events: auto;
+}
+
+/* 右键菜单 */
+.context-menu {
+  z-index: 1000;
+  position: fixed;
+  background: var(--editor-content-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  pointer-events: auto;
 }
 
 .file-editor-main .filter-stats {

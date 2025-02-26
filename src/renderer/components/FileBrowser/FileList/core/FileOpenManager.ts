@@ -3,28 +3,25 @@
  * 负责处理文件的打开方式和打开操作
  */
 
-import React from 'react';
 import { FileEntry } from '../../../../../main/types/file';
 import { SessionInfo } from '../../../../types';
 import { Modal } from 'antd';
-import { EditorDialog } from '../../FileEditor/components/EditorDialog/EditorDialog';
 import { uiSettingsManager } from '../../../../services/UISettingsManager';
 import { sftpService } from '../../../../services/sftp';
-import { createRoot } from 'react-dom/client';
+import { FileListEvents } from './FileListEvents';
+import { EventEmitter } from 'events';
+import { v4 as uuidv4 } from 'uuid';
+import { ipcRenderer } from 'electron';
 
-class FileOpenManager {
+class FileOpenManager extends EventEmitter {
   private static instance: FileOpenManager;
-  private dialogContainer: HTMLDivElement | null = null;
-  private root: ReturnType<typeof createRoot> | null = null;
+  private sessionId: string = '';
 
   private constructor() {
-    // 创建对话框容器
-    this.dialogContainer = document.createElement('div');
-    document.body.appendChild(this.dialogContainer);
-    this.root = createRoot(this.dialogContainer);
+    super();
   }
 
-  static getInstance(): FileOpenManager {
+  public static getInstance(): FileOpenManager {
     if (!FileOpenManager.instance) {
       FileOpenManager.instance = new FileOpenManager();
     }
@@ -40,28 +37,25 @@ class FileOpenManager {
         // 先创建 SFTP 客户端
         await sftpService.createClient(tabId, sessionInfo);
 
-        // 渲染编辑器对话框
-        if (this.dialogContainer && this.root) {
-          const handleClose = async () => {
-            // 关闭 SFTP 客户端
-            await sftpService.close(tabId);
-            
-            // 卸载组件
-            if (this.root) {
-              this.root.render(null);
-            }
-          };
+        // 生成唯一的窗口ID
+        const windowId = uuidv4();
+        
+        // 使用 IPC 消息打开编辑器窗口
+        const result = await ipcRenderer.invoke('open-editor-window', {
+          windowId,
+          filePath: file.path,
+          sessionId: tabId,
+          title: file.name
+        });
 
-          this.root.render(
-            React.createElement(EditorDialog, {
-              visible: true,
-              title: `编辑 - ${file.name}`,
-              filePath: file.path,
-              sessionId: tabId,
-              onClose: handleClose
-            })
-          );
-        }
+        console.log('打开编辑器窗口结果:', result);
+        
+        // 监听窗口关闭事件
+        ipcRenderer.once(`editor-window-closed-${windowId}`, async () => {
+          console.log('编辑器窗口已关闭');
+          // 关闭 SFTP 客户端
+          await sftpService.close(tabId);
+        });
       } catch (error) {
         Modal.error({
           title: '打开文件失败',

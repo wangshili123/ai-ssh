@@ -4,129 +4,152 @@
  */
 
 import { EventEmitter } from 'events';
-import { FilterConfig, EditorEvents } from '../types/FileEditorTypes';
-import { sftpService } from '../../../../services/sftp';
+import * as monaco from 'monaco-editor';
+import { EditorEvents, FilterConfig } from '../types/FileEditorTypes';
+
+export interface FilterOptions {
+  text: string;
+  isRegex: boolean;
+  isCaseSensitive: boolean;
+}
 
 export class FilterManager extends EventEmitter {
+  private editor: monaco.editor.IStandaloneCodeEditor | null = null;
+  private originalModel: monaco.editor.ITextModel | null = null;
+  private filteredModel: monaco.editor.ITextModel | null = null;
+  private isFiltering: boolean = false;
   private sessionId: string = '';
   private filePath: string = '';
-  private pattern: string = '';
-  private isRegex: boolean = false;
-  private caseSensitive: boolean = false;
-  private filterActive: boolean = false;
-  private totalLines: number = 0;
-  private matchedLines: number = 0;
-  private currentConfig: FilterConfig | null = null;
+  private currentFilterConfig: FilterConfig | null = null;
 
-  /**
-   * 初始化过滤管理器
-   */
-  initialize(sessionId: string, filePath: string): void {
+  constructor(editor: monaco.editor.IStandaloneCodeEditor) {
+    super();
+    this.editor = editor;
+    this.originalModel = editor.getModel();
+  }
+
+  initialize(sessionId: string, filePath: string) {
     this.sessionId = sessionId;
     this.filePath = filePath;
   }
 
   /**
-   * 应用过滤条件
+   * 兼容新接口的过滤方法
+   * @param config 过滤配置
    */
-  async applyFilter(config: FilterConfig): Promise<void> {
-    this.pattern = config.pattern;
-    this.isRegex = config.isRegex;
-    this.caseSensitive = config.caseSensitive;
-    this.filterActive = true;
-    this.currentConfig = config;
-
-    await this.reloadWithFilter();
+  async applyFilter(config: FilterConfig): Promise<string[]> {
+    return this.filter({
+      text: config.pattern,
+      isRegex: config.isRegex,
+      isCaseSensitive: config.caseSensitive
+    });
   }
 
   /**
-   * 重新加载并应用过滤
+   * 原有的过滤方法
+   * @param options 过滤选项
+   * @returns 过滤结果
    */
-  async reloadWithFilter(): Promise<void> {
-    if (!this.filterActive || !this.currentConfig) {
-      return;
-    }
+  async filter(options: FilterOptions): Promise<string[]> {
+    if (!this.editor || !this.originalModel) return [];
 
     try {
-      // 发出过滤开始事件
+      this.isFiltering = true;
       this.emit(EditorEvents.FILTER_STARTED);
+      this.currentFilterConfig = {
+        pattern: options.text,
+        isRegex: options.isRegex,
+        caseSensitive: options.isCaseSensitive
+      };
 
-      // 使用服务端grep过滤
-      const result = await sftpService.grepFile(
-        this.sessionId,
-        this.filePath,
-        this.pattern,
-        {
-          isRegex: this.isRegex,
-          caseSensitive: this.caseSensitive
-        }
-      );
+      const content = this.originalModel.getValue();
+      const lines = content.split('\n');
+      
+      let regex: RegExp;
+      if (options.isRegex) {
+        regex = new RegExp(options.text, options.isCaseSensitive ? 'g' : 'gi');
+      } else {
+        const escaped = options.text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+        regex = new RegExp(escaped, options.isCaseSensitive ? 'g' : 'gi');
+      }
 
-      // 更新统计信息
-      this.totalLines = result.totalLines;
-      this.matchedLines = result.matchedLines;
-
-      // 发送过滤结果
-      this.emit(EditorEvents.FILTER_PARTIAL_RESULTS, result.content);
-
-      // 发出过滤完成事件
+      // 过滤行
+      const filteredLines = lines.filter(line => regex.test(line));
+      
+      // 创建过滤后的内容
+      const filteredContent = filteredLines.join('\n');
+      
+      // 创建或更新过滤模型
+      if (this.filteredModel) {
+        this.filteredModel.setValue(filteredContent);
+      } else {
+        this.filteredModel = monaco.editor.createModel(
+          filteredContent,
+          this.originalModel.getLanguageId(),
+          monaco.Uri.parse(`${this.originalModel.uri.toString()}.filtered`)
+        );
+      }
+      
+      // 切换到过滤模型
+      this.editor.setModel(this.filteredModel);
+      
+      this.isFiltering = false;
       this.emit(EditorEvents.FILTER_COMPLETED, {
-        matchedLines: this.matchedLines,
-        totalLines: this.totalLines
+        matchedLines: filteredLines.length,
+        pattern: options.text
       });
-    } catch (error) {
+      
+      return filteredLines;
+    } catch (error: any) {
+      this.isFiltering = false;
       this.emit(EditorEvents.FILTER_ERROR, error);
-      throw error;
+      console.error('过滤失败:', error);
+      return [];
     }
   }
 
   /**
-   * 清除过滤条件
+   * 清除过滤
    */
-  clearFilter(): void {
-    this.pattern = '';
-    this.isRegex = false;
-    this.caseSensitive = false;
-    this.filterActive = false;
-    this.currentConfig = null;
-    this.totalLines = 0;
-    this.matchedLines = 0;
-
+  clearFilter() {
+    if (!this.editor || !this.originalModel) return;
+    
+    // 切换回原始模型
+    this.editor.setModel(this.originalModel);
+    
+    // 处理过滤模型
+    if (this.filteredModel) {
+      this.filteredModel.dispose();
+      this.filteredModel = null;
+    }
+    
+    this.currentFilterConfig = null;
     this.emit(EditorEvents.FILTER_CLEARED);
   }
 
   /**
-   * 检查是否有活动的过滤器
+   * 检查是否处于过滤状态
+   * @returns 是否处于过滤状态
    */
-  isFilterActive(): boolean {
-    return this.filterActive;
+  isActive(): boolean {
+    return this.filteredModel !== null;
   }
 
   /**
    * 获取当前过滤配置
+   * @returns 当前过滤配置
    */
-  getFilterConfig(): FilterConfig | null {
-    return this.currentConfig;
-  }
-
-  /**
-   * 获取过滤统计信息
-   */
-  getFilterStats(): {
-    matchedLines: number;
-    totalLines: number;
-  } {
-    return {
-      matchedLines: this.matchedLines,
-      totalLines: this.totalLines
-    };
+  getCurrentFilterConfig(): FilterConfig | null {
+    return this.currentFilterConfig;
   }
 
   /**
    * 销毁过滤管理器
    */
-  destroy(): void {
-    this.clearFilter();
+  destroy() {
+    if (this.filteredModel) {
+      this.filteredModel.dispose();
+    }
     this.removeAllListeners();
   }
 } 

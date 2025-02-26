@@ -1,0 +1,94 @@
+/* 双模式搜索面板样式 */
+.dual-mode-search-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-left: 1px solid #d9d9d9;
+  width: 300px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* 搜索面板标题栏 */
+.dual-mode-search-panel .search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.dual-mode-search-panel .search-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.dual-mode-search-panel .close-button {
+  padding: 4px;
+}
+
+/* 搜索输入框容器 */
+.dual-mode-search-panel .search-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.dual-mode-search-panel .search-input-container .ant-input-affix-wrapper {
+  width: 100%;
+}
+
+.dual-mode-search-panel .search-input-container .ant-btn {
+  margin-right: 8px;
+}
+
+/* 搜索选项 */
+.dual-mode-search-panel .search-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* 搜索导航 */
+.dual-mode-search-panel .search-navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #d9d9d9;
+}
+
+.dual-mode-search-panel .search-stats {
+  font-size: 14px;
+  color: #595959;
+}
+
+.dual-mode-search-panel .search-navigation-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* 搜索错误信息 */
+.dual-mode-search-panel .search-error {
+  margin-top: 16px;
+  padding: 8px 12px;
+  background-color: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 4px;
+  color: #ff4d4f;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .dual-mode-search-panel {
+    width: 100%;
+    max-width: 300px;
+  }
+} 

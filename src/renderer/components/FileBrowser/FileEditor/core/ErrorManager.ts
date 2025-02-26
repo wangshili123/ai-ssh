@@ -1,214 +1,122 @@
 /**
- * 错误处理管理器
- * 用于统一处理和恢复错误
+ * 错误管理器
+ * 负责处理编辑器中的各种错误，提供统一的错误处理机制
  */
 
 import { EventEmitter } from 'events';
+import { EditorEvents, EditorErrorType } from '../types/FileEditorTypes';
 
-// 错误类型
-export enum ErrorType {
-  // 文件错误
-  FILE_NOT_FOUND = 'FILE_NOT_FOUND',
-  FILE_PERMISSION_DENIED = 'FILE_PERMISSION_DENIED',
-  FILE_LOCKED = 'FILE_LOCKED',
-  
-  // 操作错误
-  OPERATION_FAILED = 'OPERATION_FAILED',
-  OPERATION_TIMEOUT = 'OPERATION_TIMEOUT',
-  OPERATION_CANCELLED = '操作已取消',
-  
-  // 内存错误
-  MEMORY_LIMIT_EXCEEDED = '内存使用超出限制',
-  SYSTEM_MEMORY_LOW = 'SYSTEM_MEMORY_LOW',
-  
-  // 编码错误
-  ENCODING_ERROR = '文件编码错误',
-  
-  // 过滤错误
-  FILTER_ERROR = '过滤表达式无效',
-  
-  // 监控错误
-  WATCH_ERROR = 'WATCH_ERROR',
-  
-  // 搜索错误
-  SEARCH_ERROR = '搜索表达式无效',
-  
-  // 连接错误
-  CONNECTION_LOST = 'CONNECTION_LOST',
-  CONNECTION_TIMEOUT = 'CONNECTION_TIMEOUT',
-  SSH_ERROR = 'SSH_ERROR',
-  SFTP_ERROR = 'SFTP_ERROR',
-  
-  // 其他错误
-  UNKNOWN_ERROR = '未知错误'
-}
-
-// 错误信息
+/**
+ * 错误信息接口
+ */
 export interface ErrorInfo {
-  type: ErrorType;
+  type: EditorErrorType;
   message: string;
-  details?: any;
   timestamp: number;
-  recoverable: boolean;
-  retryCount: number;
+  details?: any;
 }
 
-// 错误处理配置
-export interface ErrorConfig {
-  // 最大重试次数
-  maxRetries: number;
-  // 重试延迟（毫秒）
-  retryDelay: number;
-  // 是否自动重试
-  autoRetry: boolean;
-  // 错误日志级别
-  logLevel: 'debug' | 'info' | 'warn' | 'error';
-}
-
+/**
+ * 错误管理器类
+ * 处理和分发编辑器中的各种错误
+ */
 export class ErrorManager extends EventEmitter {
-  private config: ErrorConfig;
-  private currentError: ErrorInfo | null = null;
-  private retryTimer: NodeJS.Timeout | null = null;
+  private errors: ErrorInfo[] = [];
+  private maxErrorsToKeep: number = 50;
 
-  constructor(config: Partial<ErrorConfig> = {}) {
+  /**
+   * 构造函数
+   */
+  constructor() {
     super();
-    
-    // 默认配置
-    this.config = {
-      maxRetries: 3,
-      retryDelay: 1000,
-      autoRetry: true,
-      logLevel: 'error',
-      ...config
-    };
   }
 
   /**
    * 处理错误
+   * @param type 错误类型
+   * @param message 错误消息
+   * @param details 错误详情（可选）
    */
-  public handleError(error: Error | string, type: ErrorType = ErrorType.UNKNOWN_ERROR): void {
-    // 清除之前的重试定时器
-    if (this.retryTimer) {
-      clearTimeout(this.retryTimer);
-      this.retryTimer = null;
-    }
-
-    // 创建错误信息
+  public handleError(type: EditorErrorType, message: string, details?: any): void {
     const errorInfo: ErrorInfo = {
       type,
-      message: typeof error === 'string' ? error : error.message,
-      details: typeof error === 'string' ? undefined : error,
+      message,
       timestamp: Date.now(),
-      recoverable: this.isErrorRecoverable(type),
-      retryCount: 0
+      details
     };
 
-    this.currentError = errorInfo;
+    // 添加到错误列表
+    this.errors.unshift(errorInfo);
 
-    // 记录错误日志
-    this.logError(errorInfo);
-
-    // 发出错误事件
-    this.emit('error', errorInfo);
-
-    // 如果错误可恢复且配置为自动重试，则开始重试
-    if (errorInfo.recoverable && this.config.autoRetry) {
-      this.retry();
-    }
-  }
-
-  /**
-   * 重试操作
-   */
-  public retry(): void {
-    if (!this.currentError || !this.currentError.recoverable) {
-      return;
+    // 限制错误列表大小
+    if (this.errors.length > this.maxErrorsToKeep) {
+      this.errors = this.errors.slice(0, this.maxErrorsToKeep);
     }
 
-    if (this.currentError.retryCount >= this.config.maxRetries) {
-      this.emit('retryFailed', this.currentError);
-      return;
-    }
+    // 触发错误事件
+    this.emit(EditorEvents.ERROR_OCCURRED, errorInfo);
 
-    this.currentError.retryCount++;
-    this.emit('retrying', this.currentError);
-
-    // 设置重试定时器
-    this.retryTimer = setTimeout(() => {
-      this.emit('retry', this.currentError);
-    }, this.config.retryDelay);
-  }
-
-  /**
-   * 取消重试
-   */
-  public cancelRetry(): void {
-    if (this.retryTimer) {
-      clearTimeout(this.retryTimer);
-      this.retryTimer = null;
-    }
-    this.emit('retryCancelled', this.currentError);
-  }
-
-  /**
-   * 清除当前错误
-   */
-  public clearError(): void {
-    this.currentError = null;
-    this.cancelRetry();
-    this.emit('errorCleared');
-  }
-
-  /**
-   * 获取当前错误
-   */
-  public getCurrentError(): ErrorInfo | null {
-    return this.currentError;
-  }
-
-  /**
-   * 更新配置
-   */
-  public updateConfig(config: Partial<ErrorConfig>): void {
-    this.config = { ...this.config, ...config };
-  }
-
-  /**
-   * 判断错误是否可恢复
-   */
-  private isErrorRecoverable(type: ErrorType): boolean {
+    // 根据错误类型执行特定操作
     switch (type) {
-      case ErrorType.FILE_NOT_FOUND:
-      case ErrorType.FILE_PERMISSION_DENIED:
-      case ErrorType.FILE_LOCKED:
-      case ErrorType.OPERATION_TIMEOUT:
-      case ErrorType.OPERATION_FAILED:
-      case ErrorType.SYSTEM_MEMORY_LOW:
-        return true;
+      case EditorErrorType.FILE_NOT_FOUND:
+        console.error(`文件未找到: ${message}`);
+        break;
+      case EditorErrorType.PERMISSION_DENIED:
+        console.error(`权限被拒绝: ${message}`);
+        break;
+      case EditorErrorType.FILE_TOO_LARGE:
+        console.warn(`文件过大: ${message}`);
+        break;
+      case EditorErrorType.OPERATION_TIMEOUT:
+        console.warn(`操作超时: ${message}`);
+        break;
+      case EditorErrorType.MODE_SWITCH_ERROR:
+        console.error(`模式切换错误: ${message}`);
+        break;
       default:
-        return false;
+        console.error(`未知错误: ${message}`);
     }
   }
 
   /**
-   * 记录错误日志
+   * 获取最近的错误
+   * @param count 要获取的错误数量
+   * @returns 错误信息数组
    */
-  private logError(error: ErrorInfo): void {
-    const logMessage = `[${error.type}] ${error.message}`;
+  public getRecentErrors(count: number = 10): ErrorInfo[] {
+    return this.errors.slice(0, count);
+  }
+
+  /**
+   * 获取特定类型的错误
+   * @param type 错误类型
+   * @param count 要获取的错误数量
+   * @returns 错误信息数组
+   */
+  public getErrorsByType(type: EditorErrorType, count: number = 10): ErrorInfo[] {
+    return this.errors
+      .filter(error => error.type === type)
+      .slice(0, count);
+  }
+
+  /**
+   * 清除所有错误
+   */
+  public clearErrors(): void {
+    this.errors = [];
+    this.emit(EditorEvents.ERRORS_CLEARED);
+  }
+
+  /**
+   * 设置要保留的最大错误数
+   * @param count 错误数量
+   */
+  public setMaxErrorsToKeep(count: number): void {
+    this.maxErrorsToKeep = count;
     
-    switch (this.config.logLevel) {
-      case 'debug':
-        console.debug(logMessage, error.details);
-        break;
-      case 'info':
-        console.info(logMessage, error.details);
-        break;
-      case 'warn':
-        console.warn(logMessage, error.details);
-        break;
-      case 'error':
-        console.error(logMessage, error.details);
-        break;
+    // 如果当前错误数超过新的限制，裁剪列表
+    if (this.errors.length > count) {
+      this.errors = this.errors.slice(0, count);
     }
   }
 } 

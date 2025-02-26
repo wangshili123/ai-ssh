@@ -1,0 +1,54 @@
+/**
+ * 模式切换按钮样式
+ */
+
+.mode-switch-button {
+  margin-right: 8px;
+  transition: all 0.3s;
+}
+
+/* 浏览模式按钮样式 */
+.mode-switch-button.browse-mode {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.mode-switch-button.browse-mode:hover,
+.mode-switch-button.browse-mode:focus {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+/* 编辑模式按钮样式 */
+.mode-switch-button.edit-mode {
+  background-color: #52c41a;
+  border-color: #52c41a;
+}
+
+.mode-switch-button.edit-mode:hover,
+.mode-switch-button.edit-mode:focus {
+  background-color: #73d13d;
+  border-color: #73d13d;
+}
+
+/* 切换中状态 */
+.mode-switch-button.switching {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+/* 图标样式 */
+.mode-switch-button .anticon {
+  margin-right: 4px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .mode-switch-button span:not(.anticon) {
+    display: none;
+  }
+  
+  .mode-switch-button .anticon {
+    margin-right: 0;
+  }
+} 

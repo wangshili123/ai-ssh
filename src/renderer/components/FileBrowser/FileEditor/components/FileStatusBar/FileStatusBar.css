@@ -1,43 +1,97 @@
-.file-status-bar {
+/**
+ * 文件编辑器状态栏样式
+ */
+
+.editor-status-bar {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 4px 16px;
-  background-color: #1e1e1e;
-  border-top: 1px solid #333;
+  height: 28px;
+  padding: 0 16px;
+  background-color: #f0f0f0;
+  border-top: 1px solid #e0e0e0;
   font-size: 12px;
-  color: #d4d4d4;
-  height: 24px;
+  color: #606060;
 }
 
-.file-status-bar .status-item {
+/* 左侧信息区 */
+.editor-status-bar .status-left {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-  border-right: 1px solid #333;
+  flex: 1;
 }
 
-.file-status-bar .status-item:last-child {
-  border-right: none;
+/* 中间信息区 */
+.editor-status-bar .status-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
 }
 
-.file-status-bar .anticon {
-  font-size: 14px;
-  color: #888;
+/* 右侧信息区 */
+.editor-status-bar .status-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
 }
 
-.file-status-bar .status-text {
-  color: #d4d4d4;
+/* 状态项样式 */
+.editor-status-bar .status-item {
+  margin: 0 8px;
+  display: flex;
+  align-items: center;
 }
 
-.file-status-bar .ant-space {
-  gap: 0 !important;
+/* 图标样式 */
+.editor-status-bar .status-item .anticon {
+  margin-right: 4px;
 }
 
-.file-status-bar .status-item.warning {
+/* 模式指示器样式 */
+.editor-status-bar .mode-indicator {
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+/* 编辑模式样式 */
+.editor-status-bar .mode-indicator .anticon-edit + span {
+  color: #1890ff;
+}
+
+/* 浏览模式样式 */
+.editor-status-bar .mode-indicator .anticon-eye + span {
+  color: #52c41a;
+}
+
+/* 过滤信息样式 */
+.editor-status-bar .filtered-info {
+  margin-left: 8px;
   color: #faad14;
 }
 
-.file-status-bar .status-item.warning .status-text {
-  color: #faad14;
+/* 选择信息样式 */
+.editor-status-bar .selection-info {
+  margin-left: 8px;
+  color: #722ed1;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .editor-status-bar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 4px 8px;
+  }
+  
+  .editor-status-bar .status-center {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 4px;
+  }
 } 

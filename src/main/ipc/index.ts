@@ -1,6 +1,7 @@
 import { registerStorageHandlers } from './storage';
 import { initSSHHandlers } from './ssh';
 import { registerSFTPHandlers } from './sftp';
+import { registerEditorHandlers } from './editor';
 import { ipcMain, app } from 'electron';
 
 /**
@@ -10,6 +11,10 @@ export function registerAllHandlers(): void {
   console.log('开始注册所有 IPC 处理程序...');
   
   try {
+    // 注册编辑器处理程序
+    console.log('注册编辑器处理程序...');
+    registerEditorHandlers();
+    
     // 注册存储处理程序
     console.log('注册存储处理程序...');
     registerStorageHandlers();

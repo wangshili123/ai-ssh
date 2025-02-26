@@ -1,17 +1,8 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
-import * as isDev from 'electron-is-dev';
 import { registerAllHandlers } from './ipc';
 
 let mainWindow: BrowserWindow | null = null;
-
-// 注册 get-app-path 处理程序
-ipcMain.handle('get-app-path', () => {
-  console.log('Received get-app-path request');
-  const appPath = app.getAppPath();
-  console.log('Returning app path:', appPath);
-  return appPath;
-});
 
 function createWindow() {
   // 创建浏览器窗口
@@ -25,15 +16,11 @@ function createWindow() {
   });
 
   // 加载应用
-  const startUrl = isDev
-    ? 'http://localhost:3000'
-    : `file://${path.join(__dirname, '../build/index.html')}`;
-    
-  mainWindow.loadURL(startUrl);
-
-  // 打开开发者工具
-  if (isDev) {
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
 
   mainWindow.on('closed', () => {
@@ -41,21 +28,32 @@ function createWindow() {
   });
 }
 
+// 在应用准备就绪时初始化
 app.whenReady().then(() => {
-  // 注册所有 IPC 处理程序
+  // 注册所有IPC处理程序
   registerAllHandlers();
+
   // 创建窗口
   createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
 });
 
+// 当所有窗口关闭时退出应用
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-app.on('activate', () => {
-  if (mainWindow === null) {
-    createWindow();
-  }
+// 注册 get-app-path 处理程序
+ipcMain.handle('get-app-path', () => {
+  console.log('Received get-app-path request');
+  const appPath = app.getAppPath();
+  console.log('Returning app path:', appPath);
+  return appPath;
 }); 
