@@ -433,19 +433,40 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     if (!editorRef.current) return false;
     
     try {
-      editorRef.current.setSaving(true);
+      console.log('开始保存文件，当前isDirty状态:', editorState.isDirty, '当前模式:', currentMode);
+      
+      // 设置为保存中状态
+      setEditorState(prev => ({
+        ...prev,
+        isSaving: true
+      }));
+      
+      // 调用编辑器管理器保存方法
       await editorRef.current.save();
+      
+      // 保存成功后显式更新状态
+      setEditorState(prev => ({
+        ...prev,
+        isDirty: false,
+        isSaving: false
+      }));
+      
+      console.log('文件保存成功，更新后的isDirty状态:', false);
       message.success('文件保存成功');
       return true;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('保存文件失败:', errorMessage);
+      
+      // 保存失败状态更新
+      setEditorState(prev => ({
+        ...prev,
+        isSaving: false,
+        error: new Error(errorMessage)
+      }));
+      
       message.error(`保存文件失败: ${errorMessage}`);
       return false;
-    } finally {
-      if (editorRef.current) {
-        editorRef.current.setSaving(false);
-      }
     }
   };
 
@@ -458,24 +479,38 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     
     // 监听编辑器状态变化
     manager.on('stateChanged', (state: EditorState) => {
+      console.log('收到编辑器状态变化事件:', {
+        isDirty: state.isDirty,
+        mode: state.mode,
+        isLoading: state.isLoading
+      });
+      
       setEditorState(state);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('编辑器状态已更新为:', state);
+      }
     });
     
     // 监听错误事件
     manager.on('error', (error: Error) => {
+      console.log('收到编辑器错误事件:', error.message);
       setEditorState(prevState => ({
         ...prevState,
         error
       }));
     });
     
-    // 监听内容变化
+    // 监听内容变化事件（虽然现在通过stateChanged事件处理，这里作为备份）
     manager.on('contentChanged', () => {
+      console.log('收到编辑器内容变化事件，设置isDirty为true');
       setEditorState(prevState => ({
         ...prevState,
         isDirty: true
       }));
     });
+    
+    console.log('编辑器事件监听器设置完成');
   }, []);
 
   // 添加模式切换函数
@@ -577,6 +612,11 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
   }, []);
 
   const editor = editorRef.current;
+
+  // 使用useEffect监视isDirty状态变化
+  useEffect(() => {
+    console.log('editorState.isDirty状态变化:', editorState.isDirty);
+  }, [editorState.isDirty]);
 
   // 返回JSX元素
   return (

@@ -98,8 +98,17 @@ export class EditorManager extends EventEmitter {
   private setupEventForwarding(): void {
     // 转发内容管理器事件
     this.contentManager.on(EditorEvents.CONTENT_CHANGED, (data) => {
-      this.state.isDirty = data.isModified;
-      this.emit('stateChanged', this.state);
+      console.log('[EditorManager] 收到内容变化事件，isDirty:', data.isModified);
+      
+      // 创建新的状态对象，而不是修改原对象
+      const newState = { 
+        ...this.state,
+        isDirty: data.isModified 
+      };
+      this.state = newState; // 更新状态引用
+      
+      console.log('[EditorManager] 发出状态变化事件，新状态:', newState);
+      this.emit('stateChanged', newState);
     });
     
     this.contentManager.on(EditorEvents.FILE_LOADED, (data) => {
@@ -107,8 +116,15 @@ export class EditorManager extends EventEmitter {
     });
     
     this.contentManager.on(EditorEvents.FILE_SAVED, () => {
-      this.state.isDirty = false;
-      this.emit('stateChanged', this.state);
+      // 创建新的状态对象
+      const newState = { 
+        ...this.state,
+        isDirty: false 
+      };
+      this.state = newState;
+      
+      console.log('[EditorManager] 文件已保存，重置isDirty为false');
+      this.emit('stateChanged', newState);
       this.emit(EditorEvents.FILE_SAVED);
     });
     
@@ -126,15 +142,25 @@ export class EditorManager extends EventEmitter {
     
     // 转发模式管理器事件
     this.modeManager.on(EditorEvents.MODE_SWITCHING_STARTED, (data) => {
-      this.state.isLoading = true;
-      this.emit('stateChanged', this.state);
+      // 创建新状态对象
+      const loadingState = {
+        ...this.state,
+        isLoading: true
+      };
+      this.state = loadingState;
+      this.emit('stateChanged', loadingState);
       this.emit(EditorEvents.MODE_SWITCHING_STARTED, data);
     });
     
     this.modeManager.on(EditorEvents.MODE_SWITCHING_COMPLETED, (data) => {
-      this.state.mode = data.mode;
-      this.state.isLoading = false;
-      this.emit('stateChanged', this.state);
+      // 创建新状态对象
+      const completedState = {
+        ...this.state,
+        mode: data.mode,
+        isLoading: false
+      };
+      this.state = completedState;
+      this.emit('stateChanged', completedState);
       this.emit(EditorEvents.MODE_SWITCHING_COMPLETED, data);
       
       // 更新只读处理器
@@ -144,9 +170,14 @@ export class EditorManager extends EventEmitter {
     });
     
     this.modeManager.on(EditorEvents.MODE_SWITCHING_FAILED, (data) => {
-      this.state.isLoading = false;
-      this.state.error = data.error;
-      this.emit('stateChanged', this.state);
+      // 创建新状态对象
+      const failedState = {
+        ...this.state,
+        isLoading: false,
+        error: data.error
+      };
+      this.state = failedState;
+      this.emit('stateChanged', failedState);
       this.emit(EditorEvents.MODE_SWITCHING_FAILED, data);
     });
   }
@@ -290,21 +321,39 @@ export class EditorManager extends EventEmitter {
    * 保存文件
    */
   public async save(): Promise<void> {
+    console.log('[EditorManager] 开始保存文件，isDirty状态:', this.state.isDirty);
     if (!this.state.isDirty) return;
 
     try {
-      this.state.isSaving = true;
-      this.emit('stateChanged', this.state);
+      // 创建新状态对象
+      const loadingState = {
+        ...this.state,
+        isSaving: true
+      };
+      this.state = loadingState;
+      this.emit('stateChanged', loadingState);
       
       await this.contentManager.saveContent();
       
-      this.state.isDirty = false;
-      this.state.isSaving = false;
-      this.emit('stateChanged', this.state);
+      // 创建新状态对象
+      const savedState = {
+        ...this.state,
+        isDirty: false,
+        isSaving: false
+      };
+      this.state = savedState;
+      
+      console.log('[EditorManager] 文件保存成功，isDirty状态重置为:', savedState.isDirty);
+      this.emit('stateChanged', savedState);
     } catch (error) {
-      this.state.error = error as Error;
-      this.state.isSaving = false;
-      this.emit('stateChanged', this.state);
+      // 创建新状态对象
+      const errorState = {
+        ...this.state,
+        error: error as Error,
+        isSaving: false
+      };
+      this.state = errorState;
+      this.emit('stateChanged', errorState);
       throw error;
     }
   }
@@ -314,8 +363,13 @@ export class EditorManager extends EventEmitter {
    */
   public async reload(): Promise<void> {
     try {
-      this.state.isRefreshing = true;
-      this.emit('stateChanged', this.state);
+      // 创建新状态对象
+      const refreshingState = {
+        ...this.state,
+        isRefreshing: true
+      };
+      this.state = refreshingState;
+      this.emit('stateChanged', refreshingState);
       
       const content = await this.contentManager.loadContent();
       
@@ -323,13 +377,23 @@ export class EditorManager extends EventEmitter {
         this.model.setValue(content);
       }
       
-      this.state.isDirty = false;
-      this.state.isRefreshing = false;
-      this.emit('stateChanged', this.state);
+      // 创建新状态对象
+      const reloadedState = {
+        ...this.state,
+        isDirty: false,
+        isRefreshing: false
+      };
+      this.state = reloadedState;
+      this.emit('stateChanged', reloadedState);
     } catch (error) {
-      this.state.error = error as Error;
-      this.state.isRefreshing = false;
-      this.emit('stateChanged', this.state);
+      // 创建新状态对象
+      const errorState = {
+        ...this.state,
+        error: error as Error,
+        isRefreshing: false
+      };
+      this.state = errorState;
+      this.emit('stateChanged', errorState);
       throw error;
     }
   }

@@ -27,6 +27,8 @@ export class EditorContentManager extends EventEmitter {
   private encoding: string = 'UTF-8';
   // 是否有未保存修改
   private isDirty: boolean = false;
+  // 内容变化监听器
+  private contentChangeDisposable: monaco.IDisposable | null = null;
 
   /**
    * 构造函数
@@ -62,7 +64,11 @@ export class EditorContentManager extends EventEmitter {
       console.log('[EditorContentManager] 正在加载文件:', this.filePath);
       const result = await sftpService.readFile(this.sessionId, this.filePath);
       console.log('[EditorContentManager] 文件加载成功，内容长度:', result.content.length);
+      
+      // 设置原始内容
       this.originalContent = result.content;
+      this.isDirty = false; // 重置脏状态
+      
       this.emit(EditorEvents.FILE_LOADED, {
         path: this.filePath,
         size: result.content.length,
@@ -108,25 +114,115 @@ export class EditorContentManager extends EventEmitter {
    * @param model 编辑器模型
    */
   public setModel(model: monaco.editor.ITextModel): void {
-    // 取消之前模型的事件监听
-    if (this.model) {
-      // 这里没有直接的方法移除特定事件，所以我们重新设置模型时不需要特别处理
-    }
+    // 清理之前的事件监听
+    this.clearModelListeners();
+
+    // 保存旧模型的内容用于比较
+    const oldModel = this.model;
+    const oldContent = oldModel ? oldModel.getValue() : '';
 
     this.model = model;
     
+    // 获取新模型的内容
+    const newContent = model ? model.getValue() : '';
+    
+    // 日志输出模型变化
+    console.log('[EditorContentManager] 模型替换:', { 
+      oldModelExists: !!oldModel,
+      newModelExists: !!model,
+      oldContentLength: oldContent.length,
+      newContentLength: newContent.length,
+      originalContentLength: this.originalContent.length
+    });
+    
+    // 确保原始内容已设置
+    if (this.originalContent.length === 0 && newContent.length > 0) {
+      console.log('[EditorContentManager] 原始内容为空，使用新模型内容作为原始内容');
+      this.originalContent = newContent;
+    }
+    
+    // 立即检查当前脏状态
+    const isDirty = newContent !== this.originalContent;
+    if (isDirty !== this.isDirty) {
+      console.log('[EditorContentManager] 初始脏状态检测:', { 
+        isDirty, 
+        previousIsDirty: this.isDirty 
+      });
+      this.isDirty = isDirty;
+      this.emit(EditorEvents.CONTENT_CHANGED, { isModified: isDirty });
+    }
+    
     // 为新模型添加变更监听
     if (this.model) {
-      this.model.onDidChangeContent(() => {
-        const currentContent = this.model?.getValue() || '';
-        const isDirty = currentContent !== this.originalContent;
+      console.log('[EditorContentManager] 添加模型内容变化监听器');
+      
+      // 保存监听器的disposable对象，以便后续清理
+      this.contentChangeDisposable = this.model.onDidChangeContent(() => {
+        if (!this.model) return;
         
+        const currentContent = this.model.getValue();
+        const originalContent = this.originalContent;
+        
+        // 比较当前内容和原始内容
+        const isDirty = currentContent !== originalContent;
+        
+        console.log('[EditorContentManager] 内容变化检测:', { 
+          contentLength: currentContent.length,
+          originalLength: originalContent.length,
+          isDirty,
+          previousIsDirty: this.isDirty,
+          // 输出内容的前20个字符以便调试
+          contentStart: currentContent.substring(0, 20),
+          originalStart: originalContent.substring(0, 20),
+          // 仅当实际不同时才进行比较
+          different: isDirty 
+            ? `不同位置示例: ${this.findFirstDifference(currentContent, originalContent)}` 
+            : '内容相同'
+        });
+        
+        // 只有状态变化时才发送事件
         if (isDirty !== this.isDirty) {
+          console.log('[EditorContentManager] 内容脏状态变化为:', isDirty);
           this.isDirty = isDirty;
           this.emit(EditorEvents.CONTENT_CHANGED, { isModified: isDirty });
         }
       });
     }
+  }
+
+  /**
+   * 清理模型事件监听器
+   */
+  private clearModelListeners(): void {
+    if (this.contentChangeDisposable) {
+      this.contentChangeDisposable.dispose();
+      this.contentChangeDisposable = null;
+    }
+  }
+
+  /**
+   * 查找两个字符串的第一个不同之处
+   * @param str1 第一个字符串
+   * @param str2 第二个字符串
+   * @returns 不同之处的描述
+   */
+  private findFirstDifference(str1: string, str2: string): string {
+    const minLength = Math.min(str1.length, str2.length);
+    for (let i = 0; i < minLength; i++) {
+      if (str1[i] !== str2[i]) {
+        const context = 10; // 显示差异前后的上下文
+        const start = Math.max(0, i - context);
+        const end = Math.min(i + context, minLength);
+        return `位置 ${i}: [${str1.substring(start, end)}] vs [${str2.substring(start, end)}]`;
+      }
+    }
+    
+    // 如果所有共同的字符都相同，那么一个字符串是另一个的前缀
+    if (str1.length !== str2.length) {
+      return `长度不同: ${str1.length} vs ${str2.length}`;
+    }
+    
+    return '未找到差异';
   }
 
   /**
@@ -240,6 +336,9 @@ export class EditorContentManager extends EventEmitter {
    * 清理资源和事件监听
    */
   public dispose(): void {
+    // 清理模型监听器
+    this.clearModelListeners();
+    
     // 移除所有事件监听
     this.removeAllListeners();
     

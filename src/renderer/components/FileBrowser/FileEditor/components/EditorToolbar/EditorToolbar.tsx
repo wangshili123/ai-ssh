@@ -46,13 +46,16 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
   onEncodingChange,
   onRealtimeToggle,
   onAutoScrollToggle,
-  isDirty = false,
+  isDirty,
   encoding = 'UTF-8',
-  isReadOnly = false,
+  isReadOnly,
   showEncodingSelector = true,
   showRealtimeToggle = false,
   showAutoScrollToggle = false
 }) => {
+  // 输出调试信息
+  console.log('渲染EditorToolbar组件，isDirty:', isDirty, 'isReadOnly:', isReadOnly);
+  
   const [realtimeEnabled, setRealtimeEnabled] = useState(false);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(false);
 
@@ -83,7 +86,10 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
           <Tooltip title="保存">
             <Button 
               icon={<SaveOutlined />} 
-              onClick={onSave}
+              onClick={() => {
+                console.log('点击保存按钮，isDirty:', isDirty, 'isReadOnly:', isReadOnly);
+                onSave();
+              }}
               disabled={isReadOnly || !isDirty}
               type={isDirty ? "primary" : "default"}
             />
