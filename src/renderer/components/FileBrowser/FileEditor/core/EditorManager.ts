@@ -1,7 +1,14 @@
+/**
+ * 编辑器管理器
+ * 负责协调编辑器的各个功能模块和对外提供统一的接口
+ */
+
 import { EventEmitter } from 'events';
 import * as monaco from 'monaco-editor';
 import { EditorEvents, EditorMode } from '../types/FileEditorTypes';
-import { sftpService } from '../../../../services/sftp';
+import { EditorReadOnlyHandler } from './EditorReadOnlyHandler';
+import { EditorContentManager } from './EditorContentManager';
+import { EditorModeManager } from './EditorModeManager';
 
 // 配置 Monaco Editor 的 worker
 (window as any).MonacoEnvironment = {
@@ -11,6 +18,9 @@ import { sftpService } from '../../../../services/sftp';
   }
 };
 
+/**
+ * 编辑器状态接口
+ */
 export interface EditorState {
   isDirty: boolean;
   encoding: string;
@@ -28,13 +38,16 @@ export interface EditorState {
   mode: EditorMode;
 }
 
-export interface EditorConfig {
-  // ... rest of the code ...
-}
-
+/**
+ * 编辑器管理器
+ * 协调编辑器的各个功能模块，对外提供统一的接口
+ */
 export class EditorManager extends EventEmitter {
+  // 编辑器实例
   private editor: monaco.editor.IStandaloneCodeEditor | null = null;
+  // 编辑器模型
   private model: monaco.editor.ITextModel | null = null;
+  // 编辑器状态
   private state: EditorState = {
     isDirty: false,
     encoding: 'UTF-8',
@@ -49,18 +62,100 @@ export class EditorManager extends EventEmitter {
     mode: EditorMode.BROWSE
   };
 
+  // 会话和文件信息
   private sessionId: string;
   private filePath: string;
-  private originalContent: string = '';
+  
+  // 功能模块管理器
+  private contentManager: EditorContentManager;
+  private modeManager: EditorModeManager;
+  private readOnlyHandler: EditorReadOnlyHandler | null = null;
 
+  /**
+   * 构造函数
+   * @param sessionId 会话ID
+   * @param filePath 文件路径
+   */
   constructor(sessionId: string, filePath: string) {
     super();
     this.sessionId = sessionId;
     this.filePath = filePath;
+    
+    // 初始化内容管理器
+    this.contentManager = new EditorContentManager(sessionId, filePath);
+    
+    // 初始化模式管理器
+    this.modeManager = new EditorModeManager(null, this.state.mode);
+    
+    // 设置事件转发
+    this.setupEventForwarding();
   }
 
-  // 调试方法
-  private debugState() {
+  /**
+   * 设置事件转发
+   * 将各个管理器的事件转发到EditorManager
+   */
+  private setupEventForwarding(): void {
+    // 转发内容管理器事件
+    this.contentManager.on(EditorEvents.CONTENT_CHANGED, (data) => {
+      this.state.isDirty = data.isModified;
+      this.emit('stateChanged', this.state);
+    });
+    
+    this.contentManager.on(EditorEvents.FILE_LOADED, (data) => {
+      this.emit(EditorEvents.FILE_LOADED, data);
+    });
+    
+    this.contentManager.on(EditorEvents.FILE_SAVED, () => {
+      this.state.isDirty = false;
+      this.emit('stateChanged', this.state);
+      this.emit(EditorEvents.FILE_SAVED);
+    });
+    
+    this.contentManager.on(EditorEvents.ERROR_OCCURRED, (error) => {
+      this.state.error = error;
+      this.emit('stateChanged', this.state);
+      this.emit(EditorEvents.ERROR_OCCURRED, error);
+    });
+    
+    this.contentManager.on(EditorEvents.ENCODING_CHANGED, (encoding) => {
+      this.state.encoding = encoding;
+      this.emit('stateChanged', this.state);
+      this.emit(EditorEvents.ENCODING_CHANGED, encoding);
+    });
+    
+    // 转发模式管理器事件
+    this.modeManager.on(EditorEvents.MODE_SWITCHING_STARTED, (data) => {
+      this.state.isLoading = true;
+      this.emit('stateChanged', this.state);
+      this.emit(EditorEvents.MODE_SWITCHING_STARTED, data);
+    });
+    
+    this.modeManager.on(EditorEvents.MODE_SWITCHING_COMPLETED, (data) => {
+      this.state.mode = data.mode;
+      this.state.isLoading = false;
+      this.emit('stateChanged', this.state);
+      this.emit(EditorEvents.MODE_SWITCHING_COMPLETED, data);
+      
+      // 更新只读处理器
+      if (this.readOnlyHandler) {
+        this.readOnlyHandler.updateMode(data.mode);
+      }
+    });
+    
+    this.modeManager.on(EditorEvents.MODE_SWITCHING_FAILED, (data) => {
+      this.state.isLoading = false;
+      this.state.error = data.error;
+      this.emit('stateChanged', this.state);
+      this.emit(EditorEvents.MODE_SWITCHING_FAILED, data);
+    });
+  }
+
+  /**
+   * 调试方法
+   * 输出当前编辑器状态
+   */
+  private debugState(): void {
     console.log('[EditorManager] 当前状态:', {
       hasEditor: !!this.editor,
       hasModel: !!this.model,
@@ -73,8 +168,12 @@ export class EditorManager extends EventEmitter {
     });
   }
 
-  // 初始化编辑器
-  async initialize(container: HTMLElement, options: monaco.editor.IStandaloneEditorConstructionOptions = {}) {
+  /**
+   * 初始化编辑器
+   * @param container 编辑器容器元素
+   * @param options 编辑器选项
+   */
+  async initialize(container: HTMLElement, options: monaco.editor.IStandaloneEditorConstructionOptions = {}): Promise<void> {
     try {
       console.log('[EditorManager] 开始初始化');
       this.state.isLoading = true;
@@ -83,15 +182,13 @@ export class EditorManager extends EventEmitter {
       console.log('[EditorManager] 开始创建编辑器实例');
       
       // 加载文件内容
-      const content = await this.loadContent();
-      this.originalContent = content;
-      console.log('[EditorManager] 文件内容加载完成，长度:', content.length);
-
+      const content = await this.contentManager.loadContent();
+      
       // 创建编辑器实例
       console.log('[EditorManager] 创建Monaco编辑器实例');
       this.editor = monaco.editor.create(container, {
-        value: content, // 直接设置初始内容
-        language: this.getLanguageFromPath(this.filePath),
+        value: content,
+        language: this.contentManager.getLanguageFromPath(this.filePath),
         theme: 'vs-dark',
         automaticLayout: true,
         scrollBeyondLastLine: false,
@@ -101,7 +198,7 @@ export class EditorManager extends EventEmitter {
         contextmenu: true,
         fixedOverflowWidgets: true,
         overviewRulerBorder: false,
-        readOnly: this.state.mode === EditorMode.BROWSE, // 浏览模式下设置为只读
+        readOnly: this.state.mode === EditorMode.BROWSE,
         scrollbar: {
           useShadows: false,
           verticalScrollbarSize: 10,
@@ -110,11 +207,6 @@ export class EditorManager extends EventEmitter {
         },
         ...options
       });
-
-      // 添加自定义的只读错误提示处理
-      if (this.state.mode === EditorMode.BROWSE) {
-        this.setupCustomReadOnlyHandler();
-      }
 
       console.log('[EditorManager] 编辑器实例创建完成');
       this.debugState();
@@ -131,7 +223,7 @@ export class EditorManager extends EventEmitter {
       console.log('[EditorManager] 创建新模型');
       this.model = monaco.editor.createModel(
         content,
-        this.getLanguageFromPath(this.filePath),
+        this.contentManager.getLanguageFromPath(this.filePath),
         monaco.Uri.file(this.filePath)
       );
       
@@ -139,9 +231,18 @@ export class EditorManager extends EventEmitter {
       console.log('[EditorManager] 模型设置完成');
       this.debugState();
 
-      // 监听变化
-      console.log('[EditorManager] 设置事件监听');
-      this.setupEventListeners();
+      // 更新内容管理器
+      this.contentManager.setEditor(this.editor);
+      this.contentManager.setModel(this.model);
+      
+      // 更新模式管理器
+      this.modeManager.setEditor(this.editor);
+      
+      // 初始化只读处理器
+      this.readOnlyHandler = new EditorReadOnlyHandler(this.editor, this.state.mode);
+
+      // 设置事件监听
+      this.setupEditorEventListeners();
 
       // 强制重新布局
       console.log('[EditorManager] 强制重新布局');
@@ -161,19 +262,11 @@ export class EditorManager extends EventEmitter {
     }
   }
 
-  // 设置事件监听
-  private setupEventListeners() {
-    if (!this.editor || !this.model) return;
-
-    // 内容变化
-    this.model.onDidChangeContent(() => {
-      const currentContent = this.model?.getValue() || '';
-      const isDirty = currentContent !== this.originalContent;
-      if (isDirty !== this.state.isDirty) {
-        this.state.isDirty = isDirty;
-        this.emit('stateChanged', this.state);
-      }
-    });
+  /**
+   * 设置编辑器事件监听
+   */
+  private setupEditorEventListeners(): void {
+    if (!this.editor) return;
 
     // 光标位置变化
     this.editor.onDidChangeCursorPosition(e => {
@@ -185,103 +278,170 @@ export class EditorManager extends EventEmitter {
     });
   }
 
-  // 获取文件语言类型
-  private getLanguageFromPath(filePath: string): string {
-    const ext = filePath.split('.').pop()?.toLowerCase() || '';
-    const languageMap: { [key: string]: string } = {
-      'js': 'javascript',
-      'jsx': 'javascript',
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'json': 'json',
-      'md': 'markdown',
-      'html': 'html',
-      'css': 'css',
-      'less': 'less',
-      'scss': 'scss',
-      'xml': 'xml',
-      'yaml': 'yaml',
-      'yml': 'yaml',
-      'sh': 'shell',
-      'bash': 'shell',
-      'py': 'python',
-      'java': 'java',
-      'c': 'cpp',
-      'cpp': 'cpp',
-      'h': 'cpp',
-      'txt': 'plaintext'
-    };
-    return languageMap[ext] || 'plaintext';
+  /**
+   * 切换编辑模式
+   * @param mode 目标模式
+   */
+  public async switchMode(mode: EditorMode): Promise<boolean> {
+    return this.modeManager.switchMode(mode);
   }
 
-  // 加载文件内容
-  private async loadContent(): Promise<string> {
-    try {
-      console.log('正在加载文件:', this.filePath);
-      const result = await sftpService.readFile(this.sessionId, this.filePath);
-      console.log('文件加载成功，内容长度:', result.content.length);
-      return result.content;
-    } catch (error) {
-      console.error('加载文件失败:', error);
-      throw new Error(`加载文件失败: ${error}`);
-    }
-  }
-
-  // 保存文件
-  async save(): Promise<void> {
-    if (!this.model || !this.state.isDirty) return;
+  /**
+   * 保存文件
+   */
+  public async save(): Promise<void> {
+    if (!this.state.isDirty) return;
 
     try {
-      const content = this.model.getValue();
-      await sftpService.writeFile(this.sessionId, this.filePath, content);
-      this.originalContent = content;
-      this.state.isDirty = false;
+      this.state.isSaving = true;
       this.emit('stateChanged', this.state);
-      this.emit(EditorEvents.FILE_SAVED);
+      
+      await this.contentManager.saveContent();
+      
+      this.state.isDirty = false;
+      this.state.isSaving = false;
+      this.emit('stateChanged', this.state);
     } catch (error) {
-      throw new Error(`保存文件失败: ${error}`);
+      this.state.error = error as Error;
+      this.state.isSaving = false;
+      this.emit('stateChanged', this.state);
+      throw error;
     }
   }
 
-  // 获取当前状态
-  getState(): EditorState {
+  /**
+   * 重新加载内容
+   */
+  public async reload(): Promise<void> {
+    try {
+      this.state.isRefreshing = true;
+      this.emit('stateChanged', this.state);
+      
+      const content = await this.contentManager.loadContent();
+      
+      if (this.model) {
+        this.model.setValue(content);
+      }
+      
+      this.state.isDirty = false;
+      this.state.isRefreshing = false;
+      this.emit('stateChanged', this.state);
+    } catch (error) {
+      this.state.error = error as Error;
+      this.state.isRefreshing = false;
+      this.emit('stateChanged', this.state);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取当前状态
+   */
+  public getState(): EditorState {
     return { ...this.state };
   }
 
-  // 设置编码
-  setEncoding(encoding: string) {
-    this.state.encoding = encoding;
-    this.emit('stateChanged', this.state);
+  /**
+   * 设置编码
+   * @param encoding 编码名称
+   */
+  public setEncoding(encoding: string): void {
+    this.contentManager.setEncoding(encoding);
   }
 
-  // 销毁编辑器
-  destroy() {
+  /**
+   * 销毁编辑器
+   * 清理所有资源
+   */
+  public destroy(): void {
+    // 销毁编辑器实例
     if (this.editor) {
       this.editor.dispose();
+      this.editor = null;
     }
+    
+    // 销毁模型
     if (this.model) {
       this.model.dispose();
+      this.model = null;
     }
+    
+    // 销毁模块管理器
+    if (this.readOnlyHandler) {
+      this.readOnlyHandler.dispose();
+      this.readOnlyHandler = null;
+    }
+    
+    this.contentManager.dispose();
+    this.modeManager.dispose();
+    
+    // 移除所有事件监听
     this.removeAllListeners();
   }
 
-  // 重新加载内容
-  async reload(): Promise<void> {
-    try {
-      const content = await this.loadContent();
-      if (this.model) {
-        this.model.setValue(content);
-        this.originalContent = content;
-        this.state.isDirty = false;
-        this.emit('stateChanged', this.state);
-      }
-    } catch (error) {
-      throw new Error(`重新加载失败: ${error}`);
-    }
+  // 只读属性访问方法
+  
+  /**
+   * 获取当前模式
+   */
+  get mode(): EditorMode {
+    return this.state.mode;
   }
-
-  // 执行编辑器命令
-  executeCommand(command: string): void {
+  
+  /**
+   * 获取是否有未保存内容
+   */
+  get isDirty(): boolean {
+    return this.state.isDirty;
+  }
+  
+  /**
+   * 获取是否正在加载
+   */
+  get isLoading(): boolean {
+    return this.state.isLoading;
+  }
+  
+  /**
+   * 获取当前错误
+   */
+  get error(): Error | null {
+    return this.state.error;
+  }
+  
+  /**
+   * 获取光标位置
+   */
+  get cursorPosition(): { line: number; column: number } {
+    return this.state.cursorPosition;
+  }
+  
+  /**
+   * 获取编码方式
+   */
+  get encoding(): string {
+    return this.state.encoding;
+  }
+  
+  /**
+   * 获取编辑器实例
+   */
+  public getEditor(): monaco.editor.IStandaloneCodeEditor | null {
+    return this.editor;
+  }
+  
+  /**
+   * 获取是否处于只读状态
+   */
+  public isReadOnly(): boolean {
+    return this.state.mode === EditorMode.BROWSE;
+  }
+  
+  /**
+   * 执行编辑器命令
+   * @param command 命令名称
+   */
+  public executeCommand(command: string): void {
     if (!this.editor) return;
     
     switch (command) {
@@ -299,211 +459,89 @@ export class EditorManager extends EventEmitter {
         break;
     }
   }
-
-  // 检查是否有选中内容
-  hasSelection(): boolean {
+  
+  /**
+   * 检查是否有选中内容
+   */
+  public hasSelection(): boolean {
     if (!this.editor) return false;
     const selection = this.editor.getSelection();
     return selection ? !selection.isEmpty() : false;
   }
-
-  // 获取编辑器实例
-  getEditor(): monaco.editor.IStandaloneCodeEditor | null {
-    return this.editor;
-  }
-
-  // 获取当前内容
-  getContent(): string {
-    return this.model?.getValue() || '';
-  }
-
-  // 设置内容
-  setContent(content: string): void {
-    if (this.model) {
-      this.model.setValue(content);
-      this.originalContent = content;
-      this.state.isDirty = false;
-      this.emit('stateChanged', this.state);
-    }
-  }
-
-  // 获取光标位置
-  getCursorPosition(): { line: number; column: number } {
-    if (!this.editor) return { line: 1, column: 1 };
-    const position = this.editor.getPosition();
-    return {
-      line: position?.lineNumber || 1,
-      column: position?.column || 1
-    };
-  }
-
-  // 新增方法
-  setCurrentFile(file: string) {
-    this.filePath = file;
-  }
-
-  setSessionInfo(info: { sessionId: string; connectionId: string; isConnected: boolean }) {
-    this.sessionId = info.sessionId;
-    this.state.isConnected = info.isConnected;
-  }
-
-  setEditorState(state: Partial<EditorState>) {
-    this.state = { ...this.state, ...state };
-    this.emit('stateChanged', this.state);
-  }
-
-  setDirty(dirty: boolean) {
+  
+  // 状态更新方法
+  
+  /**
+   * 设置是否有未保存修改
+   */
+  public setDirty(dirty: boolean): void {
     this.state.isDirty = dirty;
     this.emit('stateChanged', this.state);
   }
-
-  setLoading(loading: boolean) {
+  
+  /**
+   * 设置是否正在加载
+   */
+  public setLoading(loading: boolean): void {
     this.state.isLoading = loading;
     this.emit('stateChanged', this.state);
   }
-
-  setSaving(saving: boolean) {
+  
+  /**
+   * 设置是否正在保存
+   */
+  public setSaving(saving: boolean): void {
     this.state.isSaving = saving;
     this.emit('stateChanged', this.state);
   }
-
-  setError(error: Error | null) {
+  
+  /**
+   * 设置错误信息
+   */
+  public setError(error: Error | null): void {
     this.state.error = error;
     this.emit('stateChanged', this.state);
   }
-
-  setConnected(connected: boolean) {
+  
+  /**
+   * 设置是否已连接
+   */
+  public setConnected(connected: boolean): void {
     this.state.isConnected = connected;
     this.emit('stateChanged', this.state);
   }
-
-  setCursorPosition(position: { line: number; column: number }) {
+  
+  /**
+   * 设置光标位置
+   */
+  public setCursorPosition(position: { line: number; column: number }): void {
     this.state.cursorPosition = position;
     this.emit('stateChanged', this.state);
   }
-
-  // 获取器
-  get isRealtime() {
-    return this.state.isRealtime;
-  }
-
-  get isDirty() {
-    return this.state.isDirty;
-  }
-
-  get isLoading() {
-    return this.state.isLoading;
-  }
-
-  get error() {
-    return this.state.error;
-  }
-
-  get isConnected() {
-    return this.state.isConnected;
-  }
-
-  get cursorPosition() {
-    return this.state.cursorPosition;
-  }
-
-  get encoding() {
-    return this.state.encoding;
-  }
-
-  get isRefreshing() {
-    return this.state.isRefreshing;
-  }
-
-  get showLoadCompletePrompt() {
+  
+  /**
+   * 获取是否显示加载完成提示
+   */
+  get showLoadCompletePrompt(): boolean {
     return this.state.showLoadCompletePrompt;
   }
-
+  
+  /**
+   * 设置是否显示加载完成提示
+   */
   set showLoadCompletePrompt(value: boolean) {
     this.state.showLoadCompletePrompt = value;
     this.emit('stateChanged', this.state);
   }
-
-  /**
-   * 切换编辑模式
-   * @param mode 目标模式
-   */
-  public async switchMode(mode: EditorMode): Promise<boolean> {
-    if (this.state.mode === mode) {
-      return true; // 已经是目标模式
-    }
-
-    try {
-      console.log(`[EditorManager] 开始切换到${mode}模式`);
-      this.state.isLoading = true;
-      this.emit('stateChanged', this.state);
-      
-      // 模拟模式切换延迟
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // 如果是切换到编辑模式，需要加载完整内容
-      if (mode === EditorMode.EDIT && this.state.showLoadCompletePrompt) {
-        console.log('[EditorManager] 加载完整内容');
-        await this.reload();
-      }
-      
-      // 更新状态
-      this.state.mode = mode;
-      this.state.isLoading = false;
-      
-      // 设置编辑器的只读状态
-      if (this.editor) {
-        const isReadOnly = mode === EditorMode.BROWSE;
-        console.log(`[EditorManager] 设置编辑器只读状态: ${isReadOnly}`);
-        this.editor.updateOptions({ readOnly: isReadOnly });
-        
-        // 如果是浏览模式，设置自定义的只读错误处理
-        if (isReadOnly) {
-          this.setupCustomReadOnlyHandler();
-        } else {
-          this.removeCustomReadOnlyHandler();
-        }
-      }
-      
-      console.log(`[EditorManager] 切换到${mode}模式完成`);
-      this.emit('stateChanged', this.state);
-      this.emit(EditorEvents.MODE_SWITCHING_COMPLETED, { mode });
-      
-      return true;
-    } catch (error) {
-      console.error(`[EditorManager] 切换到${mode}模式失败:`, error);
-      this.state.isLoading = false;
-      this.state.error = error as Error;
-      this.emit('stateChanged', this.state);
-      this.emit(EditorEvents.MODE_SWITCHING_FAILED, { error });
-      
-      return false;
-    }
-  }
-
-  // 获取当前模式
-  get mode(): EditorMode {
-    return this.state.mode;
-  }
-
-  // 设置当前模式
-  set mode(value: EditorMode) {
-    if (this.state.mode !== value) {
-      this.state.mode = value;
-      this.emit('stateChanged', this.state);
-    }
-  }
-
+  
   /**
    * 启动实时更新模式
-   * 在浏览模式下监控文件变化
    */
   public startRealtime(): void {
     if (this.state.isRealtime) return;
     
     try {
       console.log('[EditorManager] 启动实时更新模式');
-      // 实际实现可能需要调用文件监控服务
       this.state.isRealtime = true;
       this.emit('stateChanged', this.state);
       this.emit(EditorEvents.WATCH_STARTED);
@@ -512,7 +550,7 @@ export class EditorManager extends EventEmitter {
       this.setError(error as Error);
     }
   }
-
+  
   /**
    * 停止实时更新模式
    */
@@ -521,7 +559,6 @@ export class EditorManager extends EventEmitter {
     
     try {
       console.log('[EditorManager] 停止实时更新模式');
-      // 实际实现可能需要停止文件监控服务
       this.state.isRealtime = false;
       this.emit('stateChanged', this.state);
       this.emit(EditorEvents.WATCH_STOPPED);
@@ -530,148 +567,17 @@ export class EditorManager extends EventEmitter {
       this.setError(error as Error);
     }
   }
-
+  
   /**
    * 设置是否自动滚动
-   * 在实时模式下，控制是否自动滚动到最新内容
-   * @param enabled 是否启用自动滚动
    */
   public setAutoScroll(enabled: boolean): void {
     try {
       console.log(`[EditorManager] ${enabled ? '启用' : '禁用'}自动滚动`);
-      // 实际实现可能需要设置编辑器的滚动行为
-      // 这里只是更新状态并发出事件
       this.emit(EditorEvents.AUTO_SCROLL_CHANGED, enabled);
     } catch (error) {
       console.error('[EditorManager] 设置自动滚动失败:', error);
       this.setError(error as Error);
-    }
-  }
-
-  // 设置自定义的只读错误提示处理器
-  private setupCustomReadOnlyHandler() {
-    if (!this.editor) return;
-    
-    // 清除之前的处理器
-    this.removeCustomReadOnlyHandler();
-    
-    // 创建并保存一个自定义工具提示元素
-    const tooltipElement = document.createElement('div');
-    tooltipElement.className = 'custom-readonly-tooltip';
-    tooltipElement.style.position = 'absolute';
-    tooltipElement.style.zIndex = '1000';
-    tooltipElement.style.backgroundColor = '#e74c3c';
-    tooltipElement.style.color = 'white';
-    tooltipElement.style.padding = '5px 10px';
-    tooltipElement.style.borderRadius = '3px';
-    tooltipElement.style.fontSize = '12px';
-    tooltipElement.style.display = 'none';
-    tooltipElement.textContent = '浏览模式下无法编辑文件';
-    
-    // 将提示元素添加到编辑器容器中
-    const domNode = this.editor.getDomNode();
-    if (domNode && domNode.parentNode) {
-      domNode.parentNode.appendChild(tooltipElement);
-      (this as any)._customTooltipElement = tooltipElement;
-    }
-    
-    // 添加键盘和鼠标事件监听器
-    (this as any)._keydownDisposable = this.editor.onKeyDown((e) => {
-      // 如果用户尝试输入或删除内容
-      if (this.state.mode === EditorMode.BROWSE && 
-          (e.keyCode >= monaco.KeyCode.Digit0 && e.keyCode <= monaco.KeyCode.KeyZ || 
-           e.keyCode === monaco.KeyCode.Backspace || 
-           e.keyCode === monaco.KeyCode.Delete)) {
-        
-        // 显示自定义提示
-        this.showCustomTooltip();
-        
-        // 阻止默认行为
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    });
-    
-    // 添加鼠标点击监听器
-    (this as any)._mouseDownDisposable = this.editor.onMouseDown((e) => {
-      if (this.state.mode === EditorMode.BROWSE) {
-        // 点击时隐藏提示
-        this.hideCustomTooltip();
-      }
-    });
-  }
-  
-  // 移除自定义处理器
-  private removeCustomReadOnlyHandler() {
-    // 清理事件监听器
-    if ((this as any)._keydownDisposable) {
-      (this as any)._keydownDisposable.dispose();
-      (this as any)._keydownDisposable = null;
-    }
-    
-    if ((this as any)._mouseDownDisposable) {
-      (this as any)._mouseDownDisposable.dispose();
-      (this as any)._mouseDownDisposable = null;
-    }
-    
-    // 移除提示元素
-    if ((this as any)._customTooltipElement) {
-      const tooltipElement = (this as any)._customTooltipElement;
-      if (tooltipElement.parentNode) {
-        tooltipElement.parentNode.removeChild(tooltipElement);
-      }
-      (this as any)._customTooltipElement = null;
-    }
-    
-    // 清除超时计时器
-    if ((this as any)._tooltipTimeout) {
-      clearTimeout((this as any)._tooltipTimeout);
-      (this as any)._tooltipTimeout = null;
-    }
-  }
-  
-  // 显示自定义提示
-  private showCustomTooltip() {
-    if (!(this as any)._customTooltipElement || !this.editor) return;
-    
-    const tooltipElement = (this as any)._customTooltipElement;
-    const position = this.editor.getPosition();
-    
-    if (position) {
-      // 获取光标位置的坐标
-      const coordinates = this.editor.getScrolledVisiblePosition(position);
-      
-      if (coordinates) {
-        const editorDomNode = this.editor.getDomNode();
-        if (editorDomNode) {
-          // 设置提示位置
-          tooltipElement.style.top = `${coordinates.top + editorDomNode.getBoundingClientRect().top}px`;
-          tooltipElement.style.left = `${coordinates.left + editorDomNode.getBoundingClientRect().left}px`;
-          tooltipElement.style.display = 'block';
-          
-          // 3秒后自动隐藏
-          if ((this as any)._tooltipTimeout) {
-            clearTimeout((this as any)._tooltipTimeout);
-          }
-          
-          (this as any)._tooltipTimeout = setTimeout(() => {
-            this.hideCustomTooltip();
-          }, 3000);
-        }
-      }
-    }
-  }
-  
-  // 隐藏自定义提示
-  private hideCustomTooltip() {
-    if ((this as any)._customTooltipElement) {
-      const tooltipElement = (this as any)._customTooltipElement;
-      tooltipElement.style.display = 'none';
-    }
-    
-    if ((this as any)._tooltipTimeout) {
-      clearTimeout((this as any)._tooltipTimeout);
-      (this as any)._tooltipTimeout = null;
     }
   }
 } 
