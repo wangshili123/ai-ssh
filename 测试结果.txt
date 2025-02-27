@@ -1,7 +1,118 @@
-EditorContentManager.ts:144 [EditorContentManager] 内容变化检测: {contentLength: 1598, originalLength: 1597, isDirty: true, previousIsDirty: false, contentStart: '2024-11-17 00:00:22.', …}
-EditorContentManager.ts:159 [EditorContentManager] 内容脏状态变化为: true
-EditorManager.ts:101 [EditorManager] 收到内容变化事件，isDirty: true
-FileEditorMain.tsx:418 收到编辑器状态变化事件: {isDirty: true, mode: 'edit', isLoading: false}
-FileEditorMain.tsx:425 编辑器状态已更新为: {isDirty: true, encoding: 'UTF-8', cursorPosition: {…}, isLoading: false, error: null, …}
-FileEditorMain.tsx:418 收到编辑器状态变化事件: {isDirty: true, mode: 'edit', isLoading: false}
-FileEditorMain.tsx:425 编辑器状态已更新为: {isDirty: true, encoding: 'UTF-8', cursorPosition: {…}, isLoading: false, error: null, …}cursorPosition: {line: 3, column: 42}encoding: "UTF-8"error: nullisConnected: trueisDirty: trueisLoading: falseisRealtime: falseisRefreshing: falseisSaving: falsemode: "edit"showLoadCompletePrompt: false[[Prototype]]: Object
+index.js:485 [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.
+log.js:39 [HMR] Waiting for update signal from WDS...
+react-dom.development.js:29895 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+index.js:485 [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.
+log.js:39 [HMR] Waiting for update signal from WDS...
+react-dom.development.js:29895 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+editor-entry.tsx:19 编辑器窗口参数: Object
+editor-entry.tsx:57 编辑器窗口渲染完成
+editor-entry.tsx:19 编辑器窗口参数: Object
+editor-entry.tsx:57 编辑器窗口渲染完成
+editor-entry.tsx:33 收到添加标签消息: Object
+editor-entry.tsx:37 标签已存在，激活它: a9881692-f366-44ed-942c-b48bafa36194
+2warning.js:30 Warning: [antd: Tabs] `Tabs.TabPane` is deprecated. Please use `items` instead.
+warning @ warning.js:30
+node:electron/js2c/renderer_init:2 Electron Security Warning (Disabled webSecurity) This renderer process has "webSecurity" disabled. This
+  exposes users of this app to severe security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+(anonymous) @ node:electron/js2c/renderer_init:2
+node:electron/js2c/renderer_init:2 Electron Security Warning (allowRunningInsecureContent) This renderer process has "allowRunningInsecureContent"
+  enabled. This exposes users of this app to severe security risks.
+
+  
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+(anonymous) @ node:electron/js2c/renderer_init:2
+node:electron/js2c/renderer_init:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ node:electron/js2c/renderer_init:2
+FileEditorMain.tsx:212 渲染组件 - 当前状态: Object
+EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: false isReadOnly: false
+warning.js:30 Warning: [antd: Select] `dropdownClassName` is deprecated. Please use `popupClassName` instead.
+warning @ warning.js:30
+warning.js:30 Warning: [antd: Select] `dropdownMatchSelectWidth` is deprecated. Please use `popupMatchSelectWidth` instead.
+warning @ warning.js:30
+FileEditorMain.tsx:112 FileEditorMain组件挂载，开始初始化编辑器 Object
+FileEditorMain.tsx:120 编辑器容器已渲染，尺寸: Object
+FileEditorMain.tsx:160 开始初始化编辑器管理器 Object
+FileEditorMain.tsx:170 调用编辑器初始化方法 Object
+EditorManager.ts:196 [EditorManager] 开始初始化
+EditorManager.ts:199 [EditorManager] 开始创建编辑器实例
+EditorContentManager.ts:53 [EditorContentManager] 正在加载文件: /usr/Service_TCP20241117_des.txt
+FileEditorMain.tsx:554 editorState.isDirty状态变化: false
+FileEditorMain.tsx:212 渲染组件 - 当前状态: Object
+EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: false isReadOnly: false
+warning.js:30 Warning: [antd: Select] `dropdownClassName` is deprecated. Please use `popupClassName` instead.
+warning @ warning.js:30
+warning.js:30 Warning: [antd: Select] `dropdownMatchSelectWidth` is deprecated. Please use `popupMatchSelectWidth` instead.
+warning @ warning.js:30
+FileEditorMain.tsx:112 FileEditorMain组件挂载，开始初始化编辑器 Object
+FileEditorMain.tsx:120 编辑器容器已渲染，尺寸: Object
+FileEditorMain.tsx:160 开始初始化编辑器管理器 Object
+FileEditorMain.tsx:170 调用编辑器初始化方法 Object
+EditorManager.ts:196 [EditorManager] 开始初始化
+EditorManager.ts:199 [EditorManager] 开始创建编辑器实例
+EditorContentManager.ts:53 [EditorContentManager] 正在加载文件: /usr/Service_TCP20241117_des.txt
+FileEditorMain.tsx:554 editorState.isDirty状态变化: false
+EditorContentManager.ts:55 [EditorContentManager] 文件加载成功，内容长度: 65534
+EditorContentManager.ts:60 [EditorContentManager] 原始文件内容分析: Object
+EditorManager.ts:203 [EditorManager] 创建Monaco编辑器实例
+EditorManager.ts:225 [EditorManager] 编辑器实例创建完成
+EditorManager.ts:178 [EditorManager] 当前状态: Object
+EditorContentManager.ts:55 [EditorContentManager] 文件加载成功，内容长度: 65534
+EditorContentManager.ts:60 [EditorContentManager] 原始文件内容分析: Object
+EditorManager.ts:203 [EditorManager] 创建Monaco编辑器实例
+EditorManager.ts:225 [EditorManager] 编辑器实例创建完成
+EditorManager.ts:178 [EditorManager] 当前状态: Object
+EditorManager.ts:234 [EditorManager] 创建新模型
+EditorManager.ts:237 [EditorManager] 模型设置完成
+EditorManager.ts:178 [EditorManager] 当前状态: Object
+EditorContentManager.ts:140 [EditorContentManager] 模型内容详细分析: Object
+EditorContentManager.ts:157 [EditorContentManager] 模型替换: Object
+EditorContentManager.ts:222 [EditorContentManager] 检测到大文件1字节差异，执行深入分析
+EditorContentManager.ts:225 [EditorContentManager] 大文件仅有1字节差异，认为内容等价
+EditorContentManager.ts:231 [EditorContentManager] 编辑器模型内容长度(65533)比原始内容长度(65534)多1字节
+EditorContentManager.ts:182 [EditorContentManager] 添加模型内容变化监听器
+EditorModeManager.ts:105 [EditorModeManager] 设置编辑器只读状态: true
+EditorManager.ts:249 [EditorManager] 强制重新布局
+EditorManager.ts:253 [EditorManager] 初始化完成，状态: Object
+EditorManager.ts:178 [EditorManager] 当前状态: Object
+FileEditorMain.tsx:175 编辑器初始化完成
+FileEditorMain.tsx:179 初始化搜索管理器
+FileEditorMain.tsx:182 初始化过滤管理器
+FileEditorMain.tsx:451 编辑器事件监听器设置完成
+FileEditorMain.tsx:194 编辑器状态已更新 Object
+FileEditorMain.tsx:212 渲染组件 - 当前状态: {isLoading: false, error: null, isDirty: false, hasEditor: true, hasContainer: true}
+EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: false isReadOnly: false
+EditorManager.ts:234 [EditorManager] 创建新模型
+EditorManager.ts:237 [EditorManager] 模型设置完成
+EditorManager.ts:178 [EditorManager] 当前状态: {hasEditor: true, hasModel: true, modelDisposed: false, editorDomElement: div.monaco-editor.no-user-select.showUnused.showDeprecated.vs-dark, modelLanguage: 'plaintext', …}
+EditorContentManager.ts:140 [EditorContentManager] 模型内容详细分析: {originalContentLength: 65534, newContentLength: 65533, contentLengthDiff: -1, newModelEOL: 'CRLF', origEndsWithCR: false, …}
+EditorContentManager.ts:157 [EditorContentManager] 模型替换: {oldModelExists: false, newModelExists: true, oldContentLength: 0, newContentLength: 65533, originalContentLength: 65534, …}
+EditorContentManager.ts:222 [EditorContentManager] 检测到大文件1字节差异，执行深入分析
+EditorContentManager.ts:225 [EditorContentManager] 大文件仅有1字节差异，认为内容等价
+EditorContentManager.ts:231 [EditorContentManager] 编辑器模型内容长度(65533)比原始内容长度(65534)多1字节
+EditorContentManager.ts:182 [EditorContentManager] 添加模型内容变化监听器
+EditorModeManager.ts:105 [EditorModeManager] 设置编辑器只读状态: true
+EditorManager.ts:249 [EditorManager] 强制重新布局
+EditorManager.ts:253 [EditorManager] 初始化完成，状态: {isDirty: false, encoding: 'UTF-8', cursorPosition: {…}, isLoading: false, error: null, …}
+EditorManager.ts:178 [EditorManager] 当前状态: {hasEditor: true, hasModel: true, modelDisposed: false, editorDomElement: div.monaco-editor.no-user-select.showUnused.showDeprecated.vs-dark, modelLanguage: 'plaintext', …}
+FileEditorMain.tsx:175 编辑器初始化完成
+FileEditorMain.tsx:179 初始化搜索管理器
+FileEditorMain.tsx:182 初始化过滤管理器
+FileEditorMain.tsx:451 编辑器事件监听器设置完成
+FileEditorMain.tsx:194 编辑器状态已更新 {isDirty: false, encoding: 'UTF-8', cursorPosition: {…}, isLoading: false, error: null, …}
+FileEditorMain.tsx:212 渲染组件 - 当前状态: {isLoading: false, error: null, isDirty: false, hasEditor: true, hasContainer: true}
+EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: false isReadOnly: false
