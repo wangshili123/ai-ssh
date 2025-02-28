@@ -388,7 +388,11 @@ export const DualModeEditor = observer(forwardRef<DualModeEditorRef, DualModeEdi
           size: state.fileInfo.size,
           encoding: state.encoding,
           modified: state.fileInfo.modifyTime ? new Date(state.fileInfo.modifyTime) : undefined
-        } : undefined}
+        } : {
+          path: filePath,
+          size: 0,
+          encoding: state.encoding
+        }}
         browseInfo={getBrowseInfo()}
         editInfo={getEditInfo()}
         readOnly={state.readOnly}

@@ -14,7 +14,7 @@ import {
   WarningOutlined
 } from '@ant-design/icons';
 import { EditorMode } from '../../types/FileEditorTypes';
-import { FileStatusBarProps } from './FileStatusBarTypes';
+import { FileStatusBarProps } from './FileStatusBarExport';
 import './FileStatusBar.css';
 
 /**
@@ -40,6 +40,7 @@ export const FileStatusBar: React.FC<FileStatusBarProps> = ({
   editInfo,
   readOnly = false,
   isDirty = false,
+  isAutoScroll = false,
   className = ''
 }) => {
   // 获取当前时间
@@ -113,6 +114,8 @@ export const FileStatusBar: React.FC<FileStatusBarProps> = ({
             )}
           </div>
         )}
+        
+        {isAutoScroll && <span className="autoscroll-indicator">自动滚动</span>}
       </div>
       
       {/* 右侧信息区 */}
@@ -131,7 +134,16 @@ export const FileStatusBar: React.FC<FileStatusBarProps> = ({
           </div>
         )}
         
-        {/* 时间信息 */}
+        {/* 修改时间信息 */}
+        {fileInfo && fileInfo.modified && (
+          <Tooltip title="文件修改时间">
+            <div className="status-item">
+              <ClockCircleOutlined /> {fileInfo.modified.toLocaleString()}
+            </div>
+          </Tooltip>
+        )}
+        
+        {/* 当前时间信息 */}
         <Tooltip title="当前时间">
           <div className="status-item">
             <ClockCircleOutlined /> {now}

@@ -43,6 +43,8 @@ export interface FileStatusBarProps {
   readOnly?: boolean;
   // 是否有未保存的修改
   isDirty?: boolean;
+  // 是否启用自动滚动
+  isAutoScroll?: boolean;
   // 自定义样式
   className?: string;
 } 

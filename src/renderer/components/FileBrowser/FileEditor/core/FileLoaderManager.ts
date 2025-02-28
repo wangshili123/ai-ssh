@@ -154,7 +154,7 @@ export class FileLoaderManager extends EventEmitter {
    */
   private async loadInitialContent(): Promise<void> {
     try {
-      this.emit(EditorEvents.LOADING_START);
+      this.emit(EditorEvents.LOADING_STARTED);
       
       // 加载第一个块
       const firstChunk = await this.loadChunk(0, DEFAULT_BLOCK_SIZE);

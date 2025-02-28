@@ -207,7 +207,7 @@ export class BrowseMode extends EventEmitter {
       command = `sed -n '${start},${end}p' "${this.filePath}"`;
     }
     
-    this.emit(EditorEvents.LOADING_START);
+    this.emit(EditorEvents.LOADING_STARTED);
     
     try {
       const output = await this.executeCommand(command) as string;

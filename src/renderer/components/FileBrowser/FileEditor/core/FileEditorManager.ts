@@ -24,6 +24,7 @@ import { ErrorManager } from './ErrorManager';
 import { ModeManager } from './ModeManager';
 import { BrowseMode } from './BrowseMode';
 import { EditMode } from './EditMode';
+import { EditorContentManager } from './EditorContentManager';
 
 const statAsync = promisify(fs.stat);
 
@@ -39,6 +40,7 @@ export class FileEditorManager extends EventEmitter {
   private config: EditorConfig;
   private isDisposed: boolean = false;
   private _isAutoScrollEnabled: boolean = false;
+  private contentManager: EditorContentManager | null = null;
 
   /**
    * 构造函数
@@ -451,5 +453,13 @@ export class FileEditorManager extends EventEmitter {
   public destroy(): void {
     // 清理资源
     this.modeManager.dispose();
+  }
+
+  /**
+   * 获取内容管理器
+   * @returns 内容管理器实例
+   */
+  public getContentManager(): EditorContentManager | null {
+    return this.contentManager;
   }
 } 

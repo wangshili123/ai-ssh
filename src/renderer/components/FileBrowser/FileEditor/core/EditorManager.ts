@@ -36,6 +36,14 @@ export interface EditorState {
   isRefreshing: boolean;
   isSaving: boolean;
   mode: EditorMode;
+  isLargeFile?: boolean;
+  isAutoScroll?: boolean;
+  largeFileInfo?: {
+    loadedSize: number;
+    totalSize: number;
+    hasMore: boolean;
+    isComplete?: boolean;
+  };
 }
 
 /**
@@ -179,6 +187,36 @@ export class EditorManager extends EventEmitter {
       this.state = failedState;
       this.emit('stateChanged', failedState);
       this.emit(EditorEvents.MODE_SWITCHING_FAILED, data);
+    });
+    
+    // 添加大文件相关事件转发
+    this.contentManager.on(EditorEvents.LARGE_FILE_DETECTED, (data) => {
+      console.log('[EditorManager] 检测到大文件:', data);
+      this.state.isLargeFile = true;
+      this.state.showLoadCompletePrompt = true;
+      this.emit('stateChanged', this.state);
+      this.emit(EditorEvents.LARGE_FILE_DETECTED, data);
+    });
+    
+    this.contentManager.on(EditorEvents.CHUNK_LOADED, (data) => {
+      console.log('[EditorManager] 块加载完成:', data);
+      // 更新大文件信息
+      this.state.largeFileInfo = {
+        loadedSize: data.endPosition,
+        totalSize: data.totalSize,
+        hasMore: data.hasMore
+      };
+      this.emit('stateChanged', this.state);
+      this.emit(EditorEvents.CHUNK_LOADED, data);
+    });
+    
+    this.contentManager.on(EditorEvents.LOAD_MORE_COMPLETED, (data) => {
+      console.log('[EditorManager] 加载更多内容完成:', data);
+      if (data.isComplete) {
+        this.state.showLoadCompletePrompt = false;
+      }
+      this.emit('stateChanged', this.state);
+      this.emit(EditorEvents.LOAD_MORE_COMPLETED, data);
     });
   }
 
@@ -642,6 +680,36 @@ export class EditorManager extends EventEmitter {
     } catch (error) {
       console.error('[EditorManager] 设置自动滚动失败:', error);
       this.setError(error as Error);
+    }
+  }
+
+  /**
+   * 获取内容管理器
+   * 用于直接操作文件内容
+   */
+  public getContentManager(): EditorContentManager {
+    return this.contentManager;
+  }
+
+  /**
+   * 加载更多内容
+   * 用于大文件滚动加载
+   */
+  public async loadMoreContent(): Promise<boolean> {
+    if (!this.state.isLargeFile || !this.state.largeFileInfo?.hasMore) {
+      console.log('[EditorManager] 没有更多内容需要加载');
+      return false;
+    }
+    
+    try {
+      console.log('[EditorManager] 开始加载更多内容');
+      const loadedSize = this.state.largeFileInfo.loadedSize;
+      await this.contentManager.loadChunk(loadedSize);
+      return true;
+    } catch (error) {
+      console.error('[EditorManager] 加载更多内容失败:', error);
+      this.setError(error as Error);
+      return false;
     }
   }
 } 

@@ -10,7 +10,7 @@
 
 .editor-container {
   flex: 1;
-  min-height: 0;  /* 重要：防止flex布局溢出 */
+  min-height: 300px;
   position: relative;
   width: 100%;
   height: 100%; /* 确保容器填满父元素 */
@@ -58,65 +58,104 @@
 
 /* 加载指示器 */
 .loading-indicator {
-  composes: overlay-base;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  pointer-events: auto; /* 加载时阻止点击 */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 16px 24px;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 4px;
+  color: white;
+  z-index: 100;
+  display: flex;
+  align-items: center;
 }
 
 /* 错误消息 */
 .error-message {
-  composes: overlay-base;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  pointer-events: auto; /* 错误时阻止点击 */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 16px 24px;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 4px;
+  color: white;
+  z-index: 100;
 }
 
 .error-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 24px;
-  background: var(--editor-content-bg);
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  pointer-events: auto; /* 允许点击错误内容 */
+  gap: 12px;
 }
 
 .error-text {
-  color: var(--status-error);
+  margin-bottom: 8px;
 }
 
 /* 刷新指示器 */
 .refresh-indicator {
   position: absolute;
-  bottom: 24px;
+  top: 8px;
   left: 50%;
   transform: translateX(-50%);
   padding: 8px 16px;
-  background: var(--editor-content-bg);
+  background: rgba(0, 0, 0, 0.65);
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  color: white;
+  z-index: 100;
   display: flex;
   align-items: center;
-  gap: 8px;
-  z-index: 90;
-  pointer-events: none; /* 不阻止点击 */
 }
 
 /* 搜索和过滤面板 */
-.search-panel,
-.filter-panel {
+.search-panel {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  top: 8px;
+  right: 8px;
   width: 300px;
-  background: var(--editor-content-bg);
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 100;
-  pointer-events: auto;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.panel-content {
+  padding: 12px;
+}
+
+.search-options {
+  margin: 12px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search-stats {
+  margin: 12px 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.search-navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
 }
 
 /* 右键菜单 */
@@ -212,4 +251,33 @@
 .ant-modal-confirm .ant-btn-primary:hover {
   background-color: var(--status-info-hover);
   border-color: var(--status-info-hover);
+}
+
+/* 大文件加载相关样式 */
+.load-more-indicator {
+  position: absolute;
+  bottom: 40px; /* 留出状态栏的高度 */
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 16px;
+  background: rgba(0, 0, 0, 0.65);
+  border-radius: 4px;
+  color: white;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+.load-more-indicator .ant-btn-link {
+  color: white;
+}
+
+.load-more-indicator .ant-btn-link:hover {
+  color: #1890ff;
+}
+
+.load-more-indicator .ant-btn-link:disabled {
+  color: rgba(255, 255, 255, 0.5);
 } 

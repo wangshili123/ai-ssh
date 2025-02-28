@@ -89,7 +89,7 @@ export class EditMode extends EventEmitter {
       return true;
     }
     
-    this.emit(EditorEvents.LOADING_START);
+    this.emit(EditorEvents.LOADING_STARTED);
     
     try {
       // 获取文件信息
@@ -145,15 +145,17 @@ export class EditMode extends EventEmitter {
    * 将修改后的内容写入文件
    */
   public async saveFile(): Promise<boolean> {
-    if (!this.state.isLoaded || !this.contentManager.isModified()) {
-      return true; // 没有修改，无需保存
+    if (!this.state.isLoaded) {
+      return false;
     }
     
-    this.state.isSaving = true;
-    this.emit(EditorEvents.LOADING_START); // 使用加载事件表示保存中
+    this.emit(EditorEvents.LOADING_STARTED);
     
     try {
-      await writeFileAsync(this.filePath, this.contentManager.getContent(), this.encoding);
+      // 获取当前内容
+      const content = this.contentManager.getContent();
+      
+      await writeFileAsync(this.filePath, content, this.encoding);
       
       // 更新内容状态
       this.contentManager.markAsSaved();
@@ -164,7 +166,7 @@ export class EditMode extends EventEmitter {
       // 发出保存完成事件
       this.emit(EditorEvents.FILE_SAVED, {
         path: this.filePath,
-        size: Buffer.byteLength(this.contentManager.getContent(), this.encoding)
+        size: Buffer.byteLength(content, this.encoding)
       });
       
       this.emit(EditorEvents.LOADING_END);

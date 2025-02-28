@@ -18,7 +18,7 @@ import './FileEditorMain.css';
 import '../../styles/FileEditor.css';  // 添加主题样式引入
 import { EditorContextMenu } from '../ContextMenu/EditorContextMenu';
 import { Alert, Button, Select, Space, Tooltip, Modal, Input, Checkbox, message } from 'antd';
-import { CloudOutlined, DisconnectOutlined, LoadingOutlined, SaveOutlined, SearchOutlined, FilterOutlined, CloseOutlined, UpOutlined, DownOutlined } from '@ant-design/icons';
+import { CloudOutlined, DisconnectOutlined, LoadingOutlined, SaveOutlined, SearchOutlined, FilterOutlined, CloseOutlined, UpOutlined, DownOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 // 使用独立的EditorToolbar组件
 import EditorToolbar from '../EditorToolbar/EditorToolbar';
 import { FileStatusBar } from '../FileStatusBar/FileStatusBar';
@@ -46,13 +46,17 @@ type EditorAction =
   | { type: 'SET_SEARCH_PANEL', visible: boolean }
   | { type: 'SET_FILTER_PANEL', visible: boolean }
   | { type: 'SET_CONTEXT_MENU', position: { x: number; y: number } | null }
-  | { type: 'SET_CURRENT_MODE', mode: EditorMode };
+  | { type: 'SET_CURRENT_MODE', mode: EditorMode }
+  | { type: 'SET_LOADING', loading: boolean }
+  | { type: 'SET_ERROR', error: Error | null };
 
 function editorUIReducer(state: {
   showSearchPanel: boolean;
   showFilterPanel: boolean;
   contextMenu: { x: number; y: number } | null;
   currentMode: EditorMode;
+  loading: boolean;
+  error: Error | null;
 }, action: EditorAction) {
   switch (action.type) {
     case 'SET_SEARCH_PANEL':
@@ -63,6 +67,10 @@ function editorUIReducer(state: {
       return { ...state, contextMenu: action.position };
     case 'SET_CURRENT_MODE':
       return { ...state, currentMode: action.mode };
+    case 'SET_LOADING':
+      return { ...state, loading: action.loading };
+    case 'SET_ERROR':
+      return { ...state, error: action.error };
     default:
       return state;
   }
@@ -90,10 +98,12 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     showSearchPanel: false,
     showFilterPanel: false,
     contextMenu: null,
-    currentMode: EditorMode.BROWSE
+    currentMode: EditorMode.BROWSE,
+    loading: false,
+    error: null
   });
 
-  const { showSearchPanel, showFilterPanel, contextMenu, currentMode } = uiState;
+  const { showSearchPanel, showFilterPanel, contextMenu, currentMode, loading, error } = uiState;
 
   // 状态
   const [editorState, setEditorState] = useState<EditorState>({
@@ -107,7 +117,9 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     showLoadCompletePrompt: false,
     isRefreshing: false,
     isSaving: false,
-    mode: EditorMode.BROWSE
+    mode: EditorMode.BROWSE,
+    isLargeFile: false,
+    largeFileInfo: undefined
   });
 
   // 添加useEffect钩子来初始化编辑器
@@ -192,6 +204,31 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
           console.log('初始化过滤管理器');
           const filter = new FilterManager(editor);
           setFilterManager(filter);
+          
+          // 添加滚动事件监听
+          console.log('设置编辑器滚动事件监听器');
+          
+          // 滚动事件监听器
+          editor.onDidScrollChange((e) => {
+            const scrollTop = e.scrollTop;
+            const scrollHeight = e.scrollHeight;
+            const viewPortHeight = editor.getLayoutInfo().height;
+            
+            // 检查是否已滚动到内容底部的20%范围内
+            const scrollPercentage = (scrollTop + viewPortHeight) / scrollHeight;
+            const isNearBottom = scrollPercentage > 0.8;
+            
+            console.log(`滚动位置: ${scrollPercentage.toFixed(2)}, 接近底部: ${isNearBottom}`);
+            
+            // 如果接近底部且有更多内容可加载，且当前没有正在加载内容
+            if (isNearBottom && 
+                editorState.largeFileInfo?.hasMore && 
+                !editorState.isLoading) {
+              
+              console.log('滚动触发加载更多内容');
+              loadMoreContent();
+            }
+          });
         }
       } else {
         throw new Error('编辑器容器不存在，无法初始化');
@@ -217,6 +254,54 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
       }
     }
   };
+
+  // 加载更多内容函数
+  const loadMoreContent = useCallback(async () => {
+    if (!editorRef.current || editorState.isLoading) {
+      return;
+    }
+    
+    // 标记为正在加载
+    dispatch({ type: 'SET_LOADING', loading: true });
+    
+    try {
+      console.log('加载更多内容...');
+      
+      // 获取内容管理器
+      const contentManager = editorRef.current.getContentManager();
+      if (!contentManager) {
+        console.error('无法获取内容管理器');
+        return;
+      }
+      
+      // 获取已加载内容大小
+      const loadedSize = contentManager.getLoadedContentSize();
+      const totalSize = contentManager.getTotalContentSize();
+      
+      // 计算下一个块的大小（最大512KB）
+      const chunkSize = Math.min(512 * 1024, totalSize - loadedSize);
+      
+      if (chunkSize <= 0) {
+        console.log('没有更多内容可加载');
+        return;
+      }
+      
+      console.log(`加载更多内容：起始位置 ${loadedSize}，大小 ${chunkSize} 字节`);
+      
+      // 加载下一个块，只传递起始位置参数
+      await contentManager.loadChunk(loadedSize);
+      
+      console.log('加载更多内容完成');
+    } catch (error) {
+      console.error('加载更多内容失败:', error);
+      dispatch({ type: 'SET_ERROR', error: new Error(`加载更多内容失败: ${error}`) });
+    } finally {
+      // 添加短暂延迟，防止快速连续滚动触发多次加载
+      setTimeout(() => {
+        dispatch({ type: 'SET_LOADING', loading: false });
+      }, 500);
+    }
+  }, [editorState.isLoading, filePath, editorState.encoding]);
 
   // 渲染函数
   if (process.env.NODE_ENV === 'development') {
@@ -476,13 +561,18 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     manager.removeAllListeners('stateChanged');
     manager.removeAllListeners('error');
     manager.removeAllListeners('contentChanged');
+    manager.removeAllListeners(EditorEvents.LARGE_FILE_DETECTED);
+    manager.removeAllListeners(EditorEvents.CHUNK_LOADED);
+    manager.removeAllListeners(EditorEvents.LOAD_MORE_COMPLETED);
     
     // 监听编辑器状态变化
     manager.on('stateChanged', (state: EditorState) => {
       console.log('收到编辑器状态变化事件:', {
         isDirty: state.isDirty,
         mode: state.mode,
-        isLoading: state.isLoading
+        isLoading: state.isLoading,
+        isLargeFile: state.isLargeFile,
+        largeFileInfo: state.largeFileInfo
       });
       
       setEditorState(state);
@@ -508,6 +598,46 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
         ...prevState,
         isDirty: true
       }));
+    });
+    
+    // 监听大文件检测事件
+    manager.on(EditorEvents.LARGE_FILE_DETECTED, (data) => {
+      console.log('检测到大文件:', data);
+      setEditorState(prevState => ({
+        ...prevState,
+        isLargeFile: true,
+        showLoadCompletePrompt: true
+      }));
+    });
+    
+    // 监听块加载事件
+    manager.on(EditorEvents.CHUNK_LOADED, (data) => {
+      console.log('块加载完成:', data);
+      setEditorState(prevState => ({
+        ...prevState,
+        largeFileInfo: {
+          loadedSize: data.endPosition,
+          totalSize: data.totalSize,
+          hasMore: data.hasMore
+        }
+      }));
+    });
+    
+    // 监听加载更多完成事件
+    manager.on(EditorEvents.LOAD_MORE_COMPLETED, (data) => {
+      console.log('加载更多内容完成:', data);
+      if (data.isComplete) {
+        setEditorState(prevState => ({
+          ...prevState,
+          showLoadCompletePrompt: false,
+          largeFileInfo: {
+            loadedSize: prevState.largeFileInfo?.loadedSize || 0,
+            totalSize: prevState.largeFileInfo?.totalSize || 0,
+            hasMore: false,
+            isComplete: true
+          }
+        }));
+      }
     });
     
     console.log('编辑器事件监听器设置完成');
@@ -625,7 +755,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
         currentMode={currentMode}
         onModeSwitch={handleModeSwitch}
         onSave={() => saveFile()}
-        onRefresh={() => editor?.reload()}
+        onRefresh={() => editorRef.current?.reload()}
         onSearch={(query) => {
           handleSearch();
           if (query) executeSearch(query);
@@ -684,16 +814,34 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
       {editorState.showLoadCompletePrompt && (
         <Alert
           message="文件较大"
-          description="当前仅加载了文件的一部分。某些功能（如搜索）可能不可用。"
+          description={
+            <>
+              <p>当前已加载: {editorState.largeFileInfo ? `${Math.round(editorState.largeFileInfo.loadedSize / 1024)}KB / ${Math.round(editorState.largeFileInfo.totalSize / 1024)}KB` : '未知'}</p>
+              <p>滚动到底部会自动加载更多内容，某些功能（如搜索）可能仅对已加载内容有效。</p>
+            </>
+          }
           type="info"
           action={
-            <Button size="small" onClick={handleLoadComplete}>
-              完整加载
-            </Button>
+            <Space>
+              <Button 
+                size="small" 
+                onClick={loadMoreContent}
+                disabled={editorState.isLoading || !editorState.largeFileInfo?.hasMore}
+              >
+                {editorState.isLoading ? '加载中...' : '加载更多'}
+              </Button>
+              <Button 
+                size="small" 
+                type="primary" 
+                onClick={handleLoadComplete}
+              >
+                完整加载
+              </Button>
+            </Space>
           }
           closable
           onClose={() => {
-            if (editor) editor.showLoadCompletePrompt = false;
+            if (editorRef.current) editorRef.current.showLoadCompletePrompt = false;
           }}
           style={{ marginBottom: 16 }}
         />
@@ -731,16 +879,31 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
         </div>
       )}
 
+      {/* 大文件底部加载指示器 */}
+      {editorState.isLargeFile && editorState.largeFileInfo?.hasMore && !editorState.showLoadCompletePrompt && (
+        <div className="load-more-indicator">
+          <Button 
+            type="link" 
+            icon={<LoadingOutlined style={{ marginRight: 8, display: editorState.isLoading ? 'inline-block' : 'none' }} />} 
+            onClick={loadMoreContent}
+            disabled={editorState.isLoading}
+          >
+            {editorState.isLoading ? '加载中...' : '点击加载更多'}
+          </Button>
+        </div>
+      )}
+
       {/* 状态栏 */}
-      <FileStatusBar 
-        currentMode={currentMode} 
+      <FileStatusBar
+        currentMode={currentMode}
         cursorPosition={editorState.cursorPosition}
         fileInfo={{
           path: filePath,
-          size: 0, // 应该从实际文件信息中获取
+          size: editorState.largeFileInfo?.totalSize || 0,
           encoding: editorState.encoding
         }}
         isDirty={editorState.isDirty}
+        isAutoScroll={editorState.isRealtime}
       />
     </div>
   );

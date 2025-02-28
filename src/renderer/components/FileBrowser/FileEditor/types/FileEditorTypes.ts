@@ -7,8 +7,41 @@ import { createContext, useContext } from 'react';
 
 // 编辑器事件类型
 export enum EditorEvents {
+  // 加载事件
+  LOADING_STARTED = 'loading:started',
+  LOADING_COMPLETED = 'loading:completed',
+  CONTENT_LOADED = 'content:loaded',
+  CONTENT_CHANGED = 'content:changed',
+  
+  // 保存事件
+  SAVING_STARTED = 'saving:started',
+  SAVING_COMPLETED = 'saving:completed',
+  
+  // 错误事件
+  ERROR = 'error',
+  
+  // 光标和选择事件
+  CURSOR_POSITION_CHANGED = 'cursor:position:changed',
+  SELECTION_CHANGED = 'selection:changed',
+  
+  // 大文件相关事件
+  LARGE_FILE_DETECTED = 'large:file:detected',
+  VERY_LARGE_FILE_DETECTED = 'very:large:file:detected',
+  LARGE_FILE_LOADED = 'large:file:loaded',
+  LOAD_MORE_COMPLETED = 'load:more:completed',
+  
+  // 模式切换事件
+  MODE_CHANGED = 'mode:changed',
+  
+  // 编辑器状态事件
+  EDITOR_READY = 'editor:ready',
+  EDITOR_DISPOSED = 'editor:disposed',
+  
+  // 搜索和过滤事件
+  SEARCH_RESULTS_UPDATED = 'search:results:updated',
+  FILTER_RESULTS_UPDATED = 'filter:results:updated',
+  
   // 文件相关事件
-  CONTENT_CHANGED = 'contentChanged',
   FILE_LOADED = 'fileLoaded',
   FILE_CHANGED = 'file-changed',
   SAVE_REQUESTED = 'save-requested',
@@ -42,7 +75,6 @@ export enum EditorEvents {
   
   // 新增事件
   PARTIAL_LOAD = 'partialLoad',
-  LOADING_START = 'loadingStart',
   LOADING_END = 'loadingEnd',
   FILE_SAVED = 'fileSaved',
   
@@ -60,14 +92,17 @@ export enum EditorEvents {
   FILE_CLOSED = 'file-closed',
   
   // 内容事件
-  SELECTION_CHANGED = 'selection-changed',
   CURSOR_MOVED = 'cursor-moved',
   
   // 错误事件
   ERRORS_CLEARED = 'errors-cleared',
   
   // 自动滚动事件
-  AUTO_SCROLL_CHANGED = 'auto-scroll-changed'
+  AUTO_SCROLL_CHANGED = 'auto-scroll-changed',
+  
+  // 大文件处理事件
+  CHUNK_LOADED = 'chunk-loaded',
+  LOAD_MORE_REQUESTED = 'load-more-requested',
 }
 
 // 编辑器错误类型
@@ -465,4 +500,26 @@ export interface TabInfo {
   title: string;
   isActive: boolean;
   mode?: EditorMode;
+}
+
+/**
+ * 大文件信息接口
+ */
+export interface LargeFileInfo {
+  loadedSize: number;
+  totalSize: number;
+  hasMore: boolean;
+  isComplete: boolean;
+}
+
+/**
+ * 分块加载结果接口
+ */
+export interface ChunkLoadResult {
+  content: string;
+  startPosition: number;
+  endPosition: number;
+  totalSize: number;
+  bytesRead: number;
+  hasMore: boolean;
 } 

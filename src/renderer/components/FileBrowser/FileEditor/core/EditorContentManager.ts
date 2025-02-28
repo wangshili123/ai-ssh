@@ -5,8 +5,18 @@
 
 import { EventEmitter } from 'events';
 import * as monaco from 'monaco-editor';
-import { EditorEvents } from '../types/FileEditorTypes';
+import { EditorEvents, ChunkLoadResult, LargeFileInfo, EditorMode } from '../types/FileEditorTypes';
 import { sftpService } from '../../../../services/sftp';
+
+
+// 常量定义
+const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5MB，超过此大小会触发大文件处理
+const DEFAULT_CHUNK_SIZE = 1024 * 1024; // 1MB
+const MAX_INITIAL_LOAD_SIZE = 2 * 1024 * 1024; // 2MB
+
+const MAX_CHUNK_SIZE = 512 * 1024; // 512KB
+const VERY_LARGE_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const LARGE_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 
 /**
  * 编辑器内容管理器
@@ -29,6 +39,32 @@ export class EditorContentManager extends EventEmitter {
   private isDirty: boolean = false;
   // 内容变化监听器
   private contentChangeDisposable: monaco.IDisposable | null = null;
+  // 文件总大小
+  private fileSize: number = 0;
+  // 已加载内容大小
+  private loadedContentSize: number = 0;
+  // 是否是大文件
+  private isLargeFile: boolean = false;
+  // 是否处于加载中状态
+  private isLoading: boolean = false;
+  // 当前内容
+  private content: string = '';
+  // 内容编码
+  private contentEncoding: string = 'utf8';
+  // 初始行数
+  private initialLines: number = 0;
+  // 是否有错误
+  private hasError: boolean = false;
+  // 文件是否已加载
+  private fileLoaded: boolean = false;
+  // 总内容大小
+  private totalContentSize: number = 0;
+  // 当前编辑器模式
+  private activeMode: EditorMode = EditorMode.BROWSE;
+  // 是否正在保存
+  private isSaving: boolean = false;
+  // 是否需要保存
+  private needsSave: boolean = false;
 
   /**
    * 构造函数
@@ -45,6 +81,7 @@ export class EditorContentManager extends EventEmitter {
     this.sessionId = sessionId;
     this.filePath = filePath;
     this.editor = editor;
+    console.log('[EditorContentManager] 实例已创建');
   }
 
   /**
@@ -53,45 +90,219 @@ export class EditorContentManager extends EventEmitter {
    */
   public setEditor(editor: monaco.editor.IStandaloneCodeEditor): void {
     this.editor = editor;
+    console.log('[EditorContentManager] 编辑器已设置');
+  }
+
+  /**
+   * 获取文件信息
+   * 用于确定文件大小和是否需要分块加载
+   */
+  private async getFileInfo(): Promise<{size: number}> {
+    try {
+      console.log('[EditorContentManager] 获取文件信息:', this.filePath);
+      const result = await sftpService.stat(this.sessionId, this.filePath);
+      console.log('[EditorContentManager] 文件大小:', result.size);
+      this.fileSize = result.size;
+      
+      // 确定是否为大文件
+      this.isLargeFile = this.fileSize > LARGE_FILE_THRESHOLD;
+      if (this.isLargeFile) {
+        console.log('[EditorContentManager] 检测到大文件，将使用分块加载');
+        this.emit(EditorEvents.LARGE_FILE_DETECTED, {
+          size: this.fileSize,
+          path: this.filePath
+        });
+      }
+      
+      return { size: this.fileSize };
+    } catch (error) {
+      console.error('[EditorContentManager] 获取文件信息失败:', error);
+      throw new Error(`获取文件信息失败: ${error}`);
+    }
   }
 
   /**
    * 加载文件内容
+   * 根据文件大小决定是否需要分块加载
    * @returns 文件内容
    */
   public async loadContent(): Promise<string> {
     try {
       console.log('[EditorContentManager] 正在加载文件:', this.filePath);
-      const result = await sftpService.readFile(this.sessionId, this.filePath);
-      console.log('[EditorContentManager] 文件加载成功，内容长度:', result.content.length);
       
-      // 添加关于原始内容的详细日志
-      const endsWithCR = result.content.endsWith('\r');
-      const endsWithLF = result.content.endsWith('\n');
-      const endsWithCRLF = result.content.endsWith('\r\n');
-      console.log('[EditorContentManager] 原始文件内容分析:', {
-        length: result.content.length,
-        endsWithCR,
-        endsWithLF,
-        endsWithCRLF,
-        lastFewChars: result.content.slice(-10).split('').map(c => c.charCodeAt(0))
-      });
+      // 先获取文件信息
+      await this.getFileInfo();
       
-      // 设置原始内容
-      this.originalContent = result.content;
-      this.isDirty = false; // 重置脏状态
-      
-      this.emit(EditorEvents.FILE_LOADED, {
-        path: this.filePath,
-        size: result.content.length,
-        modifyTime: Date.now()
-      });
-      return result.content;
+      // 根据文件大小决定是否分块加载
+      if (this.isLargeFile) {
+        console.log('[EditorContentManager] 文件较大，使用分块加载模式');
+        // 只加载前面部分内容
+        const result = await this.loadChunk(0, Math.min(MAX_INITIAL_LOAD_SIZE, this.fileSize));
+        this.originalContent = result.content;
+        this.loadedContentSize = result.bytesRead;
+        
+        console.log('[EditorContentManager] 初始加载完成，已加载字节数:', this.loadedContentSize);
+        
+        this.emit(EditorEvents.FILE_LOADED, {
+          path: this.filePath,
+          size: this.fileSize,
+          loadedSize: this.loadedContentSize,
+          isPartiallyLoaded: true,
+          modifyTime: Date.now()
+        });
+        
+        return result.content;
+      } else {
+        // 小文件直接加载全部内容
+        console.log('[EditorContentManager] 文件较小，直接加载全部内容');
+        const result = await sftpService.readFile(this.sessionId, this.filePath);
+        this.originalContent = result.content;
+        this.loadedContentSize = result.bytesRead;
+        this.isDirty = false; // 重置脏状态
+        
+        console.log('[EditorContentManager] 文件加载成功，内容长度:', result.content.length);
+        
+        // 详细日志记录
+        const endsWithCR = result.content.endsWith('\r');
+        const endsWithLF = result.content.endsWith('\n');
+        const endsWithCRLF = result.content.endsWith('\r\n');
+        console.log('[EditorContentManager] 原始文件内容分析:', {
+          length: result.content.length,
+          endsWithCR,
+          endsWithLF,
+          endsWithCRLF,
+          lastFewChars: result.content.slice(-10).split('').map(c => c.charCodeAt(0))
+        });
+        
+        this.emit(EditorEvents.FILE_LOADED, {
+          path: this.filePath,
+          size: result.content.length,
+          loadedSize: result.bytesRead,
+          isPartiallyLoaded: false,
+          modifyTime: Date.now()
+        });
+        
+        return result.content;
+      }
     } catch (error) {
       console.error('[EditorContentManager] 加载文件失败:', error);
       this.emit(EditorEvents.ERROR_OCCURRED, new Error(`加载文件失败: ${error}`));
       throw new Error(`加载文件失败: ${error}`);
     }
+  }
+
+  /**
+   * 加载文件的指定块
+   * @param start 起始位置（字节）
+   * @param length 长度（字节），-1表示读取到文件末尾
+   * @returns 加载结果
+   */
+  public async loadChunk(start: number, length: number = DEFAULT_CHUNK_SIZE): Promise<ChunkLoadResult> {
+    if (this.isLoading) {
+      console.log('[EditorContentManager] 当前有加载任务正在进行，忽略新的加载请求');
+      throw new Error('当前有加载任务正在进行，请稍后再试');
+    }
+    
+    try {
+      this.isLoading = true;
+      console.log(`[EditorContentManager] 开始加载文件块 - 起始位置: ${start}, 长度: ${length}`);
+      this.emit(EditorEvents.LOADING_STARTED);
+      
+      const result = await sftpService.readFile(this.sessionId, this.filePath, start, length);
+      console.log(`[EditorContentManager] 块加载成功 - 实际读取字节数: ${result.bytesRead}, 总大小: ${result.totalSize}`);
+      
+      // 更新已加载内容大小
+      this.loadedContentSize = Math.max(this.loadedContentSize, start + result.bytesRead);
+      
+      const hasMore = this.loadedContentSize < this.fileSize;
+      
+      // 如果有编辑器和模型，并且起始位置正好是当前内容长度，则将内容追加到模型中
+      if (this.editor && this.model && start === this.model.getValue().length) {
+        console.log('[EditorContentManager] 追加新内容到编辑器');
+        
+        // 获取当前滚动位置
+        const scrollTop = this.editor.getScrollTop();
+        
+        // 创建编辑操作
+        const edits = [{
+          range: new monaco.Range(
+            this.model.getLineCount(),
+            this.model.getLineLength(this.model.getLineCount()) + 1,
+            this.model.getLineCount(),
+            this.model.getLineLength(this.model.getLineCount()) + 1
+          ),
+          text: result.content
+        }];
+        
+        // 应用编辑
+        this.model.pushEditOperations(
+          [],
+          edits,
+          () => null
+        );
+        
+        // 恢复滚动位置
+        this.editor.setScrollTop(scrollTop);
+        
+        console.log('[EditorContentManager] 内容已追加到编辑器');
+      }
+      
+      // 发出块加载完成事件
+      this.emit(EditorEvents.CHUNK_LOADED, {
+        startPosition: start,
+        endPosition: start + result.bytesRead,
+        bytesRead: result.bytesRead,
+        totalSize: result.totalSize,
+        hasMore
+      });
+      
+      // 如果加载完毕，发出加载完成事件
+      if (!hasMore) {
+        this.emit(EditorEvents.LOAD_MORE_COMPLETED, {
+          loadedSize: this.loadedContentSize,
+          totalSize: this.fileSize,
+          isComplete: true
+        });
+      }
+      
+      this.emit(EditorEvents.LOADING_END);
+      
+      return {
+        content: result.content,
+        startPosition: start,
+        endPosition: start + result.bytesRead,
+        totalSize: result.totalSize,
+        bytesRead: result.bytesRead,
+        hasMore
+      };
+    } catch (error) {
+      console.error('[EditorContentManager] 加载文件块失败:', error);
+      this.emit(EditorEvents.ERROR_OCCURRED, new Error(`加载文件块失败: ${error}`));
+      throw new Error(`加载文件块失败: ${error}`);
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  /**
+   * 获取大文件信息
+   * @returns 大文件信息
+   */
+  public getLargeFileInfo(): LargeFileInfo {
+    return {
+      loadedSize: this.loadedContentSize,
+      totalSize: this.fileSize,
+      hasMore: this.loadedContentSize < this.fileSize,
+      isComplete: this.loadedContentSize >= this.fileSize
+    };
+  }
+
+  /**
+   * 是否为大文件
+   * @returns 是否为大文件
+   */
+  public getIsLargeFile(): boolean {
+    return this.isLargeFile;
   }
 
   /**
@@ -541,5 +752,286 @@ export class EditorContentManager extends EventEmitter {
     // 不需要清理模型，因为模型的所有权属于EditorManager
     this.model = null;
     this.editor = null;
+  }
+
+  public async loadContentWithPath(path: string, encoding: string = 'utf8', size: number = 0, initialChunkSize: number = MAX_CHUNK_SIZE): Promise<void> {
+    if (!path) {
+      console.error('[EditorContentManager] 未提供有效的文件路径');
+      this.handleError(new Error('未提供有效的文件路径'));
+      return;
+    }
+
+    this.contentEncoding = encoding;
+    this.content = '';
+    this.loadedContentSize = 0;
+    this.totalContentSize = size;
+    this.hasError = false;
+    this.fileLoaded = false;
+
+    console.log(`[EditorContentManager] 开始加载文件 ${path}, 编码: ${encoding}, 总大小: ${size} 字节`);
+    
+    try {
+      // 检查文件大小
+      if (size > VERY_LARGE_FILE_SIZE) {
+        console.warn(`[EditorContentManager] 文件非常大 (${(size / 1024 / 1024).toFixed(2)}MB)，使用分块加载`);
+        this.emit(EditorEvents.VERY_LARGE_FILE_DETECTED, {
+          size,
+          path,
+          encoding
+        });
+        
+        // 加载第一个块
+        const chunkSize = Math.min(initialChunkSize, size);
+        await this.loadChunkWithPath(path, 0, chunkSize, encoding);
+        
+        // 设置初始行数
+        if (this.model) {
+          this.initialLines = this.model.getLineCount();
+          console.log(`[EditorContentManager] 初始行数: ${this.initialLines}`);
+        }
+
+        // 标记文件加载完成（虽然只是第一块）
+        this.fileLoaded = true;
+        this.emit(EditorEvents.CONTENT_LOADED, path);
+        
+        // 如果加载的只是部分内容，还需要更多的加载
+        if (this.loadedContentSize < this.totalContentSize) {
+          const largeFileInfo = {
+            loadedSize: this.loadedContentSize,
+            totalSize: this.totalContentSize,
+            hasMore: true,
+            isComplete: false
+          };
+          
+          console.log(`[EditorContentManager] 大文件已部分加载: ${JSON.stringify(largeFileInfo)}`);
+          this.emit(EditorEvents.LARGE_FILE_LOADED, largeFileInfo);
+        }
+      } else {
+        // 对于小文件，一次性加载全部内容
+        console.log(`[EditorContentManager] 文件较小 (${(size / 1024).toFixed(2)}KB)，一次性加载全部内容`);
+        await this.loadChunkWithPath(path, 0, size, encoding);
+        
+        // 标记文件加载完成
+        this.fileLoaded = true;
+        this.emit(EditorEvents.CONTENT_LOADED, path);
+      }
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
+  public async loadChunkWithPath(path: string, start: number, length: number, encoding: string = 'utf8'): Promise<void> {
+    if (!path) {
+      console.error('[EditorContentManager] 加载块时未提供有效的文件路径');
+      this.handleError(new Error('加载块时未提供有效的文件路径'));
+      return;
+    }
+
+    console.log(`[EditorContentManager] 加载文件块: 文件=${path}, 开始位置=${start}, 长度=${length}, 编码=${encoding}`);
+    
+    try {
+      this.emit(EditorEvents.LOADING_STARTED);
+      
+      // 使用 sftpService 替代 window.electron.sftpService
+      const result = await sftpService.readFile(this.sessionId, path, start, length);
+      const fileContent = result.content;
+      
+      if (typeof fileContent !== 'string') {
+        throw new Error('无法加载文件内容，返回类型不是字符串');
+      }
+      
+      // 文件内容长度检查
+      const contentLength = fileContent.length;
+      console.log(`[EditorContentManager] 加载到内容长度: ${contentLength} 字符`);
+      
+      // 更新已加载内容大小
+      const previousSize = this.loadedContentSize;
+      this.loadedContentSize += contentLength;
+      
+      // 检查是否是第一次加载或追加加载
+      if (start === 0) {
+        // 第一次加载内容
+        this.content = fileContent;
+        
+        if (this.model) {
+          console.log('[EditorContentManager] 设置编辑器模型的初始值');
+          // 设置模型内容
+          this.model.setValue(this.content);
+        }
+      } else if (start === previousSize) {
+        // 追加内容
+        console.log(`[EditorContentManager] 追加内容到现有内容，当前位置: ${start}, 追加长度: ${contentLength}`);
+        this.content += fileContent;
+        
+        if (this.model && this.editor) {
+          // 保存当前滚动位置
+          const scrollPosition = this.editor.getScrollTop();
+          
+          // 创建编辑操作
+          const editOperation = {
+            range: new monaco.Range(
+              this.model.getLineCount(),
+              this.model.getLineMaxColumn(this.model.getLineCount()),
+              this.model.getLineCount(),
+              this.model.getLineMaxColumn(this.model.getLineCount())
+            ),
+            text: fileContent,
+            forceMoveMarkers: true
+          };
+          
+          // 执行编辑操作
+          this.model.pushEditOperations([], [editOperation], () => []);
+          
+          // 恢复滚动位置
+          this.editor.setScrollTop(scrollPosition);
+          console.log(`[EditorContentManager] 内容追加后恢复滚动位置: ${scrollPosition}`);
+        }
+      } else {
+        console.warn(`[EditorContentManager] 加载块的开始位置 (${start}) 与当前加载大小 (${previousSize}) 不匹配，无法追加内容`);
+      }
+      
+      // 发出加载完成事件
+      this.emit(EditorEvents.LOADING_COMPLETED);
+      
+      // 检查是否还有更多内容要加载
+      const hasMore = this.loadedContentSize < this.totalContentSize;
+      const largeFileInfo = {
+        loadedSize: this.loadedContentSize,
+        totalSize: this.totalContentSize,
+        hasMore,
+        isComplete: !hasMore
+      };
+      
+      console.log(`[EditorContentManager] 块加载完成: ${JSON.stringify(largeFileInfo)}`);
+      this.emit(EditorEvents.LOAD_MORE_COMPLETED, largeFileInfo);
+      
+    } catch (error) {
+      console.error(`[EditorContentManager] 加载块失败: ${error}`);
+      this.handleError(error);
+    }
+  }
+
+  /**
+   * 获取内容
+   * @returns 当前内容
+   */
+  public getContent(): string {
+    return this.content;
+  }
+
+  /**
+   * 获取内容编码
+   * @returns 当前内容编码
+   */
+  public getContentEncoding(): string {
+    return this.contentEncoding;
+  }
+
+  /**
+   * 获取已加载内容大小
+   * @returns 已加载内容大小
+   */
+  public getLoadedContentSize(): number {
+    return this.loadedContentSize;
+  }
+
+  /**
+   * 获取总内容大小
+   * @returns 总内容大小
+   */
+  public getTotalContentSize(): number {
+    return this.totalContentSize;
+  }
+
+  /**
+   * 检查是否可以加载更多内容
+   * @returns 是否可以加载更多内容
+   */
+  public canLoadMore(): boolean {
+    return this.loadedContentSize < this.totalContentSize;
+  }
+
+  /**
+   * 检查编辑器是否准备就绪
+   * @returns 编辑器是否准备就绪
+   */
+  public isReady(): boolean {
+    return this.fileLoaded && !this.hasError;
+  }
+
+  /**
+   * 保存文件内容到指定路径
+   * @param path 文件路径
+   * @param content 文件内容，默认为当前内容
+   * @param encoding 文件编码，默认为当前编码
+   */
+  public async saveContentWithPath(path: string, content?: string, encoding?: string): Promise<void> {
+    if (this.isSaving) {
+      this.needsSave = true;
+      return;
+    }
+
+    this.isSaving = true;
+
+    try {
+      const contentToSave = content || this.content;
+      const encodingToUse = encoding || this.contentEncoding;
+      
+      console.log(`[EditorContentManager] 保存文件内容: ${path}, 编码: ${encodingToUse}, 长度: ${contentToSave.length}`);
+      
+      this.emit(EditorEvents.SAVING_STARTED);
+      
+      // 使用 sftpService 替代 window.electron.sftpService，并将编码转换为合适的类型
+      await sftpService.writeFile(this.sessionId, path, contentToSave, encodingToUse as any);
+      
+      this.isSaving = false;
+      this.emit(EditorEvents.SAVING_COMPLETED);
+      
+      // 如果在保存过程中又有新的保存请求
+      if (this.needsSave) {
+        this.needsSave = false;
+        await this.saveContentWithPath(path, this.content, this.contentEncoding);
+      }
+    } catch (error) {
+      this.isSaving = false;
+      console.error(`[EditorContentManager] 保存文件失败: ${error}`);
+      this.handleError(error);
+    }
+  }
+
+  /**
+   * 设置编辑器模式
+   * @param mode 编辑器模式
+   */
+  public setMode(mode: EditorMode): void {
+    this.activeMode = mode;
+    console.log(`[EditorContentManager] 编辑器模式设置为: ${mode}`);
+  }
+
+  /**
+   * 获取当前编辑器模式
+   * @returns 当前编辑器模式
+   */
+  public getMode(): EditorMode {
+    return this.activeMode;
+  }
+
+  /**
+   * 处理错误
+   * @param error 错误对象
+   */
+  private handleError(error: any): void {
+    this.hasError = true;
+    console.error(`[EditorContentManager] 编辑器内容管理器错误: ${error}`);
+    this.emit(EditorEvents.ERROR, error);
+  }
+
+  public reset(): void {
+    this.content = '';
+    this.loadedContentSize = 0;
+    this.totalContentSize = 0;
+    this.hasError = false;
+    this.fileLoaded = false;
+    console.log('[EditorContentManager] 编辑器内容管理器已重置');
   }
 } 
