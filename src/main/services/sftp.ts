@@ -167,19 +167,22 @@ class SFTPClient {
     totalSize: number;
     bytesRead: number;
   }> {
-    console.log(`[SFTPClient] 读取文件 - connectionId: ${this.connectionId}, path: ${filePath}, start: ${start}, length: ${length}`);
+    console.log(`[SFTPClient] 读取文件 - connectionId: ${this.connectionId}, path: ${filePath}, start: ${start}, length: ${length}, encoding: ${encoding}`);
     
     return new Promise((resolve, reject) => {
       this.sftp.stat(filePath, (err: Error, stats: any) => {
         if (err) {
+          console.error(`[SFTPClient] 获取文件状态失败:`, err);
           reject(err);
           return;
         }
 
         const totalSize = stats.size;
+        console.log(`[SFTPClient] 文件状态 - size: ${totalSize}, isDirectory: ${stats.isDirectory()}, mode: ${stats.mode.toString(8)}`);
         
         // 如果文件大小为0，直接返回空内容
         if (totalSize === 0) {
+          console.log(`[SFTPClient] 文件大小为0，返回空内容`);
           resolve({
             content: '',
             totalSize: 0,
@@ -189,32 +192,51 @@ class SFTPClient {
         }
 
         const readLength = length === -1 ? totalSize - start : length;
+        console.log(`[SFTPClient] 计算读取长度 - 请求长度: ${length}, 起始位置: ${start}, 文件大小: ${totalSize}, 实际读取长度: ${readLength}`);
+        
         const buffer = Buffer.alloc(readLength);
+        console.log(`[SFTPClient] 分配缓冲区 - 大小: ${buffer.length} 字节`);
 
         this.sftp.open(filePath, 'r', (err: Error, handle: Buffer) => {
           if (err) {
+            console.error(`[SFTPClient] 打开文件失败:`, err);
             reject(err);
             return;
           }
+          
+          console.log(`[SFTPClient] 文件已打开，开始读取 - handle: ${handle ? handle.toString('hex').substring(0, 16) + '...' : 'null'}`);
 
           this.sftp.read(handle, buffer, 0, readLength, start, (err: Error, bytesRead: number, buffer: Buffer) => {
-            this.sftp.close(handle, () => {
+            console.log(`[SFTPClient] 读取操作完成 - 错误: ${err ? err.message : '无'}, 读取字节数: ${bytesRead}, 缓冲区大小: ${buffer ? buffer.length : 0}`);
+            
+            if (bytesRead < readLength) {
+              console.warn(`[SFTPClient] 警告：实际读取字节数(${bytesRead})小于请求字节数(${readLength})，差异: ${readLength - bytesRead}`);
+            }
+            
+            this.sftp.close(handle, (closeErr: Error) => {
+              if (closeErr) {
+                console.warn(`[SFTPClient] 关闭文件句柄警告:`, closeErr);
+              }
+              
               if (err) {
                 reject(err);
                 return;
               }
 
               let content: string;
-              if (encoding === 'binary') {
-                content = buffer.slice(0, bytesRead).toString('binary');
-              } else {
-                try {
+              try {
+                if (encoding === 'binary') {
+                  content = buffer.slice(0, bytesRead).toString('binary');
+                } else {
                   content = buffer.slice(0, bytesRead).toString(encoding);
-                } catch (e) {
-                  content = buffer.slice(0, bytesRead).toString('utf8');
                 }
+                console.log(`[SFTPClient] 内容已转换为${encoding === 'binary' ? '二进制' : '文本'} - 长度: ${content.length}`);
+              } catch (e) {
+                console.warn(`[SFTPClient] 使用指定编码(${encoding})转换内容失败，回退到utf8:`, e);
+                content = buffer.slice(0, bytesRead).toString('utf8');
               }
 
+              console.log(`[SFTPClient] 读取文件完成 - 总大小: ${totalSize}, 读取字节数: ${bytesRead}, 内容长度: ${content.length}`);
               resolve({
                 content,
                 totalSize,
