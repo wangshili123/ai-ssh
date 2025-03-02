@@ -44,6 +44,7 @@ export interface EditorState {
     hasMore: boolean;
     isComplete?: boolean;
   };
+  loadingProgress?: number;
 }
 
 /**
@@ -69,7 +70,8 @@ export class EditorManager extends EventEmitter {
     isSaving: false,
     mode: EditorMode.BROWSE,
     isLargeFile: false,
-    largeFileInfo: undefined
+    largeFileInfo: undefined,
+    loadingProgress: undefined
   };
 
   // 会话和文件信息
@@ -441,10 +443,34 @@ export class EditorManager extends EventEmitter {
         
         console.log(`[EditorManager] 开始并行读取大文件 - sessionId: ${sessionId}, filePath: ${filePath}`);
         
-        // 并行读取整个文件
+        // 创建进度更新函数
+        let lastProgressEmit = 0;
+        const onProgress = (progress: number) => {
+          // 限制进度更新频率，避免过多的状态更新
+          const now = Date.now();
+          if (now - lastProgressEmit > 200 || progress >= 1) { // 每200ms更新一次或进度完成时
+            lastProgressEmit = now;
+            
+            // 计算百分比并取整
+            const percent = Math.round(progress * 100);
+            console.log(`[EditorManager] 大文件加载进度: ${percent}%`);
+            
+            // 更新加载状态，包含进度信息
+            const progressState = {
+              ...this.state,
+              isLoading: true,
+              loadingProgress: progress
+            };
+            this.emit('loadingProgress', progress); // 发出专门的进度事件
+            this.emit('stateChanged', progressState);
+          }
+        };
+        
+        // 并行读取整个文件，添加进度回调
         const result = await sftpService.readLargeFile(sessionId, filePath, {
           chunkSize: 131072, // 128KB
-          maxParallelChunks: 8
+          maxParallelChunks: 8,
+          onProgress
         });
         
         console.log(`[EditorManager] 大文件读取完成 - 总大小: ${result.totalSize}, 读取字节数: ${result.bytesRead}`);
@@ -463,7 +489,8 @@ export class EditorManager extends EventEmitter {
           ...this.state,
           isLargeFile: false,
           largeFileInfo: undefined,
-          isLoading: false
+          isLoading: false,
+          loadingProgress: undefined // 清除进度信息
         };
         this.state = updatedState;
         this.emit('stateChanged', updatedState);
@@ -476,7 +503,8 @@ export class EditorManager extends EventEmitter {
         const errorState = {
           ...this.state,
           error: error instanceof Error ? error : new Error(String(error)),
-          isLoading: false
+          isLoading: false,
+          loadingProgress: undefined // 清除进度信息
         };
         this.state = errorState;
         this.emit('stateChanged', errorState);

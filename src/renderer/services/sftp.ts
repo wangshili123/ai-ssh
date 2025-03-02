@@ -205,26 +205,46 @@ class SFTPService {
     
     // 4. 创建结果数组
     const contentParts: string[] = [];
-    let bytesRead = 0;
+    let totalBytesRead = 0;
+    let lastReportedProgress = 0;
     
     // 5. 分批并行读取
     try {
-      for (let batchIndex = 0; batchIndex < chunks; batchIndex += maxParallelChunks) {
+      // 先尝试读取第一个块来确定实际可读取的大小
+      const firstChunkResult = await this.readFile(sessionId, filePath, 0, chunkSize, encoding);
+      const actualChunkSize = firstChunkResult.bytesRead;
+      contentParts.push(firstChunkResult.content);
+      totalBytesRead = firstChunkResult.bytesRead;
+      
+      console.log(`[SFTPService] 首个块实际读取大小: ${actualChunkSize} 字节`);
+      
+      // 根据实际可读取的大小重新计算总块数
+      const actualTotalSize = Math.ceil(totalSize / actualChunkSize) * actualChunkSize;
+      console.log(`[SFTPService] 预计实际可读取总大小: ${actualTotalSize} 字节`);
+      
+      // 报告首个块的进度
+      if (options.onProgress) {
+        const progress = totalBytesRead / actualTotalSize;
+        options.onProgress(progress);
+        lastReportedProgress = progress;
+        console.log(`[SFTPService] 读取进度: ${Math.round(progress * 100)}% (已读取 ${totalBytesRead} / ${actualTotalSize} 字节)`);
+      }
+      
+      // 继续读取剩余的块
+      let currentPosition = actualChunkSize;
+      
+      while (currentPosition < totalSize) {
         const batchTasks = [];
         const batchStart = Date.now();
         
         // 创建当前批次的任务
-        for (let i = 0; i < maxParallelChunks && batchIndex + i < chunks; i++) {
-          const chunkIndex = batchIndex + i;
-          const start = chunkIndex * chunkSize;
-          const end = Math.min(start + chunkSize, totalSize);
-          const length = end - start;
-          
-          // 使用现有的readFile方法读取一个块
-          batchTasks.push(this.readFile(sessionId, filePath, start, length, encoding));
+        for (let i = 0; i < maxParallelChunks && currentPosition < totalSize; i++) {
+          const length = Math.min(actualChunkSize, totalSize - currentPosition);
+          batchTasks.push(this.readFile(sessionId, filePath, currentPosition, length, encoding));
+          currentPosition += length;
         }
         
-        console.log(`[SFTPService] 开始批次 ${Math.floor(batchIndex / maxParallelChunks) + 1}/${Math.ceil(chunks / maxParallelChunks)}, 包含 ${batchTasks.length} 个块`);
+        console.log(`[SFTPService] 开始新批次，从位置 ${currentPosition - actualChunkSize * batchTasks.length} 读取 ${batchTasks.length} 个块`);
         
         // 并行执行当前批次
         const batchResults = await Promise.all(batchTasks);
@@ -234,14 +254,19 @@ class SFTPService {
         
         // 处理结果
         for (const result of batchResults) {
-          contentParts.push(result.content);
-          bytesRead += result.bytesRead;
-          
-          // 报告进度
-          if (options.onProgress) {
-            const progress = bytesRead / totalSize;
-            options.onProgress(progress);
-            console.log(`[SFTPService] 读取进度: ${Math.round(progress * 100)}%`);
+          if (result.bytesRead > 0) {
+            contentParts.push(result.content);
+            totalBytesRead += result.bytesRead;
+            
+            // 报告进度
+            if (options.onProgress) {
+              const progress = Math.min(totalBytesRead / actualTotalSize, 1);
+              if (progress - lastReportedProgress >= 0.01) { // 每1%更新一次进度
+                options.onProgress(progress);
+                lastReportedProgress = progress;
+                console.log(`[SFTPService] 读取进度: ${Math.round(progress * 100)}% (已读取 ${totalBytesRead} / ${actualTotalSize} 字节)`);
+              }
+            }
           }
         }
       }
@@ -250,13 +275,19 @@ class SFTPService {
       console.log(`[SFTPService] 所有块读取完成，开始合并 ${contentParts.length} 个块`);
       const content = contentParts.join('');
       
-      console.log(`[SFTPService] 大文件读取完成 - 总大小: ${totalSize}, 读取字节数: ${bytesRead}, 内容长度: ${content.length}`);
+      // 确保最终进度为100%
+      if (options.onProgress && lastReportedProgress < 1) {
+        options.onProgress(1);
+        console.log(`[SFTPService] 读取进度: 100% (已读取 ${totalBytesRead} 字节)`);
+      }
+      
+      console.log(`[SFTPService] 大文件读取完成 - 总大小: ${totalSize}, 实际读取字节数: ${totalBytesRead}, 内容长度: ${content.length}`);
       
       // 7. 返回结果
       return {
         content,
         totalSize,
-        bytesRead
+        bytesRead: totalBytesRead
       };
     } catch (error) {
       console.error(`[SFTPService] 并行读取大文件失败:`, error);

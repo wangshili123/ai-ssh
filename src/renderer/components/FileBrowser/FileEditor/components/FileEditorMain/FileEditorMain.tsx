@@ -119,7 +119,8 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     isSaving: false,
     mode: EditorMode.BROWSE,
     isLargeFile: false,
-    largeFileInfo: undefined
+    largeFileInfo: undefined,
+    loadingProgress: undefined
   });
 
   // 添加useEffect钩子来初始化编辑器
@@ -781,24 +782,58 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
       
       // 使用EditorManager执行模式切换
       if (editorManagerRef.current) {
-        // 调用EditorManager的switchMode方法
-        const result = await editorManagerRef.current.switchMode(targetMode);
-        
-        if (result) {
-          // 更新模式和状态
-          dispatch({ type: 'SET_CURRENT_MODE', mode: targetMode });
-          message.success(`已切换到${targetMode === EditorMode.EDIT ? '编辑' : '浏览'}模式`);
+        // 如果是切换到编辑模式且是大文件，添加进度监听
+        if (targetMode === EditorMode.EDIT && editorState.isLargeFile) {
+          // 添加进度监听
+          const progressHandler = (progress: number) => {
+            console.log(`收到加载进度更新: ${Math.round(progress * 100)}%`);
+            setEditorState(prev => ({ 
+              ...prev, 
+              isLoading: true,
+              loadingProgress: progress 
+            }));
+          };
+          
+          // 添加监听器
+          editorManagerRef.current.on('loadingProgress', progressHandler);
+          
+          // 调用EditorManager的switchMode方法
+          const result = await editorManagerRef.current.switchMode(targetMode);
+          
+          // 移除监听器
+          editorManagerRef.current.removeListener('loadingProgress', progressHandler);
+          
+          if (result) {
+            // 更新模式和状态
+            dispatch({ type: 'SET_CURRENT_MODE', mode: targetMode });
+            message.success(`已切换到${targetMode === EditorMode.EDIT ? '编辑' : '浏览'}模式`);
+          } else {
+            throw new Error('模式切换失败');
+          }
         } else {
-          throw new Error('模式切换失败');
+          // 正常模式切换
+          const result = await editorManagerRef.current.switchMode(targetMode);
+          
+          if (result) {
+            // 更新模式和状态
+            dispatch({ type: 'SET_CURRENT_MODE', mode: targetMode });
+            message.success(`已切换到${targetMode === EditorMode.EDIT ? '编辑' : '浏览'}模式`);
+          } else {
+            throw new Error('模式切换失败');
+          }
         }
       }
     } catch (error) {
       console.error('模式切换失败:', error);
       message.error(`模式切换失败: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
-      setEditorState(prev => ({ ...prev, isLoading: false }));
+      setEditorState(prev => ({ 
+        ...prev, 
+        isLoading: false,
+        loadingProgress: undefined
+      }));
     }
-  }, [currentMode, editorState.isDirty, saveFile, dispatch]);
+  }, [currentMode, editorState.isDirty, editorState.isLargeFile, saveFile, dispatch]);
 
   // 处理实时更新切换
   const handleRealtimeToggle = useCallback((enabled: boolean) => {
@@ -895,7 +930,19 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
       {editorState.isLoading && (
         <div className="loading-indicator">
           <LoadingOutlined style={{ marginRight: 8 }} />
-          <span>正在加载文件...</span>
+          <span>
+            {editorState.loadingProgress !== undefined 
+              ? `正在加载文件... ${Math.round(editorState.loadingProgress * 100)}%` 
+              : '正在加载文件...'}
+          </span>
+          {editorState.loadingProgress !== undefined && (
+            <div className="loading-progress-bar-container">
+              <div 
+                className="loading-progress-bar" 
+                style={{ width: `${Math.round(editorState.loadingProgress * 100)}%` }}
+              />
+            </div>
+          )}
         </div>
       )}
 
