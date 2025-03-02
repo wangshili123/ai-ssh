@@ -1,3 +1,137 @@
-[EditorContentManager] 文件较大，使用分块加载模式
-EditorContentManager.ts:217 [EditorContentManager] 开始加载文件块 - 起始位置: 0, 长度: 2097152, 文件总大小: 11693059
-EditorContentManager.ts:220 [EditorContentManager] 块加载成功 - 实际读取字节数: 65536, 总大小: 11693059, 内容长度: 23442
+[1] [SFTP] 创建客户端 - connectionId: sftp-tab-1740923490816
+[1] [SFTPManager] 关闭客户端 - connectionId: sftp-tab-1740923490816
+[1] [SFTPManager] 创建新客户端 - connectionId: sftp-tab-1740923490816
+[1] [SFTPClient] 创建实例 - connectionId: sftp-tab-1740923490816, sessionId: 1739696178516
+[1] Handling ssh:connect... {
+[1]   id: '1739696178516',
+[1]   name: '云服务器',
+[1]   host: '120.27.201.216',
+[1]   port: 22,
+[1]   username: 'root',
+[1]   authType: 'password',
+[1]   password: 'Aa15119273009--',
+[1]   group: '1736589140204',
+[1]   defaultPage: 'performance',
+[1]   refreshInterval: 5,
+[1]   collectServiceInfo: false,
+[1]   recordHistory: false,
+[1]   status: 'disconnected',
+[1]   config: {
+[1]     refreshInterval: 5000,
+[1]     autoRefresh: true,
+[1]     defaultPage: 'performance',
+[1]     collectServiceInfo: false,
+[1]     recordHistory: false
+[1]   },
+[1]   currentDirectory: '~',
+[1]   groupOrder: 8,
+[1]   privateKey: undefined,
+[1]   type: 'terminal'
+[1] }
+[1] SSHService.connect called with: {
+[1]   id: '1739696178516',
+[1]   name: '云服务器',
+[1]   host: '120.27.201.216',
+[1]   port: 22,
+[1]   username: 'root',
+[1]   authType: 'password',
+[1]   password: 'Aa15119273009--',
+[1]   group: '1736589140204',
+[1]   defaultPage: 'performance',
+[1]   refreshInterval: 5,
+[1]   collectServiceInfo: false,
+[1]   recordHistory: false,
+[1]   status: 'disconnected',
+[1]   config: {
+[1]     refreshInterval: 5000,
+[1]     autoRefresh: true,
+[1]     defaultPage: 'performance',
+[1]     collectServiceInfo: false,
+[1]     recordHistory: false
+[1]   },
+[1]   currentDirectory: '~',
+[1]   groupOrder: 8,
+[1]   privateKey: undefined,
+[1]   type: 'terminal'
+[1] }
+[1] [SFTPManager] 客户端创建成功 - connectionId: sftp-tab-1740923490816, total: 1
+[1] [SFTP] 读取目录 - connectionId: sftp-tab-1740923490816, path: /
+[1] [SFTPManager] 读取目录 - connectionId: sftp-tab-1740923490816, path: /, useCache: true
+[1] [SFTPClient] 读取目录 - connectionId: sftp-tab-1740923490816, path: /, useCache: true
+[1] [SFTPClient] 目录读取完成并缓存 - connectionId: sftp-tab-1740923490816, path: /, count: 21
+[1] Connection pool initialized for session 1739696178516
+[1] [SSH] Creating shell with config: { cols: 159, rows: 31 }
+[1] [SSH] Creating shell with config: { term: 'xterm-256color', pty: true, rows: 31, cols: 159 }
+[1] Shell created successfully: 1739696178516-1740923490816
+[1] [SSH] Updating current directory: { shellId: '1739696178516-1740923490816', directory: '~' }
+[1] Sending shell data to renderer [1739696178516-1740923490816]: Last login: Sun Mar  2 21:51:31 2025 from 219.136.10.164
+[1]
+[1] Welcome to Alibaba Cloud Elastic Compute Service !
+[1]
+[1] User Tips:
+[1] For better compatibility, Alibaba Cloud Linux 2 manages network settings via
+[1] network-scripts by default instead of former systemd-networkd.
+[1] More details please refer to:
+[1] https://help.aliyun.com/knowledge_detail/182049.html
+[1]
+[1]
+[1] [SSH] isChangeDirectoryCommand check: {
+[1]   data: 'Last login: Sun Mar  2 21:51:31 2025 from 219.136.10.164\r\r\n' +
+[1]     '\r\n' +
+[1]     'Welcome to Alibaba Cloud Elastic Compute Service !\r\n' +
+[1]     '\r\n' +
+[1]     'User Tips:\r\n' +
+[1]     'For better compatibility, Alibaba Cloud Linux 2 manages network settings via\r\n' +
+[1]     'network-scripts by default instead of former systemd-networkd.\r\n' +
+[1]     'More details please refer to:\r\n' +
+[1]     'https://help.aliyun.com/knowledge_detail/182049.html',
+[1]   isCD: false
+[1] }
+[1] [SSH] Updated SessionInfo currentDirectory: { sessionId: '1739696178516', directory: '~' }
+[1] Sending shell data to renderer [1739696178516-1740923490816]: [root@iZbp1ig0al97enegdm23ueZ ~]# 
+[1] [SSH] isChangeDirectoryCommand check: {
+[1]   data: '\x1B]0;root@iZbp1ig0al97enegdm23ueZ:~\x07\x1B[?1034h[root@iZbp1ig0al97enegdm23ueZ ~]#',      
+[1]   isCD: false
+[1] }
+[1] [SFTP] 创建客户端 - connectionId: tab-1740923490816
+[1] [SFTPManager] 关闭客户端 - connectionId: tab-1740923490816
+[1] [SFTPManager] 创建新客户端 - connectionId: tab-1740923490816
+[1] [SFTPClient] 创建实例 - connectionId: tab-1740923490816, sessionId: 1739696178516
+[1] [SFTPManager] 客户端创建成功 - connectionId: tab-1740923490816, total: 2
+[1] [Editor] 打开编辑器窗口: {
+[1]   windowId: '6b14e1c8-0941-466d-8bb9-e057b8e9f0ed',
+[1]   filePath: '/Service_TCP20241117_des.txt',
+[1]   sessionId: 'tab-1740923490816',
+[1]   title: 'Service_TCP20241117_des.txt'
+[1] }
+[1] [Editor] 创建新窗口
+[1] [Editor] 设置活跃窗口: 2
+[1] [Editor] 开发环境加载URL: http://localhost:3000/editor.html?windowId=6b14e1c8-0941-466d-8bb9-e057b8e9f0ed&filePath=%2FService_TCP20241117_des.txt&sessionId=tab-1740923490816
+[1] [12096:0302/215137.209:ERROR:interface_endpoint_client.cc(697)] Message 0 rejected by interface blink.mojom.WidgetHost
+[1] [Editor] 收到窗口准备就绪消息
+[1] [Editor] 窗口已准备就绪: 2
+[1] [Editor] 处理待处理的标签: 1
+[1] [Editor] 收到窗口准备就绪消息
+[1] [Editor] 窗口已准备就绪: 2
+[1] [SFTP] 获取文件状态 - connectionId: tab-1740923490816, path: /Service_TCP20241117_des.txt
+[1] [SFTP] 获取文件状态 - connectionId: tab-1740923490816, path: /Service_TCP20241117_des.txt
+[1] [SFTP] 读取文件 - connectionId: tab-1740923490816, path: /Service_TCP20241117_des.txt, start: 0, length: 2097152
+[1] [SFTPClient] 读取文件 - connectionId: tab-1740923490816, path: /Service_TCP20241117_des.txt, start: 0, length: 2097152, encoding: utf8
+[1] [SFTP] 读取文件 - connectionId: tab-1740923490816, path: /Service_TCP20241117_des.txt, start: 0, length: 2097152
+[1] [SFTPClient] 文件状态 - size: 11693059, isDirectory: false, mode: 100644
+[1] [SFTPClient] 计算读取长度 - 请求长度: 2097152, 起始位置: 0, 文件大小: 11693059, 实际读取长度: 2097152 
+[1] [SFTPClient] 分配缓冲区 - 大小: 2097152 字节
+[1] [SFTPClient] 读取文件 - connectionId: tab-1740923490816, path: /Service_TCP20241117_des.txt, start: 0, length: 2097152, encoding: utf8
+[1] [SFTPClient] 文件已打开，开始读取 - handle: 00000000...
+[1] [SFTPClient] 文件状态 - size: 11693059, isDirectory: false, mode: 100644
+[1] [SFTPClient] 计算读取长度 - 请求长度: 2097152, 起始位置: 0, 文件大小: 11693059, 实际读取长度: 2097152 
+[1] [SFTPClient] 分配缓冲区 - 大小: 2097152 字节
+[1] [SFTPClient] 读取操作完成 - 错误: 无, 读取字节数: 65536, 缓冲区大小: 65536
+[1] [SFTPClient] 警告：实际读取字节数(65536)小于请求字节数(2097152)，差异: 2031616
+[1] [SFTPClient] 文件已打开，开始读取 - handle: 00000001...
+[1] [SFTPClient] 内容已转换为文本 - 长度: 23442
+[1] [SFTPClient] 读取文件完成 - 总大小: 11693059, 读取字节数: 65536, 内容长度: 23442
+[1] [SFTPClient] 读取操作完成 - 错误: 无, 读取字节数: 65536, 缓冲区大小: 65536
+[1] [SFTPClient] 警告：实际读取字节数(65536)小于请求字节数(2097152)，差异: 2031616
+[1] [SFTPClient] 内容已转换为文本 - 长度: 23442
+[1] [SFTPClient] 读取文件完成 - 总大小: 11693059, 读取字节数: 65536, 内容长度: 23442

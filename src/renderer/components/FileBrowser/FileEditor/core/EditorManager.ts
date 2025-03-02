@@ -419,6 +419,74 @@ export class EditorManager extends EventEmitter {
    * @param mode 目标模式
    */
   public async switchMode(mode: EditorMode): Promise<boolean> {
+    // 如果是切换到编辑模式，且当前是大文件，需要加载完整文件
+    if (mode === EditorMode.EDIT && this.state.isLargeFile) {
+      try {
+        console.log('[EditorManager] 切换到编辑模式，检测到大文件，开始加载完整文件');
+        
+        // 设置加载状态
+        const loadingState = {
+          ...this.state,
+          isLoading: true
+        };
+        this.state = loadingState;
+        this.emit('stateChanged', loadingState);
+        
+        // 获取会话ID和文件路径
+        const sessionId = this.sessionId;
+        const filePath = this.filePath;
+        
+        // 导入sftpService
+        const { sftpService } = await import('../../../../services/sftp');
+        
+        console.log(`[EditorManager] 开始并行读取大文件 - sessionId: ${sessionId}, filePath: ${filePath}`);
+        
+        // 并行读取整个文件
+        const result = await sftpService.readLargeFile(sessionId, filePath, {
+          chunkSize: 131072, // 128KB
+          maxParallelChunks: 8
+        });
+        
+        console.log(`[EditorManager] 大文件读取完成 - 总大小: ${result.totalSize}, 读取字节数: ${result.bytesRead}`);
+        
+        // 更新编辑器内容
+        if (this.model) {
+          console.log('[EditorManager] 更新编辑器模型内容');
+          this.model.setValue(result.content);
+          
+          // 更新原始内容
+          this.contentManager.setOriginalContent(result.content);
+        }
+        
+        // 更新状态 - 编辑模式下不再视为"大文件"
+        const updatedState = {
+          ...this.state,
+          isLargeFile: false,
+          largeFileInfo: undefined,
+          isLoading: false
+        };
+        this.state = updatedState;
+        this.emit('stateChanged', updatedState);
+        
+        console.log('[EditorManager] 大文件加载完成，继续模式切换');
+      } catch (error) {
+        console.error('[EditorManager] 加载完整文件失败:', error);
+        
+        // 更新错误状态
+        const errorState = {
+          ...this.state,
+          error: error instanceof Error ? error : new Error(String(error)),
+          isLoading: false
+        };
+        this.state = errorState;
+        this.emit('stateChanged', errorState);
+        this.emit('error', errorState.error);
+        
+        return false;
+      }
+    }
+    
+    // 正常的模式切换
     return this.modeManager.switchMode(mode);
   }
 

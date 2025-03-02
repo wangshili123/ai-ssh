@@ -962,4 +962,27 @@ export class EditorContentManager extends EventEmitter {
     this.fileLoaded = false;
     console.log('[EditorContentManager] 编辑器内容管理器已重置');
   }
+
+  /**
+   * 设置原始内容
+   * @param content 原始内容
+   */
+  public setOriginalContent(content: string): void {
+    console.log(`[EditorContentManager] 设置原始内容 - 长度: ${content.length}`);
+    this.originalContent = content;
+    
+    // 重置脏状态
+    if (this.model) {
+      const currentContent = this.model.getValue();
+      const isDirty = !this.isContentEquivalent(currentContent, this.originalContent);
+      
+      if (isDirty !== this.isDirty) {
+        console.log('[EditorContentManager] 更新脏状态:', { isDirty, previousIsDirty: this.isDirty });
+        this.isDirty = isDirty;
+        this.emit(EditorEvents.CONTENT_CHANGED, { isModified: isDirty });
+      }
+    } else {
+      this.isDirty = false;
+    }
+  }
 } 
