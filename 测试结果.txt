@@ -1,237 +1,147 @@
-index.js:485 [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.
-log.js:39 [HMR] Waiting for update signal from WDS...
-react-dom.development.js:29895 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
-index.js:485 [webpack-dev-server] Server started: Hot Module Replacement enabled, Live Reloading enabled, Progress disabled, Overlay enabled.
-log.js:39 [HMR] Waiting for update signal from WDS...
-react-dom.development.js:29895 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
-editor-entry.tsx:19 编辑器窗口参数: Object
-editor-entry.tsx:57 编辑器窗口渲染完成
-editor-entry.tsx:19 编辑器窗口参数: Object
-editor-entry.tsx:57 编辑器窗口渲染完成
-editor-entry.tsx:33 收到添加标签消息: Object
-editor-entry.tsx:37 标签已存在，激活它: 5cfe409f-8680-408d-b39d-aa5db0b29bfb
-2warning.js:30 Warning: [antd: Tabs] `Tabs.TabPane` is deprecated. Please use `items` instead.
-warning @ warning.js:30
-node:electron/js2c/renderer_init:2 Electron Security Warning (Disabled webSecurity) This renderer process has "webSecurity" disabled. This
-  exposes users of this app to severe security risks.
-
-For more information and help, consult
-https://electronjs.org/docs/tutorial/security.
-This warning will not show up
-once the app is packaged.
-(anonymous) @ node:electron/js2c/renderer_init:2
-node:electron/js2c/renderer_init:2 Electron Security Warning (allowRunningInsecureContent) This renderer process has "allowRunningInsecureContent"
-  enabled. This exposes users of this app to severe security risks.
-
-  
-For more information and help, consult
-https://electronjs.org/docs/tutorial/security.
-This warning will not show up
-once the app is packaged.
-(anonymous) @ node:electron/js2c/renderer_init:2
-node:electron/js2c/renderer_init:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
-  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
-  this app to unnecessary security risks.
-
-For more information and help, consult
-https://electronjs.org/docs/tutorial/security.
-This warning will not show up
-once the app is packaged.
-warnAboutInsecureCSP @ node:electron/js2c/renderer_init:2
-FileEditorMain.tsx:381 渲染组件 - 当前状态: Object
-EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: false isReadOnly: false
-warning.js:30 Warning: [antd: Select] `dropdownClassName` is deprecated. Please use `popupClassName` instead.
-warning @ warning.js:30
-warning.js:30 Warning: [antd: Select] `dropdownMatchSelectWidth` is deprecated. Please use `popupMatchSelectWidth` instead.
-warning @ warning.js:30
-FileEditorMain.tsx:120 FileEditorMain组件挂载，开始初始化编辑器 Object
-FileEditorMain.tsx:128 编辑器容器已渲染，尺寸: Object
-FileEditorMain.tsx:168 开始初始化编辑器管理器 Object
-EditorContentManager.ts:106 [EditorContentManager] 实例已创建
-FileEditorMain.tsx:178 调用编辑器初始化方法 Object
-EditorManager.ts:268 [EditorManager] 开始初始化
-EditorManager.ts:271 [EditorManager] 开始创建编辑器实例
-EditorContentManager.ts:149 [EditorContentManager] 正在加载文件: /Service_TCP20241117_des.txt
-EditorContentManager.ts:122 [EditorContentManager] 获取文件信息: /Service_TCP20241117_des.txt
-FileEditorMain.tsx:784 editorState.isDirty状态变化: false
-FileEditorMain.tsx:381 渲染组件 - 当前状态: Object
-EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: false isReadOnly: false
-warning.js:30 Warning: [antd: Select] `dropdownClassName` is deprecated. Please use `popupClassName` instead.
-warning @ warning.js:30
-warning.js:30 Warning: [antd: Select] `dropdownMatchSelectWidth` is deprecated. Please use `popupMatchSelectWidth` instead.
-warning @ warning.js:30
-FileEditorMain.tsx:120 FileEditorMain组件挂载，开始初始化编辑器 Object
-FileEditorMain.tsx:128 编辑器容器已渲染，尺寸: Object
-FileEditorMain.tsx:168 开始初始化编辑器管理器 Object
-EditorContentManager.ts:106 [EditorContentManager] 实例已创建
-FileEditorMain.tsx:178 调用编辑器初始化方法 Object
-EditorManager.ts:268 [EditorManager] 开始初始化
-EditorManager.ts:271 [EditorManager] 开始创建编辑器实例
-EditorContentManager.ts:149 [EditorContentManager] 正在加载文件: /Service_TCP20241117_des.txt
-EditorContentManager.ts:122 [EditorContentManager] 获取文件信息: /Service_TCP20241117_des.txt
-FileEditorMain.tsx:784 editorState.isDirty状态变化: false
-EditorContentManager.ts:124 [EditorContentManager] 文件大小: 12929178
-EditorContentManager.ts:129 [EditorContentManager] 检测到大文件，将使用分块加载
-EditorManager.ts:176 [EditorManager] 检测到大文件: Object
-EditorContentManager.ts:302 [EditorContentManager] getLargeFileInfo: 初始化状态，将设置hasMore为true
-EditorManager.ts:179 [EditorManager] 大文件初始信息: Object
-EditorManager.ts:187 [EditorManager] 大文件状态更新: Object
-EditorContentManager.ts:154 [EditorContentManager] 文件较大，使用分块加载模式
-EditorContentManager.ts:217 [EditorContentManager] 开始加载文件块 - 起始位置: 0, 长度: 2097152, 文件总大小: 12929178
-EditorContentManager.ts:124 [EditorContentManager] 文件大小: 12929178
-EditorContentManager.ts:129 [EditorContentManager] 检测到大文件，将使用分块加载
-EditorManager.ts:176 [EditorManager] 检测到大文件: Object
-EditorContentManager.ts:302 [EditorContentManager] getLargeFileInfo: 初始化状态，将设置hasMore为true
-EditorManager.ts:179 [EditorManager] 大文件初始信息: Object
-EditorManager.ts:187 [EditorManager] 大文件状态更新: Object
-EditorContentManager.ts:154 [EditorContentManager] 文件较大，使用分块加载模式
-EditorContentManager.ts:217 [EditorContentManager] 开始加载文件块 - 起始位置: 0, 长度: 2097152, 文件总大小: 12929178
-EditorContentManager.ts:220 [EditorContentManager] 块加载成功 - 实际读取字节数: 65536, 总大小: 12929178, 内容长度: 65534
-EditorContentManager.ts:225 [EditorContentManager] 块加载后状态: loadedSize=65536, totalSize=12929178, hasMore=true, 差值=12863642 字节
-EditorManager.ts:204 [EditorManager] 块加载完成: {startPosition: 0, endPosition: 65536, bytesRead: 65536, totalSize: 12929178, hasMore: true}
-EditorManager.ts:223 [EditorManager] 更新大文件信息: {oldState: {…}, newState: {…}, hasChanged: true}
-EditorContentManager.ts:159 [EditorContentManager] 初始加载完成，已加载字节数: 65536
-EditorContentManager.ts:312 [EditorContentManager] getLargeFileInfo: loadedSize=65536, totalSize=12929178, hasMore=true, 差值=12863642 字节
-EditorManager.ts:277 [EditorManager] 初始化时检测到大文件: {loadedSize: 65536, totalSize: 12929178, hasMore: true, isComplete: false}
-EditorManager.ts:283 [EditorManager] 创建Monaco编辑器实例
-EditorManager.ts:305 [EditorManager] 编辑器实例创建完成
-EditorManager.ts:250 [EditorManager] 当前状态: {hasEditor: true, hasModel: false, modelDisposed: undefined, editorDomElement: div.monaco-editor.no-user-select.showUnused.showDeprecated.vs-dark, modelLanguage: undefined, …}
-EditorContentManager.ts:220 [EditorContentManager] 块加载成功 - 实际读取字节数: 65536, 总大小: 12929178, 内容长度: 65534
-EditorContentManager.ts:225 [EditorContentManager] 块加载后状态: loadedSize=65536, totalSize=12929178, hasMore=true, 差值=12863642 字节
-EditorManager.ts:204 [EditorManager] 块加载完成: {startPosition: 0, endPosition: 65536, bytesRead: 65536, totalSize: 12929178, hasMore: true}
-EditorManager.ts:223 [EditorManager] 更新大文件信息: {oldState: {…}, newState: {…}, hasChanged: true}
-EditorContentManager.ts:159 [EditorContentManager] 初始加载完成，已加载字节数: 65536
-EditorContentManager.ts:312 [EditorContentManager] getLargeFileInfo: loadedSize=65536, totalSize=12929178, hasMore=true, 差值=12863642 字节
-EditorManager.ts:277 [EditorManager] 初始化时检测到大文件: {loadedSize: 65536, totalSize: 12929178, hasMore: true, isComplete: false}
-EditorManager.ts:283 [EditorManager] 创建Monaco编辑器实例
-EditorManager.ts:305 [EditorManager] 编辑器实例创建完成
-EditorManager.ts:250 [EditorManager] 当前状态: {hasEditor: true, hasModel: false, modelDisposed: undefined, editorDomElement: div.monaco-editor.no-user-select.showUnused.showDeprecated.vs-dark, modelLanguage: undefined, …}
-EditorManager.ts:314 [EditorManager] 创建新模型
-EditorManager.ts:317 [EditorManager] 模型设置完成
-EditorManager.ts:250 [EditorManager] 当前状态: {hasEditor: true, hasModel: true, modelDisposed: false, editorDomElement: div.monaco-editor.no-user-select.showUnused.showDeprecated.vs-dark, modelLanguage: 'plaintext', …}
-EditorContentManager.ts:114 [EditorContentManager] 编辑器已设置
-EditorContentManager.ts:384 [EditorContentManager] 模型内容详细分析: {originalContentLength: 65534, newContentLength: 65533, contentLengthDiff: -1, newModelEOL: 'CRLF', origEndsWithCR: false, …}
-EditorContentManager.ts:401 [EditorContentManager] 模型替换: {oldModelExists: false, newModelExists: true, oldContentLength: 0, newContentLength: 65533, originalContentLength: 65534, …}
-EditorContentManager.ts:466 [EditorContentManager] 检测到大文件1字节差异，执行深入分析
-EditorContentManager.ts:469 [EditorContentManager] 大文件仅有1字节差异，认为内容等价
-EditorContentManager.ts:475 [EditorContentManager] 编辑器模型内容长度(65533)比原始内容长度(65534)多1字节
-EditorContentManager.ts:426 [EditorContentManager] 添加模型内容变化监听器
-EditorModeManager.ts:105 [EditorModeManager] 设置编辑器只读状态: true
-EditorManager.ts:329 [EditorManager] 强制重新布局
-EditorManager.ts:333 [EditorManager] 初始化完成，状态: {isDirty: false, encoding: 'UTF-8', cursorPosition: {…}, isLoading: false, error: null, …}
-EditorManager.ts:250 [EditorManager] 当前状态: {hasEditor: true, hasModel: true, modelDisposed: false, editorDomElement: div.monaco-editor.no-user-select.showUnused.showDeprecated.vs-dark, modelLanguage: 'plaintext', …}
-FileEditorMain.tsx:183 编辑器初始化完成
-FileEditorMain.tsx:187 初始化搜索管理器
-FileEditorMain.tsx:190 初始化过滤管理器
-FileEditorMain.tsx:194 设置编辑器滚动事件监听器
-FileEditorMain.tsx:681 编辑器事件监听器设置完成
-FileEditorMain.tsx:273 初始化完成后的完整编辑器状态: {isLargeFile: true, largeFileInfo: {…}, complete: {…}}
-FileEditorMain.tsx:280 编辑器状态已更新 {isDirty: false, encoding: 'UTF-8', cursorPosition: {…}, isLoading: false, error: null, …}
-EditorManager.ts:314 [EditorManager] 创建新模型
-EditorManager.ts:317 [EditorManager] 模型设置完成
-EditorManager.ts:250 [EditorManager] 当前状态: {hasEditor: true, hasModel: true, modelDisposed: false, editorDomElement: div.monaco-editor.no-user-select.showUnused.showDeprecated.vs-dark, modelLanguage: 'plaintext', …}
-EditorContentManager.ts:114 [EditorContentManager] 编辑器已设置
-EditorContentManager.ts:384 [EditorContentManager] 模型内容详细分析: {originalContentLength: 65534, newContentLength: 65533, contentLengthDiff: -1, newModelEOL: 'CRLF', origEndsWithCR: false, …}
-EditorContentManager.ts:401 [EditorContentManager] 模型替换: {oldModelExists: false, newModelExists: true, oldContentLength: 0, newContentLength: 65533, originalContentLength: 65534, …}
-EditorContentManager.ts:466 [EditorContentManager] 检测到大文件1字节差异，执行深入分析
-EditorContentManager.ts:469 [EditorContentManager] 大文件仅有1字节差异，认为内容等价
-EditorContentManager.ts:475 [EditorContentManager] 编辑器模型内容长度(65533)比原始内容长度(65534)多1字节
-EditorContentManager.ts:426 [EditorContentManager] 添加模型内容变化监听器
-EditorModeManager.ts:105 [EditorModeManager] 设置编辑器只读状态: true
-EditorManager.ts:329 [EditorManager] 强制重新布局
-EditorManager.ts:333 [EditorManager] 初始化完成，状态: {isDirty: false, encoding: 'UTF-8', cursorPosition: {…}, isLoading: false, error: null, …}
-EditorManager.ts:250 [EditorManager] 当前状态: {hasEditor: true, hasModel: true, modelDisposed: false, editorDomElement: div.monaco-editor.no-user-select.showUnused.showDeprecated.vs-dark, modelLanguage: 'plaintext', …}
-FileEditorMain.tsx:183 编辑器初始化完成
-FileEditorMain.tsx:187 初始化搜索管理器
-FileEditorMain.tsx:190 初始化过滤管理器
-FileEditorMain.tsx:194 设置编辑器滚动事件监听器
-FileEditorMain.tsx:681 编辑器事件监听器设置完成
-FileEditorMain.tsx:273 初始化完成后的完整编辑器状态: {isLargeFile: true, largeFileInfo: {…}, complete: {…}}
-FileEditorMain.tsx:280 编辑器状态已更新 {isDirty: false, encoding: 'UTF-8', cursorPosition: {…}, isLoading: false, error: null, …}
-FileEditorMain.tsx:381 渲染组件 - 当前状态: {isLoading: false, error: null, isDirty: false, hasEditor: true, hasContainer: true}
-EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: false isReadOnly: false
-FileEditorMain.tsx:381 渲染组件 - 当前状态: {isLoading: false, error: null, isDirty: false, hasEditor: true, hasContainer: true}
-EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: false isReadOnly: false
-FileEditorMain.tsx:203 滚动位置: 0.33, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.32, 接近底部: false
-2FileEditorMain.tsx:203 滚动位置: 0.26, 接近底部: false
-2FileEditorMain.tsx:203 滚动位置: 0.27, 接近底部: false
-2FileEditorMain.tsx:203 滚动位置: 0.28, 接近底部: false
-3FileEditorMain.tsx:203 滚动位置: 0.29, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.30, 接近底部: false
-3FileEditorMain.tsx:203 滚动位置: 0.31, 接近底部: false
-2FileEditorMain.tsx:203 滚动位置: 0.32, 接近底部: false
-2FileEditorMain.tsx:203 滚动位置: 0.33, 接近底部: false
-2FileEditorMain.tsx:203 滚动位置: 0.35, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.36, 接近底部: false
-3FileEditorMain.tsx:203 滚动位置: 0.37, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.38, 接近底部: false
-2FileEditorMain.tsx:203 滚动位置: 0.39, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.40, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.44, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.45, 接近底部: false
-2FileEditorMain.tsx:203 滚动位置: 0.46, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.47, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.48, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.49, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.50, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.51, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.59, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.60, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.61, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.62, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.64, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.65, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.66, 接近底部: false
-FileEditorMain.tsx:203 滚动位置: 0.87, 接近底部: true
-FileEditorMain.tsx:214 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: false, loadedSize: 65536, totalSize: 12929178, …}
-FileEditorMain.tsx:223 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: undefined, isLoading: false, loadedSize: undefined, totalSize: undefined, …}
-FileEditorMain.tsx:234 滚动触发加载更多内容 (基于EditorManager状态)
-FileEditorMain.tsx:307 加载更多内容 - 当前编辑器状态: {isLargeFile: true, hasMore: true, isLoading: false, loadedSize: 65536, totalSize: 12929178}
-FileEditorMain.tsx:335 开始加载更多内容...
-FileEditorMain.tsx:351 加载更多内容：起始位置 65536，大小 524288 字节，总大小 12929178 字节，剩余 12863642 字节
-FileEditorMain.tsx:353 调用 EditorManager.loadMoreContent()...
+FileEditorMain.tsx:204 滚动位置: 0.04, 接近底部: false
+3FileEditorMain.tsx:204 滚动位置: 0.05, 接近底部: false
+4FileEditorMain.tsx:204 滚动位置: 0.06, 接近底部: false
+3FileEditorMain.tsx:204 滚动位置: 0.07, 接近底部: false
+4FileEditorMain.tsx:204 滚动位置: 0.08, 接近底部: false
+2FileEditorMain.tsx:204 滚动位置: 0.09, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.09, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.09, 接近底部: false
+3FileEditorMain.tsx:204 滚动位置: 0.10, 接近底部: false
+5FileEditorMain.tsx:204 滚动位置: 0.11, 接近底部: false
+5FileEditorMain.tsx:204 滚动位置: 0.12, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.15, 接近底部: false
+2FileEditorMain.tsx:204 滚动位置: 0.16, 接近底部: false
+2FileEditorMain.tsx:204 滚动位置: 0.17, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.22, 接近底部: false
+2FileEditorMain.tsx:204 滚动位置: 0.23, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.24, 接近底部: false
+2FileEditorMain.tsx:204 滚动位置: 0.31, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.32, 接近底部: false
+2FileEditorMain.tsx:204 滚动位置: 0.33, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.34, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.42, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.43, 接近底部: false
+2FileEditorMain.tsx:204 滚动位置: 0.44, 接近底部: false
+2FileEditorMain.tsx:204 滚动位置: 0.53, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.54, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.55, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.56, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.63, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.64, 接近底部: false
+2FileEditorMain.tsx:204 滚动位置: 0.65, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.66, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.67, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.75, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.77, 接近底部: false
+2FileEditorMain.tsx:204 滚动位置: 0.78, 接近底部: false
+2FileEditorMain.tsx:204 滚动位置: 0.80, 接近底部: false
+FileEditorMain.tsx:204 滚动位置: 0.88, 接近底部: true
+FileEditorMain.tsx:218 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: false, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:226 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: true, isLoading: false, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:229 滚动触发加载更多内容 (基于EditorManager状态)
+FileEditorMain.tsx:293 加载更多内容 - 当前编辑器状态: {isLargeFile: true, hasMore: true, isLoading: false, loadedSize: 65536, totalSize: 11693059}
+FileEditorMain.tsx:311 开始加载更多内容...
+FileEditorMain.tsx:319 加载更多内容：起始位置 65536，大小 524288 字节，总大小 11693059 字节，剩余 11627523 字节
+FileEditorMain.tsx:320 调用 EditorManager.loadMoreContent()...
 EditorManager.ts:683 [EditorManager] 开始加载更多内容
-FileEditorMain.tsx:598 收到编辑器状态变化事件: {isDirty: false, mode: 'browse', isLoading: true, isLargeFile: true, largeFileInfo: {…}}
-FileEditorMain.tsx:611 isLargeFile 状态从 false 变为 true
-FileEditorMain.tsx:615 largeFileInfo 状态变化: {old: undefined, new: {…}}
-EditorContentManager.ts:217 [EditorContentManager] 开始加载文件块 - 起始位置: 65536, 长度: 1048576, 文件总大小: 12929178
-FileEditorMain.tsx:203 滚动位置: 0.90, 接近底部: true
-FileEditorMain.tsx:214 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 12929178, …}
-FileEditorMain.tsx:223 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: undefined, isLoading: false, loadedSize: undefined, totalSize: undefined, …}
-FileEditorMain.tsx:248 当前正在加载内容，忽略滚动加载请求
-FileEditorMain.tsx:203 滚动位置: 0.92, 接近底部: true
-FileEditorMain.tsx:214 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 12929178, …}
-FileEditorMain.tsx:223 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: undefined, isLoading: false, loadedSize: undefined, totalSize: undefined, …}
-FileEditorMain.tsx:248 当前正在加载内容，忽略滚动加载请求
-FileEditorMain.tsx:203 滚动位置: 1.00, 接近底部: true
-FileEditorMain.tsx:214 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 12929178, …}
-FileEditorMain.tsx:223 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: undefined, isLoading: false, loadedSize: undefined, totalSize: undefined, …}
-FileEditorMain.tsx:248 当前正在加载内容，忽略滚动加载请求
-FileEditorMain.tsx:381 渲染组件 - 当前状态: {isLoading: true, error: null, isDirty: false, hasEditor: true, hasContainer: true}
+EditorManager.ts:687 [EditorManager] 加载前状态: 内容长度=23441, 行数=894
+FileEditorMain.tsx:573 收到编辑器状态变化事件: {isDirty: false, mode: 'browse', isLoading: true, isLargeFile: true, largeFileInfo: {…}}
+FileEditorMain.tsx:586 isLargeFile 状态从 false 变为 true
+FileEditorMain.tsx:590 largeFileInfo 状态变化: {old: undefined, new: {…}}
+EditorContentManager.ts:217 [EditorContentManager] 开始加载文件块 - 起始位置: 65536, 长度: 1048576, 文件总大小: 11693059
+FileEditorMain.tsx:204 滚动位置: 0.90, 接近底部: true
+FileEditorMain.tsx:218 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:226 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:229 滚动触发加载更多内容 (基于EditorManager状态)
+FileEditorMain.tsx:293 加载更多内容 - 当前编辑器状态: {isLargeFile: true, hasMore: true, isLoading: true, loadedSize: 65536, totalSize: 11693059}
+FileEditorMain.tsx:302 当前正在加载，忽略加载请求
+FileEditorMain.tsx:204 滚动位置: 0.92, 接近底部: true
+FileEditorMain.tsx:218 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:226 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:229 滚动触发加载更多内容 (基于EditorManager状态)
+FileEditorMain.tsx:293 加载更多内容 - 当前编辑器状态: {isLargeFile: true, hasMore: true, isLoading: true, loadedSize: 65536, totalSize: 11693059}
+FileEditorMain.tsx:302 当前正在加载，忽略加载请求
+FileEditorMain.tsx:204 滚动位置: 0.93, 接近底部: true
+FileEditorMain.tsx:218 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:226 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:229 滚动触发加载更多内容 (基于EditorManager状态)
+FileEditorMain.tsx:293 加载更多内容 - 当前编辑器状态: {isLargeFile: true, hasMore: true, isLoading: true, loadedSize: 65536, totalSize: 11693059}
+FileEditorMain.tsx:302 当前正在加载，忽略加载请求
+FileEditorMain.tsx:204 滚动位置: 0.94, 接近底部: true
+FileEditorMain.tsx:218 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:226 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:229 滚动触发加载更多内容 (基于EditorManager状态)
+FileEditorMain.tsx:293 加载更多内容 - 当前编辑器状态: {isLargeFile: true, hasMore: true, isLoading: true, loadedSize: 65536, totalSize: 11693059}
+FileEditorMain.tsx:302 当前正在加载，忽略加载请求
+FileEditorMain.tsx:204 滚动位置: 0.95, 接近底部: true
+FileEditorMain.tsx:218 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:226 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:229 滚动触发加载更多内容 (基于EditorManager状态)
+FileEditorMain.tsx:293 加载更多内容 - 当前编辑器状态: {isLargeFile: true, hasMore: true, isLoading: true, loadedSize: 65536, totalSize: 11693059}
+FileEditorMain.tsx:302 当前正在加载，忽略加载请求
+FileEditorMain.tsx:356 渲染组件 - 当前状态: {isLoading: true, error: null, isDirty: false, hasEditor: true, hasContainer: true}
 EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: false isReadOnly: false
-EditorContentManager.ts:220 [EditorContentManager] 块加载成功 - 实际读取字节数: 65536, 总大小: 12929178, 内容长度: 65536
-EditorContentManager.ts:225 [EditorContentManager] 块加载后状态: loadedSize=131072, totalSize=12929178, hasMore=true, 差值=12798106 字节
-EditorManager.ts:204 [EditorManager] 块加载完成: {startPosition: 65536, endPosition: 131072, bytesRead: 65536, totalSize: 12929178, hasMore: true}
+FileEditorMain.tsx:204 滚动位置: 1.00, 接近底部: true
+FileEditorMain.tsx:218 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:226 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 65536, totalSize: 11693059, …}
+FileEditorMain.tsx:229 滚动触发加载更多内容 (基于EditorManager状态)
+FileEditorMain.tsx:293 加载更多内容 - 当前编辑器状态: {isLargeFile: true, hasMore: true, isLoading: true, loadedSize: 65536, totalSize: 11693059}
+FileEditorMain.tsx:302 当前正在加载，忽略加载请求
+EditorContentManager.ts:220 [EditorContentManager] 块加载成功 - 实际读取字节数: 65536, 总大小: 11693059, 内容长度: 23445
+EditorContentManager.ts:225 [EditorContentManager] 块加载后状态: loadedSize=131072, totalSize=11693059, hasMore=true, 差值=11561987 字节
+EditorContentManager.ts:229 [EditorContentManager] 检查是否可以追加内容: start=65536, currentLength=23441, 差异=42095
+EditorContentManager.ts:267 [EditorContentManager] 无法追加内容，起始位置(65536)与当前内容长度(23441)不匹配
+loadChunk @ EditorContentManager.ts:267
+await in loadChunk (async)
+loadMoreContent @ EditorManager.ts:696
+(anonymous) @ FileEditorMain.tsx:322
+(anonymous) @ FileEditorMain.tsx:230
+_deliver @ event.js:881
+_deliverQueue @ event.js:892
+fire @ event.js:916
+(anonymous) @ codeEditorWidget.js:1174
+_deliver @ event.js:881
+fire @ event.js:911
+_emitOutgoingEvents @ viewModelEventDispatcher.js:44
+emitOutgoingEvent @ viewModelEventDispatcher.js:21
+(anonymous) @ viewModelImpl.js:68
+_deliver @ event.js:881
+_deliverQueue @ event.js:892
+fire @ event.js:916
+_setState @ scrollable.js:230
+setScrollPositionNow @ scrollable.js:151
+setScrollPositionNow @ viewLayout.js:94
+setScrollPosition @ viewLayout.js:339
+setScrollTop @ minimap.js:841
+handlePointerMove @ minimap.js:957
+(anonymous) @ minimap.js:962
+(anonymous) @ globalPointerMoveMonitor.js:76
+EditorContentManager.ts:275 [EditorContentManager] 尝试填充空格后追加内容
+FileEditorMain.tsx:204 滚动位置: 0.71, 接近底部: false
+EditorContentManager.ts:510 [EditorContentManager] 内容长度差异大于3，认为内容已修改: 24444
+EditorContentManager.ts:561 [EditorContentManager] 大文件差异分析，采用抽样比较策略
+EditorContentManager.ts:465 [EditorContentManager] 内容变化导致脏状态变化: {currentLength: 47886, originalLength: 23442, isDirty: true, previousIsDirty: false, difference: '文件开头区域差异，位置 0: \n            原始: [好的，以下是根据你的] 编码: […,30340,65292,20197,19979,26159,26681,25454,20320]'}
+EditorManager.ts:103 [EditorManager] 收到内容变化事件，isDirty: true
+EditorManager.ts:110 [EditorManager] 发出状态变化事件，新状态: {isDirty: true, encoding: 'UTF-8', cursorPosition: {…}, isLoading: true, error: null, …}
+FileEditorMain.tsx:573 收到编辑器状态变化事件: {isDirty: true, mode: 'browse', isLoading: true, isLargeFile: true, largeFileInfo: {…}}
+FileEditorMain.tsx:586 isLargeFile 状态从 false 变为 true
+FileEditorMain.tsx:590 largeFileInfo 状态变化: {old: undefined, new: {…}}
+EditorContentManager.ts:282 [EditorContentManager] 填充并追加内容完成，填充了 1000 个空格
+EditorManager.ts:204 [EditorManager] 块加载完成: {startPosition: 65536, endPosition: 131072, bytesRead: 65536, totalSize: 11693059, hasMore: true}
 EditorManager.ts:223 [EditorManager] 更新大文件信息: {oldState: {…}, newState: {…}, hasChanged: true}
-FileEditorMain.tsx:598 收到编辑器状态变化事件: {isDirty: false, mode: 'browse', isLoading: true, isLargeFile: true, largeFileInfo: {…}}
-FileEditorMain.tsx:611 isLargeFile 状态从 false 变为 true
-FileEditorMain.tsx:615 largeFileInfo 状态变化: {old: undefined, new: {…}}
-FileEditorMain.tsx:655 块加载完成: {startPosition: 65536, endPosition: 131072, bytesRead: 65536, totalSize: 12929178, hasMore: true}
-EditorManager.ts:693 [EditorManager] 加载更多内容成功 {content: '"level":2,"function_name":"","account_id":"0","app…1d7fb0b81c92eb64e5e7099e4f3cdace2b105896c6002ccbc', startPosition: 65536, endPosition: 131072, totalSize: 12929178, bytesRead: 65536, …}
-EditorManager.ts:696 [EditorManager] 刷新编辑器布局以确保内容显示
-FileEditorMain.tsx:203 滚动位置: 1.00, 接近底部: true
-FileEditorMain.tsx:214 滚动接近底部，状态诊断 (来自EditorManager): {isNearBottom: true, hasMoreContent: true, isLoading: true, loadedSize: 131072, totalSize: 12929178, …}
-FileEditorMain.tsx:223 滚动接近底部，状态诊断 (来自React): {isNearBottom: true, hasMoreContent: undefined, isLoading: false, loadedSize: undefined, totalSize: undefined, …}
-FileEditorMain.tsx:248 当前正在加载内容，忽略滚动加载请求
-FileEditorMain.tsx:598 收到编辑器状态变化事件: {isDirty: false, mode: 'browse', isLoading: false, isLargeFile: true, largeFileInfo: {…}}isDirty: falseisLargeFile: trueisLoading: falselargeFileInfo: {loadedSize: 131072, totalSize: 12929178, hasMore: true}mode: "browse"[[Prototype]]: Object
-FileEditorMain.tsx:611 isLargeFile 状态从 false 变为 true
-FileEditorMain.tsx:615 largeFileInfo 状态变化: {old: undefined, new: {…}}
-FileEditorMain.tsx:625 状态更新后检测到可加载更多内容
-EditorManager.ts:711 [EditorManager] 更新大文件状态: {loadedSize: 131072, totalSize: 12929178, hasMore: true}
-FileEditorMain.tsx:355 加载更多内容完成，结果: true
-FileEditorMain.tsx:359 加载后的编辑器状态: {isLargeFile: true, largeFileInfo: {…}}
-FileEditorMain.tsx:381 渲染组件 - 当前状态: {isLoading: false, error: null, isDirty: false, hasEditor: true, hasContainer: true}
-EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: false isReadOnly: false
-FileEditorMain.tsx:381 渲染组件 - 当前状态: {isLoading: false, error: null, isDirty: false, hasEditor: true, hasContainer: true}
-EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: false isReadOnly: false
+FileEditorMain.tsx:573 收到编辑器状态变化事件: {isDirty: true, mode: 'browse', isLoading: true, isLargeFile: true, largeFileInfo: {…}}
+FileEditorMain.tsx:586 isLargeFile 状态从 false 变为 true
+FileEditorMain.tsx:590 largeFileInfo 状态变化: {old: undefined, new: {…}}
+FileEditorMain.tsx:630 块加载完成: {startPosition: 65536, endPosition: 131072, bytesRead: 65536, totalSize: 11693059, hasMore: true}
+EditorManager.ts:697 [EditorManager] 加载更多内容成功 {content: '了前世强大的功法和法宝，实力大增。\r\n\r\n好的，以下是根据你的设定创作的玄幻小说章节，主角名为李凡，…部存在一些黑暗势力，他决定挑战这些势力，揭露他们的阴谋。\r\n- **神秘的传承**：李凡在修炼过�', startPosition: 65536, endPosition: 131072, totalSize: 11693059, bytesRead: 65536, …}
+EditorManager.ts:703 [EditorManager] 加载后状态: 内容长度=47886, 行数=1789, 内容增加=true, 行数增加=true
+FileEditorMain.tsx:573 收到编辑器状态变化事件: {isDirty: true, mode: 'browse', isLoading: false, isLargeFile: true, largeFileInfo: {…}}
+FileEditorMain.tsx:586 isLargeFile 状态从 false 变为 true
+FileEditorMain.tsx:590 largeFileInfo 状态变化: {old: undefined, new: {…}}
+FileEditorMain.tsx:600 状态更新后检测到可加载更多内容
+EditorManager.ts:735 [EditorManager] 更新大文件状态: {loadedSize: 131072, totalSize: 11693059, hasMore: true}
+FileEditorMain.tsx:323 加载更多内容完成，结果: true
+FileEditorMain.tsx:326 加载后的编辑器状态: {isLargeFile: true, largeFileInfo: {…}, 增加的行数: 895}
+FileEditorMain.tsx:356 渲染组件 - 当前状态: {isLoading: false, error: null, isDirty: true, hasEditor: true, hasContainer: true}
+EditorToolbar.tsx:51 渲染EditorToolbar组件，isDirty: true isReadOnly: false
+FileEditorMain.tsx:759 editorState.isDirty状态变化: true

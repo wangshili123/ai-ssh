@@ -504,7 +504,10 @@ export class EditorContentManager extends EventEmitter {
       // 保存监听器的disposable对象，以便后续清理
       this.contentChangeDisposable = this.model.onDidChangeContent(() => {
         if (!this.model) return;
-        
+        if(this.activeMode === EditorMode.BROWSE){
+          console.log('[EditorContentManager] 浏览模式下，不处理内容变化');
+          return;
+        }
         const currentContent = this.model.getValue();
         
         // 使用内容等价性检查而非完全相等
