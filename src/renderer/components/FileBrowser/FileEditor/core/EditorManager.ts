@@ -67,7 +67,9 @@ export class EditorManager extends EventEmitter {
     showLoadCompletePrompt: false,
     isRefreshing: false,
     isSaving: false,
-    mode: EditorMode.BROWSE
+    mode: EditorMode.BROWSE,
+    isLargeFile: false,
+    largeFileInfo: undefined
   };
 
   // 会话和文件信息
@@ -192,21 +194,76 @@ export class EditorManager extends EventEmitter {
     // 添加大文件相关事件转发
     this.contentManager.on(EditorEvents.LARGE_FILE_DETECTED, (data) => {
       console.log('[EditorManager] 检测到大文件:', data);
-      this.state.isLargeFile = true;
-      this.state.showLoadCompletePrompt = true;
-      this.emit('stateChanged', this.state);
+      
+      // 获取大文件信息并正确初始化largeFileInfo
+      const largeFileInfo = this.contentManager.getLargeFileInfo();
+      console.log('[EditorManager] 大文件初始信息:', largeFileInfo);
+      
+      // 创建新状态对象并明确设置大文件相关属性
+      const newState = {
+        ...this.state,
+        isLargeFile: true,  // 明确设置为 true
+        showLoadCompletePrompt: true,
+        largeFileInfo  // 设置完整的大文件信息
+      };
+      
+      console.log('[EditorManager] 大文件状态更新:', {
+        oldState: {
+          isLargeFile: this.state.isLargeFile,
+          largeFileInfo: this.state.largeFileInfo
+        },
+        newState: {
+          isLargeFile: newState.isLargeFile,
+          largeFileInfo: newState.largeFileInfo
+        }
+      });
+      
+      // 更新状态
+      this.state = newState;
+      
+      // 触发状态变化事件
+      this.emit('stateChanged', newState);
       this.emit(EditorEvents.LARGE_FILE_DETECTED, data);
     });
     
     this.contentManager.on(EditorEvents.CHUNK_LOADED, (data) => {
       console.log('[EditorManager] 块加载完成:', data);
-      // 更新大文件信息
-      this.state.largeFileInfo = {
+      
+      // 创建新的大文件信息对象
+      const newLargeFileInfo = {
         loadedSize: data.endPosition,
         totalSize: data.totalSize,
         hasMore: data.hasMore
       };
-      this.emit('stateChanged', this.state);
+      
+      // 检查大文件信息是否有变化
+      const hasInfoChanged = !this.state.largeFileInfo || 
+        this.state.largeFileInfo.loadedSize !== newLargeFileInfo.loadedSize ||
+        this.state.largeFileInfo.totalSize !== newLargeFileInfo.totalSize ||
+        this.state.largeFileInfo.hasMore !== newLargeFileInfo.hasMore;
+      
+      // 创建新状态对象
+      const newState = {
+        ...this.state,
+        isLargeFile: true,  // 确保设置为 true
+        largeFileInfo: newLargeFileInfo
+      };
+      
+      // 记录状态变化详情
+      console.log('[EditorManager] 更新大文件信息:', {
+        oldState: this.state.largeFileInfo,
+        newState: newState.largeFileInfo,
+        hasChanged: hasInfoChanged
+      });
+      
+      if (hasInfoChanged) {
+        // 更新状态引用
+        this.state = newState;
+        
+        // 触发状态变化事件
+        this.emit('stateChanged', newState);
+      }
+      
       this.emit(EditorEvents.CHUNK_LOADED, data);
     });
     
@@ -252,6 +309,16 @@ export class EditorManager extends EventEmitter {
       
       // 加载文件内容
       const content = await this.contentManager.loadContent();
+      
+      // 检查是否为大文件，并确保状态正确
+      if (this.contentManager.getIsLargeFile()) {
+        const largeFileInfo = this.contentManager.getLargeFileInfo();
+        console.log('[EditorManager] 初始化时检测到大文件:', largeFileInfo);
+        
+        // 更新状态
+        this.state.isLargeFile = true;
+        this.state.largeFileInfo = largeFileInfo;
+      }
       
       // 创建编辑器实例
       console.log('[EditorManager] 创建Monaco编辑器实例');
@@ -697,18 +764,94 @@ export class EditorManager extends EventEmitter {
    */
   public async loadMoreContent(): Promise<boolean> {
     if (!this.state.isLargeFile || !this.state.largeFileInfo?.hasMore) {
-      console.log('[EditorManager] 没有更多内容需要加载');
+      console.log('[EditorManager] 没有更多内容需要加载', {
+        isLargeFile: this.state.isLargeFile,
+        hasMore: this.state.largeFileInfo?.hasMore,
+        largeFileInfo: this.state.largeFileInfo
+      });
       return false;
     }
     
     try {
       console.log('[EditorManager] 开始加载更多内容');
-      const loadedSize = this.state.largeFileInfo.loadedSize;
-      await this.contentManager.loadChunk(loadedSize);
-      return true;
+      
+      // 记录加载前的内容状态
+      const beforeLoadContentLength = this.model?.getValue().length || 0;
+      const beforeLoadLineCount = this.model?.getLineCount() || 0;
+      console.log(`[EditorManager] 加载前状态: 内容长度=${beforeLoadContentLength}, 行数=${beforeLoadLineCount}`);
+      
+      // 更新状态为加载中
+      const loadingState = {
+        ...this.state,
+        isLoading: true
+      };
+      this.state = loadingState;
+      this.emit('stateChanged', loadingState);
+      
+      const loadedSize = this.state.largeFileInfo?.loadedSize || 0;
+      const result = await this.contentManager.loadChunk(loadedSize);
+      
+      console.log('[EditorManager] 加载更多内容成功', result);
+      
+      // 验证内容是否真的增加了
+      const afterLoadContentLength = this.model?.getValue().length || 0;
+      const afterLoadLineCount = this.model?.getLineCount() || 0;
+      const contentIncreased = afterLoadContentLength > beforeLoadContentLength;
+      const linesIncreased = afterLoadLineCount > beforeLoadLineCount;
+      
+      console.log(`[EditorManager] 加载后状态: 内容长度=${afterLoadContentLength}, 行数=${afterLoadLineCount}, 内容增加=${contentIncreased}, 行数增加=${linesIncreased}`);
+      
+      // 如果内容没有增加但应该增加，尝试强制刷新
+      if (!contentIncreased && result.bytesRead > 0) {
+        console.warn('[EditorManager] 加载内容后编辑器没有显示新内容，尝试强制刷新');
+        
+        // 更复杂的强制刷新机制
+        if (this.editor) {
+          // 1. 强制布局刷新
+          this.editor.layout();
+          
+          // 2. 强制滚动到底部然后回来，触发重绘
+          const currentScrollTop = this.editor.getScrollTop();
+          this.editor.setScrollTop(this.editor.getScrollTop() + 100);
+          setTimeout(() => {
+            if (this.editor) {
+              this.editor.setScrollTop(currentScrollTop);
+            }
+          }, 50);
+          
+          // 3. 聚焦编辑器，可能触发重绘
+          this.editor.focus();
+        }
+      }
+      
+      // 主动更新状态（即使事件已经更新了状态，这里再次确保）
+      const newState = {
+        ...this.state,
+        isLoading: false,
+        largeFileInfo: {
+          loadedSize: result.endPosition,
+          totalSize: result.totalSize,
+          hasMore: result.hasMore
+        }
+      };
+      this.state = newState;
+      this.emit('stateChanged', newState);
+      console.log('[EditorManager] 更新大文件状态:', newState.largeFileInfo);
+      
+      return contentIncreased || linesIncreased; // 返回是否真的有内容增加
     } catch (error) {
       console.error('[EditorManager] 加载更多内容失败:', error);
-      this.setError(error as Error);
+      
+      // 更新加载状态
+      const errorState = {
+        ...this.state,
+        isLoading: false,
+        error: error instanceof Error ? error : new Error(String(error))
+      };
+      this.state = errorState;
+      this.emit('stateChanged', errorState);
+      this.emit('error', errorState.error);
+      
       return false;
     }
   }

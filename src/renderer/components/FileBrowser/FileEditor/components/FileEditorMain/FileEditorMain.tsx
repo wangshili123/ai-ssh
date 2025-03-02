@@ -82,7 +82,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
   const tab = tabStore.getTab(tabId);
   
   // 编辑器实例引用
-  const editorRef = useRef<EditorManager | null>(null);
+  const editorManagerRef = useRef<EditorManager | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
   // 管理器实例
@@ -144,9 +144,9 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     
     return () => {
       console.log('FileEditorMain组件卸载，清理资源');
-      if (editorRef.current) {
-        editorRef.current.destroy();
-        editorRef.current = null;
+      if (editorManagerRef.current) {
+        editorManagerRef.current.destroy();
+        editorManagerRef.current = null;
       }
       // 清理搜索和过滤管理器
       if (searchManager) {
@@ -169,7 +169,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
   // 初始化编辑器
   const initializeEditor = async () => {
     // 如果编辑器已经初始化，则不再重复初始化
-    if (editorRef.current) {
+    if (editorManagerRef.current) {
       console.log('编辑器已经初始化，跳过重复初始化');
       return;
     }
@@ -183,7 +183,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
       
       // 创建编辑器管理器
       const manager = new EditorManager(sessionId, filePath);
-      editorRef.current = manager;
+      editorManagerRef.current = manager;
       
       // 初始化编辑器
       if (containerRef.current) {
@@ -214,19 +214,58 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
             const scrollHeight = e.scrollHeight;
             const viewPortHeight = editor.getLayoutInfo().height;
             
-            // 检查是否已滚动到内容底部的20%范围内
-            const scrollPercentage = (scrollTop + viewPortHeight) / scrollHeight;
-            const isNearBottom = scrollPercentage > 0.8;
+            // 计算滚动位置百分比
+            const scrollPosition = (scrollTop + viewPortHeight) / scrollHeight;
+            const isNearBottom = scrollPosition > 0.85; // 当滚动到85%以上时认为接近底部
             
-            console.log(`滚动位置: ${scrollPercentage.toFixed(2)}, 接近底部: ${isNearBottom}`);
+            // 记录滚动位置日志
+            console.log(`滚动位置: ${scrollPosition.toFixed(2)}, 接近底部: ${isNearBottom}`);
             
-            // 如果接近底部且有更多内容可加载，且当前没有正在加载内容
-            if (isNearBottom && 
-                editorState.largeFileInfo?.hasMore && 
-                !editorState.isLoading) {
+            // 如果接近底部，检查是否需要加载更多内容
+            if (isNearBottom && editorManagerRef.current) {
+              // 获取编辑器管理器当前状态，直接从引用获取
+              const editorState = editorManagerRef.current.getState();
               
-              console.log('滚动触发加载更多内容');
-              loadMoreContent();
+              // 获取编辑器React状态
+              const reactState = {
+                isNearBottom,
+                hasMoreContent: editorState.largeFileInfo?.hasMore,
+                isLoading: editorState.isLoading,
+                loadedSize: editorState.largeFileInfo?.loadedSize,
+                totalSize: editorState.largeFileInfo?.totalSize,
+                isLargeFile: editorState.isLargeFile,
+              };
+              
+              console.log(`滚动接近底部，状态诊断 (来自EditorManager):`, {
+                isNearBottom,
+                hasMoreContent: editorState.largeFileInfo?.hasMore,
+                isLoading: editorState.isLoading,
+                loadedSize: editorState.largeFileInfo?.loadedSize,
+                totalSize: editorState.largeFileInfo?.totalSize,
+                isLargeFile: editorState.isLargeFile,
+              });
+              
+              console.log(`滚动接近底部，状态诊断 (来自React):`, reactState);
+              
+              // 如果是大文件，且有更多内容可加载
+              if (editorState.isLargeFile && editorState.largeFileInfo?.hasMore) {
+                console.log(`滚动触发加载更多内容 (基于EditorManager状态)`);
+                loadMoreContent();
+              } else if (editorState.isLargeFile && editorState.largeFileInfo?.hasMore) {
+                console.log(`滚动触发加载更多内容 (基于React状态)`);
+                loadMoreContent();
+              } else if (!editorState.isLargeFile) {
+                console.log(`非大文件，无需加载更多内容`);
+              } else {
+                // 状态不一致的情况
+                if (editorState.isLargeFile !== editorState.isLargeFile) {
+                  console.warn(`状态不一致: EditorManager.isLargeFile=${editorState.isLargeFile}, React.isLargeFile=${editorState.isLargeFile}`);
+                }
+                
+                if (editorState.largeFileInfo?.hasMore !== editorState.largeFileInfo?.hasMore) {
+                  console.warn(`状态不一致: EditorManager.hasMore=${editorState.largeFileInfo?.hasMore}, React.hasMore=${editorState.largeFileInfo?.hasMore}`);
+                }
+              }
             }
           });
         }
@@ -237,9 +276,17 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
       // 设置事件监听
       setupEventListeners(manager);
       
+      // 获取最新的编辑器状态
+      const currentState = manager.getState();
+      console.log('初始化完成后的完整编辑器状态:', {
+        isLargeFile: currentState.isLargeFile,
+        largeFileInfo: currentState.largeFileInfo,
+        complete: currentState
+      });
+      
       // 更新状态
-      setEditorState(manager.getState());
-      console.log('编辑器状态已更新', manager.getState());
+      setEditorState(currentState);
+      console.log('编辑器状态已更新', currentState);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('初始化编辑器失败:', errorMessage, error);
@@ -248,60 +295,97 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
         error: new Error(`初始化编辑器失败: ${errorMessage}`)
       }));
       // 清理失败的初始化
-      if (editorRef.current) {
-        editorRef.current.destroy();
-        editorRef.current = null;
+      if (editorManagerRef.current) {
+        editorManagerRef.current.destroy();
+        editorManagerRef.current = null;
       }
     }
   };
 
-  // 加载更多内容函数
+  /**
+   * 加载更多内容
+   * 用于大文件滚动加载时调用
+   */
   const loadMoreContent = useCallback(async () => {
-    if (!editorRef.current || editorState.isLoading) {
+    if (!editorManagerRef.current) {
+      console.error('编辑器管理器不存在，无法加载更多内容');
       return;
     }
     
-    // 标记为正在加载
-    dispatch({ type: 'SET_LOADING', loading: true });
+    // 获取当前编辑器状态
+    const currentEditorState = editorManagerRef.current.getState();
+    
+    console.log('加载更多内容 - 当前编辑器状态:', {
+      isLargeFile: currentEditorState.isLargeFile,
+      hasMore: currentEditorState.largeFileInfo?.hasMore,
+      isLoading: currentEditorState.isLoading,
+      loadedSize: currentEditorState.largeFileInfo?.loadedSize,
+      totalSize: currentEditorState.largeFileInfo?.totalSize
+    });
+    
+    // 如果当前正在加载，则不再触发加载
+    if (currentEditorState.isLoading) {
+      console.log('当前正在加载，忽略加载请求');
+      return;
+    }
+    
+    // 如果不是大文件或没有更多内容可加载，直接返回
+    if (!currentEditorState.isLargeFile || !currentEditorState.largeFileInfo?.hasMore) {
+      console.log('不是大文件或没有更多内容可加载，忽略加载请求');
+      return;
+    }
     
     try {
-      console.log('加载更多内容...');
+      console.log('开始加载更多内容...');
       
-      // 获取内容管理器
-      const contentManager = editorRef.current.getContentManager();
-      if (!contentManager) {
-        console.error('无法获取内容管理器');
-        return;
+      // 记录加载前的行数
+      const beforeLoadLineCount = editorManagerRef.current.getEditor()?.getModel()?.getLineCount() || 0;
+      
+      // 计算要加载的内容大小
+      const loadedSize = currentEditorState.largeFileInfo?.loadedSize || 0;
+      const totalSize = currentEditorState.largeFileInfo?.totalSize || 0;
+      const remainingSize = totalSize - loadedSize;
+      const chunkSize = Math.min(remainingSize, 1024 * 512); // 每次最多加载512KB
+      
+      console.log(`加载更多内容：起始位置 ${loadedSize}，大小 ${chunkSize} 字节，总大小 ${totalSize} 字节，剩余 ${remainingSize} 字节`);
+      
+      console.log('调用 EditorManager.loadMoreContent()...');
+      // 调用编辑器管理器加载更多内容
+      const result = await editorManagerRef.current.loadMoreContent();
+      
+      console.log('加载更多内容完成，结果:', result);
+      
+      // 记录加载后的行数
+      const afterLoadLineCount = editorManagerRef.current.getEditor()?.getModel()?.getLineCount() || 0;
+      
+      console.log('加载后的编辑器状态:', {
+        isLargeFile: editorManagerRef.current.getState().isLargeFile,
+        largeFileInfo: editorManagerRef.current.getState().largeFileInfo,
+        增加的行数: afterLoadLineCount - beforeLoadLineCount
+      });
+      
+      // 如果加载成功但没有增加行数，尝试手动操作以触发重绘
+      if (result && afterLoadLineCount <= beforeLoadLineCount) {
+        console.warn('加载成功但内容没有更新，尝试强制刷新视图');
+        const editor = editorManagerRef.current.getEditor();
+        if (editor) {
+          // 先获取当前滚动位置
+          const currentScrollTop = editor.getScrollTop();
+          // 强制布局更新
+          editor.layout();
+          // 滚动一小段距离然后回来，可能触发重绘
+          editor.setScrollTop(currentScrollTop + 50);
+          setTimeout(() => {
+            if (editor) {
+              editor.setScrollTop(currentScrollTop);
+            }
+          }, 50);
+        }
       }
-      
-      // 获取已加载内容大小
-      const loadedSize = contentManager.getLoadedContentSize();
-      const totalSize = contentManager.getTotalContentSize();
-      
-      // 计算下一个块的大小（最大512KB）
-      const chunkSize = Math.min(512 * 1024, totalSize - loadedSize);
-      
-      if (chunkSize <= 0) {
-        console.log('没有更多内容可加载');
-        return;
-      }
-      
-      console.log(`加载更多内容：起始位置 ${loadedSize}，大小 ${chunkSize} 字节`);
-      
-      // 加载下一个块，只传递起始位置参数
-      await contentManager.loadChunk(loadedSize);
-      
-      console.log('加载更多内容完成');
-    } catch (error) {
-      console.error('加载更多内容失败:', error);
-      dispatch({ type: 'SET_ERROR', error: new Error(`加载更多内容失败: ${error}`) });
-    } finally {
-      // 添加短暂延迟，防止快速连续滚动触发多次加载
-      setTimeout(() => {
-        dispatch({ type: 'SET_LOADING', loading: false });
-      }, 500);
+    } catch (err) {
+      console.error('加载更多内容失败:', err);
     }
-  }, [editorState.isLoading, filePath, editorState.encoding]);
+  }, [editorManagerRef]);
 
   // 渲染函数
   if (process.env.NODE_ENV === 'development') {
@@ -309,16 +393,16 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
       isLoading: editorState.isLoading,
       error: editorState.error,
       isDirty: editorState.isDirty,
-      hasEditor: !!editorRef.current,
+      hasEditor: !!editorManagerRef.current,
       hasContainer: !!containerRef.current
     });
   }
 
   // 暴露方法给父组件
   React.useImperativeHandle(ref, () => ({
-    isDirty: editorRef.current?.isDirty ?? false,
+    isDirty: editorManagerRef.current?.isDirty ?? false,
     save: async () => {
-      const editor = editorRef.current;
+      const editor = editorManagerRef.current;
       if (!editor) return;
       
       try {
@@ -332,16 +416,16 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
         }
       }
     }
-  }), [/* 不依赖于任何状态，只依赖于editorRef.current，它是一个ref */]);
+  }), [/* 不依赖于任何状态，只依赖于editorManagerRef.current，它是一个ref */]);
 
   // 处理编码变更
   const handleEncodingChange = useCallback((encoding: string) => {
-    editorRef.current?.setEncoding(encoding);
+    editorManagerRef.current?.setEncoding(encoding);
   }, []);
 
   // 处理重新连接
   const handleReconnect = useCallback(async () => {
-    const editor = editorRef.current;
+    const editor = editorManagerRef.current;
     if (!editor) return;
 
     try {
@@ -359,7 +443,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
 
   // 处理完整加载
   const handleLoadComplete = useCallback(async () => {
-    const editor = editorRef.current;
+    const editor = editorManagerRef.current;
     if (!editor) return;
 
     try {
@@ -380,22 +464,22 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
 
   // 处理复制
   const handleCopy = useCallback(() => {
-    editorRef.current?.executeCommand('copy');
+    editorManagerRef.current?.executeCommand('copy');
   }, []);
 
   // 处理粘贴
   const handlePaste = useCallback(() => {
-    editorRef.current?.executeCommand('paste');
+    editorManagerRef.current?.executeCommand('paste');
   }, []);
 
   // 处理剪切
   const handleCut = useCallback(() => {
-    editorRef.current?.executeCommand('cut');
+    editorManagerRef.current?.executeCommand('cut');
   }, []);
 
   // 处理全选
   const handleSelectAll = useCallback(() => {
-    editorRef.current?.executeCommand('selectAll');
+    editorManagerRef.current?.executeCommand('selectAll');
   }, []);
 
   // 关闭右键菜单
@@ -405,7 +489,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
 
   // 检查是否有选中文本
   const hasSelection = useCallback((): boolean => {
-    return editorRef.current?.hasSelection() ?? false;
+    return editorManagerRef.current?.hasSelection() ?? false;
   }, []);
 
   // 处理搜索
@@ -515,7 +599,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
 
   // 保存文件
   const saveFile = async (): Promise<boolean> => {
-    if (!editorRef.current) return false;
+    if (!editorManagerRef.current) return false;
     
     try {
       console.log('开始保存文件，当前isDirty状态:', editorState.isDirty, '当前模式:', currentMode);
@@ -527,7 +611,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
       }));
       
       // 调用编辑器管理器保存方法
-      await editorRef.current.save();
+      await editorManagerRef.current.save();
       
       // 保存成功后显式更新状态
       setEditorState(prev => ({
@@ -567,18 +651,39 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     
     // 监听编辑器状态变化
     manager.on('stateChanged', (state: EditorState) => {
+      // 始终记录重要的状态变化，而不仅仅在开发环境
       console.log('收到编辑器状态变化事件:', {
         isDirty: state.isDirty,
         mode: state.mode,
         isLoading: state.isLoading,
         isLargeFile: state.isLargeFile,
-        largeFileInfo: state.largeFileInfo
+        largeFileInfo: state.largeFileInfo ? {
+          loadedSize: state.largeFileInfo.loadedSize,
+          totalSize: state.largeFileInfo.totalSize,
+          hasMore: state.largeFileInfo.hasMore
+        } : undefined
       });
       
+      // 当 isLargeFile 状态变化时，特别标记出来
+      if (editorState.isLargeFile !== state.isLargeFile) {
+        console.log(`isLargeFile 状态从 ${editorState.isLargeFile} 变为 ${state.isLargeFile}`);
+      }
+      
+      // 当 largeFileInfo 状态变化时，特别标记出来
+      if (JSON.stringify(editorState.largeFileInfo) !== JSON.stringify(state.largeFileInfo)) {
+        console.log('largeFileInfo 状态变化:', {
+          old: editorState.largeFileInfo,
+          new: state.largeFileInfo
+        });
+      }
+      
+      // 更新状态
       setEditorState(state);
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('编辑器状态已更新为:', state);
+      // 在状态更新后，再次检查是否需要加载更多内容
+      // 这是为了确保状态变化后立即响应
+      if (state.isLargeFile && state.largeFileInfo?.hasMore && !state.isLoading) {
+        console.log('状态更新后检测到可加载更多内容');
       }
     });
     
@@ -675,9 +780,9 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
       }
       
       // 使用EditorManager执行模式切换
-      if (editorRef.current) {
+      if (editorManagerRef.current) {
         // 调用EditorManager的switchMode方法
-        const result = await editorRef.current.switchMode(targetMode);
+        const result = await editorManagerRef.current.switchMode(targetMode);
         
         if (result) {
           // 更新模式和状态
@@ -697,20 +802,20 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
 
   // 处理实时更新切换
   const handleRealtimeToggle = useCallback((enabled: boolean) => {
-    if (!editorRef.current) return;
+    if (!editorManagerRef.current) return;
     
     try {
       // 检查是否有实时更新相关方法
       if (enabled) {
         // 使用可选链和类型检查
-        if (typeof editorRef.current.startRealtime === 'function') {
-          editorRef.current.startRealtime();
+        if (typeof editorManagerRef.current.startRealtime === 'function') {
+          editorManagerRef.current.startRealtime();
         } else {
           console.warn('编辑器不支持实时更新功能');
         }
       } else {
-        if (typeof editorRef.current.stopRealtime === 'function') {
-          editorRef.current.stopRealtime();
+        if (typeof editorManagerRef.current.stopRealtime === 'function') {
+          editorManagerRef.current.stopRealtime();
         }
       }
       
@@ -724,12 +829,12 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
 
   // 处理自动滚动切换
   const handleAutoScrollToggle = useCallback((enabled: boolean) => {
-    if (!editorRef.current) return;
+    if (!editorManagerRef.current) return;
     
     try {
       // 检查是否有自动滚动相关方法
-      if (typeof editorRef.current.setAutoScroll === 'function') {
-        editorRef.current.setAutoScroll(enabled);
+      if (typeof editorManagerRef.current.setAutoScroll === 'function') {
+        editorManagerRef.current.setAutoScroll(enabled);
       } else {
         // 如果没有直接方法，可以通过状态管理
         console.warn('编辑器不支持自动滚动功能');
@@ -741,7 +846,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     }
   }, []);
 
-  const editor = editorRef.current;
+  const editor = editorManagerRef.current;
 
   // 使用useEffect监视isDirty状态变化
   useEffect(() => {
@@ -755,7 +860,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
         currentMode={currentMode}
         onModeSwitch={handleModeSwitch}
         onSave={() => saveFile()}
-        onRefresh={() => editorRef.current?.reload()}
+        onRefresh={() => editorManagerRef.current?.reload()}
         onSearch={(query) => {
           handleSearch();
           if (query) executeSearch(query);
@@ -841,7 +946,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
           }
           closable
           onClose={() => {
-            if (editorRef.current) editorRef.current.showLoadCompletePrompt = false;
+            if (editorManagerRef.current) editorManagerRef.current.showLoadCompletePrompt = false;
           }}
           style={{ marginBottom: 16 }}
         />

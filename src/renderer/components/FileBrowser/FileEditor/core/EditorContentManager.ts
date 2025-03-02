@@ -205,46 +205,108 @@ export class EditorContentManager extends EventEmitter {
     
     try {
       this.isLoading = true;
-      console.log(`[EditorContentManager] 开始加载文件块 - 起始位置: ${start}, 长度: ${length}`);
+      console.log(`[EditorContentManager] 开始加载文件块 - 起始位置: ${start}, 长度: ${length}, 文件总大小: ${this.fileSize}`);
       this.emit(EditorEvents.LOADING_STARTED);
       
       const result = await sftpService.readFile(this.sessionId, this.filePath, start, length);
-      console.log(`[EditorContentManager] 块加载成功 - 实际读取字节数: ${result.bytesRead}, 总大小: ${result.totalSize}`);
+      console.log(`[EditorContentManager] 块加载成功 - 实际读取字节数: ${result.bytesRead}, 总大小: ${result.totalSize}, 内容长度: ${result.content.length}`);
       
       // 更新已加载内容大小
       this.loadedContentSize = Math.max(this.loadedContentSize, start + result.bytesRead);
       
       const hasMore = this.loadedContentSize < this.fileSize;
       
+      // 增强日志记录
+      console.log(`[EditorContentManager] 块加载后状态: loadedSize=${this.loadedContentSize}, totalSize=${this.fileSize}, hasMore=${hasMore}, 差值=${this.fileSize - this.loadedContentSize} 字节`);
+      
       // 如果有编辑器和模型，并且起始位置正好是当前内容长度，则将内容追加到模型中
-      if (this.editor && this.model && start === this.model.getValue().length) {
-        console.log('[EditorContentManager] 追加新内容到编辑器');
+      if (this.editor && this.model) {
+        const currentLength = this.model.getValue().length;
+        console.log(`[EditorContentManager] 检查是否可以追加内容: start=${start}, currentLength=${currentLength}, 差异=${start - currentLength}`);
         
-        // 获取当前滚动位置
-        const scrollTop = this.editor.getScrollTop();
+        // 放宽条件：允许一定范围内的差异
+        const isAppendable = Math.abs(start - currentLength) < 10;
         
-        // 创建编辑操作
-        const edits = [{
-          range: new monaco.Range(
-            this.model.getLineCount(),
-            this.model.getLineLength(this.model.getLineCount()) + 1,
-            this.model.getLineCount(),
-            this.model.getLineLength(this.model.getLineCount()) + 1
-          ),
-          text: result.content
-        }];
-        
-        // 应用编辑
-        this.model.pushEditOperations(
-          [],
-          edits,
-          () => null
-        );
-        
-        // 恢复滚动位置
-        this.editor.setScrollTop(scrollTop);
-        
-        console.log('[EditorContentManager] 内容已追加到编辑器');
+        if (isAppendable) {
+          console.log('[EditorContentManager] 准备追加新内容到编辑器');
+          
+          // 获取当前滚动位置
+          const scrollTop = this.editor.getScrollTop();
+          const scrollLeft = this.editor.getScrollLeft();
+          
+          // 获取模型当前行数和最后一行的长度
+          const lineCount = this.model.getLineCount();
+          const lastLineLength = this.model.getLineLength(lineCount);
+          
+          console.log(`[EditorContentManager] 当前模型状态: 总行数=${lineCount}, 最后一行长度=${lastLineLength}`);
+          
+          // 创建编辑操作
+          const edits = [{
+            range: new monaco.Range(
+              lineCount,
+              lastLineLength + 1,
+              lineCount,
+              lastLineLength + 1
+            ),
+            text: result.content
+          }];
+          
+          // 应用编辑
+          console.log(`[EditorContentManager] 开始追加内容，长度为 ${result.content.length} 字节`);
+          this.model.pushEditOperations(
+            [],
+            edits,
+            () => null
+          );
+          
+          // 确保编辑器刷新显示
+          this.editor.layout();
+          
+          // 恢复滚动位置
+          this.editor.setScrollTop(scrollTop);
+          this.editor.setScrollLeft(scrollLeft);
+          
+          // 验证内容是否已正确追加
+          const newValue = this.model.getValue();
+          const newLength = newValue.length;
+          const expectedLength = Math.max(currentLength, start) + result.content.length;
+          
+          console.log(`[EditorContentManager] 内容追加后验证: 之前长度=${currentLength}, 现在长度=${newLength}, 增加=${newLength - currentLength}, 期望增加=${result.content.length}`);
+          
+          if (Math.abs(newLength - expectedLength) > 10) {
+            console.warn(`[EditorContentManager] 内容追加可能不完整，差异过大: 实际=${newLength}, 期望=${expectedLength}, 差异=${newLength - expectedLength}`);
+          } else {
+            console.log(`[EditorContentManager] 内容追加成功，当前总行数: ${this.model.getLineCount()}`);
+          }
+        } else {
+          console.warn(`[EditorContentManager] 无法追加内容，起始位置(${start})与当前内容长度(${currentLength})不匹配`);
+          
+          // 如果差异太大，考虑替换整个内容而不是追加
+          if (start === 0 || (start > 0 && currentLength === 0)) {
+            console.log(`[EditorContentManager] 替换整个编辑器内容，长度为 ${result.content.length} 字节`);
+            this.model.setValue(result.content);
+          } else if (start > currentLength) {
+            // 尝试进行填充后追加
+            console.log(`[EditorContentManager] 尝试填充空格后追加内容`);
+            const spacesToAdd = start - currentLength;
+            const padding = ' '.repeat(Math.min(spacesToAdd, 1000)); // 避免添加过多空格
+            
+            this.model.pushEditOperations(
+              [], 
+              [{
+                range: new monaco.Range(
+                  this.model.getLineCount(),
+                  this.model.getLineLength(this.model.getLineCount()) + 1,
+                  this.model.getLineCount(),
+                  this.model.getLineLength(this.model.getLineCount()) + 1
+                ),
+                text: padding + result.content
+              }],
+              () => null
+            );
+            console.log(`[EditorContentManager] 填充并追加内容完成，填充了 ${padding.length} 个空格`);
+          }
+        }
       }
       
       // 发出块加载完成事件
@@ -289,11 +351,31 @@ export class EditorContentManager extends EventEmitter {
    * @returns 大文件信息
    */
   public getLargeFileInfo(): LargeFileInfo {
+    const loadedSize = this.loadedContentSize;
+    const totalSize = this.fileSize;
+    
+    // 确保即使在初始化时也有合理的值
+    if (loadedSize === 0 && totalSize > 0 && this.isLargeFile) {
+      // 防止除零错误
+      console.log('[EditorContentManager] getLargeFileInfo: 初始化状态，将设置hasMore为true');
+      return {
+        loadedSize: 0,
+        totalSize,
+        hasMore: true,
+        isComplete: false
+      };
+    }
+    
+    const hasMore = loadedSize < totalSize;
+    
+    // 增强日志记录
+    console.log(`[EditorContentManager] getLargeFileInfo: loadedSize=${loadedSize}, totalSize=${totalSize}, hasMore=${hasMore}, 差值=${totalSize - loadedSize} 字节`);
+    
     return {
-      loadedSize: this.loadedContentSize,
-      totalSize: this.fileSize,
-      hasMore: this.loadedContentSize < this.fileSize,
-      isComplete: this.loadedContentSize >= this.fileSize
+      loadedSize,
+      totalSize,
+      hasMore,
+      isComplete: loadedSize >= totalSize
     };
   }
 
