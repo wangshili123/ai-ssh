@@ -110,32 +110,6 @@ export class FileEditorManager extends EventEmitter {
     }
   }
 
-  /**
-   * 加载文件
-   * 根据文件大小自动选择合适的模式
-   */
-  public async loadFile(): Promise<boolean> {
-    try {
-      // 获取文件信息
-      const stats = await statAsync(this.filePath);
-      const fileSize = stats.size;
-      
-      // 根据文件大小选择模式
-      if (fileSize > this.config.largeFileSize!) {
-        // 大文件使用浏览模式
-        return this.getBrowseMode().getTotalLines().then(() => true);
-      } else {
-        // 小文件使用编辑模式
-        return this.switchToMode(EditorMode.EDIT).then(result => result.success);
-      }
-    } catch (error: any) {
-      this.errorManager.handleError(
-        EditorErrorType.FILE_NOT_FOUND,
-        `加载文件失败: ${error.message}`
-      );
-      return false;
-    }
-  }
 
   /**
    * 切换模式
@@ -439,13 +413,6 @@ export class FileEditorManager extends EventEmitter {
     }
   }
 
-  /**
-   * 重新加载文件
-   */
-  public reload(): Promise<boolean> {
-    // 重新加载文件内容
-    return this.loadFile();
-  }
 
   /**
    * 销毁编辑器实例
