@@ -120,8 +120,7 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
 
       <div className="editor-toolbar-right">
         <Space>
-          {showRealtimeToggle && (
-            <Tooltip title="实时更新">
+          <Tooltip title="实时更新">
               <Switch 
                 size="small" 
                 checked={realtimeEnabled}
@@ -129,7 +128,6 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
                 disabled={isReadOnly}
               />
             </Tooltip>
-          )}
           
           {showAutoScrollToggle && (
             <Tooltip title="自动滚动">
@@ -143,7 +141,7 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
           
           <Divider type="vertical" />
           
-          <Tooltip title="浏览模式">
+          <Tooltip title="浏览模式1">
             <Button 
               icon={<EyeOutlined />} 
               onClick={() => onModeSwitch(EditorMode.BROWSE)}
