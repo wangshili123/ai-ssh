@@ -1,6 +1,7 @@
 ---
 description: 
 globs: 
+alwaysApply: true
 ---
 ---
 description: this project rule
@@ -29,10 +30,6 @@ globs: ["**/*.{ts,tsx,js,jsx,css}"]
    - 终端：Xterm.js、文件管理器、可视化指标等
    - 后端：OpenAI API + SSH2 + SQLite
 
-3. 性能要求
-   - 命令响应 <100ms
-   - AI响应 <2s
-   - CPU使用率 <10%
 
 # 功能开发
 

@@ -1,0 +1,53 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 服务架构
+
+服务模块提供应用的核心功能实现，分布在主进程和渲染进程中。
+
+## 核心服务
+
+### SSH服务
+
+位于 [src/services/ssh/](mdc:src/services/ssh) 目录，基于ssh2库实现SSH连接功能：
+- 连接建立与管理
+- 命令执行
+- 文件传输
+
+### 终端服务
+
+位于 [src/services/terminal/](mdc:src/services/terminal) 目录，处理终端相关功能：
+- 终端会话管理
+- 输入输出处理
+- 终端事件处理
+
+### 数据库服务
+
+位于 [src/services/database/](mdc:src/services/database) 目录，使用SQLite存储应用数据：
+- 连接配置
+- 会话历史
+- 用户设置
+
+### AI服务
+
+位于 [src/services/completion/](mdc:src/services/completion) 和 [src/services/agent/](mdc:src/services/agent) 目录，集成OpenAI API：
+- 命令补全
+- 命令解释
+- 代码生成
+- 智能助手
+
+### 解析服务
+
+位于 [src/services/parser/](mdc:src/services/parser) 目录，解析命令输出和文件内容。
+
+## 服务架构设计
+
+服务模块遵循以下设计原则：
+1. 单一职责原则
+2. 接口与实现分离
+3. 跨进程通信通过IPC实现
+4. 异步操作返回Promise或使用回调
+5. 错误处理统一化
+

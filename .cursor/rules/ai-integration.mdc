@@ -1,0 +1,56 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# AI集成架构
+
+## AI功能概述
+
+AI-SSH Tool集成了OpenAI API，提供智能命令助手功能，帮助用户：
+- 自然语言生成Shell命令
+- 解释复杂命令的用途和参数
+- 分析命令输出结果
+- 提供上下文相关的建议
+
+## 核心组件
+
+### AI助手组件
+
+位于 [src/renderer/components/AIAssistant/](mdc:src/renderer/components/AIAssistant) 目录，提供用户界面：
+- 聊天式交互界面
+- 命令建议显示
+- 响应结果展示
+
+### AI输入组件
+
+位于 [src/renderer/components/AIInput/](mdc:src/renderer/components/AIInput) 目录，处理用户输入：
+- 自然语言解析
+- 智能输入补全
+- 历史记录管理
+
+## 后端服务
+
+### 代理服务
+
+位于 [src/services/agent/](mdc:src/services/agent) 目录，实现AI代理功能：
+- 命令执行规划
+- 结果分析
+- 上下文管理
+
+### 补全服务
+
+位于 [src/services/completion/](mdc:src/services/completion) 目录，实现OpenAI API集成：
+- API调用封装
+- 提示工程
+- 响应处理
+
+## 数据流程
+
+1. 用户在AI助手界面输入自然语言请求
+2. 请求通过IPC发送到主进程
+3. 主进程调用OpenAI API获取回复
+4. 解析和处理API响应
+5. 将结果返回给渲染进程展示
+6. 用户可以直接执行生成的命令或获取进一步解释
+

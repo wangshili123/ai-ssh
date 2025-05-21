@@ -1,0 +1,42 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 主进程架构
+
+主进程是Electron应用的核心，负责创建窗口、管理系统资源和提供底层服务。
+
+## 核心文件
+
+- [main.ts](mdc:src/main/main.ts) - 应用入口点，负责初始化应用和创建窗口
+- [index.ts](mdc:src/main/index.ts) - 主进程模块注册和初始化
+
+## 关键模块
+
+### IPC通信模块
+
+位于 [src/main/ipc/](mdc:src/main/ipc) 目录，负责主进程和渲染进程之间的通信。
+
+### 服务模块
+
+位于 [src/main/services/](mdc:src/main/services) 目录，提供各种核心功能：
+
+- SSH连接管理
+- 文件系统操作
+- 配置管理
+- 系统信息获取
+
+### 配置模块
+
+位于 [src/main/config/](mdc:src/main/config) 目录，管理应用配置。
+
+## 主进程流程
+
+1. 应用启动时，main.ts初始化electron应用
+2. 创建主窗口并加载渲染进程
+3. 注册IPC通信处理器
+4. 初始化并启动各服务模块
+5. 监听应用生命周期事件
+
+

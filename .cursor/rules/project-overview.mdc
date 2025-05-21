@@ -1,0 +1,45 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# AI-SSH Tool
+
+## 项目概述
+
+AI-SSH Tool是一个智能化的SSH客户端，集成了OpenAI API，提供了智能命令助手功能，帮助用户更高效地使用终端。项目基于Electron构建，使用React、TypeScript和Ant Design作为前端技术栈。
+
+## 项目架构
+
+项目遵循Electron的主进程/渲染进程架构：
+
+1. **主进程** [src/main/main.ts](mdc:src/main/main.ts)
+   - 负责创建窗口、系统交互和后台服务
+   - 管理SSH连接、文件系统操作和数据库
+
+2. **渲染进程** [src/renderer/index.tsx](mdc:src/renderer/index.tsx)
+   - 负责UI渲染和用户交互
+   - 组件化的界面实现
+
+3. **服务层** [src/services/](mdc:src/services)
+   - SSH服务: 处理SSH连接和命令执行
+   - 终端服务: 管理xterm实例
+   - AI服务: 与OpenAI API交互
+   - 数据库服务: 管理配置和会话数据
+
+## 主要文件结构
+
+- [package.json](mdc:package.json): 项目依赖和脚本
+- [webpack.dev.js](mdc:webpack.dev.js): 开发环境配置
+- [webpack.prod.js](mdc:webpack.prod.js): 生产环境配置
+- [src/main/](mdc:src/main): 主进程代码
+- [src/renderer/](mdc:src/renderer): 渲染进程代码
+- [src/services/](mdc:src/services): 服务模块
+- [src/types/](mdc:src/types): TypeScript类型定义
+
+## 开发流程
+
+1. 安装依赖: `npm install`
+2. 开发模式启动: `npm start`
+3. 构建应用: `npm run build`
+

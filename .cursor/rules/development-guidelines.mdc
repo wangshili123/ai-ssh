@@ -1,0 +1,58 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 开发指南
+
+## 代码规范
+
+### 文件组织
+- 单文件不超过200行代码
+- 功能模块清晰分包
+- 文件命名需包含模块/功能名，避免单一的index/style/types
+- 新功能应创建独立的目录结构
+- CSS采用BEM (Block Element Modifier) 命名规范
+
+### 编码风格
+- 使用TypeScript类型定义
+- 使用async/await处理异步操作
+- 添加适当的注释说明功能和实现
+- 保持被注释的代码，不要删除
+
+## 开发流程
+
+### 功能开发步骤
+1. 理解需求和设计方案
+2. 实现相关功能模块
+3. 使用npm start测试功能
+4. 确认功能正常后更新进度
+
+### 调试技巧
+- 使用console.log记录关键信息
+- 在Electron中可使用devTools调试
+- 在问题持续出现时，重新梳理代码流程
+- 添加日志帮助排查问题
+
+## 技术栈使用
+
+### Electron
+- 主进程使用Node.js API
+- 渲染进程使用Web技术
+- 通过IPC通信跨进程
+
+### React
+- 函数组件和Hooks
+- Context API管理状态
+- 组件化开发
+
+### TypeScript
+- 定义清晰的接口和类型
+- 使用泛型增强代码复用
+- 避免使用any类型
+
+### Ant Design
+- 使用Ant Design组件库
+- 遵循设计规范
+- 自定义主题和样式
+

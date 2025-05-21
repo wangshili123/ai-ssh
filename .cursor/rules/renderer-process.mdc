@@ -1,0 +1,50 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 渲染进程架构
+
+渲染进程负责UI界面渲染和用户交互，基于React、TypeScript和Ant Design构建。
+
+## 入口文件
+
+- [index.tsx](mdc:src/renderer/index.tsx) - 渲染进程入口点
+- [App.tsx](mdc:src/renderer/App.tsx) - 主应用组件
+- [editor-entry.tsx](mdc:src/renderer/editor-entry.tsx) - 编辑器入口组件
+
+## 主要组件
+
+### 终端组件
+
+位于 [src/renderer/components/Terminal/](mdc:src/renderer/components/Terminal) 目录，基于xterm.js实现终端功能：
+- 命令执行
+- 输出显示
+- 会话管理
+
+### 文件浏览器组件
+
+位于 [src/renderer/components/FileBrowser/](mdc:src/renderer/components/FileBrowser) 目录，实现文件系统浏览功能：
+- 文件列表
+- 上传/下载
+- 文件操作
+
+### AI助手组件
+
+位于 [src/renderer/components/AIAssistant/](mdc:src/renderer/components/AIAssistant) 目录，实现AI交互功能：
+- 命令解释
+- 自然语言交互
+- 代码生成
+
+### 会话管理组件
+
+位于 [src/renderer/components/SessionList/](mdc:src/renderer/components/SessionList) 和 [src/renderer/components/SessionListModal/](mdc:src/renderer/components/SessionListModal) 目录，管理SSH连接会话。
+
+## 状态管理
+
+使用React Context和MobX管理应用状态，位于 [src/renderer/store/](mdc:src/renderer/store) 和 [src/renderer/contexts/](mdc:src/renderer/contexts) 目录。
+
+## 服务调用
+
+通过IPC通信调用主进程提供的服务，实现终端操作、文件操作和AI功能。
+
