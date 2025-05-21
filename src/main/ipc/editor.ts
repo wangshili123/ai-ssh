@@ -112,7 +112,7 @@ export function registerEditorHandlers(): void {
 
       // 加载编辑器页面
       if (process.env.NODE_ENV === 'development') {
-        const url = `http://localhost:3000/editor.html?windowId=${windowId}&filePath=${encodeURIComponent(filePath)}&sessionId=${sessionId}`;
+        const url = `http://localhost:3001/editor.html?windowId=${windowId}&filePath=${encodeURIComponent(filePath)}&sessionId=${sessionId}`;
         console.log('[Editor] 开发环境加载URL:', url);
         await window.loadURL(url);
         window.webContents.openDevTools();

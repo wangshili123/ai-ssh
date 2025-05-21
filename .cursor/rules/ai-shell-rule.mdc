@@ -1,4 +1,9 @@
 ---
+description: ai-shell开发规范
+globs: 
+alwaysApply: false
+---
+---
 description: 
 globs: 
 alwaysApply: true
