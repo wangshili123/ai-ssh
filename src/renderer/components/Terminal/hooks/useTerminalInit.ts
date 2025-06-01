@@ -27,6 +27,9 @@ export interface UseTerminalInitProps {
   setIsConnected: (connected: boolean) => void;
   handleInput: (data: string) => void | Promise<void>;
   handleEnterKey: () => void | Promise<void>;
+  acceptSuggestion?: () => string | null;
+  updatePendingCommand?: (newCommand: string) => void;
+  clearSuggestion?: () => void;
   terminalRef: React.MutableRefObject<XTerm | null>;
   searchAddonRef: React.MutableRefObject<SearchAddon | null>;
   fitAddonRef: React.MutableRefObject<FitAddon | null>;
@@ -43,6 +46,9 @@ export const useTerminalInit = ({
   setIsConnected,
   handleInput,
   handleEnterKey,
+  acceptSuggestion,
+  updatePendingCommand,
+  clearSuggestion,
   terminalRef,
   searchAddonRef,
   fitAddonRef,
@@ -57,7 +63,10 @@ export const useTerminalInit = ({
   const callbacksRef = useRef({
     handleInput,
     handleEnterKey,
-    setIsConnected
+    setIsConnected,
+    acceptSuggestion,
+    updatePendingCommand,
+    clearSuggestion
   });
 
   // 使用 ref 存储配置，避免配置变化导致重新初始化
@@ -72,14 +81,17 @@ export const useTerminalInit = ({
     callbacksRef.current = {
       handleInput,
       handleEnterKey,
-      setIsConnected
+      setIsConnected,
+      acceptSuggestion,
+      updatePendingCommand,
+      clearSuggestion
     };
     configRef.current = {
       sessionInfo,
       config,
       instanceId
     };
-  }, [handleInput, handleEnterKey, setIsConnected, sessionInfo, config, instanceId]);
+  }, [handleInput, handleEnterKey, setIsConnected, acceptSuggestion, updatePendingCommand, clearSuggestion, sessionInfo, config, instanceId]);
 
   // 初始化终端
   useEffect(() => {
@@ -158,11 +170,88 @@ export const useTerminalInit = ({
     terminal.onKey(async (event) => {
       const ev = event.domEvent;
       
-      // 处理 Alt + /
+      // 处理 Tab 键接受补全建议
+      if (ev.key === 'Tab') {
+        ev.preventDefault(); // 阻止默认的 Tab 行为
+        console.log('[useTerminalInit] Tab key pressed for completion');
+        
+        // 尝试接受当前的补全建议
+        const currentCommand = pendingCommandRef.current;
+        const acceptedCommand = callbacksRef.current.acceptSuggestion?.();
+        if (acceptedCommand) {
+          console.log('[useTerminalInit] Accepted suggestion:', acceptedCommand);
+          // 计算需要写入的补全部分
+          const completionPart = acceptedCommand.slice(currentCommand.length);
+          console.log('[useTerminalInit] Writing completion part:', { currentCommand, acceptedCommand, completionPart });
+          
+          // 只发送补全部分到SSH服务，让SSH回显显示，避免重复
+          if (completionPart) {
+            const shellId = shellIdRef.current;
+            if (shellId) {
+              try {
+                await sshService.write(shellId, completionPart);
+              } catch (error) {
+                console.error('[useTerminalInit] Failed to send completion to SSH:', error);
+                // 如果SSH发送失败，则在本地显示
+                terminal.write(completionPart);
+              }
+            } else {
+              // 如果没有SSH连接，则在本地显示
+              terminal.write(completionPart);
+            }
+          }
+        } else {
+          console.log('[useTerminalInit] No suggestion to accept');
+          // 如果没有补全建议，发送Tab字符到终端
+          await callbacksRef.current.handleInput('\t');
+        }
+        return;
+      }
+      
+      // 处理 Alt + / 接受补全建议
       if (ev.key === '/' && ev.altKey) {
         ev.preventDefault(); // 阻止默认的 / 字符输入
-        console.log('[useTerminalInit] Alt + / pressed');
-        await callbacksRef.current.handleInput('\x1b/'); // 发送特殊序列表示 Alt + /
+        console.log('[useTerminalInit] Alt + / pressed for completion');
+        
+        // 尝试接受当前的补全建议
+        const currentCommand = pendingCommandRef.current;
+        const acceptedCommand = callbacksRef.current.acceptSuggestion?.();
+        if (acceptedCommand) {
+          console.log('[useTerminalInit] Accepted suggestion via Alt+/:', acceptedCommand);
+          // 计算需要写入的补全部分
+          const completionPart = acceptedCommand.slice(currentCommand.length);
+          console.log('[useTerminalInit] Writing completion part via Alt+/:', { currentCommand, acceptedCommand, completionPart });
+          
+          // 只发送补全部分到SSH服务，让SSH回显显示，避免重复
+          if (completionPart) {
+            const shellId = shellIdRef.current;
+            if (shellId) {
+              try {
+                await sshService.write(shellId, completionPart);
+              } catch (error) {
+                console.error('[useTerminalInit] Failed to send completion to SSH:', error);
+                // 如果SSH发送失败，则在本地显示
+                terminal.write(completionPart);
+              }
+            } else {
+              // 如果没有SSH连接，则在本地显示
+              terminal.write(completionPart);
+            }
+          }
+        } else {
+          console.log('[useTerminalInit] No suggestion to accept via Alt+/');
+        }
+        return;
+      }
+      
+      // 处理 ESC 键关闭补全框
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        console.log('[useTerminalInit] ESC key pressed, clearing suggestions');
+        // 清除补全建议
+        if (callbacksRef.current.clearSuggestion) {
+          callbacksRef.current.clearSuggestion();
+        }
         return;
       }
       

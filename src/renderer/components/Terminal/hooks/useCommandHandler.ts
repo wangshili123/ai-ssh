@@ -82,13 +82,15 @@ export const useCommandHandler = ({
         const newCommand = currentCommand.slice(0, -1);
         console.log('[useCommandHandler] Deleting last character:', newCommand);
         updatePendingCommand(newCommand);
-        // terminal.write('\b \b'); // 删除一个字符
       }
-      // return;
-    }else{
-      // 处理普通输入
+    } else if (data.length === 1 && data.charCodeAt(0) >= 32 && data.charCodeAt(0) <= 126) {
+      // 处理可见ASCII字符输入
       const newCommand = pendingCommandRef.current + data;
+      console.log('[useCommandHandler] Adding character to command:', { data, newCommand });
       updatePendingCommand(newCommand);
+    } else {
+      // 其他特殊字符不更新命令状态
+      console.log('[useCommandHandler] Non-printable character, not updating command:', data.charCodeAt(0));
     }
 
  

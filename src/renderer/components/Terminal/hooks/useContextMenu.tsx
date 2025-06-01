@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { SearchAddon } from 'xterm-addon-search';
 import type { MenuProps } from 'antd';
@@ -29,6 +29,7 @@ export const useContextMenu = ({
   instanceId,
   setIsConnected,
 }: UseContextMenuProps): UseContextMenuReturn => {
+  
   // 复制选中的文本
   const copySelectedText = useCallback(() => {
     console.log('[useContextMenu] Copying selected text');
@@ -127,6 +128,6 @@ export const useContextMenu = ({
   ];
 
   return {
-    menuItems
+    menuItems,
   };
 }; 

@@ -12,7 +12,7 @@ interface UseCompletionProps {
 interface UseCompletionReturn {
   completionService: CompletionService | null;
   clearSuggestion: () => void;
-  acceptSuggestion: () => string | null | undefined;
+  acceptSuggestion: () => string | null;
   pendingCommandRef: React.MutableRefObject<string>;
   updatePendingCommand: (newCommand: string) => void;
   dropdownVisible: boolean;
@@ -217,9 +217,15 @@ export const useCompletion = ({
       console.error('[useCompletion] 补全使用数据收集失败:', error);
     }
 
+    // 更新内部状态
+    pendingCommandRef.current = suggestion.fullCommand;
+    setCurrentInput(suggestion.fullCommand);
+    
+    // 清除下拉框
     setDropdownVisible(false);
     setSuggestions([]);
-    console.log('[useCompletion] Returning suggestion:', suggestion.fullCommand);
+    
+    console.log('[useCompletion] Updated pendingCommandRef and returning suggestion:', suggestion.fullCommand);
     return suggestion.fullCommand;
   }, [dropdownVisible, suggestions, selectedIndex, currentInput]);
 

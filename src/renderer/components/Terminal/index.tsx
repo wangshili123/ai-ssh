@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
@@ -11,6 +11,8 @@ import { useTerminalInit } from './hooks/useTerminalInit';
 import { useCommandHandler } from './hooks/useCommandHandler';
 import { useCompletion } from './hooks/useCompletion';
 import { useContextMenu } from './hooks/useContextMenu';
+
+import { sshService } from '../../services/ssh';
 import CompletionDropdown from './completion/CompletionDropdown';
 import 'xterm/css/xterm.css';
 import './index.css';
@@ -56,6 +58,10 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     acceptSuggestion,
   });
 
+
+
+
+
   // 使用 useContextMenu hook
   const { menuItems } = useContextMenu({
     terminalRef,
@@ -63,7 +69,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     shellIdRef,
     sessionInfo,
     instanceId,
-    setIsConnected
+    setIsConnected,
   });
 
   // 使用 useTerminalInit hook
@@ -76,6 +82,9 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     setIsConnected,
     handleInput,
     handleEnterKey,
+    acceptSuggestion,
+    updatePendingCommand,
+    clearSuggestion,
     terminalRef,
     searchAddonRef,
     fitAddonRef,
@@ -87,9 +96,95 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsReady(true);
-    }, 0);
+    }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // 鼠标定位事件监听器
+  useEffect(() => {
+    if (!isReady || !containerRef.current) {
+      return;
+    }
+
+    const container = containerRef.current;
+    
+              // 鼠标点击处理器
+     const handleMouseClick = (event: MouseEvent) => {
+       // 检查点击是否在终端容器内
+       const isInTerminal = container.contains(event.target as Node);
+       if (!isInTerminal || event.button !== 0) {
+         return; // 只处理终端内的左键点击
+       }
+       
+       // 处理鼠标定位
+       if (terminalRef.current && shellIdRef.current) {
+         const terminal = terminalRef.current;
+         
+         // 获取当前光标位置
+         const currentPos = {
+           row: terminal.buffer.active.cursorY + 1,
+           col: terminal.buffer.active.cursorX + 1,
+         };
+         
+         // 计算点击位置
+         const xtermScreen = container.querySelector('.xterm-screen') as HTMLElement;
+         if (!xtermScreen) return;
+         
+         const screenRect = xtermScreen.getBoundingClientRect();
+         const relativeX = event.clientX - screenRect.left;
+         const relativeY = event.clientY - screenRect.top;
+         
+         // 计算字符尺寸
+         const charWidth = screenRect.width / terminal.cols;
+         const charHeight = screenRect.height / terminal.rows;
+         
+         const targetCol = Math.max(1, Math.floor(relativeX / charWidth) + 1);
+         const targetRow = Math.max(1, Math.floor(relativeY / charHeight) + 1);
+         
+         // 计算移动距离
+         const deltaRow = targetRow - currentPos.row;
+         const deltaCol = targetCol - currentPos.col;
+         
+         // 生成移动序列
+         let movementSequence = '';
+         
+         // 垂直移动
+         if (deltaRow > 0) {
+           movementSequence += '\x1b[B'.repeat(deltaRow); // 下移
+         } else if (deltaRow < 0) {
+           movementSequence += '\x1b[A'.repeat(-deltaRow); // 上移
+         }
+         
+         // 水平移动
+         if (deltaCol > 0) {
+           movementSequence += '\x1b[C'.repeat(deltaCol); // 右移
+         } else if (deltaCol < 0) {
+           movementSequence += '\x1b[D'.repeat(-deltaCol); // 左移
+         }
+         
+         // 确保终端获得焦点
+         terminal.focus();
+         
+         // 发送移动序列
+         if (movementSequence && shellIdRef.current) {
+           sshService.write(shellIdRef.current, movementSequence).catch(error => {
+             console.error('[Terminal] Failed to send cursor movement:', error);
+           });
+         }
+         
+         // 阻止事件传播
+         event.preventDefault();
+         event.stopPropagation();
+       }
+     };
+    
+     // 添加鼠标点击监听器（使用mouseup事件确保兼容性）
+     document.addEventListener('mouseup', handleMouseClick);
+
+    return () => {
+      document.removeEventListener('mouseup', handleMouseClick);
+    };
+  }, [isReady]);
 
   // 监听标签切换，自动聚焦当前终端
   useEffect(() => {
