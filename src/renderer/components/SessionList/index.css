@@ -261,4 +261,55 @@
 
 .session-tree .ant-tree-draggable-icon {
   cursor: move;
-} 
+}
+
+/* 优化Tree组件布局 */
+.session-tree .ant-tree-treenode {
+  padding: 2px 0;
+}
+
+.session-tree .ant-tree-node-content-wrapper {
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.session-tree .ant-tree-node-content-wrapper:hover {
+  background-color: #f5f5f5;
+}
+
+.session-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+  background-color: #e6f7ff;
+}
+
+/* 调整图标和内容的间距 */
+.session-tree .ant-tree-iconEle {
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+/* 让title内容占满剩余空间 */
+.session-tree .ant-tree-title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* 隐藏连接线，让布局更紧凑 */
+.session-tree .ant-tree-indent-unit {
+  width: 16px;
+}
+
+.session-tree .ant-tree-switcher {
+  width: 16px;
+  height: 20px;
+  line-height: 20px;
+}
+
+/* 确保整个树节点内容在同一行 */
+.session-tree .ant-tree-treenode-leaf-last > .ant-tree-node-content-wrapper,
+.session-tree .ant-tree-treenode-leaf-last > .ant-tree-node-content-wrapper > .ant-tree-title {
+  display: flex;
+  align-items: center;
+}

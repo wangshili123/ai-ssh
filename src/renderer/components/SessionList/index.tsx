@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { List, Button, Modal, Form, Input, Tree, Card, Typography, Dropdown, Badge, message, Select, InputNumber, Radio, Upload, Checkbox, Divider, Space } from 'antd';
+import { List, Button, Modal, Form, Input, Tree, Card, Typography, Dropdown, message, Select, InputNumber, Radio, Upload, Checkbox, Divider, Space } from 'antd';
 import type { MenuProps } from 'antd';
 import { PlusOutlined, FolderOutlined, FolderOpenOutlined, EditOutlined, DeleteOutlined, CopyOutlined, UploadOutlined } from '@ant-design/icons';
 import { debounce } from 'lodash';
@@ -156,33 +156,7 @@ const SessionList: React.FC<SessionListProps> = ({
     setEditingGroup(null);
   };
 
-  // 获取会话状态的徽标状态
-  const getSessionBadgeStatus = (status: SessionInfo['status']) => {
-    switch (status) {
-      case 'connected':
-        return 'success';
-      case 'connecting':
-        return 'processing';
-      case 'error':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
 
-  // 获取会话状态的文本
-  const getSessionStatusText = (status: SessionInfo['status']) => {
-    switch (status) {
-      case 'connected':
-        return '已连接';
-      case 'connecting':
-        return '连接中';
-      case 'error':
-        return '连接错误';
-      default:
-        return '未连接';
-    }
-  };
 
   // 获取会话操作菜单
   const getSessionMenu = (session: SessionInfo): { items: Required<MenuProps>['items'] } => {
@@ -217,17 +191,12 @@ const SessionList: React.FC<SessionListProps> = ({
     >
       <div className="session-node">
         <div className="session-info">
-          <Badge
-            status={getSessionBadgeStatus(session.status)}
-            text={
-              <span className="session-title">
-                <span className="session-name">{session.name || '未命名会话'}</span>
-                <span className="session-subtitle">
-                  {`${session.username}@${session.host}:${session.port}`}
-                </span>
-              </span>
-            }
-          />
+          <span className="session-title">
+            <span className="session-name">{session.name || '未命名会话'}</span>
+            <span className="session-subtitle">
+              {`${session.username}@${session.host}:${session.port}`}
+            </span>
+          </span>
         </div>
         <div className="session-actions">
           <Space size="small">
@@ -556,7 +525,7 @@ const SessionList: React.FC<SessionListProps> = ({
         <Tree
           className="session-tree"
           treeData={treeData}
-          showLine={{ showLeafIcon: false }}
+          showLine={false}
           showIcon
           icon={({ expanded }: { expanded?: boolean }) => expanded ? <FolderOpenOutlined /> : <FolderOutlined />}
           draggable
