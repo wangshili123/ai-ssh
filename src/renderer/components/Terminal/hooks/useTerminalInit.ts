@@ -30,6 +30,7 @@ export interface UseTerminalInitProps {
   acceptSuggestion?: () => string | null;
   updatePendingCommand?: (newCommand: string) => void;
   clearSuggestion?: () => void;
+  onOpenSearch?: () => void;
   terminalRef: React.MutableRefObject<XTerm | null>;
   searchAddonRef: React.MutableRefObject<SearchAddon | null>;
   fitAddonRef: React.MutableRefObject<FitAddon | null>;
@@ -49,6 +50,7 @@ export const useTerminalInit = ({
   acceptSuggestion,
   updatePendingCommand,
   clearSuggestion,
+  onOpenSearch,
   terminalRef,
   searchAddonRef,
   fitAddonRef,
@@ -66,7 +68,8 @@ export const useTerminalInit = ({
     setIsConnected,
     acceptSuggestion,
     updatePendingCommand,
-    clearSuggestion
+    clearSuggestion,
+    onOpenSearch
   });
 
   // 使用 ref 存储配置，避免配置变化导致重新初始化
@@ -84,14 +87,15 @@ export const useTerminalInit = ({
       setIsConnected,
       acceptSuggestion,
       updatePendingCommand,
-      clearSuggestion
+      clearSuggestion,
+      onOpenSearch
     };
     configRef.current = {
       sessionInfo,
       config,
       instanceId
     };
-  }, [handleInput, handleEnterKey, setIsConnected, acceptSuggestion, updatePendingCommand, clearSuggestion, sessionInfo, config, instanceId]);
+  }, [handleInput, handleEnterKey, setIsConnected, acceptSuggestion, updatePendingCommand, clearSuggestion, onOpenSearch, sessionInfo, config, instanceId]);
 
   // 初始化终端
   useEffect(() => {
@@ -251,6 +255,16 @@ export const useTerminalInit = ({
         // 清除补全建议
         if (callbacksRef.current.clearSuggestion) {
           callbacksRef.current.clearSuggestion();
+        }
+        return;
+      }
+
+      // 处理 Ctrl+F 打开搜索面板
+      if (ev.key === 'f' && ev.ctrlKey) {
+        ev.preventDefault();
+        console.log('[useTerminalInit] Ctrl+F pressed, opening search panel');
+        if (callbacksRef.current.onOpenSearch) {
+          callbacksRef.current.onOpenSearch();
         }
         return;
       }

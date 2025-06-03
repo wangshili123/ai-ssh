@@ -15,6 +15,7 @@ interface UseContextMenuProps {
   sessionInfo?: SessionInfo;
   instanceId?: string;
   setIsConnected: (connected: boolean) => void;
+  onOpenSearch: () => void;
 }
 
 interface UseContextMenuReturn {
@@ -28,6 +29,7 @@ export const useContextMenu = ({
   sessionInfo,
   instanceId,
   setIsConnected,
+  onOpenSearch,
 }: UseContextMenuProps): UseContextMenuReturn => {
   
   // 复制选中的文本
@@ -41,12 +43,9 @@ export const useContextMenu = ({
 
   // 搜索文本
   const searchText = useCallback(() => {
-    console.log('[useContextMenu] Opening search dialog');
-    const text = prompt('请输入要搜索的文本:');
-    if (text && searchAddonRef.current) {
-      searchAddonRef.current.findNext(text);
-    }
-  }, [searchAddonRef]);
+    console.log('[useContextMenu] Opening search panel');
+    onOpenSearch();
+  }, [onOpenSearch]);
 
   // 重新加载终端
   const reloadTerminal = useCallback(async () => {

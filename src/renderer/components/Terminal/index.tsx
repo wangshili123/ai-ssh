@@ -11,6 +11,7 @@ import { useTerminalInit } from './hooks/useTerminalInit';
 import { useCommandHandler } from './hooks/useCommandHandler';
 import { useCompletion } from './hooks/useCompletion';
 import { useContextMenu } from './hooks/useContextMenu';
+import { TerminalSearchPanel } from './components/TerminalSearchPanel';
 
 import { sshService } from '../../services/ssh';
 import CompletionDropdown from './completion/CompletionDropdown';
@@ -21,6 +22,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
   const containerRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isSearchPanelVisible, setIsSearchPanelVisible] = useState(false);
 
   // 创建终端引用
   const terminalRef = useRef<XTerm | null>(null);
@@ -58,7 +60,14 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     acceptSuggestion,
   });
 
+  // 搜索面板处理函数
+  const handleOpenSearch = useCallback(() => {
+    setIsSearchPanelVisible(true);
+  }, []);
 
+  const handleCloseSearch = useCallback(() => {
+    setIsSearchPanelVisible(false);
+  }, []);
 
 
 
@@ -70,6 +79,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     sessionInfo,
     instanceId,
     setIsConnected,
+    onOpenSearch: handleOpenSearch,
   });
 
   // 使用 useTerminalInit hook
@@ -85,6 +95,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     acceptSuggestion,
     updatePendingCommand,
     clearSuggestion,
+    onOpenSearch: handleOpenSearch,
     terminalRef,
     searchAddonRef,
     fitAddonRef,
@@ -240,6 +251,15 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
             completionService={completionService}
           />
         </div>
+        {/* 搜索面板 */}
+        {searchAddonRef.current && terminalRef.current && (
+          <TerminalSearchPanel
+            searchAddon={searchAddonRef.current}
+            terminal={terminalRef.current}
+            onClose={handleCloseSearch}
+            visible={isSearchPanelVisible}
+          />
+        )}
       </div>
     </div>
   );
