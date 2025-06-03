@@ -217,25 +217,35 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  padding: 4px 0;
+}
+
+.session-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .session-title {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-name {
+  font-weight: 500;
 }
 
 .session-subtitle {
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
 }
 
 .session-actions {
-  display: none;
-  gap: 4px;
-}
-
-.session-node:hover .session-actions {
   display: flex;
+  gap: 4px;
+  margin-left: 8px;
+  flex-shrink: 0;
 }
 
 /* 暗色主题适配 */

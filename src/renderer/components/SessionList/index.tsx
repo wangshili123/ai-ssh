@@ -9,7 +9,6 @@ import './index.css';
 import { eventBus } from '../../services/eventBus';
 import { v4 as uuidv4 } from 'uuid';
 
-const { Title } = Typography;
 const { Search } = Input;
 
 interface SessionListProps {
@@ -37,6 +36,7 @@ const SessionList: React.FC<SessionListProps> = ({
   const [editingSession, setEditingSession] = useState<SessionInfo | null>(null);
   const [editingGroup, setEditingGroup] = useState<GroupInfo | null>(null);
   const [searchText, setSearchText] = useState('');
+  const [ungroupedExpanded, setUngroupedExpanded] = useState(true); // 未分组的展开状态
   const [sessionForm] = Form.useForm();
   const [groupForm] = Form.useForm();
 
@@ -184,69 +184,77 @@ const SessionList: React.FC<SessionListProps> = ({
     }
   };
 
+  // 获取会话操作菜单
+  const getSessionMenu = (session: SessionInfo): { items: Required<MenuProps>['items'] } => {
+    const items: Required<MenuProps>['items'] = [
+      {
+        key: 'edit',
+        icon: <EditOutlined />,
+        label: '编辑',
+        onClick: () => handleEditSession(session)
+      },
+      {
+        key: 'copy',
+        icon: <CopyOutlined />,
+        label: '复制',
+        onClick: () => handleCopySession(session)
+      },
+      {
+        key: 'delete',
+        icon: <DeleteOutlined />,
+        label: '删除',
+        onClick: () => handleDeleteSession(session)
+      }
+    ];
+    return { items };
+  };
+
   // 渲染会话节点
   const renderSessionNode = (session: SessionInfo) => (
-    <div className="session-node">
-      <Badge 
-        status={getSessionBadgeStatus(session.status)} 
-        text={
-          <span className="session-title">
-            {session.name || '未命名会话'}
-            <span className="session-subtitle">
-              {`${session.username}@${session.host}:${session.port}`}
-            </span>
-          </span>
-        }
-      />
-      <div className="session-actions">
-        <Space>
-          <Button
-            type="primary"
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect?.({...session, type: 'terminal'});
-            }}
-          >
-            终端连接
-          </Button>
-          <Button
-            type="default"
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect?.({...session, type: 'monitor'});
-            }}
-          >
-            监控连接
-          </Button>
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEditSession(session);
-            }}
+    <Dropdown
+      menu={getSessionMenu(session)}
+      trigger={['contextMenu']}
+    >
+      <div className="session-node">
+        <div className="session-info">
+          <Badge
+            status={getSessionBadgeStatus(session.status)}
+            text={
+              <span className="session-title">
+                <span className="session-name">{session.name || '未命名会话'}</span>
+                <span className="session-subtitle">
+                  {`${session.username}@${session.host}:${session.port}`}
+                </span>
+              </span>
+            }
           />
-          <Button
-            type="text"
-            icon={<CopyOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCopySession(session);
-            }}
-          />
-          <Button
-            type="text"
-            icon={<DeleteOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteSession(session);
-            }}
-          />
-        </Space>
+        </div>
+        <div className="session-actions">
+          <Space size="small">
+            <Button
+              type="primary"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect?.({...session, type: 'terminal'});
+              }}
+            >
+              终端
+            </Button>
+            <Button
+              type="default"
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect?.({...session, type: 'monitor'});
+              }}
+            >
+              监控
+            </Button>
+          </Space>
+        </div>
       </div>
-    </div>
+    </Dropdown>
   );
 
   // 渲染分组节点
@@ -301,6 +309,7 @@ const SessionList: React.FC<SessionListProps> = ({
             </span>
           </div>
         ),
+        expanded: ungroupedExpanded,
         children: (groupedSessions.get(undefined) || [])
           .filter(session => 
             !searchText || 
@@ -467,31 +476,6 @@ const SessionList: React.FC<SessionListProps> = ({
     setEditingSession(null);
   };
 
-  // 获取会话操作菜单
-  const getSessionMenu = (session: SessionInfo): { items: Required<MenuProps>['items'] } => {
-    const items: Required<MenuProps>['items'] = [
-      {
-        key: 'edit',
-        icon: <EditOutlined />,
-        label: '编辑',
-        onClick: () => handleEditSession(session)
-      },
-      {
-        key: 'copy',
-        icon: <CopyOutlined />,
-        label: '复制',
-        onClick: () => handleCopySession(session)
-      },
-      {
-        key: 'delete',
-        icon: <DeleteOutlined />,
-        label: '删除',
-        onClick: () => handleDeleteSession(session)
-      }
-    ];
-    return { items };
-  };
-
   // 处理编辑会话
   const handleEditSession = (session: SessionInfo) => {
     setEditingSession(session);
@@ -542,19 +526,20 @@ const SessionList: React.FC<SessionListProps> = ({
   return (
     <div className="session-list">
       <Card>
-        <Title level={4}>会话列表</Title>
         <div className="session-list-header">
           <div className="session-list-actions">
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={handleAddSession}
+              size="small"
             >
               新建会话
             </Button>
             <Button
               icon={<FolderOutlined />}
               onClick={handleAddGroup}
+              size="small"
             >
               新建分组
             </Button>
@@ -563,7 +548,8 @@ const SessionList: React.FC<SessionListProps> = ({
             placeholder="搜索会话..."
             allowClear
             onChange={e => debouncedSearch(e.target.value)}
-            style={{ width: 200 }}
+            style={{ width: 180 }}
+            size="small"
           />
         </div>
 
@@ -576,8 +562,16 @@ const SessionList: React.FC<SessionListProps> = ({
           draggable
           onSelect={handleSelect}
           onDrop={handleTreeDrop}
-          expandedKeys={groups.filter(g => g.expanded).map(g => g.id)}
+          expandedKeys={[
+            ...(ungroupedExpanded ? ['ungrouped'] : []),
+            ...groups.filter(g => g.expanded).map(g => g.id)
+          ]}
           onExpand={(expandedKeys) => {
+            // 处理未分组的展开状态
+            const isUngroupedExpanded = expandedKeys.includes('ungrouped');
+            setUngroupedExpanded(isUngroupedExpanded);
+
+            // 处理分组的展开状态
             const newGroups = groups.map(g => ({
               ...g,
               expanded: expandedKeys.includes(g.id),
@@ -594,7 +588,7 @@ const SessionList: React.FC<SessionListProps> = ({
           open={isSessionModalVisible}
           onOk={handleSessionModalOk}
           onCancel={handleSessionModalCancel}
-          width={600}
+          width={900}
         >
           <Form
             form={sessionForm}
