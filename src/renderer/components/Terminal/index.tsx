@@ -215,11 +215,13 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
          // 生成移动序列
          let movementSequence = '';
          
-         // 垂直移动
+         // 垂直移动 - 只允许向下移动到当前行或更下方，避免触发历史命令
          if (deltaRow > 0) {
            movementSequence += '\x1b[B'.repeat(deltaRow); // 下移
          } else if (deltaRow < 0) {
-           movementSequence += '\x1b[A'.repeat(-deltaRow); // 上移
+           // 不发送上移命令，避免触发历史命令导航
+           console.log('[Terminal] Ignoring upward movement to prevent history navigation');
+           return; // 直接返回，不执行任何移动
          }
          
          // 水平移动
