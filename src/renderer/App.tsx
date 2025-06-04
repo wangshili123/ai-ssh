@@ -8,6 +8,7 @@ import AppStatusBar from './components/StatusBar/AppStatusBar';
 import AppToolbar from './components/Toolbar/AppToolbar';
 import SessionListModal from './components/SessionListModal';
 import { BaseConfigModal } from './components/BaseConfigModal/BaseConfigModal';
+import DownloadNotificationManager from './components/Download/DownloadNotificationManager';
 import type { SessionInfo, SSHService } from './types';
 import { eventBus } from './services/eventBus';
 import { DatabaseService } from '../services/database/DatabaseService';
@@ -172,6 +173,9 @@ const App: React.FC = () => {
         visible={baseConfigVisible}
         onClose={() => setBaseConfigVisible(false)}
       />
+
+      {/* 下载通知管理器 */}
+      <DownloadNotificationManager />
     </Layout>
   );
 };

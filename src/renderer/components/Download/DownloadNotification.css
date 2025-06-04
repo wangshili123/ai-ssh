@@ -1,0 +1,209 @@
+/* 下载通知组件样式 */
+.download-notification {
+  background: #2D2D2D;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 12px;
+  width: 320px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.download-notification:hover {
+  border-color: #555;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* 通知头部 */
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.file-name {
+  color: #D4D4D4 !important;
+  font-size: 13px !important;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-text {
+  font-size: 11px !important;
+  color: #8C8C8C !important;
+  font-weight: 500 !important;
+}
+
+/* 通知内容 */
+.notification-content {
+  margin-bottom: 8px;
+}
+
+/* 进度条样式 */
+.notification-content .ant-progress {
+  margin-bottom: 6px;
+}
+
+.notification-content .ant-progress-bg {
+  background: #333 !important;
+}
+
+.notification-content .ant-progress-inner {
+  background: #1E1E1E !important;
+  border-radius: 3px;
+}
+
+.notification-content .ant-progress-success-bg {
+  background: #52c41a !important;
+}
+
+.notification-content .ant-progress-exception .ant-progress-bg {
+  background: #ff4d4f !important;
+}
+
+/* 进度信息 */
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-info .ant-space {
+  flex: 1;
+}
+
+.progress-text,
+.speed-text,
+.time-text {
+  font-size: 10px !important;
+  color: #8C8C8C !important;
+  margin: 0 !important;
+}
+
+.separator {
+  color: #666;
+  margin: 0 2px;
+  font-size: 8px;
+}
+
+/* 错误信息 */
+.error-info {
+  margin-top: 6px;
+  padding: 4px 6px;
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  border-radius: 3px;
+}
+
+.error-text {
+  font-size: 10px !important;
+  color: #ff4d4f !important;
+  margin: 0 !important;
+  word-break: break-all;
+}
+
+/* 操作按钮 */
+.notification-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+}
+
+.notification-actions .ant-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #8C8C8C !important;
+  padding: 2px 6px !important;
+  height: auto !important;
+  font-size: 11px !important;
+  min-width: auto !important;
+}
+
+.notification-actions .ant-btn:hover {
+  color: #D4D4D4 !important;
+  background: #3D3D3D !important;
+}
+
+.notification-actions .ant-btn.ant-btn-dangerous:hover {
+  color: #ff4d4f !important;
+}
+
+.notification-actions .ant-btn .anticon {
+  font-size: 10px;
+}
+
+/* 状态特定样式 */
+.download-notification[data-status="downloading"] {
+  border-left: 3px solid #1890ff;
+}
+
+.download-notification[data-status="completed"] {
+  border-left: 3px solid #52c41a;
+}
+
+.download-notification[data-status="error"] {
+  border-left: 3px solid #ff4d4f;
+}
+
+.download-notification[data-status="paused"] {
+  border-left: 3px solid #faad14;
+}
+
+/* 动画效果 */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.download-notification {
+  animation: slideIn 0.3s ease-out;
+}
+
+.download-notification.closing {
+  animation: slideOut 0.3s ease-in;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .download-notification {
+    width: 280px;
+    padding: 10px;
+  }
+  
+  .file-name {
+    max-width: 140px;
+  }
+  
+  .progress-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  
+  .progress-info .ant-space {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

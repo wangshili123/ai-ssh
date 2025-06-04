@@ -1,0 +1,152 @@
+/* 下载管理器样式 */
+.download-manager .ant-modal-content {
+  background: #1E1E1E;
+  border: 1px solid #333;
+}
+
+.download-manager .ant-modal-header {
+  background: #1E1E1E;
+  border-bottom: 1px solid #333;
+}
+
+.download-manager .ant-modal-title {
+  color: #D4D4D4;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.download-manager .ant-modal-close {
+  color: #8C8C8C;
+}
+
+.download-manager .ant-modal-close:hover {
+  color: #D4D4D4;
+}
+
+.download-manager .ant-modal-footer {
+  background: #1E1E1E;
+  border-top: 1px solid #333;
+}
+
+/* 管理器内容 */
+.download-manager-content {
+  max-height: 500px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 统计信息 */
+.download-stats {
+  padding: 8px 0;
+}
+
+.download-stats .ant-typography {
+  color: #8C8C8C !important;
+  font-size: 13px !important;
+  margin: 0 !important;
+}
+
+.download-stats .ant-divider-vertical {
+  border-color: #333;
+  margin: 0 8px;
+}
+
+/* 任务列表 */
+.download-tasks {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+  max-height: 400px;
+}
+
+.task-list {
+  padding-right: 4px; /* 为滚动条留出空间 */
+}
+
+/* 滚动条样式 */
+.download-tasks::-webkit-scrollbar {
+  width: 6px;
+}
+
+.download-tasks::-webkit-scrollbar-track {
+  background: #1E1E1E;
+  border-radius: 3px;
+}
+
+.download-tasks::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+
+.download-tasks::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* 空状态 */
+.download-tasks .ant-empty {
+  margin: 40px 0;
+}
+
+.download-tasks .ant-empty-description {
+  color: #8C8C8C;
+}
+
+/* 按钮样式 */
+.download-manager .ant-btn {
+  background: #2D2D2D;
+  border: 1px solid #333;
+  color: #D4D4D4;
+}
+
+.download-manager .ant-btn:hover {
+  background: #3D3D3D;
+  border-color: #555;
+  color: #D4D4D4;
+}
+
+.download-manager .ant-btn-primary {
+  background: #1890ff;
+  border-color: #1890ff;
+  color: #fff;
+}
+
+.download-manager .ant-btn-primary:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+  color: #fff;
+}
+
+/* 分割线样式 */
+.download-manager .ant-divider {
+  border-color: #333;
+  margin: 12px 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .download-manager {
+    width: 90vw !important;
+    margin: 20px;
+  }
+  
+  .download-manager-content {
+    max-height: 60vh;
+  }
+  
+  .download-stats {
+    overflow-x: auto;
+  }
+  
+  .download-stats .ant-space {
+    white-space: nowrap;
+  }
+  
+  .download-manager .ant-modal-footer {
+    text-align: center;
+  }
+  
+  .download-manager .ant-modal-footer .ant-btn {
+    margin: 4px;
+  }
+}

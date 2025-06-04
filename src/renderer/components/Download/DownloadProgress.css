@@ -1,0 +1,173 @@
+/* 下载进度组件样式 */
+.download-progress {
+  background: #2D2D2D;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.download-progress:hover {
+  border-color: #555;
+  background: #353535;
+}
+
+/* 下载头部 */
+.download-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  display: block;
+  color: #D4D4D4 !important;
+  font-size: 13px;
+  margin-bottom: 2px;
+  word-break: break-all;
+}
+
+.file-size {
+  font-size: 11px;
+  color: #8C8C8C !important;
+}
+
+/* 下载操作按钮 */
+.download-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.action-button {
+  color: #8C8C8C !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 4px !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.action-button:hover {
+  color: #D4D4D4 !important;
+  background: #3D3D3D !important;
+}
+
+.cancel-button:hover {
+  color: #ff4d4f !important;
+}
+
+/* 进度条区域 */
+.progress-section {
+  margin-bottom: 4px;
+}
+
+.progress-section .ant-progress {
+  margin-bottom: 6px;
+}
+
+.progress-section .ant-progress-bg {
+  background: #333 !important;
+}
+
+.progress-section .ant-progress-inner {
+  background: #1E1E1E !important;
+  border-radius: 3px;
+}
+
+/* 进度信息 */
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.progress-info .ant-space {
+  flex: 1;
+}
+
+.progress-info .ant-typography {
+  color: #8C8C8C !important;
+  font-size: 11px !important;
+  margin: 0 !important;
+}
+
+.separator {
+  color: #666;
+  margin: 0 4px;
+}
+
+.status-text {
+  font-weight: 500 !important;
+}
+
+/* 错误消息 */
+.error-message {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  border-radius: 4px;
+}
+
+.error-text {
+  font-size: 11px !important;
+  color: #ff4d4f !important;
+  margin: 0 !important;
+}
+
+/* 状态特定样式 */
+.download-progress[data-status="completed"] {
+  border-color: rgba(82, 196, 26, 0.3);
+  background: rgba(82, 196, 26, 0.05);
+}
+
+.download-progress[data-status="error"] {
+  border-color: rgba(255, 77, 79, 0.3);
+  background: rgba(255, 77, 79, 0.05);
+}
+
+.download-progress[data-status="paused"] {
+  border-color: rgba(250, 173, 20, 0.3);
+  background: rgba(250, 173, 20, 0.05);
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .download-progress {
+    padding: 8px;
+  }
+  
+  .download-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .download-actions {
+    align-self: flex-end;
+    margin-left: 0;
+  }
+  
+  .progress-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .progress-info .ant-space {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

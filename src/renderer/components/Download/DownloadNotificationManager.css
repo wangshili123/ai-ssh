@@ -1,0 +1,77 @@
+/* 下载通知管理器样式 */
+.download-notification-manager {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
+}
+
+.notification-item {
+  pointer-events: auto;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.notification-item:hover {
+  transform: translateY(0) !important;
+}
+
+/* 堆叠效果 */
+.notification-item:not(:first-child) {
+  margin-top: -4px;
+}
+
+.notification-item:not(:first-child) .download-notification {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+.notification-item:not(:first-child):not(:nth-child(2)) .download-notification {
+  opacity: 0.8;
+  transform: scale(0.96);
+}
+
+.notification-item:not(:first-child):not(:nth-child(2)):not(:nth-child(3)) .download-notification {
+  opacity: 0.7;
+  transform: scale(0.94);
+}
+
+/* 当鼠标悬停在通知列表上时，展开所有通知 */
+.notification-list:hover .notification-item {
+  margin-top: 0;
+}
+
+.notification-list:hover .notification-item .download-notification {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .download-notification-manager {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+  }
+  
+  .notification-list {
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .download-notification-manager {
+    top: 5px;
+    right: 5px;
+    left: 5px;
+  }
+}
