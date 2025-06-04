@@ -71,6 +71,59 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
 
 
 
+  // 复制选中的文本
+  const handleCopy = useCallback(() => {
+    console.log('[Terminal] Copying selected text');
+    const selection = terminalRef.current?.getSelection();
+    if (selection) {
+      navigator.clipboard.writeText(selection);
+    }
+  }, [terminalRef]);
+
+  // 粘贴文本
+  const handlePaste = useCallback(async () => {
+    console.log('[Terminal] Pasting text from clipboard');
+    try {
+      // 检查终端和连接状态
+      if (!terminalRef.current || !shellIdRef.current) {
+        console.warn('[Terminal] Terminal not ready for paste operation');
+        return;
+      }
+
+      // 从剪贴板读取文本
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        // 将文本发送到远程终端
+        await sshService.write(shellIdRef.current, text);
+        console.log('[Terminal] Text pasted successfully');
+      } else {
+        console.log('[Terminal] Clipboard is empty');
+      }
+    } catch (error) {
+      console.error('[Terminal] Failed to paste text:', error);
+      // 如果剪贴板访问失败，可以在终端显示提示
+      if (terminalRef.current) {
+        terminalRef.current.write('\r\n\x1b[33m粘贴失败: 无法访问剪贴板\x1b[0m\r\n');
+      }
+    } finally {
+      // 重新聚焦到终端
+      if (terminalRef.current) {
+        terminalRef.current.focus();
+      }
+    }
+  }, [terminalRef, shellIdRef]);
+
+  // 清空终端内容
+  const handleClear = useCallback(() => {
+    console.log('[Terminal] Clearing terminal content');
+    if (terminalRef.current) {
+      terminalRef.current.clear();
+      console.log('[Terminal] Terminal content cleared successfully');
+      // 重新聚焦到终端
+      terminalRef.current.focus();
+    }
+  }, [terminalRef]);
+
   // 使用 useContextMenu hook
   const { menuItems } = useContextMenu({
     terminalRef,
@@ -96,6 +149,9 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     updatePendingCommand,
     clearSuggestion,
     onOpenSearch: handleOpenSearch,
+    onCopy: handleCopy,
+    onPaste: handlePaste,
+    onClear: handleClear,
     terminalRef,
     searchAddonRef,
     fitAddonRef,

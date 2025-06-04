@@ -31,6 +31,9 @@ export interface UseTerminalInitProps {
   updatePendingCommand?: (newCommand: string) => void;
   clearSuggestion?: () => void;
   onOpenSearch?: () => void;
+  onCopy?: () => void;
+  onPaste?: () => void;
+  onClear?: () => void;
   terminalRef: React.MutableRefObject<XTerm | null>;
   searchAddonRef: React.MutableRefObject<SearchAddon | null>;
   fitAddonRef: React.MutableRefObject<FitAddon | null>;
@@ -51,6 +54,9 @@ export const useTerminalInit = ({
   updatePendingCommand,
   clearSuggestion,
   onOpenSearch,
+  onCopy,
+  onPaste,
+  onClear,
   terminalRef,
   searchAddonRef,
   fitAddonRef,
@@ -69,7 +75,10 @@ export const useTerminalInit = ({
     acceptSuggestion,
     updatePendingCommand,
     clearSuggestion,
-    onOpenSearch
+    onOpenSearch,
+    onCopy,
+    onPaste,
+    onClear
   });
 
   // 使用 ref 存储配置，避免配置变化导致重新初始化
@@ -88,14 +97,17 @@ export const useTerminalInit = ({
       acceptSuggestion,
       updatePendingCommand,
       clearSuggestion,
-      onOpenSearch
+      onOpenSearch,
+      onCopy,
+      onPaste,
+      onClear
     };
     configRef.current = {
       sessionInfo,
       config,
       instanceId
     };
-  }, [handleInput, handleEnterKey, setIsConnected, acceptSuggestion, updatePendingCommand, clearSuggestion, onOpenSearch, sessionInfo, config, instanceId]);
+  }, [handleInput, handleEnterKey, setIsConnected, acceptSuggestion, updatePendingCommand, clearSuggestion, onOpenSearch, onCopy, onPaste, onClear, sessionInfo, config, instanceId]);
 
   // 初始化终端
   useEffect(() => {
@@ -259,12 +271,46 @@ export const useTerminalInit = ({
         return;
       }
 
-      // 处理 Ctrl+F 打开搜索面板
-      if (ev.key === 'f' && ev.ctrlKey) {
+      // 处理 Ctrl+Shift+F 打开搜索面板
+      if (ev.key === 'F' && ev.ctrlKey && ev.shiftKey) {
         ev.preventDefault();
-        console.log('[useTerminalInit] Ctrl+F pressed, opening search panel');
+        console.log('[useTerminalInit] Ctrl+Shift+F pressed, opening search panel');
         if (callbacksRef.current.onOpenSearch) {
           callbacksRef.current.onOpenSearch();
+        }
+        return;
+      }
+
+      // 处理 Ctrl+Shift+C 复制选中文本
+      if (ev.key === 'C' && ev.ctrlKey && ev.shiftKey) {
+        // 只有当有选中文本时才处理复制
+        const selection = terminal.getSelection();
+        if (selection) {
+          ev.preventDefault();
+          console.log('[useTerminalInit] Ctrl+Shift+C pressed, copying selected text');
+          if (callbacksRef.current.onCopy) {
+            callbacksRef.current.onCopy();
+          }
+          return;
+        }
+      }
+
+      // 处理 Ctrl+Shift+V 粘贴文本
+      if (ev.key === 'V' && ev.ctrlKey && ev.shiftKey) {
+        ev.preventDefault();
+        console.log('[useTerminalInit] Ctrl+Shift+V pressed, pasting text');
+        if (callbacksRef.current.onPaste) {
+          callbacksRef.current.onPaste();
+        }
+        return;
+      }
+
+      // 处理 Ctrl+Shift+L 清空终端
+      if (ev.key === 'L' && ev.ctrlKey && ev.shiftKey) {
+        ev.preventDefault();
+        console.log('[useTerminalInit] Ctrl+Shift+L pressed, clearing terminal');
+        if (callbacksRef.current.onClear) {
+          callbacksRef.current.onClear();
         }
         return;
       }

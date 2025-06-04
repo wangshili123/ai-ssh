@@ -61,7 +61,7 @@ const CompletionDropdown: React.FC<CompletionDropdownProps> = ({
     if (!visible || !terminalRef.current) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey) {
+      if (e.ctrlKey) {
         switch (e.key) {
           case 'ArrowUp':
             e.preventDefault();
