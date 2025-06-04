@@ -181,11 +181,87 @@ export const useTerminalInit = ({
     // 注册事件处理器
     terminal.onData(callbacksRef.current.handleInput);
     
+    // 添加全局键盘事件监听器作为备用方案
+    const handleGlobalKeyDown = async (ev: KeyboardEvent) => {
+      // 检查是否在终端容器内或终端有焦点
+      const terminalContainer = containerRef.current;
+      const isTerminalFocused = terminalContainer && (
+        terminalContainer.contains(document.activeElement) ||
+        document.activeElement === terminalContainer ||
+        terminal.hasSelection()
+      );
+
+      if (!isTerminalFocused) {
+        return;
+      }
+
+      // 处理 Ctrl+Shift 组合键
+      if (ev.ctrlKey && ev.shiftKey) {
+        console.log('[useTerminalInit] Global Ctrl+Shift key detected:', {
+          key: ev.key,
+          ctrlKey: ev.ctrlKey,
+          shiftKey: ev.shiftKey
+        });
+
+        switch (ev.key) {
+          case 'C':
+            // 复制选中文本
+            const selection = terminal.getSelection();
+            if (selection) {
+              ev.preventDefault();
+              console.log('[useTerminalInit] Global Ctrl+Shift+C pressed, copying selected text');
+              if (callbacksRef.current.onCopy) {
+                callbacksRef.current.onCopy();
+              }
+            }
+            break;
+          case 'V':
+            // 粘贴文本
+            ev.preventDefault();
+            console.log('[useTerminalInit] Global Ctrl+Shift+V pressed, pasting text');
+            if (callbacksRef.current.onPaste) {
+              callbacksRef.current.onPaste();
+            }
+            break;
+          case 'L':
+            // 清空终端
+            ev.preventDefault();
+            console.log('[useTerminalInit] Global Ctrl+Shift+L pressed, clearing terminal');
+            if (callbacksRef.current.onClear) {
+              callbacksRef.current.onClear();
+            }
+            break;
+          case 'F':
+            // 打开搜索
+            ev.preventDefault();
+            console.log('[useTerminalInit] Global Ctrl+Shift+F pressed, opening search');
+            if (callbacksRef.current.onOpenSearch) {
+              callbacksRef.current.onOpenSearch();
+            }
+            break;
+        }
+      }
+    };
+
+    // 注册全局键盘事件监听器
+    document.addEventListener('keydown', handleGlobalKeyDown);
+
     // 移除currentCommand变量，直接使用pendingCommandRef
     const tabId = eventBus.getCurrentTabId() || '';
     terminal.onKey(async (event) => {
       const ev = event.domEvent;
-      
+
+      // 添加调试信息
+      if (ev.ctrlKey && ev.shiftKey) {
+        console.log('[useTerminalInit] Ctrl+Shift key detected:', {
+          key: ev.key,
+          ctrlKey: ev.ctrlKey,
+          shiftKey: ev.shiftKey,
+          altKey: ev.altKey,
+          metaKey: ev.metaKey
+        });
+      }
+
       // 处理 Tab 键接受补全建议
       if (ev.key === 'Tab') {
         ev.preventDefault(); // 阻止默认的 Tab 行为
@@ -489,6 +565,7 @@ export const useTerminalInit = ({
     return () => {
       console.log('[useTerminalInit] Cleaning up terminal...');
       window.removeEventListener('resize', debouncedResize);
+      document.removeEventListener('keydown', handleGlobalKeyDown);
       resizeObserver.disconnect();
 
       // 断开 SSH 连接
