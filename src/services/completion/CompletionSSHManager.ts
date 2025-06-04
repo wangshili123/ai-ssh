@@ -3,6 +3,18 @@ import { eventBus, TabInfo } from '@/renderer/services/eventBus';
 import { sshService } from '@/renderer/services/ssh';
 import type { SessionInfo } from '@/renderer/types/index';
 
+// 检查是否在主进程中
+const isMainProcess = typeof window === 'undefined';
+let ipcRenderer: any = null;
+
+if (!isMainProcess) {
+  try {
+    ipcRenderer = require('electron').ipcRenderer;
+  } catch (error) {
+    console.warn('[CompletionSSHManager] 无法导入 ipcRenderer:', error);
+  }
+}
+
 interface CommandResult {
   exitCode: number;
   stdout: string;
@@ -99,6 +111,51 @@ export class CompletionSSHManager {
 
   public getCurrentDirectoryN(): string {
     return this.getCurrentDirectory(eventBus.getCurrentTabId());
+  }
+
+  /**
+   * 通过主进程SSH服务执行命令
+   */
+  private async executeCommandViaMainProcess(sessionId: string, command: string): Promise<CommandResult> {
+    if (!ipcRenderer) {
+      throw new Error('IPC renderer not available');
+    }
+
+    try {
+      console.log(`[CompletionSSHManager] 通过主进程执行命令: ${command}`);
+      const result = await ipcRenderer.invoke('ssh:execute-command-direct', sessionId, command);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Command execution failed');
+      }
+
+      // 主进程返回的是字符串，我们需要转换为 CommandResult 格式
+      return {
+        exitCode: 0, // 主进程成功执行的命令默认退出码为0
+        stdout: result.data || '',
+        stderr: ''
+      };
+    } catch (error) {
+      console.error(`[CompletionSSHManager] 主进程命令执行失败:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 检查主进程是否有可用的SSH连接
+   */
+  private async isMainProcessConnectionAvailable(sessionId: string): Promise<boolean> {
+    if (!ipcRenderer) {
+      return false;
+    }
+
+    try {
+      const result = await ipcRenderer.invoke('ssh:is-connected', sessionId);
+      return result.success && result.data;
+    } catch (error) {
+      console.error(`[CompletionSSHManager] 检查主进程连接失败:`, error);
+      return false;
+    }
   }
 
   private async executeCommand(connection: CachedSSHConnection, command: string): Promise<CommandResult> {
@@ -277,6 +334,15 @@ export class CompletionSSHManager {
     }
 
     try {
+      // 优先尝试使用主进程的SSH连接
+      const mainProcessAvailable = await this.isMainProcessConnectionAvailable(sessionInfo.id);
+      if (mainProcessAvailable) {
+        console.log(`[CompletionSSHManager] 使用主进程SSH连接执行命令`);
+        return await this.executeCommandViaMainProcess(sessionInfo.id, command);
+      }
+
+      // 如果主进程连接不可用，回退到自己的连接
+      console.log(`[CompletionSSHManager] 主进程连接不可用，使用自己的连接`);
       const connection = await this.getConnection(sessionInfo);
       return await this.executeCommand(connection, command);
     } catch (error) {

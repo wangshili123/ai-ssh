@@ -28,6 +28,53 @@ export function initSSHHandlers() {
     }
   });
 
+  // 检查SSH连接状态
+  ipcMain.handle('ssh:is-connected', async (_, sessionId: string) => {
+    try {
+      const isConnected = sshService.isConnected(sessionId);
+      return { success: true, data: isConnected };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 直接执行SSH命令
+  ipcMain.handle('ssh:execute-command-direct', async (_, sessionId: string, command: string) => {
+    try {
+      const result = await sshService.executeCommandDirect(sessionId, command);
+      return { success: true, data: result };
+    } catch (error: any) {
+      console.error('SSH execute command direct error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 获取SFTP连接（复用SSH连接）
+  ipcMain.handle('ssh:get-sftp-connection', async (_, sessionId: string) => {
+    try {
+      const sftpConnection = await sshService.getSFTPConnection(sessionId);
+      // 存储SFTP连接引用，用于后续操作
+      const connectionId = `sftp-${sessionId}-${Date.now()}`;
+      // 这里需要一个全局的SFTP连接管理器来存储连接
+      return { success: true, data: { connectionId, available: true } };
+    } catch (error: any) {
+      console.error('SSH get SFTP connection error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 释放SFTP连接
+  ipcMain.handle('ssh:release-sftp-connection', async (_, sessionId: string, connectionId: string) => {
+    try {
+      // 这里需要从全局SFTP连接管理器中获取连接并释放
+      console.log(`[SSH] 释放SFTP连接: ${sessionId}, connectionId: ${connectionId}`);
+      return { success: true };
+    } catch (error: any) {
+      console.error('SSH release SFTP connection error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 创建Shell会话
   ipcMain.handle('ssh:create-shell', async (_, sessionId: string, initialSize?: { rows: number; cols: number }) => {
     try {
