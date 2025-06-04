@@ -257,115 +257,17 @@ export class CompletionSSHManager {
         // 初始化 shell 环境
         //统计耗时
         const startTime = Date.now();
-        this.initializeShell(shell).then(() => {
-          console.log(`[CompletionSSHManager] Shell initialization completed，time: ${Date.now() - startTime}ms`);
-          connection.shellReady = true;
-          resolve();
-        }).catch(reject);
+        // this.initializeShell(shell).then(() => {
+        //   console.log(`[CompletionSSHManager] Shell initialization completed，time: ${Date.now() - startTime}ms`);
+        //   connection.shellReady = true;
+        //   resolve();
+        // }).catch(reject);
 
       });
     });
   }
 
-  private async initializeShell(shell: ClientChannel): Promise<void> {
-    console.log('[CompletionSSHManager] Starting shell initialization');
-    return new Promise((resolve, reject) => {
-      // 读取 shell wrapper 脚本
-      const wrapperScript = `
-#!/bin/bash
 
-# 调试输出
-echo "[ShellWrapper] Starting..." >&2
-
-# 禁用命令提示符和回显
-PS1=""
-TERM=dumb
-stty -echo
-
-# 创建命令执行环境
-cd ~  # 确保从主目录开始
-export SHELL=/bin/bash
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
-# 函数：执行命令并返回 JSON 格式的结果
-execute_command() {
-    local id="$1"
-    local cmd="$2"
-    
-    echo "[ShellWrapper] Executing command: $cmd (ID: $id)" >&2
-    
-    # 在当前 shell 环境中执行命令
-    {
-        local output
-        local error
-        local exit_code
-        
-        # 使用临时文件存储输出
-        local output_file=$(mktemp)
-        local error_file=$(mktemp)
-        
-        # 在当前 shell 环境中执行命令
-        eval "$cmd" >"$output_file" 2>"$error_file"
-        exit_code=$?
-        
-        # 读取输出和错误，使用 base64 编码保留所有字符
-        output=$(cat "$output_file" | base64 -w 0)
-        error=$(cat "$error_file" | base64 -w 0)
-        
-        # 清理临时文件
-        rm -f "$output_file" "$error_file"
-        
-        # 返回 JSON 格式的结果
-        printf '{"id":"%s","exitCode":%d,"stdout":"%s","stderr":"%s"}\\n' \\
-            "$id" "$exit_code" "$output" "$error"
-    }
-}
-
-echo "[ShellWrapper] Entering main loop" >&2
-
-# 主循环：读取和执行命令
-while IFS= read -r line; do
-    echo "[ShellWrapper] Received line: $line" >&2
-    if [[ "$line" == \\{* ]]; then
-        # 解析 JSON 命令
-        id=$(echo "$line" | sed -n 's/.*"id":"\\([^"]*\\)".*/\\1/p')
-        cmd=$(echo "$line" | sed -n 's/.*"command":"\\([^"]*\\)".*/\\1/p')
-        
-        echo "[ShellWrapper] Parsed command - ID: $id, Command: $cmd" >&2
-        
-        if [[ -n "$id" && -n "$cmd" ]]; then
-            execute_command "$id" "$cmd"
-        fi
-    fi
-done
-
-echo "[ShellWrapper] Main loop ended" >&2
-`;
-      
-      console.log('[CompletionSSHManager] Creating shell wrapper script');
-      
-      // 发送脚本到远程并执行
-      shell.write(`cat > /tmp/shell-wrapper.sh << 'EOL'\n${wrapperScript}\nEOL\n`);
-      console.log('[CompletionSSHManager] Shell wrapper script created');
-      
-      shell.write('chmod +x /tmp/shell-wrapper.sh\n');
-      console.log('[CompletionSSHManager] Shell wrapper script made executable');
-      
-      // 使用 bash -i 启动交互式 shell，确保环境变量和配置正确加载
-      shell.write('exec bash --login /tmp/shell-wrapper.sh\n');
-      console.log('[CompletionSSHManager] Shell wrapper script executed with login shell');
-        
-      // 等待脚本启动并发送测试命令
-      setTimeout(() => {
-        const testCmd = { id: 'init', command: 'pwd' };
-        shell.write(JSON.stringify(testCmd) + '\n');
-        console.log('[CompletionSSHManager] Sent test command');
-        
-        // 给更多时间等待响应
-        setTimeout(resolve, 500);
-      }, 500);
-    });
-  }
 
   public async executeCommandForTab(tabId: string, command: string): Promise<CommandResult> {
     console.log(`[CompletionSSHManager] Executing command for tab ${tabId}: ${command}`);
