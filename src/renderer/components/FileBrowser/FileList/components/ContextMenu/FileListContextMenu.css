@@ -20,7 +20,7 @@
   line-height: 32px;
   margin: 0;
   padding: 0 16px;
-  color: rgba(0, 0, 0, 0.88);
+  color: rgba(0, 0, 0, 0.88) !important;
   font-size: 13px;
   border-radius: 4px;
   margin: 2px 4px;
@@ -29,7 +29,12 @@
 .context-menu.ant-menu .ant-menu-item:hover,
 .context-menu.ant-menu .ant-menu-submenu-title:hover {
   background: #f5f5f5;
-  color: rgba(0, 0, 0, 0.88);
+  color: rgba(0, 0, 0, 0.88) !important;
+}
+
+.context-menu.ant-menu .ant-menu-item .ant-menu-title-content,
+.context-menu.ant-menu .ant-menu-submenu-title .ant-menu-title-content {
+  color: rgba(0, 0, 0, 0.88) !important;
 }
 
 .context-menu.ant-menu .ant-menu-item.ant-menu-item-danger {
@@ -37,7 +42,12 @@
 }
 
 .context-menu.ant-menu .ant-menu-submenu-arrow {
-  color: rgba(0, 0, 0, 0.45);
+  color: rgba(0, 0, 0, 0.45) !important;
+}
+
+.context-menu.ant-menu .ant-menu-item .anticon,
+.context-menu.ant-menu .ant-menu-submenu-title .anticon {
+  color: rgba(0, 0, 0, 0.65) !important;
 }
 
 .context-menu.ant-menu .ant-menu-submenu > .ant-menu {
@@ -74,7 +84,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 6px 12px;
-  color: rgba(0, 0, 0, 0.88);
+  color: rgba(0, 0, 0, 0.88) !important;
   cursor: pointer;
   font-size: 12px;
   border-radius: 4px;
@@ -83,6 +93,7 @@
 
 .file-list-context-menu .menu-item:hover {
   background-color: #f5f5f5;
+  color: rgba(0, 0, 0, 0.88) !important;
 }
 
 .file-list-context-menu .menu-item.has-submenu {
