@@ -45,6 +45,35 @@
   border-radius: 0 0 8px 8px;
 }
 
+/* 按钮样式 */
+.download-dialog .ant-btn {
+  border-radius: 6px;
+  font-weight: 400;
+}
+
+.download-dialog .ant-btn-default {
+  background: #ffffff !important;
+  border-color: #d9d9d9 !important;
+  color: rgba(0, 0, 0, 0.88) !important;
+}
+
+.download-dialog .ant-btn-default:hover {
+  background: #f5f5f5 !important;
+  border-color: #4096ff !important;
+  color: #4096ff !important;
+}
+
+.download-dialog .ant-btn-primary {
+  background: #1890ff !important;
+  border-color: #1890ff !important;
+  color: #ffffff !important;
+}
+
+.download-dialog .ant-btn-primary:hover {
+  background: #40a9ff !important;
+  border-color: #40a9ff !important;
+}
+
 /* 对话框内容 */
 .download-dialog-content {
   padding: 8px 0;
@@ -92,10 +121,16 @@
   gap: 2px;
 }
 
+.file-meta .ant-typography {
+  color: rgba(0, 0, 0, 0.65) !important;
+  font-size: 12px !important;
+}
+
 .file-path {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
   word-break: break-all;
+  color: rgba(0, 0, 0, 0.65) !important;
 }
 
 /* 保存配置区域 */
@@ -145,16 +180,23 @@
 }
 
 .browse-button {
-  background: #ffffff;
-  border: 1px solid #d9d9d9;
-  color: rgba(0, 0, 0, 0.88);
+  background: #ffffff !important;
+  border: 1px solid #d9d9d9 !important;
+  color: rgba(0, 0, 0, 0.88) !important;
   flex-shrink: 0;
 }
 
 .browse-button:hover {
-  background: #f5f5f5;
-  border-color: #4096ff;
-  color: #4096ff;
+  background: #f5f5f5 !important;
+  border-color: #4096ff !important;
+  color: #4096ff !important;
+}
+
+.browse-button:focus {
+  background: #ffffff !important;
+  border-color: #4096ff !important;
+  color: #4096ff !important;
+  box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1) !important;
 }
 
 /* 文件名输入 */
@@ -175,9 +217,9 @@
 
 /* 路径预览 */
 .path-preview {
-  background: #2D2D2D;
-  border: 1px solid #333;
-  border-radius: 4px;
+  background: #f5f5f5;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
   padding: 12px;
   margin-top: 8px;
 }
@@ -186,17 +228,18 @@
   display: block;
   margin-bottom: 4px;
   font-size: 12px;
+  color: rgba(0, 0, 0, 0.65);
 }
 
 .preview-path {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   word-break: break-all;
-  background: #1E1E1E !important;
-  color: #D4D4D4 !important;
-  border: 1px solid #333 !important;
-  padding: 4px 8px !important;
-  border-radius: 3px !important;
+  background: #ffffff !important;
+  color: rgba(0, 0, 0, 0.88) !important;
+  border: 1px solid #d9d9d9 !important;
+  padding: 6px 8px !important;
+  border-radius: 4px !important;
 }
 
 /* 下载选项 */
@@ -208,12 +251,12 @@
 }
 
 .download-options .ant-checkbox-wrapper {
-  color: #D4D4D4;
+  color: rgba(0, 0, 0, 0.88);
   font-size: 13px;
 }
 
 .download-options .ant-checkbox-wrapper:hover .ant-checkbox-inner {
-  border-color: #1890ff;
+  border-color: #4096ff;
 }
 
 .download-options .ant-checkbox-checked .ant-checkbox-inner {
@@ -222,44 +265,15 @@
 }
 
 .download-options .ant-checkbox-inner {
-  background-color: #2D2D2D;
-  border-color: #333;
+  background-color: #ffffff;
+  border-color: #d9d9d9;
 }
 
 .download-options .ant-checkbox-inner:hover {
-  border-color: #555;
+  border-color: #4096ff;
 }
 
-/* 按钮样式 */
-.download-dialog .ant-btn {
-  background: #2D2D2D;
-  border: 1px solid #333;
-  color: #D4D4D4;
-}
 
-.download-dialog .ant-btn:hover {
-  background: #3D3D3D;
-  border-color: #555;
-  color: #D4D4D4;
-}
-
-.download-dialog .ant-btn-primary {
-  background: #1890ff;
-  border-color: #1890ff;
-  color: #fff;
-}
-
-.download-dialog .ant-btn-primary:hover {
-  background: #40a9ff;
-  border-color: #40a9ff;
-  color: #fff;
-}
-
-.download-dialog .ant-btn-primary:focus {
-  background: #1890ff;
-  border-color: #1890ff;
-  color: #fff;
-}
 
 /* 批量下载样式 */
 .batch-file-info {
@@ -280,21 +294,21 @@
 .batch-title {
   font-size: 16px;
   font-weight: 600;
-  color: #D4D4D4;
+  color: rgba(0, 0, 0, 0.88);
   margin-bottom: 4px;
 }
 
 .batch-meta {
-  color: #8C8C8C;
+  color: rgba(0, 0, 0, 0.65);
 }
 
 .batch-file-list {
   max-height: 120px;
   overflow-y: auto;
-  border: 1px solid #333;
+  border: 1px solid #d9d9d9;
   border-radius: 4px;
   padding: 8px;
-  background: #1E1E1E;
+  background: #fafafa;
 }
 
 .batch-file-list::-webkit-scrollbar {
@@ -302,17 +316,17 @@
 }
 
 .batch-file-list::-webkit-scrollbar-track {
-  background: #2D2D2D;
+  background: #f0f0f0;
   border-radius: 3px;
 }
 
 .batch-file-list::-webkit-scrollbar-thumb {
-  background: #555;
+  background: #d9d9d9;
   border-radius: 3px;
 }
 
 .batch-file-list::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background: #bfbfbf;
 }
 
 .batch-file-item {
@@ -320,7 +334,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 4px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .batch-file-item:last-child {
@@ -328,11 +342,11 @@
 }
 
 .batch-file-item .ant-typography {
-  color: #D4D4D4;
+  color: rgba(0, 0, 0, 0.88) !important;
 }
 
 .batch-file-item .ant-typography[style*="font-size: 12px"] {
-  color: #8C8C8C;
+  color: rgba(0, 0, 0, 0.65) !important;
 }
 
 /* 响应式设计 */
