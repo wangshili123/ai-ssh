@@ -23,6 +23,7 @@ export interface DownloadConfig {
 export interface DownloadDialogProps {
   visible: boolean;
   file: FileEntry;
+  files?: FileEntry[]; // 批量下载时的文件列表
   sessionInfo: SessionInfo;
   defaultSavePath?: string;
   onConfirm: (config: DownloadConfig) => void;
@@ -32,23 +33,33 @@ export interface DownloadDialogProps {
 export const DownloadDialog: React.FC<DownloadDialogProps> = ({
   visible,
   file,
+  files,
   sessionInfo,
   defaultSavePath = '',
   onConfirm,
   onCancel
 }) => {
-  console.log('DownloadDialog 渲染:', { visible, fileName: file.name });
+  // 判断是否为批量下载
+  const isBatchDownload = files && files.length > 1;
+  const downloadFiles = files || [file];
+
+  console.log('DownloadDialog 渲染:', {
+    visible,
+    fileName: file.name,
+    isBatch: isBatchDownload,
+    fileCount: downloadFiles.length
+  });
 
   const [savePath, setSavePath] = useState(defaultSavePath);
-  const [fileName, setFileName] = useState(file.name);
+  const [fileName, setFileName] = useState(isBatchDownload ? '' : file.name);
   const [overwrite, setOverwrite] = useState(false);
   const [openFolder, setOpenFolder] = useState(true);
   const [loading, setLoading] = useState(false);
 
   // 当文件变化时重置文件名
   useEffect(() => {
-    setFileName(file.name);
-  }, [file.name]);
+    setFileName(isBatchDownload ? '' : file.name);
+  }, [file.name, isBatchDownload]);
 
   // 当默认路径变化时更新保存路径
   useEffect(() => {
@@ -61,17 +72,31 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
   const handleBrowse = async () => {
     try {
       const { ipcRenderer } = window.require('electron');
-      const result = await ipcRenderer.invoke('dialog:show-save-dialog', {
-        defaultPath: savePath ? `${savePath}/${fileName}` : fileName,
-        filters: [
-          { name: '所有文件', extensions: ['*'] }
-        ]
-      });
 
-      if (!result.canceled && result.filePath) {
-        const path = window.require('path');
-        setSavePath(path.dirname(result.filePath));
-        setFileName(path.basename(result.filePath));
+      if (isBatchDownload) {
+        // 批量下载时只选择文件夹
+        const result = await ipcRenderer.invoke('dialog:show-open-dialog', {
+          defaultPath: savePath,
+          properties: ['openDirectory']
+        });
+
+        if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
+          setSavePath(result.filePaths[0]);
+        }
+      } else {
+        // 单个文件下载时选择保存路径和文件名
+        const result = await ipcRenderer.invoke('dialog:show-save-dialog', {
+          defaultPath: savePath ? `${savePath}/${fileName}` : fileName,
+          filters: [
+            { name: '所有文件', extensions: ['*'] }
+          ]
+        });
+
+        if (!result.canceled && result.filePath) {
+          const path = window.require('path');
+          setSavePath(path.dirname(result.filePath));
+          setFileName(path.basename(result.filePath));
+        }
       }
     } catch (error) {
       console.error('选择保存路径失败:', error);
@@ -86,7 +111,7 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
       return;
     }
 
-    if (!fileName.trim()) {
+    if (!isBatchDownload && !fileName.trim()) {
       message.error('请输入文件名');
       return;
     }
@@ -95,7 +120,7 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
     try {
       const config: DownloadConfig = {
         savePath: savePath.trim(),
-        fileName: fileName.trim(),
+        fileName: isBatchDownload ? '' : fileName.trim(), // 批量下载时文件名由各个文件自己决定
         overwrite,
         openFolder,
         sessionId: sessionInfo.id
@@ -122,7 +147,7 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
       title={
         <Space>
           <CloudDownloadOutlined />
-          <span>下载文件</span>
+          <span>{isBatchDownload ? `批量下载 (${downloadFiles.length}个文件)` : '下载文件'}</span>
         </Space>
       }
       open={visible}
@@ -144,22 +169,55 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
       width={520}
       className="download-dialog"
       destroyOnClose
+      zIndex={9999}
+      maskClosable={false}
     >
       <div className="download-dialog-content">
         {/* 文件信息卡片 */}
         <div className="file-info-card">
-          <div className="file-info-header">
-            <FileOutlined className="file-icon" />
-            <div className="file-details">
-              <div className="file-name">{file.name}</div>
-              <div className="file-meta">
-                <Text type="secondary">大小: {formatFileSize(file.size)}</Text>
-                <Text type="secondary" className="file-path">
-                  来源: {file.path}
-                </Text>
+          {isBatchDownload ? (
+            <div className="batch-file-info">
+              <div className="batch-header">
+                <FileOutlined className="file-icon" />
+                <div className="batch-details">
+                  <div className="batch-title">批量下载 {downloadFiles.length} 个文件</div>
+                  <div className="batch-meta">
+                    <Text type="secondary">
+                      总大小: {formatFileSize(downloadFiles.reduce((sum, f) => sum + (f.size || 0), 0))}
+                    </Text>
+                  </div>
+                </div>
+              </div>
+              <div className="batch-file-list">
+                {downloadFiles.slice(0, 5).map((f, index) => (
+                  <div key={index} className="batch-file-item">
+                    <Text>{f.name}</Text>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      {formatFileSize(f.size || 0)}
+                    </Text>
+                  </div>
+                ))}
+                {downloadFiles.length > 5 && (
+                  <Text type="secondary" style={{ fontSize: '12px' }}>
+                    还有 {downloadFiles.length - 5} 个文件...
+                  </Text>
+                )}
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="file-info-header">
+              <FileOutlined className="file-icon" />
+              <div className="file-details">
+                <div className="file-name">{file.name}</div>
+                <div className="file-meta">
+                  <Text type="secondary">大小: {formatFileSize(file.size || 0)}</Text>
+                  <Text type="secondary" className="file-path">
+                    来源: {file.path}
+                  </Text>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 保存配置 */}
@@ -183,24 +241,26 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
             </div>
           </div>
 
-          <div className="config-section">
-            <label className="config-label">文件名</label>
-            <Input
-              value={fileName}
-              onChange={(e) => setFileName(e.target.value)}
-              placeholder="输入文件名"
-              className="filename-input"
-            />
-          </div>
+          {!isBatchDownload && (
+            <div className="config-section">
+              <label className="config-label">文件名</label>
+              <Input
+                value={fileName}
+                onChange={(e) => setFileName(e.target.value)}
+                placeholder="输入文件名"
+                className="filename-input"
+              />
+            </div>
+          )}
 
           {/* 完整路径预览 */}
-          {getFullPath() && (
+          {(isBatchDownload ? savePath : getFullPath()) && (
             <div className="path-preview">
               <Text type="secondary" className="preview-label">
-                完整路径:
+                {isBatchDownload ? '保存到文件夹:' : '完整路径:'}
               </Text>
               <Text code className="preview-path">
-                {getFullPath()}
+                {isBatchDownload ? savePath : getFullPath()}
               </Text>
             </div>
           )}

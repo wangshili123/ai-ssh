@@ -30,11 +30,14 @@ interface DownloadTaskInfo {
   file: FileEntry;
   config: DownloadConfig;
   localPath: string;
+  tempPath?: string; // 临时文件路径
   abortController?: AbortController;
   startTime: number;
   lastProgressTime: number;
   lastTransferred: number;
   speedSamples?: number[];
+  isPaused?: boolean;
+  resumePosition?: number; // 断点续传位置
 }
 
 class DownloadManager {
@@ -47,10 +50,20 @@ class DownloadManager {
     try {
       // 构建完整的本地文件路径
       const localPath = path.join(config.savePath, config.fileName);
+      const tempPath = localPath + '.download'; // 临时文件路径
 
-      // 检查目标目录是否存在
-      if (!fs.existsSync(config.savePath)) {
-        fs.mkdirSync(config.savePath, { recursive: true });
+      // 检查目标目录是否存在，如果不存在则创建
+      try {
+        if (!fs.existsSync(config.savePath)) {
+          fs.mkdirSync(config.savePath, { recursive: true });
+          console.log(`[DownloadManager] 创建下载目录: ${config.savePath}`);
+        }
+      } catch (error) {
+        console.error(`[DownloadManager] 创建目录失败: ${config.savePath}`, error);
+        return {
+          success: false,
+          error: `无法创建下载目录: ${(error as Error).message}`
+        };
       }
 
       // 检查文件是否已存在
@@ -61,16 +74,27 @@ class DownloadManager {
         };
       }
 
+      // 检查是否有未完成的下载（断点续传）
+      let resumePosition = 0;
+      if (fs.existsSync(tempPath)) {
+        const stats = fs.statSync(tempPath);
+        resumePosition = stats.size;
+        console.log(`[DownloadManager] 发现未完成的下载，从位置 ${resumePosition} 继续`);
+      }
+
       // 创建任务信息
       const taskInfo: DownloadTaskInfo = {
         taskId,
         file,
         config,
         localPath,
+        tempPath,
         abortController: new AbortController(),
         startTime: Date.now(),
         lastProgressTime: Date.now(),
-        lastTransferred: 0
+        lastTransferred: resumePosition,
+        resumePosition,
+        isPaused: false
       };
 
       this.tasks.set(taskId, taskInfo);
@@ -94,7 +118,7 @@ class DownloadManager {
    * 执行下载
    */
   private async performDownload(taskInfo: DownloadTaskInfo): Promise<void> {
-    const { taskId, file, config, localPath } = taskInfo;
+    const { taskId, file, config, localPath, tempPath } = taskInfo;
 
     try {
       // 构造正确的connectionId（与SFTP连接管理器保持一致）
@@ -113,13 +137,13 @@ class DownloadManager {
         throw new Error('远程文件不存在');
       }
 
-      // 创建写入流
-      const writeStream = fs.createWriteStream(localPath);
+      // 创建写入流（支持断点续传）
+      const writeStream = fs.createWriteStream(tempPath!, { flags: 'a' }); // 追加模式
 
       // 分块下载参数
       const chunkSize = 64 * 1024; // 64KB per chunk
       const total = file.size;
-      let transferred = 0;
+      let transferred = taskInfo.resumePosition || 0;
 
       try {
         while (transferred < total && !taskInfo.abortController?.signal.aborted) {
@@ -154,10 +178,20 @@ class DownloadManager {
 
         // 检查是否完整下载
         if (transferred >= total && !taskInfo.abortController?.signal.aborted) {
-          // 下载完成
+          // 下载完成，将临时文件重命名为最终文件
+          if (fs.existsSync(localPath)) {
+            fs.unlinkSync(localPath); // 删除已存在的文件
+          }
+          fs.renameSync(tempPath!, localPath);
           this.handleDownloadCompleted(taskId, localPath);
+        } else if (taskInfo.isPaused) {
+          // 下载被暂停，保留临时文件
+          console.log(`[DownloadManager] 下载暂停，已保存到位置 ${transferred}`);
         } else {
-          // 下载被取消
+          // 下载被取消，删除临时文件
+          if (fs.existsSync(tempPath!)) {
+            fs.unlinkSync(tempPath!);
+          }
           this.handleDownloadCancelled(taskId);
         }
 
@@ -168,17 +202,30 @@ class DownloadManager {
 
     } catch (error) {
       if (taskInfo.abortController?.signal.aborted) {
-        this.handleDownloadCancelled(taskId);
+        if (taskInfo.isPaused) {
+          // 暂停状态，保留临时文件
+          console.log(`[DownloadManager] 下载暂停，保留临时文件: ${tempPath}`);
+        } else {
+          // 取消状态，删除临时文件
+          if (fs.existsSync(tempPath!)) {
+            try {
+              fs.unlinkSync(tempPath!);
+            } catch (unlinkError) {
+              console.error('删除临时文件失败:', unlinkError);
+            }
+          }
+          this.handleDownloadCancelled(taskId);
+        }
       } else {
         this.handleDownloadError(taskId, error);
-      }
 
-      // 删除部分下载的文件
-      if (fs.existsSync(localPath)) {
-        try {
-          fs.unlinkSync(localPath);
-        } catch (unlinkError) {
-          console.error('删除部分下载文件失败:', unlinkError);
+        // 错误状态，删除临时文件
+        if (fs.existsSync(tempPath!)) {
+          try {
+            fs.unlinkSync(tempPath!);
+          } catch (unlinkError) {
+            console.error('删除临时文件失败:', unlinkError);
+          }
         }
       }
     }
@@ -239,9 +286,9 @@ class DownloadManager {
   async pauseDownload(taskId: string): Promise<void> {
     const taskInfo = this.tasks.get(taskId);
     if (taskInfo && taskInfo.abortController) {
+      taskInfo.isPaused = true;
       taskInfo.abortController.abort();
-      // 注意：这里实际上是取消了下载，真正的暂停/恢复需要更复杂的实现
-      // 可以在后续版本中实现断点续传功能
+      console.log(`[DownloadManager] 暂停下载任务: ${taskId}`);
     }
   }
 
@@ -249,12 +296,24 @@ class DownloadManager {
    * 恢复下载
    */
   async resumeDownload(taskId: string): Promise<void> {
-    // 断点续传功能的实现
-    // 这里可以检查本地文件大小，然后从断点位置继续下载
     const taskInfo = this.tasks.get(taskId);
     if (taskInfo) {
-      // 重新开始下载（简化实现）
-      await this.startDownload(taskId, taskInfo.file, taskInfo.config);
+      // 重置暂停状态
+      taskInfo.isPaused = false;
+      taskInfo.abortController = new AbortController();
+
+      // 检查临时文件大小，更新断点位置
+      if (taskInfo.tempPath && fs.existsSync(taskInfo.tempPath)) {
+        const stats = fs.statSync(taskInfo.tempPath);
+        taskInfo.resumePosition = stats.size;
+        taskInfo.lastTransferred = stats.size;
+        console.log(`[DownloadManager] 恢复下载任务: ${taskId}，从位置 ${stats.size} 继续`);
+      }
+
+      // 重新开始下载
+      this.performDownload(taskInfo).catch(error => {
+        this.handleDownloadError(taskId, error);
+      });
     }
   }
 
@@ -264,7 +323,9 @@ class DownloadManager {
   async cancelDownload(taskId: string): Promise<void> {
     const taskInfo = this.tasks.get(taskId);
     if (taskInfo && taskInfo.abortController) {
+      taskInfo.isPaused = false; // 确保不是暂停状态
       taskInfo.abortController.abort();
+      console.log(`[DownloadManager] 取消下载任务: ${taskId}`);
     }
   }
 
@@ -364,6 +425,12 @@ export function registerDownloadHandlers(): void {
   // 显示保存对话框
   ipcMain.handle('dialog:show-save-dialog', async (event, options) => {
     const result = await dialog.showSaveDialog(options);
+    return result;
+  });
+
+  // 显示打开对话框（用于选择文件夹）
+  ipcMain.handle('dialog:show-open-dialog', async (event, options) => {
+    const result = await dialog.showOpenDialog(options);
     return result;
   });
 

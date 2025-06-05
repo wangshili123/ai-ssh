@@ -15,9 +15,20 @@ function createMenu() {
       ]
     },
     {
+      label: '查看',
+      submenu: [
+        {
+          label: '下载历史',
+          click: () => {
+            BrowserWindow.getFocusedWindow()?.webContents.send('open-download-history');
+          }
+        }
+      ]
+    },
+    {
       label: '设置',
       submenu: [
-        { 
+        {
           label: '基础配置',
           click: () => {
             BrowserWindow.getFocusedWindow()?.webContents.send('open-base-config');

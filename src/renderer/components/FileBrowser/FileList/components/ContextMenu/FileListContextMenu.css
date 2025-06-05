@@ -1,9 +1,9 @@
 .file-list-context-menu {
   min-width: 200px;
-  background-color: #1E1E1E;
-  border: 1px solid #333;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background-color: #ffffff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
   z-index: 1000;
   user-select: none;
 }
@@ -20,13 +20,16 @@
   line-height: 32px;
   margin: 0;
   padding: 0 16px;
-  color: #D4D4D4;
+  color: rgba(0, 0, 0, 0.88);
   font-size: 13px;
+  border-radius: 4px;
+  margin: 2px 4px;
 }
 
 .context-menu.ant-menu .ant-menu-item:hover,
 .context-menu.ant-menu .ant-menu-submenu-title:hover {
-  background: #2D2D2D;
+  background: #f5f5f5;
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .context-menu.ant-menu .ant-menu-item.ant-menu-item-danger {
@@ -34,18 +37,19 @@
 }
 
 .context-menu.ant-menu .ant-menu-submenu-arrow {
-  color: #D4D4D4;
+  color: rgba(0, 0, 0, 0.45);
 }
 
 .context-menu.ant-menu .ant-menu-submenu > .ant-menu {
-  background-color: #1E1E1E;
-  border: 1px solid #333;
-  border-radius: 4px;
+  background-color: #ffffff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
   margin-top: -4px;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08);
 }
 
 .context-menu.ant-menu .ant-menu-item-disabled {
-  color: #666 !important;
+  color: rgba(0, 0, 0, 0.25) !important;
   cursor: not-allowed;
 }
 
@@ -54,7 +58,7 @@
 }
 
 .context-menu.ant-menu .ant-menu-item-divider {
-  background-color: #333;
+  background-color: #f0f0f0;
   margin: 4px 0;
 }
 
@@ -70,13 +74,15 @@
   justify-content: space-between;
   align-items: center;
   padding: 6px 12px;
-  color: #D4D4D4;
+  color: rgba(0, 0, 0, 0.88);
   cursor: pointer;
   font-size: 12px;
+  border-radius: 4px;
+  margin: 2px 4px;
 }
 
 .file-list-context-menu .menu-item:hover {
-  background-color: #2D2D2D;
+  background-color: #f5f5f5;
 }
 
 .file-list-context-menu .menu-item.has-submenu {

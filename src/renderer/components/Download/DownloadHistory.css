@@ -1,0 +1,136 @@
+/**
+ * 下载历史组件样式
+ */
+
+.download-history .ant-modal-content {
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+.download-history .ant-modal-header {
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
+  border-radius: 8px 8px 0 0;
+}
+
+.download-history .ant-modal-title {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.download-history .ant-modal-body {
+  padding: 16px;
+  background: #ffffff;
+}
+
+.download-history-content {
+  min-height: 400px;
+}
+
+.download-history .ant-table {
+  background: #ffffff;
+}
+
+.download-history .ant-table-thead > tr > th {
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 600;
+}
+
+.download-history .ant-table-tbody > tr > td {
+  border-bottom: 1px solid #f0f0f0;
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.download-history .ant-table-tbody > tr:hover > td {
+  background: #f5f5f5;
+}
+
+.download-history .ant-progress-line {
+  margin-bottom: 4px;
+}
+
+.download-history .ant-tag {
+  margin: 0;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.download-history .ant-btn-text {
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.download-history .ant-btn-text:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+}
+
+.download-history .ant-empty {
+  margin: 40px 0;
+}
+
+.download-history .ant-pagination {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.download-history .ant-pagination .ant-pagination-item {
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+}
+
+.download-history .ant-pagination .ant-pagination-item a {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.download-history .ant-pagination .ant-pagination-item:hover {
+  border-color: #1890ff;
+}
+
+.download-history .ant-pagination .ant-pagination-item-active {
+  background: #1890ff;
+  border-color: #1890ff;
+}
+
+.download-history .ant-pagination .ant-pagination-item-active a {
+  color: #fff;
+}
+
+.download-history .ant-pagination .ant-pagination-prev,
+.download-history .ant-pagination .ant-pagination-next {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.download-history .ant-pagination .ant-pagination-prev a,
+.download-history .ant-pagination .ant-pagination-next a {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.download-history .ant-pagination .ant-pagination-prev:hover,
+.download-history .ant-pagination .ant-pagination-next:hover {
+  border-color: #1890ff;
+}
+
+.download-history .ant-select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.download-history .ant-select .ant-select-selector {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.download-history .ant-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.download-history .ant-input:hover,
+.download-history .ant-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}

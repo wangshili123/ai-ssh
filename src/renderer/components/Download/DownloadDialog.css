@@ -1,31 +1,48 @@
 /* 下载对话框样式 */
+.download-dialog {
+  z-index: 9999 !important;
+}
+
+.download-dialog .ant-modal-mask {
+  background-color: rgba(0, 0, 0, 0.45) !important;
+  z-index: 9998 !important;
+}
+
+.download-dialog .ant-modal-wrap {
+  z-index: 9999 !important;
+}
+
 .download-dialog .ant-modal-content {
-  background: #1E1E1E;
-  border: 1px solid #333;
+  background: #ffffff !important;
+  border: 2px solid #1890ff !important;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
 .download-dialog .ant-modal-header {
-  background: #1E1E1E;
-  border-bottom: 1px solid #333;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
+  border-radius: 8px 8px 0 0;
 }
 
 .download-dialog .ant-modal-title {
-  color: #D4D4D4;
+  color: rgba(0, 0, 0, 0.88);
   font-size: 16px;
   font-weight: 500;
 }
 
 .download-dialog .ant-modal-close {
-  color: #8C8C8C;
+  color: rgba(0, 0, 0, 0.45);
 }
 
 .download-dialog .ant-modal-close:hover {
-  color: #D4D4D4;
+  color: rgba(0, 0, 0, 0.75);
 }
 
 .download-dialog .ant-modal-footer {
-  background: #1E1E1E;
-  border-top: 1px solid #333;
+  background: #ffffff;
+  border-top: 1px solid #f0f0f0;
+  border-radius: 0 0 8px 8px;
 }
 
 /* 对话框内容 */
@@ -35,8 +52,8 @@
 
 /* 文件信息卡片 */
 .file-info-card {
-  background: #2D2D2D;
-  border: 1px solid #333;
+  background: #fafafa;
+  border: 1px solid #d9d9d9;
   border-left: 3px solid #1890ff;
   border-radius: 6px;
   padding: 16px;
@@ -64,7 +81,7 @@
 .file-name {
   font-size: 14px;
   font-weight: 500;
-  color: #D4D4D4;
+  color: rgba(0, 0, 0, 0.88);
   margin-bottom: 6px;
   word-break: break-all;
 }
@@ -97,7 +114,7 @@
 .config-label {
   font-size: 13px;
   font-weight: 500;
-  color: #D4D4D4;
+  color: rgba(0, 0, 0, 0.88);
   margin-bottom: 4px;
 }
 
@@ -113,47 +130,47 @@
 }
 
 .path-input .ant-input {
-  background: #2D2D2D;
-  border: 1px solid #333;
-  color: #D4D4D4;
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .path-input .ant-input:hover {
-  border-color: #555;
+  border-color: #4096ff;
 }
 
 .path-input .ant-input:focus {
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: #4096ff;
+  box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1);
 }
 
 .browse-button {
-  background: #2D2D2D;
-  border: 1px solid #333;
-  color: #D4D4D4;
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  color: rgba(0, 0, 0, 0.88);
   flex-shrink: 0;
 }
 
 .browse-button:hover {
-  background: #3D3D3D;
-  border-color: #555;
-  color: #D4D4D4;
+  background: #f5f5f5;
+  border-color: #4096ff;
+  color: #4096ff;
 }
 
 /* 文件名输入 */
 .filename-input .ant-input {
-  background: #2D2D2D;
-  border: 1px solid #333;
-  color: #D4D4D4;
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  color: rgba(0, 0, 0, 0.88);
 }
 
 .filename-input .ant-input:hover {
-  border-color: #555;
+  border-color: #4096ff;
 }
 
 .filename-input .ant-input:focus {
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: #4096ff;
+  box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1);
 }
 
 /* 路径预览 */
@@ -244,19 +261,97 @@
   color: #fff;
 }
 
+/* 批量下载样式 */
+.batch-file-info {
+  width: 100%;
+}
+
+.batch-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.batch-details {
+  flex: 1;
+  margin-left: 12px;
+}
+
+.batch-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #D4D4D4;
+  margin-bottom: 4px;
+}
+
+.batch-meta {
+  color: #8C8C8C;
+}
+
+.batch-file-list {
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 8px;
+  background: #1E1E1E;
+}
+
+.batch-file-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.batch-file-list::-webkit-scrollbar-track {
+  background: #2D2D2D;
+  border-radius: 3px;
+}
+
+.batch-file-list::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 3px;
+}
+
+.batch-file-list::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+.batch-file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.batch-file-item:last-child {
+  border-bottom: none;
+}
+
+.batch-file-item .ant-typography {
+  color: #D4D4D4;
+}
+
+.batch-file-item .ant-typography[style*="font-size: 12px"] {
+  color: #8C8C8C;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .download-dialog {
     width: 90vw !important;
     margin: 20px;
   }
-  
+
   .path-input-group {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .browse-button {
     width: 100%;
+  }
+
+  .batch-file-list {
+    max-height: 80px;
   }
 }

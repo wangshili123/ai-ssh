@@ -28,11 +28,20 @@ export interface DownloadTask {
   error?: string;
   startTime?: Date;
   endTime?: Date;
+  // 断点续传相关字段
+  resumeSupported?: boolean;
+  resumePosition?: number;
+  tempFilePath?: string;
+  retryCount?: number;
+  maxRetries?: number;
 }
 
 export class DownloadService extends EventEmitter {
   private tasks = new Map<string, DownloadTask>();
   private static instance: DownloadService;
+  private maxConcurrentDownloads = 3; // 最大并发下载数
+  private downloadQueue: string[] = []; // 下载队列
+  private activeDownloads = new Set<string>(); // 活动下载任务
 
   constructor() {
     super();
@@ -71,12 +80,14 @@ export class DownloadService extends EventEmitter {
     });
   }
 
+
+
   /**
    * 开始下载文件
    */
   async startDownload(file: FileEntry, config: DownloadConfig): Promise<string> {
     const taskId = uuidv4();
-    
+
     // 创建下载任务
     const task: DownloadTask = {
       id: taskId,
@@ -90,45 +101,20 @@ export class DownloadService extends EventEmitter {
         speed: 0,
         remainingTime: 0
       },
-      startTime: new Date()
+      startTime: new Date(),
+      // 断点续传相关初始化
+      resumeSupported: true,
+      resumePosition: 0,
+      retryCount: 0,
+      maxRetries: 3
     };
 
     this.tasks.set(taskId, task);
 
-    try {
-      // 调用主进程开始下载
-      const result = await ipcRenderer.invoke('download:start', {
-        taskId,
-        file,
-        config
-      });
+    // 添加到下载队列
+    this.addToQueue(taskId);
 
-      if (result.success) {
-        // 更新任务状态
-        task.status = 'downloading';
-        this.tasks.set(taskId, task);
-
-        // 显示开始下载通知
-        this.showStartNotification(task);
-
-        // 触发事件
-        this.emit('download-started', task);
-
-        return taskId;
-      } else {
-        throw new Error(result.error || '下载启动失败');
-      }
-    } catch (error) {
-      // 下载启动失败
-      task.status = 'error';
-      task.error = (error as Error).message;
-      this.tasks.set(taskId, task);
-
-      message.error(`下载失败: ${(error as Error).message}`);
-      this.emit('download-error', task);
-
-      throw error;
-    }
+    return taskId;
   }
 
   /**
@@ -143,8 +129,17 @@ export class DownloadService extends EventEmitter {
     try {
       await ipcRenderer.invoke('download:pause', taskId);
       task.status = 'paused';
+      // 保存当前下载位置用于断点续传
+      task.resumePosition = task.progress.transferred;
       this.tasks.set(taskId, task);
+
+      // 从活动下载中移除
+      this.activeDownloads.delete(taskId);
+
       this.emit('download-paused', task);
+
+      // 处理队列中的下一个任务
+      this.processQueue();
     } catch (error) {
       console.error('暂停下载失败:', error);
       message.error('暂停下载失败');
@@ -160,15 +155,14 @@ export class DownloadService extends EventEmitter {
       return;
     }
 
-    try {
-      await ipcRenderer.invoke('download:resume', taskId);
-      task.status = 'downloading';
-      this.tasks.set(taskId, task);
-      this.emit('download-resumed', task);
-    } catch (error) {
-      console.error('恢复下载失败:', error);
-      message.error('恢复下载失败');
-    }
+    // 重置状态为pending，然后添加到队列
+    task.status = 'pending';
+    this.tasks.set(taskId, task);
+
+    // 添加到下载队列进行断点续传
+    this.addToQueue(taskId);
+
+    this.emit('download-resumed', task);
   }
 
   /**
@@ -181,11 +175,23 @@ export class DownloadService extends EventEmitter {
     }
 
     try {
+      // 从队列中移除（如果还在队列中）
+      const queueIndex = this.downloadQueue.indexOf(taskId);
+      if (queueIndex > -1) {
+        this.downloadQueue.splice(queueIndex, 1);
+      }
+
+      // 从活动下载中移除
+      this.activeDownloads.delete(taskId);
+
       await ipcRenderer.invoke('download:cancel', taskId);
       task.status = 'cancelled';
       task.endTime = new Date();
       this.tasks.set(taskId, task);
       this.emit('download-cancelled', task);
+
+      // 处理队列中的下一个任务
+      this.processQueue();
     } catch (error) {
       console.error('取消下载失败:', error);
       message.error('取消下载失败');
@@ -210,9 +216,177 @@ export class DownloadService extends EventEmitter {
    * 获取活动的下载任务
    */
   getActiveTasks(): DownloadTask[] {
-    return this.getAllTasks().filter(task => 
+    return this.getAllTasks().filter(task =>
       task.status === 'downloading' || task.status === 'pending'
     );
+  }
+
+  /**
+   * 获取队列状态
+   */
+  getQueueStatus(): {
+    queueLength: number;
+    activeDownloads: number;
+    maxConcurrent: number;
+  } {
+    return {
+      queueLength: this.downloadQueue.length,
+      activeDownloads: this.activeDownloads.size,
+      maxConcurrent: this.maxConcurrentDownloads
+    };
+  }
+
+  /**
+   * 设置最大并发下载数
+   */
+  setMaxConcurrentDownloads(max: number): void {
+    this.maxConcurrentDownloads = Math.max(1, Math.min(10, max));
+    // 如果增加了并发数，尝试处理队列
+    this.processQueue();
+  }
+
+  /**
+   * 暂停所有下载
+   */
+  async pauseAllDownloads(): Promise<void> {
+    const downloadingTasks = this.getAllTasks().filter(task => task.status === 'downloading');
+    for (const task of downloadingTasks) {
+      await this.pauseDownload(task.id);
+    }
+  }
+
+  /**
+   * 恢复所有暂停的下载
+   */
+  async resumeAllDownloads(): Promise<void> {
+    const pausedTasks = this.getAllTasks().filter(task => task.status === 'paused');
+    for (const task of pausedTasks) {
+      await this.resumeDownload(task.id);
+    }
+  }
+
+  /**
+   * 清除已完成和已取消的任务
+   */
+  clearCompletedTasks(): void {
+    const tasksToRemove: string[] = [];
+    this.tasks.forEach((task, taskId) => {
+      if (task.status === 'completed' || task.status === 'cancelled') {
+        tasksToRemove.push(taskId);
+      }
+    });
+
+    tasksToRemove.forEach(taskId => {
+      this.tasks.delete(taskId);
+    });
+
+    this.emit('tasks-cleared', tasksToRemove);
+  }
+
+  /**
+   * 添加任务到下载队列
+   */
+  private addToQueue(taskId: string): void {
+    this.downloadQueue.push(taskId);
+    this.processQueue();
+  }
+
+  /**
+   * 处理下载队列
+   */
+  private processQueue(): void {
+    // 如果当前活动下载数已达到最大值，则等待
+    if (this.activeDownloads.size >= this.maxConcurrentDownloads) {
+      return;
+    }
+
+    // 从队列中取出下一个任务
+    const taskId = this.downloadQueue.shift();
+    if (!taskId) {
+      return;
+    }
+
+    const task = this.tasks.get(taskId);
+    if (!task || task.status !== 'pending') {
+      // 继续处理下一个任务
+      this.processQueue();
+      return;
+    }
+
+    // 开始下载
+    this.startActualDownload(taskId);
+  }
+
+  /**
+   * 实际开始下载
+   */
+  private async startActualDownload(taskId: string): Promise<void> {
+    const task = this.tasks.get(taskId);
+    if (!task) return;
+
+    this.activeDownloads.add(taskId);
+
+    try {
+      // 调用主进程开始下载
+      const result = await ipcRenderer.invoke('download:start', {
+        taskId,
+        file: task.file,
+        config: task.config
+      });
+
+      if (result.success) {
+        // 更新任务状态
+        task.status = 'downloading';
+        this.tasks.set(taskId, task);
+
+        // 显示开始下载通知
+        this.showStartNotification(task);
+
+        // 触发事件
+        this.emit('download-started', task);
+      } else {
+        throw new Error(result.error || '下载启动失败');
+      }
+    } catch (error) {
+      // 下载启动失败
+      this.handleDownloadStartError(taskId, error as Error);
+    }
+  }
+
+  /**
+   * 处理下载启动错误
+   */
+  private handleDownloadStartError(taskId: string, error: Error): void {
+    const task = this.tasks.get(taskId);
+    if (!task) return;
+
+    this.activeDownloads.delete(taskId);
+
+    // 检查是否可以重试
+    if (task.retryCount! < task.maxRetries!) {
+      task.retryCount = (task.retryCount || 0) + 1;
+      task.status = 'pending';
+      this.tasks.set(taskId, task);
+
+      // 延迟重试
+      setTimeout(() => {
+        this.addToQueue(taskId);
+      }, 2000 * task.retryCount!);
+
+      console.log(`下载任务 ${taskId} 将在 ${2 * task.retryCount!} 秒后重试 (${task.retryCount}/${task.maxRetries})`);
+    } else {
+      // 重试次数已用完，标记为失败
+      task.status = 'error';
+      task.error = error.message;
+      task.endTime = new Date();
+      this.tasks.set(taskId, task);
+
+      message.error(`下载失败: ${error.message}`);
+      this.emit('download-error', task);
+    }
+
+    // 继续处理队列中的下一个任务
+    this.processQueue();
   }
 
   /**
@@ -234,6 +408,9 @@ export class DownloadService extends EventEmitter {
     const task = this.tasks.get(taskId);
     if (!task) return;
 
+    // 从活动下载中移除
+    this.activeDownloads.delete(taskId);
+
     task.status = 'completed';
     task.endTime = new Date();
     task.progress.percentage = 100;
@@ -248,6 +425,9 @@ export class DownloadService extends EventEmitter {
     }
 
     this.emit('download-completed', task);
+
+    // 处理队列中的下一个任务
+    this.processQueue();
   }
 
   /**
@@ -257,15 +437,36 @@ export class DownloadService extends EventEmitter {
     const task = this.tasks.get(taskId);
     if (!task) return;
 
-    task.status = 'error';
-    task.error = error;
-    task.endTime = new Date();
-    this.tasks.set(taskId, task);
+    // 从活动下载中移除
+    this.activeDownloads.delete(taskId);
 
-    // 显示错误通知
-    this.showErrorNotification(task);
+    // 检查是否可以重试
+    if (task.retryCount! < task.maxRetries!) {
+      task.retryCount = (task.retryCount || 0) + 1;
+      task.status = 'pending';
+      this.tasks.set(taskId, task);
 
-    this.emit('download-error', task);
+      // 延迟重试
+      setTimeout(() => {
+        this.addToQueue(taskId);
+      }, 2000 * task.retryCount!);
+
+      console.log(`下载任务 ${taskId} 将在 ${2 * task.retryCount!} 秒后重试 (${task.retryCount}/${task.maxRetries})`);
+    } else {
+      // 重试次数已用完，标记为失败
+      task.status = 'error';
+      task.error = error;
+      task.endTime = new Date();
+      this.tasks.set(taskId, task);
+
+      // 显示错误通知
+      this.showErrorNotification(task);
+
+      this.emit('download-error', task);
+    }
+
+    // 处理队列中的下一个任务
+    this.processQueue();
   }
 
   /**
@@ -275,11 +476,17 @@ export class DownloadService extends EventEmitter {
     const task = this.tasks.get(taskId);
     if (!task) return;
 
+    // 从活动下载中移除
+    this.activeDownloads.delete(taskId);
+
     task.status = 'cancelled';
     task.endTime = new Date();
     this.tasks.set(taskId, task);
 
     this.emit('download-cancelled', task);
+
+    // 处理队列中的下一个任务
+    this.processQueue();
   }
 
   /**

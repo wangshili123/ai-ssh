@@ -7,6 +7,9 @@ import { getUserName, getGroupName } from '../../../utils';
 import type { FileEntry } from '../../../../main/types/file';
 import type { SessionInfo } from '../../../types';
 import { FileListContextMenu } from './components/ContextMenu/FileListContextMenu';
+import DownloadDialog, { type DownloadConfig } from '../../Download/DownloadDialog';
+import { downloadService } from '../../../services/downloadService';
+import { getDefaultDownloadPath } from '../../../utils/downloadUtils';
 import { fileOpenManager } from './core/FileOpenManager';
 import './FileList.css';
 
@@ -148,6 +151,10 @@ const FileList: React.FC<FileListProps> = ({
 }) => {
   const [sortedInfo, setSortedInfo] = useState<SorterResult<FileEntry>>({});
   const [tableHeight, setTableHeight] = useState<number>(0);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [downloadDialogVisible, setDownloadDialogVisible] = useState(false);
+  const [downloadFile, setDownloadFile] = useState<FileEntry | null>(null);
+  const [downloadFiles, setDownloadFiles] = useState<FileEntry[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 修改右键菜单状态的类型定义
@@ -155,6 +162,7 @@ const FileList: React.FC<FileListProps> = ({
     x: number;
     y: number;
     file: FileEntry;
+    selectedFiles?: FileEntry[];
   } | null>(null);
 
   // 监听容器高度变化
@@ -197,16 +205,69 @@ const FileList: React.FC<FileListProps> = ({
     setSortedInfo(Array.isArray(sorter) ? sorter[0] || {} : sorter);
   };
 
+  // 下载处理函数
+  const handleDownloadRequest = useCallback((file: FileEntry, selectedFiles: FileEntry[]) => {
+    console.log('FileList: 收到下载请求', file.name, selectedFiles.length);
+    setDownloadFile(file);
+    setDownloadFiles(selectedFiles);
+    setDownloadDialogVisible(true);
+  }, []);
+
+  // 下载确认处理
+  const handleDownloadConfirm = async (config: DownloadConfig) => {
+    console.log('FileList: 下载确认', config);
+    try {
+      if (!sessionInfo) {
+        console.error('没有会话信息');
+        return;
+      }
+
+      const downloadableFiles = downloadFiles.filter(f => !f.isDirectory);
+      const configWithSession = {
+        ...config,
+        sessionId: tabId
+      };
+
+      if (downloadableFiles.length === 1) {
+        // 单个文件下载
+        await downloadService.startDownload(downloadableFiles[0], configWithSession);
+      } else if (downloadableFiles.length > 1) {
+        // 批量下载
+        for (const file of downloadableFiles) {
+          const fileConfig = {
+            ...configWithSession,
+            fileName: file.name
+          };
+          await downloadService.startDownload(file, fileConfig);
+        }
+      }
+
+      setDownloadDialogVisible(false);
+    } catch (error) {
+      console.error('下载失败:', error);
+    }
+  };
+
+  // 下载取消处理
+  const handleDownloadCancel = () => {
+    console.log('FileList: 下载取消');
+    setDownloadDialogVisible(false);
+  };
+
   // 修改处理右键菜单的函数
   const handleContextMenu = useCallback((event: React.MouseEvent, file: FileEntry) => {
     event.preventDefault();
-    
+
+    // 获取选中的文件
+    const selectedFiles = fileList.filter(f => selectedRowKeys.includes(f.name));
+
     setContextMenu({
       x: event.clientX,
       y: event.clientY,
-      file
+      file,
+      selectedFiles: selectedFiles.length > 0 ? selectedFiles : [file]
     });
-  }, []);
+  }, [selectedRowKeys, fileList]);
 
   // 处理关闭右键菜单
   const handleCloseContextMenu = useCallback(() => {
@@ -288,6 +349,18 @@ const FileList: React.FC<FileListProps> = ({
     );
   }
 
+  // 行选择配置
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (newSelectedRowKeys: React.Key[]) => {
+      setSelectedRowKeys(newSelectedRowKeys);
+    },
+    getCheckboxProps: (record: FileEntry) => ({
+      disabled: false,
+      name: record.name,
+    }),
+  };
+
   return (
     <div className="file-list-container" ref={containerRef}>
       <Table
@@ -300,6 +373,7 @@ const FileList: React.FC<FileListProps> = ({
         scroll={{ x: 'max-content', y: tableHeight }}
         sticky
         showSorterTooltip={false}
+        rowSelection={rowSelection}
         onRow={(record) => ({
           onDoubleClick: () => handleRowDoubleClick(record),
           onContextMenu: (e) => handleContextMenu(e, record),
@@ -311,10 +385,25 @@ const FileList: React.FC<FileListProps> = ({
           x={contextMenu.x}
           y={contextMenu.y}
           file={contextMenu.file}
+          selectedFiles={contextMenu.selectedFiles}
           sessionInfo={sessionInfo}
           tabId={tabId}
           currentPath={currentPath}
           onClose={handleCloseContextMenu}
+          onDownloadRequest={handleDownloadRequest}
+        />
+      )}
+
+      {/* 下载对话框 */}
+      {sessionInfo && downloadFile && (
+        <DownloadDialog
+          visible={downloadDialogVisible}
+          file={downloadFile}
+          files={downloadFiles}
+          sessionInfo={sessionInfo}
+          defaultSavePath={getDefaultDownloadPath()}
+          onConfirm={handleDownloadConfirm}
+          onCancel={handleDownloadCancel}
         />
       )}
     </div>

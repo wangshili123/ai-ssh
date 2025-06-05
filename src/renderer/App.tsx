@@ -9,6 +9,7 @@ import AppToolbar from './components/Toolbar/AppToolbar';
 import SessionListModal from './components/SessionListModal';
 import { BaseConfigModal } from './components/BaseConfigModal/BaseConfigModal';
 import DownloadNotificationManager from './components/Download/DownloadNotificationManager';
+import DownloadHistory from './components/Download/DownloadHistory';
 import type { SessionInfo, SSHService } from './types';
 import { eventBus } from './services/eventBus';
 import { DatabaseService } from '../services/database/DatabaseService';
@@ -31,6 +32,7 @@ const App: React.FC = () => {
   const [sessionListVisible, setSessionListVisible] = useState(false);
   const [isFileBrowserVisible, setIsFileBrowserVisible] = useState(true);
   const [baseConfigVisible, setBaseConfigVisible] = useState(false);
+  const [downloadHistoryVisible, setDownloadHistoryVisible] = useState(false);
 
   // 初始化数据库和基础服务
   useEffect(() => {
@@ -88,10 +90,17 @@ const App: React.FC = () => {
       setBaseConfigVisible(true);
     };
 
+    const handleOpenDownloadHistory = () => {
+      console.log('[App] 收到打开下载历史的消息');
+      setDownloadHistoryVisible(true);
+    };
+
     ipcRenderer.on('open-base-config', handleOpenBaseConfig);
+    ipcRenderer.on('open-download-history', handleOpenDownloadHistory);
 
     return () => {
       ipcRenderer.removeListener('open-base-config', handleOpenBaseConfig);
+      ipcRenderer.removeListener('open-download-history', handleOpenDownloadHistory);
     };
   }, []);
 
@@ -172,6 +181,10 @@ const App: React.FC = () => {
       <BaseConfigModal
         visible={baseConfigVisible}
         onClose={() => setBaseConfigVisible(false)}
+      />
+      <DownloadHistory
+        visible={downloadHistoryVisible}
+        onClose={() => setDownloadHistoryVisible(false)}
       />
 
       {/* 下载通知管理器 */}
