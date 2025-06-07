@@ -7,6 +7,7 @@ import { message } from 'antd';
 import { v4 as uuidv4 } from 'uuid';
 import type { FileEntry } from '../../main/types/file';
 import type { DownloadConfig } from '../components/Download/DownloadDialog';
+import { CompressionStrategySelector } from './compressionStrategy';
 
 const { ipcRenderer } = window.require('electron');
 
@@ -17,6 +18,11 @@ export interface DownloadProgress {
   speed: number;
   remainingTime: number;
   eta?: Date;
+  // 新增：压缩相关进度信息
+  compressionPhase?: 'compressing' | 'downloading' | 'extracting' | 'completed';
+  originalSize?: number;
+  compressedSize?: number;
+  compressionRatio?: number;
 }
 
 export interface DownloadTask {
@@ -34,6 +40,13 @@ export interface DownloadTask {
   tempFilePath?: string;
   retryCount?: number;
   maxRetries?: number;
+  // 新增：压缩优化相关字段
+  compressionEnabled?: boolean;
+  compressionMethod?: 'gzip' | 'bzip2' | 'xz' | 'none';
+  originalFileSize?: number;
+  compressedFileSize?: number;
+  compressionRatio?: number;
+  optimizationUsed?: string[]; // 记录使用了哪些优化策略
 }
 
 export class DownloadService extends EventEmitter {
@@ -88,6 +101,18 @@ export class DownloadService extends EventEmitter {
   async startDownload(file: FileEntry, config: DownloadConfig): Promise<string> {
     const taskId = uuidv4();
 
+    // 分析压缩策略
+    const compressionStrategy = CompressionStrategySelector.selectStrategy(file, config);
+    const optimizationUsed: string[] = [];
+
+    if (config.useCompression && compressionStrategy.enabled) {
+      optimizationUsed.push(`压缩传输(${compressionStrategy.method})`);
+    }
+
+    if (config.useParallelDownload && file.size > 10 * 1024 * 1024) {
+      optimizationUsed.push(`并行下载(${config.maxParallelChunks || 4}块)`);
+    }
+
     // 创建下载任务
     const task: DownloadTask = {
       id: taskId,
@@ -99,17 +124,35 @@ export class DownloadService extends EventEmitter {
         total: file.size,
         percentage: 0,
         speed: 0,
-        remainingTime: 0
+        remainingTime: 0,
+        // 压缩相关进度信息
+        compressionPhase: config.useCompression && compressionStrategy.enabled ? 'compressing' : undefined,
+        originalSize: file.size,
+        compressedSize: config.useCompression && compressionStrategy.enabled ?
+          Math.round(file.size * compressionStrategy.estimatedRatio) : file.size
       },
       startTime: new Date(),
       // 断点续传相关初始化
       resumeSupported: true,
       resumePosition: 0,
       retryCount: 0,
-      maxRetries: 3
+      maxRetries: 3,
+      // 压缩优化相关字段
+      compressionEnabled: config.useCompression && compressionStrategy.enabled,
+      compressionMethod: compressionStrategy.enabled ? compressionStrategy.method : 'none',
+      originalFileSize: file.size,
+      compressedFileSize: compressionStrategy.enabled ?
+        Math.round(file.size * compressionStrategy.estimatedRatio) : file.size,
+      compressionRatio: compressionStrategy.estimatedRatio,
+      optimizationUsed
     };
 
     this.tasks.set(taskId, task);
+
+    // 记录优化策略使用情况
+    if (optimizationUsed.length > 0) {
+      console.log(`[DownloadService] 任务 ${taskId} 启用优化策略:`, optimizationUsed);
+    }
 
     // 添加到下载队列
     this.addToQueue(taskId);
@@ -328,6 +371,12 @@ export class DownloadService extends EventEmitter {
 
     try {
       // 调用主进程开始下载
+      console.log(`[DownloadService] 发送下载请求到主进程:`, {
+        taskId,
+        file: task.file.name,
+        config: task.config
+      });
+
       const result = await ipcRenderer.invoke('download:start', {
         taskId,
         file: task.file,

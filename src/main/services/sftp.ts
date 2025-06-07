@@ -257,7 +257,7 @@ class SFTPClient {
    */
   async writeFile(filePath: string, content: string, encoding: BufferEncoding = 'utf8'): Promise<void> {
     console.log(`[SFTPClient] 写入文件 - connectionId: ${this.connectionId}, path: ${filePath}`);
-    
+
     return new Promise((resolve, reject) => {
       const buffer = Buffer.from(content, encoding as BufferEncoding);
 
@@ -276,6 +276,70 @@ class SFTPClient {
             resolve();
           });
         });
+      });
+    });
+  }
+
+  /**
+   * 执行远程命令
+   * @param command 要执行的命令
+   */
+  async executeCommand(command: string): Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number }> {
+    console.log(`[SFTPClient] 执行命令 - connectionId: ${this.connectionId}, command: ${command}`);
+
+    return new Promise((resolve, reject) => {
+      this.client.exec(command, (err, stream) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        let stdout = '';
+        let stderr = '';
+        let exitCode = 0;
+
+        stream.on('data', (data: Buffer) => {
+          stdout += data.toString();
+        });
+
+        stream.stderr?.on('data', (data: Buffer) => {
+          stderr += data.toString();
+        });
+
+        stream.on('exit', (code: number) => {
+          exitCode = code;
+        });
+
+        stream.on('close', () => {
+          resolve({
+            success: exitCode === 0,
+            stdout,
+            stderr,
+            exitCode
+          });
+        });
+
+        stream.on('error', (err: Error) => {
+          reject(err);
+        });
+      });
+    });
+  }
+
+  /**
+   * 删除文件
+   * @param filePath 文件路径
+   */
+  async deleteFile(filePath: string): Promise<void> {
+    console.log(`[SFTPClient] 删除文件 - connectionId: ${this.connectionId}, path: ${filePath}`);
+
+    return new Promise((resolve, reject) => {
+      this.sftp.unlink(filePath, (err: any) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
       });
     });
   }
@@ -549,6 +613,40 @@ class SFTPManager {
       throw new Error('SFTP连接不存在');
     }
     return client.grepFile(filePath, pattern, options);
+  }
+
+  /**
+   * 执行远程命令
+   */
+  async executeCommand(connectionId: string, command: string) {
+    const client = this.getClient(connectionId);
+    if (!client) {
+      throw new Error('SFTP连接不存在');
+    }
+    return client.executeCommand(command);
+  }
+
+  /**
+   * 检查文件是否存在
+   */
+  async exists(connectionId: string, filePath: string): Promise<boolean> {
+    try {
+      await this.stat(connectionId, filePath);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * 删除文件
+   */
+  async deleteFile(connectionId: string, filePath: string): Promise<void> {
+    const client = this.getClient(connectionId);
+    if (!client) {
+      throw new Error('SFTP连接不存在');
+    }
+    return client.deleteFile(filePath);
   }
 }
 

@@ -3,8 +3,8 @@
  */
 
 import React from 'react';
-import { Progress, Typography, Space, Button } from 'antd';
-import { PauseOutlined, PlayCircleOutlined, CloseOutlined } from '@ant-design/icons';
+import { Progress, Typography, Space, Button, Tag } from 'antd';
+import { PauseOutlined, PlayCircleOutlined, CloseOutlined, CompressOutlined, DownloadOutlined, FileZipOutlined } from '@ant-design/icons';
 import type { DownloadTask } from '../../services/downloadService';
 import { formatFileSize } from '../../utils/fileUtils';
 import './DownloadProgress.css';
@@ -81,6 +81,20 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
     }
   };
 
+  // 获取压缩阶段文本和图标
+  const getCompressionPhaseInfo = (phase?: string): { text: string; icon: React.ReactNode; color: string } => {
+    switch (phase) {
+      case 'compressing':
+        return { text: '压缩中', icon: <CompressOutlined />, color: 'processing' };
+      case 'downloading':
+        return { text: '传输中', icon: <DownloadOutlined />, color: 'processing' };
+      case 'extracting':
+        return { text: '解压中', icon: <FileZipOutlined />, color: 'processing' };
+      default:
+        return { text: '', icon: null, color: '' };
+    }
+  };
+
   return (
     <div className="download-progress">
       <div className="download-header">
@@ -136,7 +150,17 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
             <Text type="secondary" className="status-text">
               {getStatusText(task.status)}
             </Text>
-            
+
+            {/* 压缩阶段显示 */}
+            {task.status === 'downloading' && task.progress.compressionPhase && (
+              <Tag
+                icon={getCompressionPhaseInfo(task.progress.compressionPhase).icon}
+                color={getCompressionPhaseInfo(task.progress.compressionPhase).color}
+              >
+                {getCompressionPhaseInfo(task.progress.compressionPhase).text}
+              </Tag>
+            )}
+
             {task.status === 'downloading' && (
               <>
                 <Text type="secondary">
@@ -147,10 +171,17 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
                 </Text>
               </>
             )}
-            
+
             <Text type="secondary">
               {formatFileSize(task.progress.transferred)} / {formatFileSize(task.progress.total)}
             </Text>
+
+            {/* 压缩效果显示 */}
+            {task.compressionEnabled && task.progress.compressionRatio && task.progress.compressionRatio < 0.9 && (
+              <Tag color="green">
+                压缩节省 {((1 - task.progress.compressionRatio) * 100).toFixed(0)}%
+              </Tag>
+            )}
           </Space>
         </div>
       </div>

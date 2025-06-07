@@ -3,14 +3,16 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Input, Button, Checkbox, message, Space, Typography } from 'antd';
-import { FolderOpenOutlined, FileOutlined, CloudDownloadOutlined } from '@ant-design/icons';
+import { Modal, Input, Button, Checkbox, message, Space, Typography, Collapse, Select, Tooltip, Tag } from 'antd';
+import { FolderOpenOutlined, FileOutlined, CloudDownloadOutlined, ThunderboltOutlined, CompressOutlined } from '@ant-design/icons';
 import type { FileEntry } from '../../../main/types/file';
 import type { SessionInfo } from '../../types';
 import { formatFileSize } from '../../utils/fileUtils';
 import './DownloadDialog.css';
 
 const { Text } = Typography;
+const { Panel } = Collapse;
+const { Option } = Select;
 
 export interface DownloadConfig {
   savePath: string;
@@ -18,6 +20,11 @@ export interface DownloadConfig {
   overwrite: boolean;
   openFolder: boolean;
   sessionId: string;
+  // 新增：压缩优化选项
+  useCompression?: boolean;
+  compressionMethod?: 'auto' | 'gzip' | 'bzip2' | 'xz' | 'none';
+  useParallelDownload?: boolean;
+  maxParallelChunks?: number;
 }
 
 export interface DownloadDialogProps {
@@ -50,11 +57,81 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
     fileCount: downloadFiles.length
   });
 
+  // 智能压缩策略选择
+  const getCompressionRecommendation = (file: FileEntry): {
+    recommended: boolean;
+    method: 'gzip' | 'bzip2' | 'xz';
+    reason: string;
+    estimatedSavings: string;
+  } => {
+    const ext = file.name.toLowerCase().split('.').pop() || '';
+    const size = file.size;
+
+    // 高压缩比文件类型
+    const highCompressible = ['txt', 'js', 'ts', 'json', 'xml', 'html', 'css', 'md', 'log', 'conf', 'sql', 'csv', 'py', 'java', 'cpp', 'c', 'h'];
+
+    // 不适合压缩的文件类型
+    const nonCompressible = ['jpg', 'png', 'gif', 'mp4', 'zip', 'gz', 'rar', '7z', 'exe', 'bin'];
+
+    if (nonCompressible.includes(ext) || size < 1024) {
+      return {
+        recommended: false,
+        method: 'gzip',
+        reason: '该文件类型压缩效果有限',
+        estimatedSavings: '< 5%'
+      };
+    }
+
+    if (highCompressible.includes(ext)) {
+      if (size > 50 * 1024 * 1024) { // 50MB以上
+        return {
+          recommended: true,
+          method: 'xz',
+          reason: '大型文本文件，建议最高压缩',
+          estimatedSavings: '70-90%'
+        };
+      } else {
+        return {
+          recommended: true,
+          method: 'gzip',
+          reason: '文本文件，压缩效果显著',
+          estimatedSavings: '60-80%'
+        };
+      }
+    }
+
+    // 默认策略
+    if (size > 10 * 1024) { // 10KB以上
+      return {
+        recommended: true,
+        method: 'gzip',
+        reason: '可能有一定压缩效果',
+        estimatedSavings: '20-50%'
+      };
+    }
+
+    return {
+      recommended: false,
+      method: 'gzip',
+      reason: '文件太小，压缩意义不大',
+      estimatedSavings: '< 10%'
+    };
+  };
+
+  const compressionRecommendation = getCompressionRecommendation(file);
+
   const [savePath, setSavePath] = useState(defaultSavePath);
   const [fileName, setFileName] = useState(isBatchDownload ? '' : file.name);
   const [overwrite, setOverwrite] = useState(false);
   const [openFolder, setOpenFolder] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  // 新增：压缩优化选项状态
+  const [useCompression, setUseCompression] = useState(true); // 默认启用压缩
+  const [compressionMethod, setCompressionMethod] = useState<'auto' | 'gzip' | 'bzip2' | 'xz' | 'none'>('auto');
+  const [useParallelDownload, setUseParallelDownload] = useState(file.size > 10 * 1024 * 1024); // 大于10MB默认启用并行
+  const [maxParallelChunks, setMaxParallelChunks] = useState(4);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // 当文件变化时重置文件名
   useEffect(() => {
@@ -123,7 +200,12 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
         fileName: isBatchDownload ? '' : fileName.trim(), // 批量下载时文件名由各个文件自己决定
         overwrite,
         openFolder,
-        sessionId: sessionInfo.id
+        sessionId: sessionInfo.id,
+        // 新增：压缩优化选项
+        useCompression,
+        compressionMethod,
+        useParallelDownload,
+        maxParallelChunks
       };
 
       onConfirm(config);
@@ -279,6 +361,131 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
             >
               下载完成后打开文件夹
             </Checkbox>
+          </div>
+
+          {/* 压缩优化选项 */}
+          <div className="optimization-options">
+            <Collapse
+              ghost
+              size="small"
+              onChange={(keys) => setShowAdvancedOptions(keys.length > 0)}
+            >
+              <Panel
+                header={
+                  <Space>
+                    <ThunderboltOutlined />
+                    <span>下载优化选项</span>
+                    {compressionRecommendation.recommended && (
+                      <Tag color="green">推荐</Tag>
+                    )}
+                  </Space>
+                }
+                key="optimization"
+              >
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  {/* 智能压缩选项 */}
+                  <div className="compression-option">
+                    <Checkbox
+                      checked={useCompression}
+                      onChange={(e) => setUseCompression(e.target.checked)}
+                    >
+                      <Space>
+                        <CompressOutlined />
+                        <span>智能压缩传输</span>
+                        {compressionRecommendation.recommended && (
+                          <Tooltip title={`${compressionRecommendation.reason}，预计节省传输量：${compressionRecommendation.estimatedSavings}`}>
+                            <Tag color="green">
+                              节省 {compressionRecommendation.estimatedSavings}
+                            </Tag>
+                          </Tooltip>
+                        )}
+                      </Space>
+                    </Checkbox>
+
+                    {useCompression && (
+                      <div style={{ marginLeft: 24, marginTop: 8 }}>
+                        <Space>
+                          <Text type="secondary">压缩方法:</Text>
+                          <Select
+                            value={compressionMethod}
+                            onChange={setCompressionMethod}
+                            style={{ width: 150 }}
+                            size="small"
+                          >
+                            <Option value="auto">
+                              自动选择 (推荐 {compressionRecommendation.method})
+                            </Option>
+                            <Option value="gzip">快速压缩 (gzip)</Option>
+                            <Option value="bzip2">平衡压缩 (bzip2)</Option>
+                            <Option value="xz">最高压缩 (xz)</Option>
+                            <Option value="none">不压缩</Option>
+                          </Select>
+                        </Space>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 并行下载选项 */}
+                  {file.size > 10 * 1024 * 1024 && (
+                    <div className="parallel-option">
+                      <Checkbox
+                        checked={useParallelDownload}
+                        onChange={(e) => setUseParallelDownload(e.target.checked)}
+                      >
+                        <Space>
+                          <ThunderboltOutlined />
+                          <span>并行分块下载</span>
+                          <Tooltip title="大文件分块并行下载，提升传输速度">
+                            <Tag color="blue">大文件推荐</Tag>
+                          </Tooltip>
+                        </Space>
+                      </Checkbox>
+
+                      {useParallelDownload && (
+                        <div style={{ marginLeft: 24, marginTop: 8 }}>
+                          <Space>
+                            <Text type="secondary">并行块数:</Text>
+                            <Select
+                              value={maxParallelChunks}
+                              onChange={setMaxParallelChunks}
+                              style={{ width: 100 }}
+                              size="small"
+                            >
+                              <Option value={2}>2 块</Option>
+                              <Option value={3}>3 块</Option>
+                              <Option value={4}>4 块 (推荐)</Option>
+                              <Option value={5}>5 块</Option>
+                              <Option value={6}>6 块</Option>
+                            </Select>
+                          </Space>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 优化效果预览 */}
+                  {(useCompression || useParallelDownload) && (
+                    <div className="optimization-preview">
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        <Space>
+                          <span>预计优化效果:</span>
+                          {useCompression && (
+                            <Tag color="green">
+                              压缩节省 {compressionRecommendation.estimatedSavings}
+                            </Tag>
+                          )}
+                          {useParallelDownload && file.size > 10 * 1024 * 1024 && (
+                            <Tag color="blue">
+                              并行提速 2-4x
+                            </Tag>
+                          )}
+                        </Space>
+                      </Text>
+                    </div>
+                  )}
+                </Space>
+              </Panel>
+            </Collapse>
           </div>
         </div>
       </div>

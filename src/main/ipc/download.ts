@@ -7,7 +7,22 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { pipeline } from 'stream/promises';
 import { sftpManager } from '../services/sftp';
+import { CompressionDownloadService, type CompressionStrategy } from '../services/compressionDownloadService';
 import type { FileEntry } from '../types/file';
+
+interface DownloadProgress {
+  transferred: number;
+  total: number;
+  percentage: number;
+  speed: number;
+  remainingTime: number;
+  eta?: Date;
+  // 压缩相关进度信息
+  compressionPhase?: 'compressing' | 'downloading' | 'extracting' | 'completed';
+  originalSize?: number;
+  compressedSize?: number;
+  compressionRatio?: number;
+}
 
 export interface DownloadConfig {
   savePath: string;
@@ -15,15 +30,14 @@ export interface DownloadConfig {
   overwrite: boolean;
   openFolder: boolean;
   sessionId: string;
+  // 新增：压缩优化选项
+  useCompression?: boolean;
+  compressionMethod?: 'auto' | 'gzip' | 'bzip2' | 'xz' | 'none';
+  useParallelDownload?: boolean;
+  maxParallelChunks?: number;
 }
 
-export interface DownloadProgress {
-  transferred: number;
-  total: number;
-  percentage: number;
-  speed: number;
-  remainingTime: number;
-}
+
 
 interface DownloadTaskInfo {
   taskId: string;
@@ -38,10 +52,139 @@ interface DownloadTaskInfo {
   speedSamples?: number[];
   isPaused?: boolean;
   resumePosition?: number; // 断点续传位置
+  // 新增：压缩相关字段
+  compressionEnabled?: boolean;
+  compressionMethod?: 'gzip' | 'bzip2' | 'xz' | 'none';
+  remoteTempPath?: string; // 远程临时压缩文件路径
+  originalSize?: number;
+  compressedSize?: number;
+  compressionRatio?: number;
+  compressionPhase?: 'compressing' | 'downloading' | 'extracting' | 'completed';
 }
 
 class DownloadManager {
   private tasks = new Map<string, DownloadTaskInfo>();
+
+  /**
+   * 选择压缩策略
+   */
+  private selectCompressionStrategy(file: FileEntry, config: DownloadConfig): CompressionStrategy {
+    // 如果用户禁用了压缩
+    if (!config.useCompression) {
+      return {
+        enabled: false,
+        method: 'none',
+        command: 'cat',
+        extension: '',
+        estimatedRatio: 1.0
+      };
+    }
+
+    const ext = file.name.toLowerCase().split('.').pop() || '';
+    const size = file.size;
+
+    // 高压缩比文件类型
+    const highCompressible = [
+      'txt', 'js', 'ts', 'jsx', 'tsx', 'json', 'xml', 'html', 'htm', 'css', 'scss', 'sass', 'less',
+      'md', 'markdown', 'log', 'conf', 'config', 'sql', 'csv', 'tsv', 'yaml', 'yml', 'ini',
+      'py', 'java', 'cpp', 'c', 'h', 'hpp', 'cs', 'php', 'rb', 'go', 'rs', 'kt', 'swift',
+      'sh', 'bash', 'zsh', 'fish', 'ps1', 'bat', 'cmd'
+    ];
+
+    // 不适合压缩的文件类型
+    const nonCompressible = [
+      'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'ico', 'tiff', 'tga',
+      'mp3', 'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', 'm4v',
+      'wav', 'flac', 'aac', 'ogg', 'wma', 'm4a',
+      'zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'lz4', 'zst',
+      'exe', 'dll', 'so', 'dylib', 'bin', 'deb', 'rpm', 'dmg', 'iso',
+      'pdf', 'epub', 'mobi', 'azw', 'azw3'
+    ];
+
+    // 文件太小或不适合压缩
+    if (size < 1024 || nonCompressible.includes(ext)) {
+      return {
+        enabled: false,
+        method: 'none',
+        command: 'cat',
+        extension: '',
+        estimatedRatio: 1.0
+      };
+    }
+
+    // 用户指定了压缩方法
+    if (config.compressionMethod && config.compressionMethod !== 'auto') {
+      if (config.compressionMethod === 'none') {
+        return {
+          enabled: false,
+          method: 'none',
+          command: 'cat',
+          extension: '',
+          estimatedRatio: 1.0
+        };
+      }
+      return this.createCompressionStrategy(config.compressionMethod);
+    }
+
+    // 自动选择压缩策略 - 优先使用gzip（最通用）
+    if (highCompressible.includes(ext)) {
+      // 所有文本文件都使用gzip，因为它最通用且效果不错
+      return this.createCompressionStrategy('gzip');
+    }
+
+    // 默认使用gzip压缩
+    if (size > 10 * 1024) { // 10KB以上
+      return this.createCompressionStrategy('gzip');
+    }
+
+    return {
+      enabled: false,
+      method: 'none',
+      command: 'cat',
+      extension: '',
+      estimatedRatio: 1.0
+    };
+  }
+
+  /**
+   * 创建指定方法的压缩策略
+   */
+  private createCompressionStrategy(method: 'gzip' | 'bzip2' | 'xz'): CompressionStrategy {
+    switch (method) {
+      case 'gzip':
+        return {
+          enabled: true,
+          method: 'gzip',
+          command: 'gzip -c', // 使用简单的gzip命令
+          extension: '.gz',
+          estimatedRatio: 0.4
+        };
+      case 'bzip2':
+        return {
+          enabled: true,
+          method: 'bzip2',
+          command: 'tar -jcf',
+          extension: '.tar.bz2',
+          estimatedRatio: 0.3
+        };
+      case 'xz':
+        return {
+          enabled: true,
+          method: 'xz',
+          command: 'tar -Jcf',
+          extension: '.tar.xz',
+          estimatedRatio: 0.2
+        };
+      default:
+        return {
+          enabled: false,
+          method: 'none',
+          command: 'cat',
+          extension: '',
+          estimatedRatio: 1.0
+        };
+    }
+  }
 
   /**
    * 开始下载
@@ -74,6 +217,12 @@ class DownloadManager {
         };
       }
 
+      // 分析压缩策略
+      const compressionStrategy = this.selectCompressionStrategy(file, config);
+      console.log(`[DownloadManager] 任务 ${taskId} 压缩策略:`, compressionStrategy);
+      console.log(`[DownloadManager] 文件信息 - 名称: ${file.name}, 大小: ${file.size}, 扩展名: ${file.name.toLowerCase().split('.').pop()}`);
+      console.log(`[DownloadManager] 用户配置 - useCompression: ${config.useCompression}, compressionMethod: ${config.compressionMethod}`);
+
       // 检查是否有未完成的下载（断点续传）
       let resumePosition = 0;
       if (fs.existsSync(tempPath)) {
@@ -94,7 +243,13 @@ class DownloadManager {
         lastProgressTime: Date.now(),
         lastTransferred: resumePosition,
         resumePosition,
-        isPaused: false
+        isPaused: false,
+        // 压缩相关字段
+        compressionEnabled: compressionStrategy.enabled,
+        compressionMethod: compressionStrategy.method,
+        originalSize: file.size,
+        compressionRatio: compressionStrategy.estimatedRatio,
+        compressionPhase: compressionStrategy.enabled ? 'compressing' : undefined
       };
 
       this.tasks.set(taskId, taskInfo);
@@ -135,6 +290,15 @@ class DownloadManager {
       const remoteStats = await sftpManager.stat(connectionId, file.path);
       if (!remoteStats) {
         throw new Error('远程文件不存在');
+      }
+
+      // 如果启用了压缩，使用压缩下载
+      if (taskInfo.compressionEnabled && taskInfo.compressionMethod !== 'none') {
+        console.log(`[DownloadManager] 开始压缩下载: ${taskId}, 方法: ${taskInfo.compressionMethod}`);
+        await this.performCompressedDownload(taskInfo, connectionId);
+        return;
+      } else {
+        console.log(`[DownloadManager] 使用普通下载: ${taskId}, 压缩启用: ${taskInfo.compressionEnabled}, 方法: ${taskInfo.compressionMethod}`);
       }
 
       // 创建写入流（支持断点续传）
@@ -232,6 +396,197 @@ class DownloadManager {
   }
 
   /**
+   * 执行压缩下载
+   */
+  private async performCompressedDownload(taskInfo: DownloadTaskInfo, connectionId: string): Promise<void> {
+    const { taskId, file, localPath, tempPath } = taskInfo;
+
+    // 检查压缩方法是否有效
+    const method = taskInfo.compressionMethod!;
+    if (method === 'none') {
+      throw new Error('压缩方法不能为none');
+    }
+
+    // 构建压缩策略
+    const strategy: CompressionStrategy = {
+      enabled: true,
+      method: method,
+      command: this.getCompressionCommand(method),
+      extension: this.getCompressionExtension(method),
+      estimatedRatio: this.getEstimatedRatio(method)
+    };
+
+    try {
+      await CompressionDownloadService.performCompressedDownload({
+        taskId,
+        file,
+        sessionId: taskInfo.config.sessionId,
+        localPath,
+        tempPath: tempPath!,
+        strategy,
+        onProgress: (transferred, total, phase) => {
+          // 更新任务的压缩阶段
+          taskInfo.compressionPhase = phase;
+
+          // 根据阶段调整进度报告
+          let adjustedTransferred = transferred;
+          let adjustedTotal = total;
+
+          switch (phase) {
+            case 'compressing':
+              // 压缩阶段占总进度的10%
+              adjustedTransferred = Math.min(transferred, total * 0.1);
+              adjustedTotal = total;
+              break;
+            case 'downloading':
+              // 下载阶段占总进度的80%（10%-90%）
+              adjustedTransferred = total * 0.1 + (transferred / total) * total * 0.8;
+              adjustedTotal = total;
+              break;
+            case 'extracting':
+              // 解压阶段占总进度的10%（90%-100%）
+              adjustedTransferred = total * 0.9 + (transferred / total) * total * 0.1;
+              adjustedTotal = total;
+              break;
+          }
+
+          this.updateProgress(taskInfo, adjustedTransferred, adjustedTotal);
+        },
+        abortSignal: taskInfo.abortController?.signal
+      });
+
+      // 压缩下载完成
+      this.handleDownloadCompleted(taskId, localPath);
+
+    } catch (error) {
+      if (taskInfo.abortController?.signal.aborted) {
+        if (taskInfo.isPaused) {
+          console.log(`[DownloadManager] 压缩下载暂停: ${taskId}`);
+        } else {
+          this.handleDownloadCancelled(taskId);
+        }
+      } else {
+        console.error(`[DownloadManager] 压缩下载失败: ${taskId}`, error);
+        // 如果压缩下载失败，尝试降级到普通下载
+        console.log(`[DownloadManager] 降级到普通下载: ${taskId}`);
+        taskInfo.compressionEnabled = false;
+        taskInfo.compressionMethod = 'none';
+        taskInfo.compressionPhase = undefined;
+
+        // 重新开始普通下载
+        await this.performNormalDownload(taskInfo, connectionId);
+      }
+    }
+  }
+
+  /**
+   * 获取压缩命令
+   */
+  private getCompressionCommand(method: 'gzip' | 'bzip2' | 'xz'): string {
+    switch (method) {
+      case 'gzip': return 'gzip -c';
+      case 'bzip2': return 'tar -jcf';
+      case 'xz': return 'tar -Jcf';
+      default: return 'cat';
+    }
+  }
+
+  /**
+   * 获取压缩文件扩展名
+   */
+  private getCompressionExtension(method: 'gzip' | 'bzip2' | 'xz'): string {
+    switch (method) {
+      case 'gzip': return '.gz';
+      case 'bzip2': return '.tar.bz2';
+      case 'xz': return '.tar.xz';
+      default: return '';
+    }
+  }
+
+  /**
+   * 获取预估压缩比
+   */
+  private getEstimatedRatio(method: 'gzip' | 'bzip2' | 'xz'): number {
+    switch (method) {
+      case 'gzip': return 0.4;
+      case 'bzip2': return 0.3;
+      case 'xz': return 0.2;
+      default: return 1.0;
+    }
+  }
+
+  /**
+   * 执行普通下载（非压缩）
+   */
+  private async performNormalDownload(taskInfo: DownloadTaskInfo, connectionId: string): Promise<void> {
+    const { taskId, file, localPath, tempPath } = taskInfo;
+
+    // 这里是原来的普通下载逻辑，从原来的performDownload方法移过来
+    // 创建写入流（支持断点续传）
+    const writeStream = fs.createWriteStream(tempPath!, { flags: 'a' }); // 追加模式
+
+    // 分块下载参数
+    const chunkSize = 64 * 1024; // 64KB per chunk
+    const total = file.size;
+    let transferred = taskInfo.resumePosition || 0;
+
+    try {
+      while (transferred < total && !taskInfo.abortController?.signal.aborted) {
+        const remainingBytes = total - transferred;
+        const currentChunkSize = Math.min(chunkSize, remainingBytes);
+
+        // 读取文件块
+        const result = await sftpManager.readFile(
+          connectionId,
+          file.path,
+          transferred,
+          currentChunkSize,
+          'binary'
+        );
+
+        // 写入本地文件
+        const buffer = Buffer.from(result.content, 'binary');
+        writeStream.write(buffer);
+
+        transferred += result.bytesRead;
+
+        // 更新进度
+        this.updateProgress(taskInfo, transferred, total);
+
+        // 检查是否被取消
+        if (taskInfo.abortController?.signal.aborted) {
+          break;
+        }
+      }
+
+      writeStream.end();
+
+      // 检查是否完整下载
+      if (transferred >= total && !taskInfo.abortController?.signal.aborted) {
+        // 下载完成，将临时文件重命名为最终文件
+        if (fs.existsSync(localPath)) {
+          fs.unlinkSync(localPath); // 删除已存在的文件
+        }
+        fs.renameSync(tempPath!, localPath);
+        this.handleDownloadCompleted(taskId, localPath);
+      } else if (taskInfo.isPaused) {
+        // 下载被暂停，保留临时文件
+        console.log(`[DownloadManager] 下载暂停，已保存到位置 ${transferred}`);
+      } else {
+        // 下载被取消，删除临时文件
+        if (fs.existsSync(tempPath!)) {
+          fs.unlinkSync(tempPath!);
+        }
+        this.handleDownloadCancelled(taskId);
+      }
+
+    } catch (error) {
+      writeStream.destroy();
+      throw error;
+    }
+  }
+
+  /**
    * 更新下载进度
    */
   private updateProgress(taskInfo: DownloadTaskInfo, transferred: number, total: number): void {
@@ -269,7 +624,12 @@ class DownloadManager {
       total,
       percentage,
       speed: averageSpeed,
-      remainingTime
+      remainingTime,
+      // 压缩相关进度信息
+      compressionPhase: taskInfo.compressionPhase,
+      originalSize: taskInfo.originalSize,
+      compressedSize: taskInfo.compressedSize,
+      compressionRatio: taskInfo.compressionRatio
     };
 
     // 更新记录
