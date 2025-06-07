@@ -48,16 +48,20 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
   // 获取状态颜色
   const getStatusColor = (status: string): string => {
     switch (status) {
+      case 'pending':
+        return '#1890ff'; // 蓝色 - 准备中
       case 'downloading':
-        return '#1890ff';
+        return '#1890ff'; // 蓝色 - 下载中
       case 'completed':
-        return '#52c41a';
+        return '#52c41a'; // 绿色 - 已完成
       case 'error':
-        return '#ff4d4f';
+        return '#ff4d4f'; // 红色 - 错误
       case 'paused':
-        return '#faad14';
+        return '#faad14'; // 橙色 - 暂停
+      case 'cancelled':
+        return '#8c8c8c'; // 灰色 - 已取消
       default:
-        return '#8c8c8c';
+        return '#1890ff'; // 默认蓝色
     }
   };
 
@@ -154,8 +158,10 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
         <Progress
           percent={Math.round(task.progress.percentage)}
           strokeColor={getStatusColor(task.status)}
+          trailColor="#f0f0f0"
           showInfo={false}
           size="small"
+          status={task.status === 'error' ? 'exception' : task.status === 'completed' ? 'success' : 'active'}
         />
         
         <div className="progress-info">
@@ -164,6 +170,29 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
               {getStatusText(task.status, task.progress.compressionPhase)}
             </Text>
 
+            {/* 只在实际传输阶段显示速度和剩余时间 */}
+            {task.status === 'downloading' && (!task.progress.compressionPhase || task.progress.compressionPhase === 'downloading') && (
+              <>
+                <Text type="secondary">
+                  {formatSpeed(task.progress.speed)}
+                </Text>
+                <Text type="secondary">
+                  剩余: {formatRemainingTime(task.progress.remainingTime)}
+                </Text>
+              </>
+            )}
+
+            <Text type="secondary">
+              {formatFileSize(task.progress.transferred)} / {formatFileSize(task.progress.total)}
+            </Text>
+          </Space>
+        </div>
+      </div>
+
+      {/* 状态标签区域 - 独立一行 */}
+      {(task.status === 'downloading' || task.compressionEnabled || task.parallelEnabled) && (
+        <div className="status-tags-section">
+          <Space size="small" wrap>
             {/* 压缩阶段显示 */}
             {task.status === 'downloading' && task.progress.compressionPhase && (
               <Tag
@@ -184,22 +213,6 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
               </Tag>
             )}
 
-            {/* 只在实际传输阶段显示速度和剩余时间 */}
-            {task.status === 'downloading' && (!task.progress.compressionPhase || task.progress.compressionPhase === 'downloading') && (
-              <>
-                <Text type="secondary">
-                  {formatSpeed(task.progress.speed)}
-                </Text>
-                <Text type="secondary">
-                  剩余: {formatRemainingTime(task.progress.remainingTime)}
-                </Text>
-              </>
-            )}
-
-            <Text type="secondary">
-              {formatFileSize(task.progress.transferred)} / {formatFileSize(task.progress.total)}
-            </Text>
-
             {/* 优化效果显示 */}
             {task.compressionEnabled && task.progress.compressionRatio && task.progress.compressionRatio < 0.9 && (
               <Tag color="green">
@@ -214,7 +227,7 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
             )}
           </Space>
         </div>
-      </div>
+      )}
 
       {task.status === 'error' && task.error && (
         <div className="error-message">

@@ -255,6 +255,13 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
         {/* 进度条 */}
         <Progress
           percent={Math.round(currentTask.progress.percentage)}
+          strokeColor={
+            currentTask.status === 'downloading' || currentTask.status === 'pending' ? '#1890ff' :
+            currentTask.status === 'completed' ? '#52c41a' :
+            currentTask.status === 'error' ? '#ff4d4f' :
+            currentTask.status === 'paused' ? '#faad14' : '#1890ff'
+          }
+          trailColor="#f0f0f0"
           size="small"
           status={
             currentTask.status === 'error' ? 'exception' :
@@ -280,18 +287,21 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
                 </Text>
               </>
             )}
-
-            {/* 并行下载状态 */}
-            {currentTask.parallelEnabled && currentTask.progress.downloadChunks && (
-              <Tag
-                icon={<ThunderboltOutlined />}
-                color="blue"
-              >
-                {currentTask.progress.downloadChunks.filter(c => c.status === 'downloading').length}/{currentTask.maxParallelChunks}
-              </Tag>
-            )}
           </Space>
         </div>
+
+        {/* 状态标签区域 - 独立显示 */}
+        {currentTask.parallelEnabled && currentTask.progress.downloadChunks && (
+          <div className="notification-tags" style={{ marginTop: '6px', paddingTop: '4px', borderTop: '1px solid #f0f0f0' }}>
+            <Tag
+              icon={<ThunderboltOutlined />}
+              color="blue"
+              style={{ fontSize: '10px', padding: '0 6px', borderRadius: '8px' }}
+            >
+              并行 {currentTask.progress.downloadChunks.filter(c => c.status === 'downloading').length}/{currentTask.maxParallelChunks}
+            </Tag>
+          </div>
+        )}
 
         {/* 错误信息 */}
         {currentTask.status === 'error' && currentTask.error && (

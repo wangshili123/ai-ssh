@@ -107,12 +107,38 @@ export const DownloadHistory: React.FC<DownloadHistoryProps> = ({
 
   // 获取进度显示
   const getProgressDisplay = (task: DownloadTask) => {
+    const percentage = Math.round(task.progress.percentage); // 四舍五入到整数
+
     if (task.status === 'completed') {
-      return <Progress percent={100} size="small" status="success" />;
+      return (
+        <Progress
+          percent={100}
+          size="small"
+          status="success"
+          strokeColor="#52c41a"
+          trailColor="#f0f0f0"
+        />
+      );
     } else if (task.status === 'error' || task.status === 'cancelled') {
-      return <Progress percent={task.progress.percentage} size="small" status="exception" />;
+      return (
+        <Progress
+          percent={percentage}
+          size="small"
+          status="exception"
+          strokeColor="#ff4d4f"
+          trailColor="#f0f0f0"
+        />
+      );
     } else {
-      return <Progress percent={task.progress.percentage} size="small" />;
+      return (
+        <Progress
+          percent={percentage}
+          size="small"
+          strokeColor={task.status === 'paused' ? '#faad14' : '#1890ff'}
+          trailColor="#f0f0f0"
+          status="active"
+        />
+      );
     }
   };
 

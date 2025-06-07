@@ -94,6 +94,21 @@
   font-size: 11px;
 }
 
+/* 状态标签区域 */
+.status-tags-section {
+  margin-top: 8px;
+  padding: 6px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.status-tags-section .ant-tag {
+  margin: 0 !important;
+  font-size: 10px !important;
+  line-height: 16px !important;
+  padding: 0 6px !important;
+  border-radius: 8px !important;
+}
+
 .progress-info .ant-space {
   flex: 1;
 }
@@ -165,9 +180,14 @@
     align-items: flex-start;
     gap: 4px;
   }
-  
+
   .progress-info .ant-space {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .status-tags-section {
+    margin-top: 6px !important;
+    padding-top: 4px !important;
   }
 }
