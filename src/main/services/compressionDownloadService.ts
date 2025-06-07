@@ -40,7 +40,7 @@ export class CompressionDownloadService {
    */
   static async performCompressedDownload(options: CompressionDownloadOptions): Promise<void> {
     const { taskId, file, sessionId, localPath, tempPath, strategy, onProgress, abortSignal } = options;
-    
+
     if (!strategy.enabled) {
       throw new Error('压缩策略未启用');
     }
@@ -49,34 +49,60 @@ export class CompressionDownloadService {
     console.log(`[CompressionDownload] 开始压缩下载任务 ${taskId}，方法: ${strategy.method}`);
 
     try {
-      // 第一阶段：远程压缩
+      // 第一阶段：远程压缩 (0% - 10%)
+      console.log(`[CompressionDownload] 阶段1: 开始远程压缩`);
       onProgress?.(0, file.size, 'compressing');
-      const remoteTempPath = await this.compressRemoteFile(connectionId, file, strategy, abortSignal);
-      
+
+      const remoteTempPath = await this.compressRemoteFile(connectionId, file, strategy, (progress) => {
+        // 压缩进度映射到0-10%
+        const adjustedProgress = Math.min(progress * 0.1, file.size * 0.1);
+        onProgress?.(adjustedProgress, file.size, 'compressing');
+      }, abortSignal);
+
       if (abortSignal?.aborted) {
         await this.cleanupRemoteFile(connectionId, remoteTempPath);
         return;
       }
 
-      // 第二阶段：下载压缩文件
-      onProgress?.(0, file.size, 'downloading');
+      // 压缩完成，进度到10%
+      onProgress?.(file.size * 0.1, file.size, 'compressing');
+
+      // 第二阶段：下载压缩文件 (10% - 90%)
+      console.log(`[CompressionDownload] 阶段2: 开始下载压缩文件`);
+      onProgress?.(file.size * 0.1, file.size, 'downloading');
+
       const compressedLocalPath = tempPath + strategy.extension;
-      await this.downloadCompressedFile(connectionId, remoteTempPath, compressedLocalPath, onProgress, abortSignal);
-      
+      await this.downloadCompressedFile(connectionId, remoteTempPath, compressedLocalPath, (transferred, total) => {
+        // 下载进度映射到10%-90%
+        const progressRatio = total > 0 ? transferred / total : 0;
+        const adjustedProgress = file.size * 0.1 + (progressRatio * file.size * 0.8);
+        onProgress?.(adjustedProgress, file.size, 'downloading');
+      }, abortSignal);
+
       if (abortSignal?.aborted) {
         await this.cleanupRemoteFile(connectionId, remoteTempPath);
         this.cleanupLocalFile(compressedLocalPath);
         return;
       }
 
-      // 第三阶段：本地解压
+      // 下载完成，进度到90%
+      onProgress?.(file.size * 0.9, file.size, 'downloading');
+
+      // 第三阶段：本地解压 (90% - 100%)
+      console.log(`[CompressionDownload] 阶段3: 开始本地解压`);
       onProgress?.(file.size * 0.9, file.size, 'extracting');
-      await this.extractLocalFile(compressedLocalPath, localPath, strategy);
-      
+
+      await this.extractLocalFile(compressedLocalPath, localPath, strategy, (progress) => {
+        // 解压进度映射到90%-100%
+        const adjustedProgress = file.size * 0.9 + (progress * file.size * 0.1);
+        onProgress?.(adjustedProgress, file.size, 'extracting');
+      });
+
       // 清理临时文件
       await this.cleanupRemoteFile(connectionId, remoteTempPath);
       this.cleanupLocalFile(compressedLocalPath);
-      
+
+      // 完成，进度到100%
       onProgress?.(file.size, file.size, 'extracting');
       console.log(`[CompressionDownload] 任务 ${taskId} 完成`);
 
@@ -93,6 +119,7 @@ export class CompressionDownloadService {
     connectionId: string,
     file: FileEntry,
     strategy: CompressionStrategy,
+    onProgress?: (progress: number) => void,
     abortSignal?: AbortSignal
   ): Promise<string> {
     const remoteTempPath = `/tmp/download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}${strategy.extension}`;
@@ -115,27 +142,36 @@ export class CompressionDownloadService {
     console.log(`[CompressionDownload] 开始压缩文件: ${file.name} (${file.size} bytes)`);
     console.log(`[CompressionDownload] 压缩方法: ${strategy.method}, 预估压缩比: ${strategy.estimatedRatio}`);
     console.log(`[CompressionDownload] 执行远程压缩命令: ${compressCommand}`);
-    
+
     try {
+      // 报告压缩开始
+      onProgress?.(0);
+
       const result = await sftpManager.executeCommand(connectionId, compressCommand);
-      
+
       if (abortSignal?.aborted) {
         throw new Error('操作被取消');
       }
-      
+
+      // 报告压缩进行中
+      onProgress?.(file.size * 0.5);
+
       if (!result.success || result.exitCode !== 0) {
         throw new Error(`压缩命令执行失败: ${result.stderr || result.stdout || '未知错误'}`);
       }
-      
+
       // 验证压缩文件是否创建成功
       const compressedStats = await sftpManager.stat(connectionId, remoteTempPath);
       if (!compressedStats) {
         throw new Error('压缩文件创建失败');
       }
-      
+
+      // 报告压缩完成
+      onProgress?.(file.size);
+
       console.log(`[CompressionDownload] 压缩完成，原始大小: ${file.size}, 压缩后大小: ${compressedStats.size}`);
       return remoteTempPath;
-      
+
     } catch (error) {
       // 清理可能创建的临时文件
       await this.cleanupRemoteFile(connectionId, remoteTempPath);
@@ -150,7 +186,7 @@ export class CompressionDownloadService {
     connectionId: string,
     remotePath: string,
     localPath: string,
-    onProgress?: (transferred: number, total: number, phase: 'downloading') => void,
+    onProgress?: (transferred: number, total: number) => void,
     abortSignal?: AbortSignal
   ): Promise<void> {
     // 获取压缩文件大小
@@ -182,8 +218,8 @@ export class CompressionDownloadService {
         writeStream.write(buffer);
         transferred += result.bytesRead;
 
-        // 报告下载进度（映射到原始文件大小）
-        onProgress?.(transferred, compressedSize, 'downloading');
+        // 报告下载进度
+        onProgress?.(transferred, compressedSize);
 
         if (abortSignal?.aborted) {
           break;
@@ -212,7 +248,8 @@ export class CompressionDownloadService {
   private static async extractLocalFile(
     compressedPath: string,
     targetPath: string,
-    strategy: CompressionStrategy
+    strategy: CompressionStrategy,
+    onProgress?: (progress: number) => void
   ): Promise<void> {
     const targetDir = path.dirname(targetPath);
 
@@ -222,6 +259,9 @@ export class CompressionDownloadService {
     }
 
     try {
+      // 报告解压开始
+      onProgress?.(0);
+
       if (strategy.method === 'gzip') {
         // 使用Node.js内置的zlib模块解压gzip文件
         console.log(`[CompressionDownload] 使用Node.js zlib解压gzip文件: ${compressedPath}`);
@@ -229,6 +269,9 @@ export class CompressionDownloadService {
         const readStream = fs.createReadStream(compressedPath);
         const writeStream = fs.createWriteStream(targetPath);
         const gunzip = zlib.createGunzip();
+
+        // 报告解压进行中
+        onProgress?.(0.5);
 
         await pipeline(readStream, gunzip, writeStream);
 
@@ -250,6 +293,9 @@ export class CompressionDownloadService {
         }
 
         console.log(`[CompressionDownload] 执行解压命令: ${extractCommand}`);
+
+        // 报告解压进行中
+        onProgress?.(0.5);
 
         const { stderr } = await execAsync(extractCommand);
 
@@ -281,6 +327,9 @@ export class CompressionDownloadService {
 
         console.log(`[CompressionDownload] tar解压完成: ${targetPath}`);
       }
+
+      // 报告解压完成
+      onProgress?.(1.0);
 
     } catch (error) {
       console.error(`[CompressionDownload] 解压失败:`, error);

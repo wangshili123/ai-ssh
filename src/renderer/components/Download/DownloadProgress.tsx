@@ -26,7 +26,7 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
 }) => {
   // 格式化速度
   const formatSpeed = (bytesPerSecond: number): string => {
-    if (bytesPerSecond === 0) return '0 B/s';
+    if (bytesPerSecond === 0 || !isFinite(bytesPerSecond) || bytesPerSecond < 0) return '0 B/s';
     return `${formatFileSize(bytesPerSecond)}/s`;
   };
 
@@ -62,7 +62,20 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
   };
 
   // 获取状态文本
-  const getStatusText = (status: string): string => {
+  const getStatusText = (status: string, compressionPhase?: string): string => {
+    if (status === 'downloading' && compressionPhase) {
+      switch (compressionPhase) {
+        case 'compressing':
+          return '正在压缩';
+        case 'downloading':
+          return '传输中';
+        case 'extracting':
+          return '正在解压';
+        default:
+          return '下载中';
+      }
+    }
+
     switch (status) {
       case 'pending':
         return '准备中';
@@ -148,7 +161,7 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
         <div className="progress-info">
           <Space split={<span className="separator">•</span>}>
             <Text type="secondary" className="status-text">
-              {getStatusText(task.status)}
+              {getStatusText(task.status, task.progress.compressionPhase)}
             </Text>
 
             {/* 压缩阶段显示 */}
@@ -161,7 +174,8 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
               </Tag>
             )}
 
-            {task.status === 'downloading' && (
+            {/* 只在实际传输阶段显示速度和剩余时间 */}
+            {task.status === 'downloading' && (!task.progress.compressionPhase || task.progress.compressionPhase === 'downloading') && (
               <>
                 <Text type="secondary">
                   {formatSpeed(task.progress.speed)}

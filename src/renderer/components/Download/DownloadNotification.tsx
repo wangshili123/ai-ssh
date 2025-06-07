@@ -56,7 +56,7 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
 
   // 格式化速度
   const formatSpeed = (bytesPerSecond: number): string => {
-    if (bytesPerSecond === 0) return '0 B/s';
+    if (bytesPerSecond === 0 || !isFinite(bytesPerSecond) || bytesPerSecond < 0) return '0 B/s';
     return `${formatFileSize(bytesPerSecond)}/s`;
   };
 
@@ -93,6 +93,19 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
 
   // 获取状态文本
   const getStatusText = () => {
+    if (currentTask.status === 'downloading' && currentTask.progress.compressionPhase) {
+      switch (currentTask.progress.compressionPhase) {
+        case 'compressing':
+          return '正在压缩';
+        case 'downloading':
+          return '传输中';
+        case 'extracting':
+          return '正在解压';
+        default:
+          return '下载中';
+      }
+    }
+
     switch (currentTask.status) {
       case 'pending':
         return '准备中';

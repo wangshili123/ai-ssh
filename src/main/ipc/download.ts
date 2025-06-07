@@ -428,29 +428,8 @@ class DownloadManager {
           // 更新任务的压缩阶段
           taskInfo.compressionPhase = phase;
 
-          // 根据阶段调整进度报告
-          let adjustedTransferred = transferred;
-          let adjustedTotal = total;
-
-          switch (phase) {
-            case 'compressing':
-              // 压缩阶段占总进度的10%
-              adjustedTransferred = Math.min(transferred, total * 0.1);
-              adjustedTotal = total;
-              break;
-            case 'downloading':
-              // 下载阶段占总进度的80%（10%-90%）
-              adjustedTransferred = total * 0.1 + (transferred / total) * total * 0.8;
-              adjustedTotal = total;
-              break;
-            case 'extracting':
-              // 解压阶段占总进度的10%（90%-100%）
-              adjustedTransferred = total * 0.9 + (transferred / total) * total * 0.1;
-              adjustedTotal = total;
-              break;
-          }
-
-          this.updateProgress(taskInfo, adjustedTransferred, adjustedTotal);
+          // 直接使用传入的进度值，因为CompressionDownloadService已经做了映射
+          this.updateProgress(taskInfo, transferred, total);
         },
         abortSignal: taskInfo.abortController?.signal
       });
@@ -596,21 +575,28 @@ class DownloadManager {
     // 限制更新频率，避免过于频繁的UI更新
     if (timeDiff < 0.05) return; // 最多每50ms更新一次，提高响应性
 
-    // 计算瞬时速度
+    // 计算瞬时速度，确保不为负数
     const bytesDiff = transferred - taskInfo.lastTransferred;
-    const instantSpeed = timeDiff > 0 ? bytesDiff / timeDiff : 0;
+    let instantSpeed = 0;
+    if (timeDiff > 0 && bytesDiff >= 0) {
+      instantSpeed = bytesDiff / timeDiff;
+    }
 
     // 使用移动平均来平滑速度计算
     if (!taskInfo.speedSamples) {
       taskInfo.speedSamples = [];
     }
 
-    taskInfo.speedSamples.push(instantSpeed);
-    if (taskInfo.speedSamples.length > 10) {
-      taskInfo.speedSamples.shift();
+    // 只有在速度为正数时才添加到样本中
+    if (instantSpeed >= 0) {
+      taskInfo.speedSamples.push(instantSpeed);
+      if (taskInfo.speedSamples.length > 10) {
+        taskInfo.speedSamples.shift();
+      }
     }
 
-    const averageSpeed = taskInfo.speedSamples.reduce((sum, speed) => sum + speed, 0) / taskInfo.speedSamples.length;
+    // 确保平均速度不为负数
+    const averageSpeed = Math.max(0, taskInfo.speedSamples.reduce((sum, speed) => sum + speed, 0) / Math.max(1, taskInfo.speedSamples.length));
 
     // 计算剩余时间
     const remainingBytes = total - transferred;
