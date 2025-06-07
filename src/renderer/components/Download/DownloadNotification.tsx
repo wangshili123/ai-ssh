@@ -3,14 +3,15 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Progress, Button, Space, Typography } from 'antd';
-import { 
-  DownloadOutlined, 
-  PauseOutlined, 
-  PlayCircleOutlined, 
+import { Progress, Button, Space, Typography, Tag } from 'antd';
+import {
+  DownloadOutlined,
+  PauseOutlined,
+  PlayCircleOutlined,
   CloseOutlined,
   CheckCircleOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  ThunderboltOutlined
 } from '@ant-design/icons';
 import { downloadService, type DownloadTask } from '../../services/downloadService';
 import { formatFileSize } from '../../utils/fileUtils';
@@ -268,7 +269,7 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
             <Text type="secondary" className="progress-text">
               {formatFileSize(currentTask.progress.transferred)} / {formatFileSize(currentTask.progress.total)}
             </Text>
-            
+
             {currentTask.status === 'downloading' && (
               <>
                 <Text type="secondary" className="speed-text">
@@ -278,6 +279,16 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
                   剩余: {formatRemainingTime(currentTask.progress.remainingTime)}
                 </Text>
               </>
+            )}
+
+            {/* 并行下载状态 */}
+            {currentTask.parallelEnabled && currentTask.progress.downloadChunks && (
+              <Tag
+                icon={<ThunderboltOutlined />}
+                color="blue"
+              >
+                {currentTask.progress.downloadChunks.filter(c => c.status === 'downloading').length}/{currentTask.maxParallelChunks}
+              </Tag>
             )}
           </Space>
         </div>

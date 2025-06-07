@@ -31,6 +31,9 @@ export interface CompressionDownloadOptions {
   strategy: CompressionStrategy;
   onProgress?: (transferred: number, total: number, phase: 'compressing' | 'downloading' | 'extracting') => void;
   abortSignal?: AbortSignal;
+  // 新增：并行下载支持
+  useParallel?: boolean;
+  maxParallelChunks?: number;
 }
 
 export class CompressionDownloadService {
@@ -39,7 +42,7 @@ export class CompressionDownloadService {
    * 执行压缩下载
    */
   static async performCompressedDownload(options: CompressionDownloadOptions): Promise<void> {
-    const { taskId, file, sessionId, localPath, tempPath, strategy, onProgress, abortSignal } = options;
+    const { taskId, file, sessionId, localPath, tempPath, strategy, onProgress, abortSignal, useParallel, maxParallelChunks } = options;
 
     if (!strategy.enabled) {
       throw new Error('压缩策略未启用');
@@ -72,12 +75,24 @@ export class CompressionDownloadService {
       onProgress?.(file.size * 0.1, file.size, 'downloading');
 
       const compressedLocalPath = tempPath + strategy.extension;
-      await this.downloadCompressedFile(connectionId, remoteTempPath, compressedLocalPath, (transferred, total) => {
-        // 下载进度映射到10%-90%
-        const progressRatio = total > 0 ? transferred / total : 0;
-        const adjustedProgress = file.size * 0.1 + (progressRatio * file.size * 0.8);
-        onProgress?.(adjustedProgress, file.size, 'downloading');
-      }, abortSignal);
+
+      // 根据是否启用并行选择下载方式
+      if (useParallel && maxParallelChunks && maxParallelChunks > 1) {
+        console.log(`[CompressionDownload] 使用并行下载压缩文件，并行数: ${maxParallelChunks}`);
+        await this.downloadCompressedFileParallel(connectionId, remoteTempPath, compressedLocalPath, maxParallelChunks, (transferred, total) => {
+          // 下载进度映射到10%-90%
+          const progressRatio = total > 0 ? transferred / total : 0;
+          const adjustedProgress = file.size * 0.1 + (progressRatio * file.size * 0.8);
+          onProgress?.(adjustedProgress, file.size, 'downloading');
+        }, abortSignal);
+      } else {
+        await this.downloadCompressedFile(connectionId, remoteTempPath, compressedLocalPath, (transferred, total) => {
+          // 下载进度映射到10%-90%
+          const progressRatio = total > 0 ? transferred / total : 0;
+          const adjustedProgress = file.size * 0.1 + (progressRatio * file.size * 0.8);
+          onProgress?.(adjustedProgress, file.size, 'downloading');
+        }, abortSignal);
+      }
 
       if (abortSignal?.aborted) {
         await this.cleanupRemoteFile(connectionId, remoteTempPath);
@@ -240,6 +255,56 @@ export class CompressionDownloadService {
       writeStream.destroy();
       throw error;
     }
+  }
+
+  /**
+   * 并行下载压缩文件
+   */
+  private static async downloadCompressedFileParallel(
+    connectionId: string,
+    remotePath: string,
+    localPath: string,
+    maxParallelChunks: number,
+    onProgress?: (transferred: number, total: number) => void,
+    abortSignal?: AbortSignal
+  ): Promise<void> {
+    // 获取压缩文件大小
+    const remoteStats = await sftpManager.stat(connectionId, remotePath);
+    if (!remoteStats) {
+      throw new Error('无法获取压缩文件信息');
+    }
+
+    const compressedSize = remoteStats.size;
+    console.log(`[CompressionDownload] 开始并行下载压缩文件，大小: ${compressedSize}, 并行数: ${maxParallelChunks}`);
+
+    // 使用ParallelDownloadService下载压缩文件
+    const { ParallelDownloadService } = await import('./parallelDownloadService');
+
+    // 创建虚拟文件对象
+    const virtualFile: FileEntry = {
+      name: remotePath.split('/').pop() || 'compressed',
+      path: remotePath,
+      size: compressedSize,
+      isDirectory: false,
+      modifyTime: Date.now(),
+      permissions: 644,
+      extension: remotePath.split('.').pop() || ''
+    };
+
+    await ParallelDownloadService.performParallelDownload({
+      taskId: `compressed_${Date.now()}`,
+      file: virtualFile,
+      sessionId: connectionId.replace('sftp-', ''),
+      localPath,
+      tempPath: localPath + '.tmp',
+      maxParallelChunks,
+      onProgress: (transferred, total) => {
+        onProgress?.(transferred, total);
+      },
+      abortSignal
+    });
+
+    console.log(`[CompressionDownload] 并行下载压缩文件完成`);
   }
 
   /**

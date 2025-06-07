@@ -130,7 +130,13 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
   const [useCompression, setUseCompression] = useState(true); // 默认启用压缩
   const [compressionMethod, setCompressionMethod] = useState<'auto' | 'gzip' | 'bzip2' | 'xz' | 'none'>('auto');
   const [useParallelDownload, setUseParallelDownload] = useState(file.size > 10 * 1024 * 1024); // 大于10MB默认启用并行
-  const [maxParallelChunks, setMaxParallelChunks] = useState(4);
+  const [maxParallelChunks, setMaxParallelChunks] = useState(() => {
+    // 根据文件大小计算默认并行数
+    if (file.size < 5 * 1024 * 1024) return 1;   // 小于5MB，单线程
+    if (file.size < 50 * 1024 * 1024) return 8;  // 小于50MB，8线程
+    if (file.size < 200 * 1024 * 1024) return 12; // 小于200MB，12线程
+    return 30; // 大文件，16线程
+  });
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // 当文件变化时重置文件名
@@ -448,14 +454,16 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
                             <Select
                               value={maxParallelChunks}
                               onChange={setMaxParallelChunks}
-                              style={{ width: 100 }}
+                              style={{ width: 120 }}
                               size="small"
                             >
+                              <Option value={1}>1 块</Option>
                               <Option value={2}>2 块</Option>
-                              <Option value={3}>3 块</Option>
-                              <Option value={4}>4 块 (推荐)</Option>
-                              <Option value={5}>5 块</Option>
+                              <Option value={4}>4 块</Option>
                               <Option value={6}>6 块</Option>
+                              <Option value={8}>8 块 (推荐)</Option>
+                              <Option value={12}>12 块</Option>
+                              <Option value={30}>30 块 (最大)</Option>
                             </Select>
                           </Space>
                         </div>
@@ -476,7 +484,7 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
                           )}
                           {useParallelDownload && file.size > 10 * 1024 * 1024 && (
                             <Tag color="blue">
-                              并行提速 2-4x
+                              并行提速 {maxParallelChunks}x
                             </Tag>
                           )}
                         </Space>

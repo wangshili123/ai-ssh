@@ -11,6 +11,17 @@ import { CompressionStrategySelector } from './compressionStrategy';
 
 const { ipcRenderer } = window.require('electron');
 
+export interface DownloadChunk {
+  id: number;
+  start: number;
+  end: number;
+  size: number;
+  downloaded: number;
+  status: 'pending' | 'downloading' | 'completed' | 'error';
+  error?: string;
+  retryCount: number;
+}
+
 export interface DownloadProgress {
   transferred: number;
   total: number;
@@ -23,6 +34,10 @@ export interface DownloadProgress {
   originalSize?: number;
   compressedSize?: number;
   compressionRatio?: number;
+  // 新增：并行下载相关进度信息
+  downloadChunks?: DownloadChunk[];
+  parallelEnabled?: boolean;
+  activeChunks?: number;
 }
 
 export interface DownloadTask {
@@ -47,6 +62,10 @@ export interface DownloadTask {
   compressedFileSize?: number;
   compressionRatio?: number;
   optimizationUsed?: string[]; // 记录使用了哪些优化策略
+  // 新增：并行下载相关字段
+  parallelEnabled?: boolean;
+  maxParallelChunks?: number;
+  downloadChunks?: DownloadChunk[];
 }
 
 export class DownloadService extends EventEmitter {
@@ -144,7 +163,11 @@ export class DownloadService extends EventEmitter {
       compressedFileSize: compressionStrategy.enabled ?
         Math.round(file.size * compressionStrategy.estimatedRatio) : file.size,
       compressionRatio: compressionStrategy.estimatedRatio,
-      optimizationUsed
+      optimizationUsed,
+      // 并行下载相关字段
+      parallelEnabled: config.useParallelDownload && file.size > 10 * 1024 * 1024,
+      maxParallelChunks: config.maxParallelChunks || 4,
+      downloadChunks: []
     };
 
     this.tasks.set(taskId, task);

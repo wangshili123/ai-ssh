@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { Progress, Typography, Space, Button, Tag } from 'antd';
-import { PauseOutlined, PlayCircleOutlined, CloseOutlined, CompressOutlined, DownloadOutlined, FileZipOutlined } from '@ant-design/icons';
+import { PauseOutlined, PlayCircleOutlined, CloseOutlined, CompressOutlined, DownloadOutlined, FileZipOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import type { DownloadTask } from '../../services/downloadService';
 import { formatFileSize } from '../../utils/fileUtils';
 import './DownloadProgress.css';
@@ -174,6 +174,16 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
               </Tag>
             )}
 
+            {/* 并行下载状态显示 */}
+            {task.status === 'downloading' && task.parallelEnabled && task.progress.downloadChunks && (
+              <Tag
+                icon={<ThunderboltOutlined />}
+                color="blue"
+              >
+                并行 {task.progress.activeChunks || task.progress.downloadChunks.filter(c => c.status === 'downloading').length}/{task.maxParallelChunks}
+              </Tag>
+            )}
+
             {/* 只在实际传输阶段显示速度和剩余时间 */}
             {task.status === 'downloading' && (!task.progress.compressionPhase || task.progress.compressionPhase === 'downloading') && (
               <>
@@ -190,10 +200,16 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
               {formatFileSize(task.progress.transferred)} / {formatFileSize(task.progress.total)}
             </Text>
 
-            {/* 压缩效果显示 */}
+            {/* 优化效果显示 */}
             {task.compressionEnabled && task.progress.compressionRatio && task.progress.compressionRatio < 0.9 && (
               <Tag color="green">
                 压缩节省 {((1 - task.progress.compressionRatio) * 100).toFixed(0)}%
+              </Tag>
+            )}
+
+            {task.parallelEnabled && task.maxParallelChunks && task.maxParallelChunks > 1 && (
+              <Tag color="blue">
+                并行提速 {task.maxParallelChunks}x
               </Tag>
             )}
           </Space>
