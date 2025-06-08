@@ -171,7 +171,7 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
             </Text>
 
             {/* 只在实际传输阶段显示速度和剩余时间 */}
-            {task.status === 'downloading' && (!task.progress.compressionPhase || task.progress.compressionPhase === 'downloading') && (
+            {task.status === 'downloading' && (!task.progress.compressionPhase || task.progress.compressionPhase === 'transferring') && (
               <>
                 <Text type="secondary">
                   {formatSpeed(task.progress.speed)}
@@ -204,12 +204,12 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
             )}
 
             {/* 并行下载状态显示 */}
-            {task.status === 'downloading' && task.parallelEnabled && task.progress.downloadChunks && (
+            {task.status === 'downloading' && task.parallelEnabled && task.transferChunks && (
               <Tag
                 icon={<ThunderboltOutlined />}
                 color="blue"
               >
-                并行 {task.progress.activeChunks || task.progress.downloadChunks.filter(c => c.status === 'downloading').length}/{task.maxParallelChunks}
+                并行 {task.progress.activeChunks || task.transferChunks.filter((c: any) => c.status === 'transferring').length}/{task.maxParallelChunks}
               </Tag>
             )}
 

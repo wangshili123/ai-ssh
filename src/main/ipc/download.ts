@@ -329,13 +329,15 @@ class DownloadManager {
       }
 
       // 选择下载策略
+      console.log(`[DownloadManager] 选择下载策略 - 压缩: ${taskInfo.compressionEnabled}, 并行: ${taskInfo.parallelEnabled}, 断点: ${taskInfo.resumePosition || 0}`);
+
       if (taskInfo.compressionEnabled && taskInfo.compressionMethod !== 'none') {
         // 压缩下载
         if (taskInfo.parallelEnabled && taskInfo.maxParallelChunks! > 1) {
-          console.log(`[DownloadManager] 开始压缩+并行下载: ${taskId}, 方法: ${taskInfo.compressionMethod}, 并行数: ${taskInfo.maxParallelChunks}`);
+          console.log(`[DownloadManager] 开始压缩+并行下载: ${taskId}, 方法: ${taskInfo.compressionMethod}, 并行数: ${taskInfo.maxParallelChunks}, 断点: ${taskInfo.resumePosition || 0}`);
           await this.performCompressedParallelDownload(taskInfo, connectionId);
         } else {
-          console.log(`[DownloadManager] 开始压缩下载: ${taskId}, 方法: ${taskInfo.compressionMethod}`);
+          console.log(`[DownloadManager] 开始压缩下载: ${taskId}, 方法: ${taskInfo.compressionMethod}, 断点: ${taskInfo.resumePosition || 0}`);
           await this.performCompressedDownload(taskInfo, connectionId);
         }
         return;
@@ -343,12 +345,12 @@ class DownloadManager {
 
       // 如果启用了并行下载，使用并行下载
       if (taskInfo.parallelEnabled && taskInfo.maxParallelChunks! > 1) {
-        console.log(`[DownloadManager] 开始并行下载: ${taskId}, 并行数: ${taskInfo.maxParallelChunks}`);
+        console.log(`[DownloadManager] 开始并行下载: ${taskId}, 并行数: ${taskInfo.maxParallelChunks}, 断点: ${taskInfo.resumePosition || 0}`);
         await this.performParallelDownload(taskInfo, connectionId);
         return;
       }
 
-      console.log(`[DownloadManager] 使用普通下载: ${taskId}`);
+      console.log(`[DownloadManager] 使用普通下载: ${taskId}, 断点: ${taskInfo.resumePosition || 0}`);
       await this.performNormalDownload(taskInfo, connectionId);
 
     } catch (error) {
@@ -418,7 +420,14 @@ class DownloadManager {
           // 直接使用传入的进度值，因为CompressionDownloadService已经做了映射
           this.updateProgress(taskInfo, transferred, total);
         },
-        abortSignal: taskInfo.abortController?.signal
+        abortSignal: taskInfo.abortController?.signal,
+        resumePosition: taskInfo.resumePosition,
+        remoteTempPath: taskInfo.remoteTempPath,
+        onRemotePathCreated: (remotePath) => {
+          // 保存远程压缩文件路径
+          taskInfo.remoteTempPath = remotePath;
+          console.log(`[DownloadManager] 保存远程压缩文件路径: ${remotePath}`);
+        }
       });
 
       // 压缩下载完成
@@ -502,7 +511,8 @@ class DownloadManager {
           // 更新进度
           this.updateProgress(taskInfo, transferred, total);
         },
-        abortSignal: taskInfo.abortController?.signal
+        abortSignal: taskInfo.abortController?.signal,
+        resumePosition: taskInfo.resumePosition
       });
 
       // 并行下载完成
@@ -569,7 +579,8 @@ class DownloadManager {
           // 直接使用传入的进度值
           this.updateProgress(taskInfo, transferred, total);
         },
-        abortSignal: taskInfo.abortController?.signal
+        abortSignal: taskInfo.abortController?.signal,
+        resumePosition: taskInfo.resumePosition
       });
 
       // 压缩+并行下载完成
@@ -773,6 +784,9 @@ class DownloadManager {
       taskInfo.isPaused = true;
       taskInfo.abortController.abort();
       console.log(`[DownloadManager] 暂停下载任务: ${taskId}`);
+
+      // 通知渲染进程暂停状态
+      this.notifyPaused(taskId);
     }
   }
 
@@ -787,12 +801,41 @@ class DownloadManager {
       taskInfo.abortController = new AbortController();
 
       // 检查临时文件大小，更新断点位置
-      if (taskInfo.tempPath && fs.existsSync(taskInfo.tempPath)) {
-        const stats = fs.statSync(taskInfo.tempPath);
+      let resumeFileToCheck = taskInfo.tempPath;
+
+      // 对于压缩下载，检查压缩文件的临时文件
+      if (taskInfo.compressionEnabled && taskInfo.compressionMethod !== 'none') {
+        const extension = this.getCompressionExtension(taskInfo.compressionMethod!);
+        if (taskInfo.parallelEnabled && taskInfo.maxParallelChunks! > 1) {
+          // 压缩+并行下载：检查 .gz.tmp 文件
+          resumeFileToCheck = taskInfo.tempPath + extension + '.tmp';
+        } else {
+          // 仅压缩下载：检查 .gz 文件
+          resumeFileToCheck = taskInfo.tempPath + extension;
+        }
+        console.log(`[DownloadManager] 压缩下载，检查文件: ${resumeFileToCheck}`);
+      }
+
+      if (resumeFileToCheck && fs.existsSync(resumeFileToCheck)) {
+        const stats = fs.statSync(resumeFileToCheck);
         taskInfo.resumePosition = stats.size;
         taskInfo.lastTransferred = stats.size;
         console.log(`[DownloadManager] 恢复下载任务: ${taskId}，从位置 ${stats.size} 继续`);
+        console.log(`[DownloadManager] 任务配置 - 压缩: ${taskInfo.compressionEnabled}, 并行: ${taskInfo.parallelEnabled}`);
+        console.log(`[DownloadManager] 检查文件: ${resumeFileToCheck}, 大小: ${stats.size}`);
+
+        // 断点续传：压缩和并行下载现在都支持断点续传
+        console.log(`[DownloadManager] 断点续传支持所有下载模式: ${taskId}`);
+      } else {
+        console.log(`[DownloadManager] 临时文件不存在或路径无效: ${resumeFileToCheck}`);
+        taskInfo.resumePosition = 0;
       }
+
+      // 通知渲染进程恢复状态
+      this.notifyResumed(taskId);
+
+      // 添加短暂延迟，确保之前的文件句柄完全释放
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // 重新开始下载
       this.performDownload(taskInfo).catch(error => {
@@ -817,6 +860,18 @@ class DownloadManager {
    * 处理下载完成
    */
   private handleDownloadCompleted(taskId: string, filePath: string): void {
+    const taskInfo = this.tasks.get(taskId);
+
+    // 如果设置了打开文件夹，则打开
+    if (taskInfo?.config.openFolder) {
+      try {
+        shell.showItemInFolder(filePath);
+        console.log(`[DownloadManager] 已打开文件夹: ${filePath}`);
+      } catch (error) {
+        console.error(`[DownloadManager] 打开文件夹失败:`, error);
+      }
+    }
+
     this.tasks.delete(taskId);
     this.notifyCompleted(taskId, filePath);
   }
@@ -871,6 +926,24 @@ class DownloadManager {
   private notifyCancelled(taskId: string): void {
     BrowserWindow.getAllWindows().forEach(window => {
       window.webContents.send('download-cancelled', { taskId });
+    });
+  }
+
+  /**
+   * 通知下载暂停
+   */
+  private notifyPaused(taskId: string): void {
+    BrowserWindow.getAllWindows().forEach(window => {
+      window.webContents.send('download-paused', { taskId });
+    });
+  }
+
+  /**
+   * 通知下载恢复
+   */
+  private notifyResumed(taskId: string): void {
+    BrowserWindow.getAllWindows().forEach(window => {
+      window.webContents.send('download-resumed', { taskId });
     });
   }
 }

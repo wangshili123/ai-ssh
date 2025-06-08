@@ -21,6 +21,7 @@ export interface FileListContextMenuProps {
   currentPath: string;
   onClose: () => void;
   onDownloadRequest?: (file: FileEntry, selectedFiles: FileEntry[]) => void;
+  onUploadRequest?: (currentPath: string) => void;
 }
 
 export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
@@ -32,7 +33,8 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
   tabId,
   currentPath,
   onClose,
-  onDownloadRequest
+  onDownloadRequest,
+  onUploadRequest
 }) => {
   // 添加 ref 用于获取菜单 DOM 元素
   const menuRef = useRef<HTMLDivElement>(null);
@@ -98,6 +100,17 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
 
   // 使用 useMemo 缓存菜单项配置
   const menuItems = useMemo(() => [
+    {
+      key: 'upload',
+      label: '上传文件到此处',
+      onClick: () => {
+        console.log('上传文件到:', currentPath);
+        onUploadRequest?.(currentPath);
+      }
+    },
+    {
+      type: 'divider' as const
+    },
     {
       key: 'delete',
       label: '删除',

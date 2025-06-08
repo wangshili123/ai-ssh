@@ -1,0 +1,347 @@
+/**
+ * 统一传输进度组件样式
+ * 基于下载进度样式，支持上传和下载双模式
+ */
+
+.transfer-progress {
+  background: #2D2D2D;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.transfer-progress:hover {
+  border-color: #555;
+  background: #353535;
+}
+
+/* 传输类型特定样式 */
+.transfer-progress.transfer-upload {
+  border-left: 3px solid #52c41a;
+}
+
+.transfer-progress.transfer-download {
+  border-left: 3px solid #1890ff;
+}
+
+/* 传输头部 */
+.transfer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name-row {
+  margin-bottom: 4px;
+}
+
+.file-name-row .anticon {
+  color: #8C8C8C;
+  margin-right: 4px;
+}
+
+.transfer-upload .file-name-row .anticon-upload {
+  color: #52c41a;
+}
+
+.transfer-download .file-name-row .anticon-download {
+  color: #1890ff;
+}
+
+.file-name {
+  display: inline-block;
+  color: #D4D4D4 !important;
+  font-size: 13px;
+  word-break: break-all;
+  max-width: 300px;
+}
+
+.file-details {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.file-size {
+  font-size: 11px;
+  color: #8C8C8C !important;
+}
+
+.file-extra {
+  font-size: 11px;
+  color: #8C8C8C !important;
+  font-style: italic;
+}
+
+/* 传输操作按钮 */
+.transfer-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.action-button {
+  color: #8C8C8C !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 4px !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.action-button:hover {
+  color: #D4D4D4 !important;
+  background: #3D3D3D !important;
+}
+
+.cancel-button:hover {
+  color: #ff4d4f !important;
+}
+
+/* 进度条区域 */
+.progress-section {
+  margin-bottom: 4px;
+}
+
+.progress-section .ant-progress {
+  margin-bottom: 6px;
+}
+
+.progress-section .ant-progress-bg {
+  background: #333 !important;
+}
+
+.progress-section .ant-progress-inner {
+  background: #1E1E1E !important;
+  border-radius: 3px;
+}
+
+/* 进度信息 */
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.progress-info .ant-space {
+  flex: 1;
+}
+
+.progress-info .ant-typography {
+  color: #8C8C8C !important;
+  font-size: 11px !important;
+  margin: 0 !important;
+}
+
+.separator {
+  color: #666;
+  margin: 0 4px;
+}
+
+.status-text {
+  font-weight: 500 !important;
+}
+
+/* 状态标签区域 */
+.status-tags-section {
+  margin-top: 8px;
+  padding: 6px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.status-tags-section .ant-tag {
+  margin: 0 !important;
+  font-size: 10px !important;
+  line-height: 16px !important;
+  padding: 0 6px !important;
+  border-radius: 8px !important;
+}
+
+/* 错误消息 */
+.error-message {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  border-radius: 4px;
+}
+
+.error-text {
+  font-size: 11px !important;
+  color: #ff4d4f !important;
+  margin: 0 !important;
+}
+
+/* 状态特定样式 */
+.transfer-progress[data-status="completed"] {
+  border-color: rgba(82, 196, 26, 0.3);
+  background: rgba(82, 196, 26, 0.05);
+}
+
+.transfer-progress[data-status="error"] {
+  border-color: rgba(255, 77, 79, 0.3);
+  background: rgba(255, 77, 79, 0.05);
+}
+
+.transfer-progress[data-status="paused"] {
+  border-color: rgba(250, 173, 20, 0.3);
+  background: rgba(250, 173, 20, 0.05);
+}
+
+.transfer-progress[data-status="cancelled"] {
+  border-color: rgba(140, 140, 140, 0.3);
+  background: rgba(140, 140, 140, 0.05);
+  opacity: 0.7;
+}
+
+/* 上传特定样式增强 */
+.transfer-upload[data-status="uploading"] {
+  border-left-color: #52c41a;
+}
+
+.transfer-upload[data-status="completed"] {
+  border-left-color: #389e0d;
+}
+
+/* 下载特定样式增强 */
+.transfer-download[data-status="downloading"] {
+  border-left-color: #1890ff;
+}
+
+.transfer-download[data-status="completed"] {
+  border-left-color: #096dd9;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .transfer-progress {
+    padding: 8px;
+  }
+  
+  .transfer-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .transfer-actions {
+    align-self: flex-end;
+    margin-left: 0;
+  }
+  
+  .file-name {
+    max-width: 200px;
+  }
+  
+  .file-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  
+  .progress-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .progress-info .ant-space {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .status-tags-section {
+    margin-top: 6px !important;
+    padding-top: 4px !important;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  .action-button {
+    width: 32px !important;
+    height: 32px !important;
+    padding: 6px !important;
+  }
+  
+  .transfer-actions {
+    gap: 8px;
+  }
+}
+
+/* 暗色主题优化 */
+@media (prefers-color-scheme: dark) {
+  .transfer-progress {
+    background: #1f1f1f;
+    border-color: #434343;
+  }
+
+  .transfer-progress:hover {
+    background: #262626;
+    border-color: #595959;
+  }
+
+  .progress-section .ant-progress-inner {
+    background: #141414 !important;
+  }
+
+  .progress-section .ant-progress-bg {
+    background: #434343 !important;
+  }
+
+  .status-tags-section {
+    border-top-color: #434343;
+  }
+
+  .error-message {
+    background: rgba(255, 77, 79, 0.15);
+    border-color: rgba(255, 77, 79, 0.4);
+  }
+}
+
+/* 动画效果 */
+.transfer-progress[data-status="uploading"] .file-name-row .anticon-upload,
+.transfer-progress[data-status="downloading"] .file-name-row .anticon-download {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 压缩和并行状态的特殊效果 */
+.transfer-progress .status-tags-section .ant-tag[color="processing"] {
+  animation: processing 1.5s infinite;
+}
+
+@keyframes processing {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}

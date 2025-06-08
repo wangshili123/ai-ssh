@@ -8,7 +8,8 @@ import AppStatusBar from './components/StatusBar/AppStatusBar';
 import AppToolbar from './components/Toolbar/AppToolbar';
 import SessionListModal from './components/SessionListModal';
 import { BaseConfigModal } from './components/BaseConfigModal/BaseConfigModal';
-import DownloadNotificationManager from './components/Download/DownloadNotificationManager';
+import TransferNotificationManager from './components/Transfer/TransferNotificationManager';
+import TransferManager from './components/Transfer/TransferManager';
 import DownloadHistory from './components/Download/DownloadHistory';
 import type { SessionInfo, SSHService } from './types';
 import { eventBus } from './services/eventBus';
@@ -33,6 +34,7 @@ const App: React.FC = () => {
   const [isFileBrowserVisible, setIsFileBrowserVisible] = useState(true);
   const [baseConfigVisible, setBaseConfigVisible] = useState(false);
   const [downloadHistoryVisible, setDownloadHistoryVisible] = useState(false);
+  const [transferManagerVisible, setTransferManagerVisible] = useState(false);
 
   // 初始化数据库和基础服务
   useEffect(() => {
@@ -116,12 +118,13 @@ const App: React.FC = () => {
     <Layout className="app-container">
       <Layout>
         <Sider width={48} className="app-toolbar-sider" theme="light">
-          <AppToolbar 
+          <AppToolbar
             onSessionListOpen={() => setSessionListVisible(true)}
             isAICollapsed={isCollapsed}
             onAICollapse={setIsCollapsed}
             isFileBrowserVisible={isFileBrowserVisible}
             onFileBrowserVisibleChange={setIsFileBrowserVisible}
+            onTransferManagerOpen={() => setTransferManagerVisible(true)}
           />
         </Sider>
         <Layout>
@@ -186,9 +189,13 @@ const App: React.FC = () => {
         visible={downloadHistoryVisible}
         onClose={() => setDownloadHistoryVisible(false)}
       />
+      <TransferManager
+        visible={transferManagerVisible}
+        onClose={() => setTransferManagerVisible(false)}
+      />
 
-      {/* 下载通知管理器 */}
-      <DownloadNotificationManager />
+      {/* 统一传输通知管理器 */}
+      <TransferNotificationManager />
     </Layout>
   );
 };

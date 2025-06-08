@@ -91,13 +91,14 @@ export const DownloadHistory: React.FC<DownloadHistoryProps> = ({
     const statusConfig = {
       pending: { color: 'blue', icon: <DownloadOutlined />, text: '等待中' },
       downloading: { color: 'processing', icon: <DownloadOutlined />, text: '下载中' },
+      uploading: { color: 'processing', icon: <DownloadOutlined />, text: '上传中' },
       paused: { color: 'warning', icon: <PauseCircleOutlined />, text: '已暂停' },
       completed: { color: 'success', icon: <CheckCircleOutlined />, text: '已完成' },
       error: { color: 'error', icon: <ExclamationCircleOutlined />, text: '失败' },
       cancelled: { color: 'default', icon: <CloseCircleOutlined />, text: '已取消' }
     };
 
-    const config = statusConfig[status];
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     return (
       <Tag color={config.color} icon={config.icon}>
         {config.text}

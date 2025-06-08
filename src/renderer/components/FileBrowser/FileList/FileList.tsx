@@ -8,7 +8,9 @@ import type { FileEntry } from '../../../../main/types/file';
 import type { SessionInfo } from '../../../types';
 import { FileListContextMenu } from './components/ContextMenu/FileListContextMenu';
 import DownloadDialog, { type DownloadConfig } from '../../Download/DownloadDialog';
+import { UploadDialog } from '../../Upload';
 import { downloadService } from '../../../services/downloadService';
+import { uploadService } from '../../../services/uploadService';
 import { getDefaultDownloadPath } from '../../../utils/downloadUtils';
 import { fileOpenManager } from './core/FileOpenManager';
 import './FileList.css';
@@ -155,6 +157,11 @@ const FileList: React.FC<FileListProps> = ({
   const [downloadDialogVisible, setDownloadDialogVisible] = useState(false);
   const [downloadFile, setDownloadFile] = useState<FileEntry | null>(null);
   const [downloadFiles, setDownloadFiles] = useState<FileEntry[]>([]);
+
+  // 上传对话框状态
+  const [uploadDialogVisible, setUploadDialogVisible] = useState(false);
+  const [uploadPath, setUploadPath] = useState<string>('');
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 修改右键菜单状态的类型定义
@@ -252,6 +259,32 @@ const FileList: React.FC<FileListProps> = ({
   const handleDownloadCancel = () => {
     console.log('FileList: 下载取消');
     setDownloadDialogVisible(false);
+  };
+
+  // 上传处理函数
+  const handleUploadRequest = useCallback((targetPath: string) => {
+    console.log('FileList: 收到上传请求', targetPath);
+    setUploadPath(targetPath);
+    setUploadDialogVisible(true);
+  }, []);
+
+  // 上传确认处理
+  const handleUploadConfirm = async (config: any) => {
+    console.log('FileList: 上传确认', config);
+    try {
+      // 上传逻辑由 UploadDialog 内部处理
+      setUploadDialogVisible(false);
+      // 刷新文件列表 - 传递当前文件列表，实际的刷新逻辑由父组件处理
+      onFileListChange?.(fileList);
+    } catch (error) {
+      console.error('上传失败:', error);
+    }
+  };
+
+  // 上传取消处理
+  const handleUploadCancel = () => {
+    console.log('FileList: 上传取消');
+    setUploadDialogVisible(false);
   };
 
   // 修改处理右键菜单的函数
@@ -391,6 +424,7 @@ const FileList: React.FC<FileListProps> = ({
           currentPath={currentPath}
           onClose={handleCloseContextMenu}
           onDownloadRequest={handleDownloadRequest}
+          onUploadRequest={handleUploadRequest}
         />
       )}
 
@@ -404,6 +438,21 @@ const FileList: React.FC<FileListProps> = ({
           defaultSavePath={getDefaultDownloadPath()}
           onConfirm={handleDownloadConfirm}
           onCancel={handleDownloadCancel}
+        />
+      )}
+
+      {/* 上传对话框 */}
+      {sessionInfo && (
+        <UploadDialog
+          visible={uploadDialogVisible}
+          defaultRemotePath={uploadPath}
+          sessionInfo={{
+            id: tabId,
+            host: sessionInfo.host,
+            username: sessionInfo.username
+          }}
+          onConfirm={handleUploadConfirm}
+          onCancel={handleUploadCancel}
         />
       )}
     </div>

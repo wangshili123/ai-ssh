@@ -98,7 +98,7 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
       switch (currentTask.progress.compressionPhase) {
         case 'compressing':
           return '正在压缩';
-        case 'downloading':
+        case 'transferring':
           return '传输中';
         case 'extracting':
           return '正在解压';
@@ -291,14 +291,14 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
         </div>
 
         {/* 状态标签区域 - 独立显示 */}
-        {currentTask.parallelEnabled && currentTask.progress.downloadChunks && (
+        {currentTask.parallelEnabled && currentTask.transferChunks && (
           <div className="notification-tags" style={{ marginTop: '6px', paddingTop: '4px', borderTop: '1px solid #f0f0f0' }}>
             <Tag
               icon={<ThunderboltOutlined />}
               color="blue"
               style={{ fontSize: '10px', padding: '0 6px', borderRadius: '8px' }}
             >
-              并行 {currentTask.progress.downloadChunks.filter(c => c.status === 'downloading').length}/{currentTask.maxParallelChunks}
+              并行 {currentTask.transferChunks.filter((c: any) => c.status === 'transferring').length}/{currentTask.maxParallelChunks}
             </Tag>
           </div>
         )}

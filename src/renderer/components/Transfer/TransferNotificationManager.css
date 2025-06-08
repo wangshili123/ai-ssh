@@ -1,0 +1,48 @@
+/**
+ * 统一传输通知管理器样式
+ */
+
+.transfer-notification-manager {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notification-item {
+  pointer-events: auto;
+  transition: all 0.3s ease;
+}
+
+.notification-item:hover {
+  transform: translateY(0) !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .transfer-notification-manager {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+  }
+
+  .notification-item .transfer-notification {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .transfer-notification-manager {
+    top: 5px;
+    right: 5px;
+    left: 5px;
+  }
+}
