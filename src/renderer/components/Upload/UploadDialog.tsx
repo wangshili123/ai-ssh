@@ -83,7 +83,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
         useCompression: compressionRec?.recommended || false,
         compressionMethod: compressionRec?.method || 'auto',
         useParallelTransfer: parallelRec?.recommended || false,
-        maxParallelChunks: parallelRec?.recommendedChunks || 4
+        maxParallelChunks: parallelRec?.recommendedChunks || 8
       });
 
       // 如果有推荐，自动展开优化选项
@@ -264,13 +264,14 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     const totalSize = getTotalSize();
     const largestFile = Math.max(...files.map(f => f.size));
 
-    // 计算推荐的并行块数
-    let recommendedChunks = 1;
+    // 计算推荐的并行块数 - 优化为更实用的值
+    let recommendedChunks = 8; // 默认8块，经验证明是最佳平衡点
     if (largestFile < 5 * 1024 * 1024) recommendedChunks = 1;   // 小于5MB，单线程
-    else if (largestFile < 50 * 1024 * 1024) recommendedChunks = 4;  // 小于50MB，4线程
-    else if (largestFile < 200 * 1024 * 1024) recommendedChunks = 8; // 小于200MB，8线程
-    else if (largestFile < 1024 * 1024 * 1024) recommendedChunks = 12; // 小于1GB，12线程
-    else recommendedChunks = 16; // 超大文件，16线程
+    else if (largestFile < 20 * 1024 * 1024) recommendedChunks = 4;  // 小于20MB，4线程
+    else if (largestFile < 100 * 1024 * 1024) recommendedChunks = 6; // 小于100MB，6线程
+    else if (largestFile < 500 * 1024 * 1024) recommendedChunks = 8; // 小于500MB，8线程
+    else if (largestFile < 2 * 1024 * 1024 * 1024) recommendedChunks = 10; // 小于2GB，10线程
+    else recommendedChunks = 12; // 超大文件，12线程（避免过多线程导致性能下降）
 
     // 降低推荐阈值，对于大文件更积极地推荐并行
     if (totalSize > 10 * 1024 * 1024 || largestFile > 5 * 1024 * 1024) {
@@ -292,12 +293,22 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
   const compressionRec = getCompressionRecommendation();
   const parallelRec = getParallelRecommendation();
 
-  // 如果有推荐，自动展开优化选项
+  // 如果有推荐，自动展开优化选项并更新表单值
   React.useEffect(() => {
     if (compressionRec?.recommended || parallelRec?.recommended) {
       setOptimizationExpanded(true);
     }
-  }, [compressionRec?.recommended, parallelRec?.recommended]);
+
+    // 当文件变化时，自动更新智能建议的表单值
+    if (visible && files.length > 0) {
+      form.setFieldsValue({
+        useCompression: compressionRec?.recommended || false,
+        compressionMethod: compressionRec?.method || 'auto',
+        useParallelTransfer: parallelRec?.recommended || false,
+        maxParallelChunks: parallelRec?.recommendedChunks || 8
+      });
+    }
+  }, [compressionRec?.recommended, parallelRec?.recommended, files, visible, form]);
 
   return (
     <Modal
@@ -336,7 +347,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
           useCompression: compressionRec?.recommended || false,
           compressionMethod: compressionRec?.method || 'auto',
           useParallelTransfer: parallelRec?.recommended || false,
-          maxParallelChunks: parallelRec?.recommendedChunks || 4
+          maxParallelChunks: parallelRec?.recommendedChunks || 8
         }}
       >
         {/* 文件选择区域 */}
@@ -470,14 +481,14 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                       name="maxParallelChunks"
                       style={{ marginLeft: 24, marginBottom: 16 }}
                     >
-                      <Select style={{ width: 120 }} size="small">
-                        <Select.Option value={1}>1 块</Select.Option>
+                      <Select style={{ width: 140 }} size="small">
+                        <Select.Option value={1}>1 块 (小文件)</Select.Option>
                         <Select.Option value={2}>2 块</Select.Option>
                         <Select.Option value={4}>4 块</Select.Option>
                         <Select.Option value={6}>6 块</Select.Option>
                         <Select.Option value={8}>8 块 (推荐)</Select.Option>
-                        <Select.Option value={12}>12 块</Select.Option>
-                        <Select.Option value={16}>16 块 (最大)</Select.Option>
+                        <Select.Option value={10}>10 块</Select.Option>
+                        <Select.Option value={12}>12 块 (大文件)</Select.Option>
                       </Select>
                     </Form.Item>
                   </div>

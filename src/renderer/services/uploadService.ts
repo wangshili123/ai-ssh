@@ -581,7 +581,7 @@ export class UploadService extends TransferService {
       chunkSize = 8 * 1024 * 1024; // 8MB per chunk
     }
 
-    const maxParallelChunks = config.maxParallelChunks || 8;
+    const maxParallelChunks = config.maxParallelChunks || 8; // 默认8块，最佳性能平衡点
     const totalChunks = Math.ceil(file.size / chunkSize);
 
     console.log(`[UploadService] 文件 ${file.name} 将分为 ${totalChunks} 个块并行上传，最大并行数: ${maxParallelChunks}`);
