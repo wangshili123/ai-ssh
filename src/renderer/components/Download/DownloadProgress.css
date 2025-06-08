@@ -21,12 +21,12 @@
   margin-bottom: 8px;
 }
 
-.file-info {
+.download-progress .download-file-info {
   flex: 1;
   min-width: 0;
 }
 
-.file-name {
+.download-progress .download-file-name {
   display: block;
   color: #D4D4D4 !important;
   font-size: 13px;
@@ -34,7 +34,7 @@
   word-break: break-all;
 }
 
-.file-size {
+.download-progress .download-file-size {
   font-size: 11px;
   color: #8C8C8C !important;
 }

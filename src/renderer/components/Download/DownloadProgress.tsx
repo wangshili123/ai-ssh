@@ -115,11 +115,11 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
   return (
     <div className="download-progress">
       <div className="download-header">
-        <div className="file-info">
-          <Text strong className="file-name">
+        <div className="download-file-info">
+          <Text strong className="download-file-name">
             {task.file.name}
           </Text>
-          <Text type="secondary" className="file-size">
+          <Text type="secondary" className="download-file-size">
             {formatFileSize(task.file.size)}
           </Text>
         </div>

@@ -27,37 +27,37 @@
 }
 
 /* 传输头部 */
-.transfer-header {
+.transfer-progress .transfer-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 6px;
 }
 
-.file-info {
+.transfer-progress .transfer-file-info {
   flex: 1;
   min-width: 0;
 }
 
-.file-name-row {
+.transfer-progress .transfer-file-name-row {
   margin-bottom: 2px;
 }
 
-.file-name-row .anticon {
+.transfer-progress .transfer-file-name-row .anticon {
   color: rgba(0, 0, 0, 0.45);
   margin-right: 4px;
   font-size: 12px;
 }
 
-.transfer-upload .file-name-row .anticon-upload {
+.transfer-upload .transfer-file-name-row .anticon-upload {
   color: #52c41a;
 }
 
-.transfer-download .file-name-row .anticon-download {
+.transfer-download .transfer-file-name-row .anticon-download {
   color: #1890ff;
 }
 
-.file-name {
+.transfer-progress .transfer-file-name {
   display: inline-block;
   color: rgba(0, 0, 0, 0.88) !important;
   font-size: 12px;
@@ -66,32 +66,32 @@
   line-height: 1.4;
 }
 
-.file-details {
+.transfer-progress .transfer-file-details {
   display: flex;
   gap: 6px;
   align-items: center;
 }
 
-.file-size {
+.transfer-progress .transfer-file-size {
   font-size: 10px;
   color: rgba(0, 0, 0, 0.45) !important;
 }
 
-.file-extra {
+.transfer-progress .transfer-file-extra {
   font-size: 10px;
   color: rgba(0, 0, 0, 0.45) !important;
   font-style: italic;
 }
 
 /* 传输操作按钮 */
-.transfer-actions {
+.transfer-progress .transfer-actions {
   display: flex;
   gap: 2px;
   flex-shrink: 0;
   margin-left: 6px;
 }
 
-.action-button {
+.transfer-progress .transfer-action-button {
   color: rgba(0, 0, 0, 0.45) !important;
   border: none !important;
   background: transparent !important;
@@ -104,70 +104,70 @@
   font-size: 12px !important;
 }
 
-.action-button:hover {
+.transfer-progress .transfer-action-button:hover {
   color: rgba(0, 0, 0, 0.75) !important;
   background: #f5f5f5 !important;
 }
 
-.cancel-button:hover {
+.transfer-progress .transfer-cancel-button:hover {
   color: #ff4d4f !important;
 }
 
 /* 进度条区域 */
-.progress-section {
+.transfer-progress .transfer-progress-section {
   margin-bottom: 3px;
 }
 
-.progress-section .ant-progress {
+.transfer-progress .transfer-progress-section .ant-progress {
   margin-bottom: 4px;
 }
 
-.progress-section .ant-progress-bg {
+.transfer-progress .transfer-progress-section .ant-progress-bg {
   background: #f5f5f5 !important;
 }
 
-.progress-section .ant-progress-inner {
+.transfer-progress .transfer-progress-section .ant-progress-inner {
   background: #f5f5f5 !important;
   border-radius: 3px;
   height: 4px !important;
 }
 
 /* 进度信息 */
-.progress-info {
+.transfer-progress .transfer-progress-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 10px;
 }
 
-.progress-info .ant-space {
+.transfer-progress .transfer-progress-info .ant-space {
   flex: 1;
 }
 
-.progress-info .ant-typography {
+.transfer-progress .transfer-progress-info .ant-typography {
   color: rgba(0, 0, 0, 0.45) !important;
   font-size: 10px !important;
   margin: 0 !important;
   line-height: 1.2 !important;
 }
 
-.separator {
+.transfer-progress .transfer-separator {
   color: rgba(0, 0, 0, 0.25);
   margin: 0 3px;
 }
 
-.status-text {
+.transfer-progress .transfer-status-text {
   font-weight: 500 !important;
 }
 
 /* 状态标签区域 */
-.status-tags-section {
+.transfer-progress .transfer-status-tags-section {
   margin-top: 6px;
   padding: 4px 0;
   border-top: 1px solid #f0f0f0;
 }
 
-.status-tags-section .ant-tag {
+.transfer-progress .transfer-status-tags-section .ant-tag {
   margin: 0 !important;
   font-size: 9px !important;
   line-height: 14px !important;
@@ -177,7 +177,7 @@
 }
 
 /* 错误消息 */
-.error-message {
+.transfer-progress .transfer-error-message {
   margin-top: 8px;
   padding: 6px 8px;
   background: rgba(255, 77, 79, 0.1);
@@ -185,7 +185,7 @@
   border-radius: 4px;
 }
 
-.error-text {
+.transfer-progress .transfer-error-text {
   font-size: 11px !important;
   color: #ff4d4f !important;
   margin: 0 !important;
@@ -238,57 +238,57 @@
     margin-bottom: 4px;
   }
 
-  .transfer-header {
+  .transfer-progress .transfer-header {
     margin-bottom: 4px;
   }
 
-  .file-name-row {
+  .transfer-progress .transfer-file-name-row {
     margin-bottom: 1px;
   }
 
-  .file-name {
+  .transfer-progress .transfer-file-name {
     font-size: 11px;
     line-height: 1.3;
   }
 
-  .file-size,
-  .file-extra {
+  .transfer-progress .transfer-file-size,
+  .transfer-progress .transfer-file-extra {
     font-size: 9px;
   }
 
-  .progress-section {
+  .transfer-progress .transfer-progress-section {
     margin-bottom: 2px;
   }
 
-  .progress-section .ant-progress {
+  .transfer-progress .transfer-progress-section .ant-progress {
     margin-bottom: 3px;
   }
 
-  .progress-section .ant-progress-inner {
+  .transfer-progress .transfer-progress-section .ant-progress-inner {
     height: 3px !important;
   }
 
-  .progress-info {
+  .transfer-progress .transfer-progress-info {
     font-size: 9px;
   }
 
-  .progress-info .ant-typography {
+  .transfer-progress .transfer-progress-info .ant-typography {
     font-size: 9px !important;
   }
 
-  .status-tags-section {
+  .transfer-progress .transfer-status-tags-section {
     margin-top: 4px;
     padding: 3px 0;
   }
 
-  .status-tags-section .ant-tag {
+  .transfer-progress .transfer-status-tags-section .ant-tag {
     font-size: 8px !important;
     line-height: 12px !important;
     height: 14px !important;
     padding: 0 3px !important;
   }
 
-  .action-button {
+  .transfer-progress .transfer-action-button {
     width: 18px !important;
     height: 18px !important;
     font-size: 11px !important;
@@ -301,38 +301,38 @@
     padding: 8px;
   }
   
-  .transfer-header {
+  .transfer-progress .transfer-header {
     flex-direction: column;
     gap: 8px;
   }
-  
-  .transfer-actions {
+
+  .transfer-progress .transfer-actions {
     align-self: flex-end;
     margin-left: 0;
   }
-  
-  .file-name {
+
+  .transfer-progress .transfer-file-name {
     max-width: 200px;
   }
-  
-  .file-details {
+
+  .transfer-progress .transfer-file-details {
     flex-direction: column;
     align-items: flex-start;
     gap: 2px;
   }
-  
-  .progress-info {
+
+  .transfer-progress .transfer-progress-info {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
 
-  .progress-info .ant-space {
+  .transfer-progress .transfer-progress-info .ant-space {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .status-tags-section {
+  .transfer-progress .transfer-status-tags-section {
     margin-top: 6px !important;
     padding-top: 4px !important;
   }
@@ -340,13 +340,13 @@
 
 /* 触摸设备优化 */
 @media (hover: none) and (pointer: coarse) {
-  .action-button {
+  .transfer-progress .transfer-action-button {
     width: 32px !important;
     height: 32px !important;
     padding: 6px !important;
   }
-  
-  .transfer-actions {
+
+  .transfer-progress .transfer-actions {
     gap: 8px;
   }
 }
@@ -363,57 +363,57 @@
     border-color: #595959;
   }
 
-  .file-name-row .anticon {
+  .transfer-progress .transfer-file-name-row .anticon {
     color: rgba(255, 255, 255, 0.45);
   }
 
-  .file-name {
+  .transfer-progress .transfer-file-name {
     color: rgba(255, 255, 255, 0.85) !important;
   }
 
-  .file-size,
-  .file-extra {
+  .transfer-progress .transfer-file-size,
+  .transfer-progress .transfer-file-extra {
     color: rgba(255, 255, 255, 0.45) !important;
   }
 
-  .action-button {
+  .transfer-progress .transfer-action-button {
     color: rgba(255, 255, 255, 0.45) !important;
   }
 
-  .action-button:hover {
+  .transfer-progress .transfer-action-button:hover {
     color: rgba(255, 255, 255, 0.85) !important;
     background: #262626 !important;
   }
 
-  .progress-section .ant-progress-inner {
+  .transfer-progress .transfer-progress-section .ant-progress-inner {
     background: #141414 !important;
   }
 
-  .progress-section .ant-progress-bg {
+  .transfer-progress .transfer-progress-section .ant-progress-bg {
     background: #434343 !important;
   }
 
-  .progress-info .ant-typography {
+  .transfer-progress .transfer-progress-info .ant-typography {
     color: rgba(255, 255, 255, 0.45) !important;
   }
 
-  .separator {
+  .transfer-progress .transfer-separator {
     color: rgba(255, 255, 255, 0.25);
   }
 
-  .status-tags-section {
+  .transfer-progress .transfer-status-tags-section {
     border-top-color: #434343;
   }
 
-  .error-message {
+  .transfer-progress .transfer-error-message {
     background: rgba(255, 77, 79, 0.15);
     border-color: rgba(255, 77, 79, 0.4);
   }
 }
 
 /* 动画效果 */
-.transfer-progress[data-status="uploading"] .file-name-row .anticon-upload,
-.transfer-progress[data-status="downloading"] .file-name-row .anticon-download {
+.transfer-progress[data-status="uploading"] .transfer-file-name-row .anticon-upload,
+.transfer-progress[data-status="downloading"] .transfer-file-name-row .anticon-download {
   animation: pulse 2s infinite;
 }
 
@@ -430,7 +430,7 @@
 }
 
 /* 压缩和并行状态的特殊效果 */
-.transfer-progress .status-tags-section .ant-tag[color="processing"] {
+.transfer-progress .transfer-status-tags-section .ant-tag[color="processing"] {
   animation: processing 1.5s infinite;
 }
 

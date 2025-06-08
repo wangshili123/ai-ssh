@@ -188,22 +188,22 @@ export const TransferProgress: React.FC<TransferProgressProps> = ({
       data-status={task.status}
     >
       <div className="transfer-header">
-        <div className="file-info">
-          <div className="file-name-row">
+        <div className="transfer-file-info">
+          <div className="transfer-file-name-row">
             <Space size="small">
               {getTransferIcon()}
               {fileInfo.icon}
-              <Text strong className="file-name">
+              <Text strong className="transfer-file-name">
                 {fileInfo.name}
               </Text>
             </Space>
           </div>
-          <div className="file-details">
-            <Text type="secondary" className="file-size">
+          <div className="transfer-file-details">
+            <Text type="secondary" className="transfer-file-size">
               {formatFileSize(fileInfo.size)}
             </Text>
             {fileInfo.extra && (
-              <Text type="secondary" className="file-extra">
+              <Text type="secondary" className="transfer-file-extra">
                 {fileInfo.extra}
               </Text>
             )}
@@ -217,14 +217,14 @@ export const TransferProgress: React.FC<TransferProgressProps> = ({
               size="small"
               icon={<CloseOutlined />}
               onClick={() => onCancel(task.id)}
-              className="action-button cancel-button"
+              className="transfer-action-button transfer-cancel-button"
               title="取消"
             />
           )}
         </div>
       </div>
 
-      <div className="progress-section">
+      <div className="transfer-progress-section">
         <Progress
           percent={Math.round(task.progress.percentage)}
           strokeColor={getStatusColor(task.status)}
@@ -233,10 +233,10 @@ export const TransferProgress: React.FC<TransferProgressProps> = ({
           size="small"
           status={task.status === 'error' ? 'exception' : task.status === 'completed' ? 'success' : 'active'}
         />
-        
-        <div className="progress-info">
-          <Space split={<span className="separator">•</span>}>
-            <Text type="secondary" className="status-text">
+
+        <div className="transfer-progress-info">
+          <Space split={<span className="transfer-separator">•</span>}>
+            <Text type="secondary" className="transfer-status-text">
               {getStatusText(task.status, task.progress.compressionPhase)}
             </Text>
 
@@ -268,7 +268,7 @@ export const TransferProgress: React.FC<TransferProgressProps> = ({
 
       {/* 状态标签区域 */}
       {(isActive || task.compressionEnabled || task.parallelEnabled) && (
-        <div className="status-tags-section">
+        <div className="transfer-status-tags-section">
           <Space size="small" wrap>
             {/* 压缩阶段显示 */}
             {isActive && task.progress.compressionPhase && (
@@ -308,8 +308,8 @@ export const TransferProgress: React.FC<TransferProgressProps> = ({
 
       {/* 错误信息显示 */}
       {task.status === 'error' && task.error && (
-        <div className="error-message">
-          <Text className="error-text">
+        <div className="transfer-error-message">
+          <Text className="transfer-error-text">
             {task.error}
           </Text>
         </div>

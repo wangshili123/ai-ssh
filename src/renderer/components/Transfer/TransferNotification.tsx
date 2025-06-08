@@ -180,7 +180,7 @@ const TransferNotification: React.FC<TransferNotificationProps> = ({
       <div className="notification-header">
         <Space>
           {getStatusIcon()}
-          <Text strong className="file-name">
+          <Text strong className="transfer-notification-file-name">
             {getFileName()}
           </Text>
         </Space>
