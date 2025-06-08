@@ -272,7 +272,7 @@ const FileList: React.FC<FileListProps> = ({
   const handleUploadConfirm = async (config: any) => {
     console.log('FileList: 上传确认', config);
     try {
-      // 上传逻辑由 UploadDialog 内部处理
+      // 上传逻辑由 UploadDialog 内部处理，这里只关闭对话框
       setUploadDialogVisible(false);
       // 刷新文件列表 - 传递当前文件列表，实际的刷新逻辑由父组件处理
       onFileListChange?.(fileList);
@@ -284,6 +284,12 @@ const FileList: React.FC<FileListProps> = ({
   // 上传取消处理
   const handleUploadCancel = () => {
     console.log('FileList: 上传取消');
+    setUploadDialogVisible(false);
+  };
+
+  // 上传对话框关闭处理（不触发取消逻辑）
+  const handleUploadDialogClose = () => {
+    console.log('FileList: 上传对话框关闭');
     setUploadDialogVisible(false);
   };
 
@@ -452,7 +458,7 @@ const FileList: React.FC<FileListProps> = ({
             username: sessionInfo.username
           }}
           onConfirm={handleUploadConfirm}
-          onCancel={handleUploadCancel}
+          onCancel={handleUploadDialogClose}
         />
       )}
     </div>

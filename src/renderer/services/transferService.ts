@@ -361,6 +361,12 @@ export abstract class TransferService extends EventEmitter {
 
     this.activeTransfers.delete(taskId);
 
+    // 如果任务已经被标记为取消，不进行重试
+    if (task.status === 'cancelled') {
+      console.log(`传输任务 ${taskId} 已取消，不重试`);
+      return;
+    }
+
     // 检查是否可以重试
     if (task.retryCount! < task.maxRetries!) {
       task.retryCount = (task.retryCount || 0) + 1;
@@ -369,7 +375,13 @@ export abstract class TransferService extends EventEmitter {
 
       // 延迟重试
       setTimeout(() => {
-        this.addToQueue(taskId);
+        // 重试前再次检查任务是否被取消
+        const currentTask = this.tasks.get(taskId);
+        if (currentTask && currentTask.status !== 'cancelled') {
+          this.addToQueue(taskId);
+        } else {
+          console.log(`传输任务 ${taskId} 在重试前被取消`);
+        }
       }, 2000 * task.retryCount!);
 
       console.log(`传输任务 ${taskId} 将在 ${2 * task.retryCount!} 秒后重试 (${task.retryCount}/${task.maxRetries})`);

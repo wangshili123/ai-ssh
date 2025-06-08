@@ -102,7 +102,7 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
   const menuItems = useMemo(() => [
     {
       key: 'upload',
-      label: '上传文件到此处',
+      label: '上传',
       onClick: () => {
         console.log('上传文件到:', currentPath);
         onUploadRequest?.(currentPath);

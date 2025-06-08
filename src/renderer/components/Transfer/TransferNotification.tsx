@@ -38,6 +38,21 @@ const TransferNotification: React.FC<TransferNotificationProps> = ({
   onResume,
   onCancel
 }) => {
+  // 格式化剩余时间
+  const formatRemainingTime = (seconds: number): string => {
+    if (!isFinite(seconds) || seconds <= 0) return '--';
+
+    if (seconds < 60) {
+      return `${Math.round(seconds)}秒`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      return `${minutes}分钟`;
+    } else {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      return hours > 24 ? `${Math.floor(hours / 24)}天` : `${hours}小时${minutes}分钟`;
+    }
+  };
   const getStatusIcon = () => {
     switch (task.status) {
       case 'completed':
@@ -219,7 +234,7 @@ const TransferNotification: React.FC<TransferNotificationProps> = ({
               </Text>
               {task.progress.remainingTime > 0 && (
                 <Text type="secondary" className="time-text">
-                  剩余: {Math.round(task.progress.remainingTime / 1000)}s
+                  剩余: {formatRemainingTime(task.progress.remainingTime)}
                 </Text>
               )}
             </Space>
