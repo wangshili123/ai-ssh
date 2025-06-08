@@ -63,18 +63,6 @@
   }
 }
 
-/* 会话信息显示 */
-.session-info {
-  margin-top: 16px;
-  padding: 12px;
-  background-color: #f0f2f5;
-  border-radius: 6px;
-  text-align: center;
-
-  .ant-typography {
-    margin: 0;
-  }
-}
 
 /* 表单项样式调整 */
 .upload-dialog .ant-form-item {

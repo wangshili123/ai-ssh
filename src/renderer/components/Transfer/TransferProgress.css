@@ -4,17 +4,17 @@
  */
 
 .transfer-progress {
-  background: #2D2D2D;
-  border: 1px solid #333;
+  background: #ffffff;
+  border: 1px solid #f0f0f0;
   border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 8px;
+  padding: 8px;
+  margin-bottom: 6px;
   transition: all 0.2s ease;
 }
 
 .transfer-progress:hover {
-  border-color: #555;
-  background: #353535;
+  border-color: #d9d9d9;
+  background: #fafafa;
 }
 
 /* 传输类型特定样式 */
@@ -31,7 +31,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .file-info {
@@ -40,12 +40,13 @@
 }
 
 .file-name-row {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .file-name-row .anticon {
-  color: #8C8C8C;
+  color: rgba(0, 0, 0, 0.45);
   margin-right: 4px;
+  font-size: 12px;
 }
 
 .transfer-upload .file-name-row .anticon-upload {
@@ -58,52 +59,54 @@
 
 .file-name {
   display: inline-block;
-  color: #D4D4D4 !important;
-  font-size: 13px;
+  color: rgba(0, 0, 0, 0.88) !important;
+  font-size: 12px;
   word-break: break-all;
   max-width: 300px;
+  line-height: 1.4;
 }
 
 .file-details {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
 .file-size {
-  font-size: 11px;
-  color: #8C8C8C !important;
+  font-size: 10px;
+  color: rgba(0, 0, 0, 0.45) !important;
 }
 
 .file-extra {
-  font-size: 11px;
-  color: #8C8C8C !important;
+  font-size: 10px;
+  color: rgba(0, 0, 0, 0.45) !important;
   font-style: italic;
 }
 
 /* 传输操作按钮 */
 .transfer-actions {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   flex-shrink: 0;
-  margin-left: 8px;
+  margin-left: 6px;
 }
 
 .action-button {
-  color: #8C8C8C !important;
+  color: rgba(0, 0, 0, 0.45) !important;
   border: none !important;
   background: transparent !important;
-  padding: 4px !important;
-  width: 24px !important;
-  height: 24px !important;
+  padding: 2px !important;
+  width: 20px !important;
+  height: 20px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  font-size: 12px !important;
 }
 
 .action-button:hover {
-  color: #D4D4D4 !important;
-  background: #3D3D3D !important;
+  color: rgba(0, 0, 0, 0.75) !important;
+  background: #f5f5f5 !important;
 }
 
 .cancel-button:hover {
@@ -112,20 +115,21 @@
 
 /* 进度条区域 */
 .progress-section {
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .progress-section .ant-progress {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .progress-section .ant-progress-bg {
-  background: #333 !important;
+  background: #f5f5f5 !important;
 }
 
 .progress-section .ant-progress-inner {
-  background: #1E1E1E !important;
+  background: #f5f5f5 !important;
   border-radius: 3px;
+  height: 4px !important;
 }
 
 /* 进度信息 */
@@ -133,7 +137,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .progress-info .ant-space {
@@ -141,14 +145,15 @@
 }
 
 .progress-info .ant-typography {
-  color: #8C8C8C !important;
-  font-size: 11px !important;
+  color: rgba(0, 0, 0, 0.45) !important;
+  font-size: 10px !important;
   margin: 0 !important;
+  line-height: 1.2 !important;
 }
 
 .separator {
-  color: #666;
-  margin: 0 4px;
+  color: rgba(0, 0, 0, 0.25);
+  margin: 0 3px;
 }
 
 .status-text {
@@ -157,17 +162,18 @@
 
 /* 状态标签区域 */
 .status-tags-section {
-  margin-top: 8px;
-  padding: 6px 0;
+  margin-top: 6px;
+  padding: 4px 0;
   border-top: 1px solid #f0f0f0;
 }
 
 .status-tags-section .ant-tag {
   margin: 0 !important;
-  font-size: 10px !important;
-  line-height: 16px !important;
-  padding: 0 6px !important;
-  border-radius: 8px !important;
+  font-size: 9px !important;
+  line-height: 14px !important;
+  padding: 0 4px !important;
+  border-radius: 6px !important;
+  height: 16px !important;
 }
 
 /* 错误消息 */
@@ -223,6 +229,70 @@
 
 .transfer-download[data-status="completed"] {
   border-left-color: #096dd9;
+}
+
+/* 笔记本屏幕优化 (1366x768 等常见分辨率) */
+@media (max-height: 800px) {
+  .transfer-progress {
+    padding: 6px;
+    margin-bottom: 4px;
+  }
+
+  .transfer-header {
+    margin-bottom: 4px;
+  }
+
+  .file-name-row {
+    margin-bottom: 1px;
+  }
+
+  .file-name {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  .file-size,
+  .file-extra {
+    font-size: 9px;
+  }
+
+  .progress-section {
+    margin-bottom: 2px;
+  }
+
+  .progress-section .ant-progress {
+    margin-bottom: 3px;
+  }
+
+  .progress-section .ant-progress-inner {
+    height: 3px !important;
+  }
+
+  .progress-info {
+    font-size: 9px;
+  }
+
+  .progress-info .ant-typography {
+    font-size: 9px !important;
+  }
+
+  .status-tags-section {
+    margin-top: 4px;
+    padding: 3px 0;
+  }
+
+  .status-tags-section .ant-tag {
+    font-size: 8px !important;
+    line-height: 12px !important;
+    height: 14px !important;
+    padding: 0 3px !important;
+  }
+
+  .action-button {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 11px !important;
+  }
 }
 
 /* 响应式设计 */
@@ -293,12 +363,42 @@
     border-color: #595959;
   }
 
+  .file-name-row .anticon {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .file-name {
+    color: rgba(255, 255, 255, 0.85) !important;
+  }
+
+  .file-size,
+  .file-extra {
+    color: rgba(255, 255, 255, 0.45) !important;
+  }
+
+  .action-button {
+    color: rgba(255, 255, 255, 0.45) !important;
+  }
+
+  .action-button:hover {
+    color: rgba(255, 255, 255, 0.85) !important;
+    background: #262626 !important;
+  }
+
   .progress-section .ant-progress-inner {
     background: #141414 !important;
   }
 
   .progress-section .ant-progress-bg {
     background: #434343 !important;
+  }
+
+  .progress-info .ant-typography {
+    color: rgba(255, 255, 255, 0.45) !important;
+  }
+
+  .separator {
+    color: rgba(255, 255, 255, 0.25);
   }
 
   .status-tags-section {

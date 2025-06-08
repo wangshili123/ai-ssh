@@ -100,6 +100,17 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
 
   // 使用 useMemo 缓存菜单项配置
   const menuItems = useMemo(() => [
+    // 下载选项 - 支持单个文件和批量下载
+    ...(() => {
+      const downloadableFiles = selectedFiles.filter(f => !f.isDirectory);
+      if (downloadableFiles.length === 0) return [];
+
+      const isBatch = downloadableFiles.length > 1;
+      return [{
+        key: 'download',
+        label: isBatch ? `批量下载 (${downloadableFiles.length}个文件)` : '下载'
+      }];
+    })(),
     {
       key: 'upload',
       label: '上传',
@@ -158,18 +169,7 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
         const fullPath = `${currentPath}/${file.name}`.replace(/\/+/g, '/');
         navigator.clipboard.writeText(fullPath);
       }
-    },
-    // 下载选项 - 支持单个文件和批量下载
-    ...(() => {
-      const downloadableFiles = selectedFiles.filter(f => !f.isDirectory);
-      if (downloadableFiles.length === 0) return [];
-
-      const isBatch = downloadableFiles.length > 1;
-      return [{
-        key: 'download',
-        label: isBatch ? `批量下载 (${downloadableFiles.length}个文件)` : '下载'
-      }];
-    })()
+    }
   ], [file, selectedFiles, sessionInfo, tabId, currentPath]);
 
   const handleClick: MenuProps['onClick'] = (info) => {

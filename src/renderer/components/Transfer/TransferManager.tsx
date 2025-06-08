@@ -236,7 +236,7 @@ export const TransferManager: React.FC<TransferManagerProps> = ({
         </Button>
       ]}
       width={700}
-      className="transfer-manager"
+      className="transfer-manager-modal"
       destroyOnClose
     >
       <div className="transfer-manager-content">
@@ -244,7 +244,7 @@ export const TransferManager: React.FC<TransferManagerProps> = ({
         <Tabs
           activeKey={activeTab}
           onChange={(key) => setActiveTab(key as 'all' | 'download' | 'upload')}
-          className="transfer-tabs"
+          className="transfer-manager-tabs"
         >
           <TabPane
             tab={
@@ -283,7 +283,7 @@ export const TransferManager: React.FC<TransferManagerProps> = ({
         </Tabs>
 
         {/* 统计信息 */}
-        <div className="transfer-stats">
+        <div className="transfer-manager-stats">
           <Space split={<Divider type="vertical" />}>
             <Text>
               总计: <Text strong>{stats.total}</Text>
@@ -310,14 +310,14 @@ export const TransferManager: React.FC<TransferManagerProps> = ({
         <Divider />
 
         {/* 传输任务列表 */}
-        <div className="transfer-tasks">
+        <div className="transfer-manager-tasks">
           {filteredTasks.length === 0 ? (
             <Empty
               description={`暂无${activeTab === 'all' ? '传输' : activeTab === 'download' ? '下载' : '上传'}任务`}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           ) : (
-            <div className="task-list">
+            <div className="transfer-manager-task-list">
               {filteredTasks.map(task => (
                 <TransferProgress
                   key={task.id}
