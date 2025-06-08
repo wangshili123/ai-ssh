@@ -591,7 +591,16 @@ export class UploadIPCHandler {
     const speed = this.calculateSpeed(taskInfo);
     const totalSize = this.getTotalSize(taskInfo.files);
     const remainingSize = totalSize - (taskInfo.uploadedBytes || 0);
-    return speed > 0 ? remainingSize / speed : 0;
+
+    // 如果速度太小或剩余时间过长，返回0（避免显示异常大的时间）
+    if (speed <= 0 || remainingSize <= 0) {
+      return 0;
+    }
+
+    const remainingTime = remainingSize / speed;
+
+    // 限制最大剩余时间为24小时（86400秒），避免显示异常大的数值
+    return Math.min(remainingTime, 86400);
   }
 
   /**
@@ -1006,7 +1015,14 @@ export class UploadIPCHandler {
     }
 
     const remainingBytes = taskInfo.currentFile.size - taskInfo.currentFile.uploadedBytes;
-    return Math.max(0, remainingBytes / speed);
+    if (remainingBytes <= 0) {
+      return 0;
+    }
+
+    const remainingTime = remainingBytes / speed;
+
+    // 限制最大剩余时间为24小时（86400秒），避免显示异常大的数值
+    return Math.min(Math.max(0, remainingTime), 86400);
   }
 
 
