@@ -565,7 +565,7 @@ export class UploadIPCHandler {
       currentFileName: fileName,
       filesCompleted: fileIndex,
       filesTotal: taskInfo.files.length,
-      phase: phase || 'uploading'
+      compressionPhase: phase || 'uploading'  // 修正字段名
     });
   }
 
@@ -897,7 +897,7 @@ export class UploadIPCHandler {
         currentFileName: data.fileName,
         filesCompleted: data.fileIndex,
         filesTotal: 1, // 流式上传一次处理一个文件
-        phase: 'uploading'
+        compressionPhase: 'uploading'  // 修正字段名
       });
 
       console.log(`[UploadIPCHandler] 流式块 ${data.chunkIndex + 1}/${data.totalChunks} 写入完成，进度: ${progress.toFixed(1)}%`);
@@ -1131,7 +1131,7 @@ export class UploadIPCHandler {
           currentFileName: data.fileName,
           filesCompleted: data.fileIndex,
           filesTotal: 1,
-          phase: 'uploading'
+          compressionPhase: 'uploading'  // 修正字段名
         });
       }
 
@@ -1294,6 +1294,8 @@ export class UploadIPCHandler {
     taskInfo: StreamUploadTaskInfo,
     data: any
   ): Promise<void> {
+    const writeStartTime = Date.now();
+
     try {
       const client = (sftpManager as any).getClient(connectionId);
       if (!client) {
@@ -1340,7 +1342,7 @@ export class UploadIPCHandler {
                     currentFileName: data.fileName,
                     filesCompleted: data.fileIndex,
                     filesTotal: 1,
-                    phase: 'uploading'
+                    compressionPhase: 'uploading'  // 修正字段名
                   });
                 }
 
@@ -1351,7 +1353,12 @@ export class UploadIPCHandler {
         });
       });
 
-      console.log(`[UploadIPCHandler] 流式块写入完成: 偏移 ${start}, 大小: ${chunkData.length}`);
+      // 计算写入性能统计
+      const writeTime = Date.now() - writeStartTime;
+      const throughputMBps = (chunkData.length / 1024 / 1024) / (writeTime / 1000); // MB/s
+      const progress = (end / taskInfo.currentFile!.size * 100).toFixed(1);
+
+      console.log(`[UploadIPCHandler] 流式块写入完成: 偏移 ${start}, 大小: ${(chunkData.length/1024/1024).toFixed(2)}MB, 进度: ${progress}%, 写入速度: ${throughputMBps.toFixed(2)}MB/s, 耗时: ${writeTime}ms`);
 
     } catch (error) {
       throw new Error(`流式写入远程文件块失败: ${error}`);

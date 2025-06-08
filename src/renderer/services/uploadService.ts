@@ -152,15 +152,22 @@ export class UploadService extends TransferService {
 
       if (hasLargeFiles) {
         // 对于包含大文件的上传，根据配置选择上传方式
-        if (task.config.useParallelTransfer) {
+        // 优先考虑压缩+并行的组合，然后是单独的压缩或并行
+        if (task.config.useCompression && task.config.useParallelTransfer) {
+          console.log(`[UploadService] 检测到大文件，使用压缩+并行上传模式`);
+          await this.handleCompressedParallelUpload(taskId, task.localFiles, task.config);
+          return;
+        } else if (task.config.useCompression) {
+          console.log(`[UploadService] 检测到大文件，使用压缩上传模式`);
+          await this.handleCompressedUpload(taskId, task.localFiles, task.config);
+          return;
+        } else if (task.config.useParallelTransfer) {
           console.log(`[UploadService] 检测到大文件，使用并行上传模式`);
           await this.handleParallelUpload(taskId, task.localFiles, task.config);
-          // 并行上传已经在内部处理了状态和事件，直接返回
           return;
         } else {
           console.log(`[UploadService] 检测到大文件，使用流式上传模式`);
           await this.handleLargeFileUpload(taskId, task.localFiles, task.config);
-          // 流式上传已经在内部处理了状态和事件，直接返回
           return;
         }
       } else {
@@ -387,6 +394,92 @@ export class UploadService extends TransferService {
    */
   getAllTasks(): UploadTask[] {
     return Array.from(this.tasks.values()).filter(task => task.type === 'upload') as UploadTask[];
+  }
+
+  /**
+   * 处理压缩上传（对于大文件，使用压缩传输）
+   */
+  private async handleCompressedUpload(taskId: string, files: File[], config: UploadConfig): Promise<void> {
+    console.log(`[UploadService] 开始压缩上传，任务ID: ${taskId}`);
+
+    // 获取任务并更新状态
+    const task = this.tasks.get(taskId);
+    if (task) {
+      task.status = 'uploading';
+      this.tasks.set(taskId, task);
+
+      // 显示开始上传通知
+      this.showStartNotification(task as UploadTask);
+
+      // 触发事件
+      this.emit('upload-started', task);
+    }
+
+    // 对于大文件的压缩上传，使用小文件的方式但通过IPC传递压缩配置
+    const serializableFiles = await Promise.all(
+      files.map(async (file) => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+        content: new Uint8Array(await file.arrayBuffer())
+      }))
+    );
+
+    const result = await ipcRenderer.invoke('upload:start', {
+      taskId,
+      files: serializableFiles,
+      config
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || '压缩上传启动失败');
+    }
+
+    console.log(`[UploadService] 压缩上传已启动: ${taskId}`);
+  }
+
+  /**
+   * 处理压缩+并行上传（对于大文件，使用压缩+并行的组合）
+   */
+  private async handleCompressedParallelUpload(taskId: string, files: File[], config: UploadConfig): Promise<void> {
+    console.log(`[UploadService] 开始压缩+并行上传，任务ID: ${taskId}`);
+
+    // 获取任务并更新状态
+    const task = this.tasks.get(taskId);
+    if (task) {
+      task.status = 'uploading';
+      this.tasks.set(taskId, task);
+
+      // 显示开始上传通知
+      this.showStartNotification(task as UploadTask);
+
+      // 触发事件
+      this.emit('upload-started', task);
+    }
+
+    // 对于压缩+并行上传，也使用小文件的方式，让后端决定具体的处理策略
+    const serializableFiles = await Promise.all(
+      files.map(async (file) => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+        content: new Uint8Array(await file.arrayBuffer())
+      }))
+    );
+
+    const result = await ipcRenderer.invoke('upload:start', {
+      taskId,
+      files: serializableFiles,
+      config
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || '压缩+并行上传启动失败');
+    }
+
+    console.log(`[UploadService] 压缩+并行上传已启动: ${taskId}`);
   }
 
   /**
