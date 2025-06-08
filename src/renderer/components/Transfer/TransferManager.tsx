@@ -45,46 +45,49 @@ export const TransferManager: React.FC<TransferManagerProps> = ({
 
   // 监听传输事件
   useEffect(() => {
-    const handleTransferEvent = () => {
-      loadTasks();
+    const handleTransferEvent = (eventName: string) => {
+      return (data: any) => {
+        console.log(`[TransferManager] 接收到事件: ${eventName}, 数据:`, data);
+        loadTasks();
+      };
     };
 
     // 监听下载事件
-    downloadService.on('download-started', handleTransferEvent);
-    downloadService.on('download-progress', handleTransferEvent);
-    downloadService.on('download-completed', handleTransferEvent);
-    downloadService.on('download-error', handleTransferEvent);
-    downloadService.on('download-paused', handleTransferEvent);
-    downloadService.on('download-resumed', handleTransferEvent);
-    downloadService.on('download-cancelled', handleTransferEvent);
+    downloadService.on('download-started', handleTransferEvent('download-started'));
+    downloadService.on('download-progress', handleTransferEvent('download-progress'));
+    downloadService.on('download-completed', handleTransferEvent('download-completed'));
+    downloadService.on('download-error', handleTransferEvent('download-error'));
+    downloadService.on('download-paused', handleTransferEvent('download-paused'));
+    downloadService.on('download-resumed', handleTransferEvent('download-resumed'));
+    downloadService.on('download-cancelled', handleTransferEvent('download-cancelled'));
 
     // 监听上传事件
-    uploadService.on('upload-started', handleTransferEvent);
-    uploadService.on('upload-progress', handleTransferEvent);
-    uploadService.on('upload-completed', handleTransferEvent);
-    uploadService.on('upload-error', handleTransferEvent);
-    uploadService.on('upload-paused', handleTransferEvent);
-    uploadService.on('upload-resumed', handleTransferEvent);
-    uploadService.on('upload-cancelled', handleTransferEvent);
+    uploadService.on('upload-started', handleTransferEvent('upload-started'));
+    uploadService.on('upload-progress', handleTransferEvent('upload-progress'));
+    uploadService.on('upload-completed', handleTransferEvent('upload-completed'));
+    uploadService.on('upload-error', handleTransferEvent('upload-error'));
+    uploadService.on('upload-paused', handleTransferEvent('upload-paused'));
+    uploadService.on('upload-resumed', handleTransferEvent('upload-resumed'));
+    uploadService.on('upload-cancelled', handleTransferEvent('upload-cancelled'));
 
     return () => {
       // 清理下载事件监听
-      downloadService.off('download-started', handleTransferEvent);
-      downloadService.off('download-progress', handleTransferEvent);
-      downloadService.off('download-completed', handleTransferEvent);
-      downloadService.off('download-error', handleTransferEvent);
-      downloadService.off('download-paused', handleTransferEvent);
-      downloadService.off('download-resumed', handleTransferEvent);
-      downloadService.off('download-cancelled', handleTransferEvent);
+      downloadService.off('download-started', handleTransferEvent('download-started'));
+      downloadService.off('download-progress', handleTransferEvent('download-progress'));
+      downloadService.off('download-completed', handleTransferEvent('download-completed'));
+      downloadService.off('download-error', handleTransferEvent('download-error'));
+      downloadService.off('download-paused', handleTransferEvent('download-paused'));
+      downloadService.off('download-resumed', handleTransferEvent('download-resumed'));
+      downloadService.off('download-cancelled', handleTransferEvent('download-cancelled'));
 
       // 清理上传事件监听
-      uploadService.off('upload-started', handleTransferEvent);
-      uploadService.off('upload-progress', handleTransferEvent);
-      uploadService.off('upload-completed', handleTransferEvent);
-      uploadService.off('upload-error', handleTransferEvent);
-      uploadService.off('upload-paused', handleTransferEvent);
-      uploadService.off('upload-resumed', handleTransferEvent);
-      uploadService.off('upload-cancelled', handleTransferEvent);
+      uploadService.off('upload-started', handleTransferEvent('upload-started'));
+      uploadService.off('upload-progress', handleTransferEvent('upload-progress'));
+      uploadService.off('upload-completed', handleTransferEvent('upload-completed'));
+      uploadService.off('upload-error', handleTransferEvent('upload-error'));
+      uploadService.off('upload-paused', handleTransferEvent('upload-paused'));
+      uploadService.off('upload-resumed', handleTransferEvent('upload-resumed'));
+      uploadService.off('upload-cancelled', handleTransferEvent('upload-cancelled'));
     };
   }, []);
 
@@ -93,14 +96,17 @@ export const TransferManager: React.FC<TransferManagerProps> = ({
     const downloadTasks = downloadService.getAllTasks();
     const uploadTasks = uploadService.getAllTasks();
     const allTasks = [...downloadTasks, ...uploadTasks];
-    
+
+    console.log(`[TransferManager] 加载任务列表: 下载=${downloadTasks.length}, 上传=${uploadTasks.length}`);
+    console.log(`[TransferManager] 上传任务状态:`, uploadTasks.map(t => ({ id: t.id, status: t.status, name: t.localFiles?.[0]?.name })));
+
     // 按开始时间排序，最新的在前
     allTasks.sort((a, b) => {
       const timeA = a.startTime?.getTime() || 0;
       const timeB = b.startTime?.getTime() || 0;
       return timeB - timeA;
     });
-    
+
     setTasks(allTasks);
   };
 

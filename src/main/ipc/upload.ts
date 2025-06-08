@@ -1118,20 +1118,22 @@ export class UploadIPCHandler {
 
       this.updateSpeedSamples(taskInfo, taskInfo.currentFile.uploadedBytes);
 
-      // 发送进度通知
-      const progress = (taskInfo.currentFile.uploadedBytes / taskInfo.currentFile.size) * 100;
-      this.notifyProgress(data.taskId, {
-        transferred: taskInfo.currentFile.uploadedBytes,
-        total: taskInfo.currentFile.size,
-        percentage: progress,
-        speed: this.calculateStreamSpeed(taskInfo),
-        remainingTime: this.calculateStreamRemainingTime(taskInfo),
-        currentFileIndex: data.fileIndex,
-        currentFileName: data.fileName,
-        filesCompleted: data.fileIndex,
-        filesTotal: 1,
-        phase: 'uploading'
-      });
+      // 发送进度通知 - 检查任务是否已取消
+      if (taskInfo.status === 'uploading' && !taskInfo.abortController?.signal.aborted) {
+        const progress = (taskInfo.currentFile.uploadedBytes / taskInfo.currentFile.size) * 100;
+        this.notifyProgress(data.taskId, {
+          transferred: taskInfo.currentFile.uploadedBytes,
+          total: taskInfo.currentFile.size,
+          percentage: progress,
+          speed: this.calculateStreamSpeed(taskInfo),
+          remainingTime: this.calculateStreamRemainingTime(taskInfo),
+          currentFileIndex: data.fileIndex,
+          currentFileName: data.fileName,
+          filesCompleted: data.fileIndex,
+          filesTotal: 1,
+          phase: 'uploading'
+        });
+      }
 
       console.log(`[UploadIPCHandler] 并行块 ${data.chunkIndex + 1}/${data.totalChunks} 写入完成，位置: ${data.start}-${data.end}`);
 
@@ -1325,20 +1327,22 @@ export class UploadIPCHandler {
 
                 this.updateSpeedSamples(taskInfo, taskInfo.currentFile!.uploadedBytes);
 
-                // 发送进度通知
-                const progress = (taskInfo.currentFile!.uploadedBytes / taskInfo.currentFile!.size) * 100;
-                this.notifyProgress(data.taskId, {
-                  transferred: taskInfo.currentFile!.uploadedBytes,
-                  total: taskInfo.currentFile!.size,
-                  percentage: progress,
-                  speed: this.calculateStreamSpeed(taskInfo),
-                  remainingTime: this.calculateStreamRemainingTime(taskInfo),
-                  currentFileIndex: data.fileIndex,
-                  currentFileName: data.fileName,
-                  filesCompleted: data.fileIndex,
-                  filesTotal: 1,
-                  phase: 'uploading'
-                });
+                // 发送进度通知 - 检查任务是否已取消
+                if (taskInfo.status === 'uploading' && !taskInfo.abortController?.signal.aborted) {
+                  const progress = (taskInfo.currentFile!.uploadedBytes / taskInfo.currentFile!.size) * 100;
+                  this.notifyProgress(data.taskId, {
+                    transferred: taskInfo.currentFile!.uploadedBytes,
+                    total: taskInfo.currentFile!.size,
+                    percentage: progress,
+                    speed: this.calculateStreamSpeed(taskInfo),
+                    remainingTime: this.calculateStreamRemainingTime(taskInfo),
+                    currentFileIndex: data.fileIndex,
+                    currentFileName: data.fileName,
+                    filesCompleted: data.fileIndex,
+                    filesTotal: 1,
+                    phase: 'uploading'
+                  });
+                }
 
                 resolve();
               }

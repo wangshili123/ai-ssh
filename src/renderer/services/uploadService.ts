@@ -155,9 +155,13 @@ export class UploadService extends TransferService {
         if (task.config.useParallelTransfer) {
           console.log(`[UploadService] 检测到大文件，使用并行上传模式`);
           await this.handleParallelUpload(taskId, task.localFiles, task.config);
+          // 并行上传已经在内部处理了状态和事件，直接返回
+          return;
         } else {
           console.log(`[UploadService] 检测到大文件，使用流式上传模式`);
           await this.handleLargeFileUpload(taskId, task.localFiles, task.config);
+          // 流式上传已经在内部处理了状态和事件，直接返回
+          return;
         }
       } else {
         // 小文件使用原有的内存加载方式
@@ -180,17 +184,18 @@ export class UploadService extends TransferService {
         if (!result.success) {
           throw new Error(result.error || '上传启动失败');
         }
+
+        // 只有小文件上传才在这里更新状态和触发事件
+        // 更新任务状态
+        task.status = 'uploading';
+        this.tasks.set(taskId, task);
+
+        // 显示开始上传通知
+        this.showStartNotification(task);
+
+        // 触发事件
+        this.emit('upload-started', task);
       }
-
-      // 更新任务状态
-      task.status = 'uploading';
-      this.tasks.set(taskId, task);
-
-      // 显示开始上传通知
-      this.showStartNotification(task);
-
-      // 触发事件
-      this.emit('upload-started', task);
     } catch (error) {
       // 检查是否是取消相关的错误
       const errorMessage = (error as Error).message;
@@ -426,16 +431,27 @@ export class UploadService extends TransferService {
 
     // 标记任务完成
     const task2 = this.tasks.get(taskId) as UploadTask;
+    console.log(`[UploadService] 检查任务完成状态: taskId=${taskId}, task存在=${!!task2}, status=${task2?.status}`);
+
     if (task2 && task2.status !== 'cancelled') {
+      console.log(`[UploadService] 开始标记任务完成: ${taskId}`);
+
       task2.status = 'completed';
       task2.progress.percentage = 100;
+      task2.endTime = new Date();
       this.tasks.set(taskId, task2);
+
+      console.log(`[UploadService] 任务状态已更新为completed: ${taskId}, 新状态=${task2.status}`);
 
       // 显示完成通知
       this.showCompletedNotification(task2);
+      console.log(`[UploadService] 完成通知已显示: ${taskId}`);
 
       // 触发事件
       this.emit('upload-completed', task2);
+      console.log(`[UploadService] upload-completed事件已触发: ${taskId}`);
+    } else {
+      console.warn(`[UploadService] 无法标记任务完成: taskId=${taskId}, task存在=${!!task2}, status=${task2?.status}`);
     }
   }
 
@@ -644,6 +660,10 @@ export class UploadService extends TransferService {
       fileIndex,
       fileName: file.name
     });
+
+    // 单个文件的并行上传完成，不在这里处理任务完成
+    // 任务完成由 handleParallelUpload 统一处理
+    console.log(`[UploadService] 文件 ${file.name} 并行上传完成: ${taskId}`);
   }
 
   /**
