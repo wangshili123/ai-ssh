@@ -11,10 +11,10 @@ interface LoadingStep {
 }
 
 const loadingSteps: LoadingStep[] = [
-  { key: 'database', label: '初始化数据库', duration: 800 },
-  { key: 'services', label: '启动核心服务', duration: 600 },
-  { key: 'ui', label: '加载用户界面', duration: 400 },
-  { key: 'ready', label: '准备就绪', duration: 200 }
+  { key: 'database', label: '初始化数据库', duration: 1200 },
+  { key: 'services', label: '启动核心服务', duration: 1000 },
+  { key: 'ui', label: '加载用户界面', duration: 800 },
+  { key: 'ready', label: '准备就绪', duration: 600 }
 ];
 
 interface AppLoadingScreenProps {

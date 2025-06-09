@@ -133,6 +133,20 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        animation: featureSlideIn 0.8s ease-out forwards;
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      .feature-item:nth-child(1) { animation-delay: 1s; }
+      .feature-item:nth-child(2) { animation-delay: 1.3s; }
+      .feature-item:nth-child(3) { animation-delay: 1.6s; }
+
+      @keyframes featureSlideIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .feature-icon {
@@ -144,6 +158,18 @@
         align-items: center;
         justify-content: center;
         font-size: 10px;
+        animation: iconPulse 2s ease-in-out infinite;
+      }
+
+      @keyframes iconPulse {
+        0%, 100% {
+          transform: scale(1);
+          background: rgba(255, 255, 255, 0.6);
+        }
+        50% {
+          transform: scale(1.1);
+          background: rgba(255, 255, 255, 0.8);
+        }
       }
 
       /* 隐藏滚动条 */

@@ -44,8 +44,12 @@ const App: React.FC = () => {
       try {
         console.log('[App] 开始初始化基础服务...');
 
+        // 记录开始时间，确保最低展示时间
+        const startTime = Date.now();
+        const MIN_LOADING_TIME = 3000; // 最低展示3秒
+
         // 模拟初始化步骤，给加载页面足够的时间显示
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 800));
 
         await DatabaseService.getInstance().init();
 
@@ -63,12 +67,31 @@ const App: React.FC = () => {
 
         console.log('[App] 基础服务初始化完成');
 
-        // 延迟一点时间，让用户看到加载完成的状态
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // 计算已经过去的时间
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, MIN_LOADING_TIME - elapsedTime);
+
+        console.log(`[App] 加载耗时: ${elapsedTime}ms, 剩余等待时间: ${remainingTime}ms`);
+
+        // 如果还没到最低展示时间，继续等待
+        if (remainingTime > 0) {
+          await new Promise(resolve => setTimeout(resolve, remainingTime));
+        }
+
+        // 额外延迟一点时间，让用户看到加载完成的状态
+        await new Promise(resolve => setTimeout(resolve, 500));
         setIsAppLoading(false);
       } catch (error) {
         console.error('[App] 基础服务初始化失败:', error);
-        // 即使出错也要隐藏加载页面
+        // 即使出错也要隐藏加载页面，但仍然保证最低展示时间
+        const startTime = Date.now();
+        const MIN_LOADING_TIME = 2000; // 出错时最低展示2秒
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, MIN_LOADING_TIME - elapsedTime);
+
+        if (remainingTime > 0) {
+          await new Promise(resolve => setTimeout(resolve, remainingTime));
+        }
         setIsAppLoading(false);
       }
     };
