@@ -131,8 +131,8 @@ class SFTPConnectionManager {
       result =  cache.directoryCache.get(path)!;
     }else{
       // 从服务器读取数据
-      console.log(`[SFTPManager] 从服务器读取数据 - tabId: ${tabId}, path: ${path}`);
-      let directoryResult = await ipcRenderer.invoke('sftp:read-directory', conn.id, path);
+      console.log(`[SFTPManager] 从服务器读取数据 - tabId: ${tabId}, path: ${path}, forceRefresh: ${forceRefresh}`);
+      let directoryResult = await ipcRenderer.invoke('sftp:read-directory', conn.id, path, !forceRefresh);
       console.log(`[SFTPManager] 读取结果 - tabId: ${tabId}, path: ${path}, result:`, directoryResult);
       if (!directoryResult.success) {
         throw new Error(directoryResult.error);

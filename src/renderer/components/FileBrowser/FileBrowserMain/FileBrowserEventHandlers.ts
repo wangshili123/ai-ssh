@@ -104,4 +104,35 @@ export class FileBrowserEventHandlers {
       fileList
     });
   }
-} 
+
+  /**
+   * 强制刷新当前目录（不使用缓存）
+   * @param tabId 标签页ID
+   * @param path 目录路径
+   */
+  static async handleRefresh(tabId: string, path: string): Promise<void> {
+    console.log('[FileBrowserEventHandlers] 强制刷新目录:', { tabId, path });
+
+    try {
+      // 强制从服务器重新读取目录内容
+      const files = await sftpConnectionManager.readDirectory(tabId, path, true);
+      // 按目录优先，名称排序
+      const sortedFiles = [...files].sort((a: FileEntry, b: FileEntry) => {
+        if (a.isDirectory !== b.isDirectory) {
+          return a.isDirectory ? -1 : 1;
+        }
+        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+      });
+
+      // 更新状态，但不修改历史记录
+      FileBrowserStateManager.updateTabState(tabId, {
+        fileList: sortedFiles
+      });
+
+      console.log('[FileBrowserEventHandlers] 目录刷新完成:', { tabId, path, fileCount: sortedFiles.length });
+    } catch (error) {
+      console.error('[FileBrowserEventHandlers] 刷新目录失败:', error);
+      throw error;
+    }
+  }
+}

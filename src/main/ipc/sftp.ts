@@ -27,10 +27,10 @@ export function registerSFTPHandlers(): void {
 
   // 读取目录内容
   ipcMain.handle('sftp:read-directory',
-    async (event, connectionId: string, path: string): Promise<Result<FileEntry[]>> => {
+    async (event, connectionId: string, path: string, useCache: boolean = true): Promise<Result<FileEntry[]>> => {
       try {
-        console.log(`[SFTP] 读取目录 - connectionId: ${connectionId}, path: ${path}`);
-        const entries = await sftpManager.readDirectory(connectionId, path);
+        console.log(`[SFTP] 读取目录 - connectionId: ${connectionId}, path: ${path}, useCache: ${useCache}`);
+        const entries = await sftpManager.readDirectory(connectionId, path, useCache);
         return {
           success: true,
           data: entries

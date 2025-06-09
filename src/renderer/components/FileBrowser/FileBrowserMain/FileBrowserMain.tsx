@@ -152,12 +152,38 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
   // 处理文件列表变化
   const handleFileListChange = (newFileList: any[]) => {
     if (!mountedRef.current) return;
-    
+
     FileBrowserEventHandlers.handleFileListChange(tabId, newFileList);
     const state = FileBrowserStateManager.getTabState(tabId);
     if (state) {
       console.log('[FileBrowser] 文件列表更新完成，状态:', state);
       setTabState(state);
+    }
+  };
+
+  // 处理刷新当前目录
+  const handleRefresh = async () => {
+    if (!mountedRef.current || !tabState) return;
+
+    try {
+      setFileListLoading(true);
+      console.log('[FileBrowser] 开始刷新目录:', tabState.currentPath);
+
+      await FileBrowserEventHandlers.handleRefresh(tabId, tabState.currentPath);
+
+      if (mountedRef.current) {
+        const state = FileBrowserStateManager.getTabState(tabId);
+        if (state) {
+          console.log('[FileBrowser] 目录刷新完成，状态:', state);
+          setTabState(state);
+        }
+      }
+    } catch (error) {
+      console.error('[FileBrowser] 刷新目录失败:', error);
+    } finally {
+      if (mountedRef.current) {
+        setFileListLoading(false);
+      }
     }
   };
 
@@ -229,6 +255,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
           onClearHistory={handleClearHistory}
           tabId={tabId}
           onSyncToTerminal={handleSyncToTerminal}
+          onRefresh={handleRefresh}
         />
       </div>
       <div className="file-browser-content">

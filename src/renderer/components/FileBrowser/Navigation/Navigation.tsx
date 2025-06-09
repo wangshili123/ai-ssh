@@ -14,6 +14,7 @@ interface NavigationProps {
   onClearHistory?: () => void;
   tabId: string;  // 添加 tabId 参数
   onSyncToTerminal?: (path: string) => void;
+  onRefresh?: () => void;  // 添加刷新回调
 }
 
 const Navigation: React.FC<NavigationProps> = ({
@@ -23,7 +24,8 @@ const Navigation: React.FC<NavigationProps> = ({
   onPathChange,
   onClearHistory,
   tabId,
-  onSyncToTerminal
+  onSyncToTerminal,
+  onRefresh
 }) => {
   // 将旧的历史记录格式转换为新格式
   const historyState: HistoryState = {
@@ -120,7 +122,8 @@ const Navigation: React.FC<NavigationProps> = ({
         />
         <Button
           icon={<ReloadOutlined />}
-          onClick={() => onPathChange(currentPath)}
+          onClick={() => onRefresh ? onRefresh() : onPathChange(currentPath)}
+          title="刷新当前目录"
         />
         <AutoComplete
           value={inputValue}
