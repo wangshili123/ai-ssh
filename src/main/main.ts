@@ -60,8 +60,10 @@ function createWindow(): BrowserWindow {
     mainWindow.loadURL(`http://localhost:${localConfig.mainPort}`);
   } else {
     console.log('加载生产环境文件...');
-    // 生产环境下预加载，提升启动速度
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+    // 生产环境下使用正确的路径
+    const indexPath = path.join(__dirname, '../renderer/index.html');
+    console.log('尝试加载文件:', indexPath);
+    mainWindow.loadFile(indexPath);
     // 预热渲染进程
     mainWindow.webContents.once('did-finish-load', () => {
       console.log('渲染进程加载完成，应用就绪');

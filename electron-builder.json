@@ -2,15 +2,22 @@
   "appId": "com.ai-ssh-tool.app",
   "productName": "AI SSH Tool",
   "directories": {
-    "output": "release"
+    "output": "release",
+    "buildResources": "assets"
   },
   "electronDownload": {
     "cache": "node_modules/.cache/electron"
   },
   "files": [
     "dist/**/*",
-    "node_modules/**/*",
-    "package.json"
+    "package.json",
+    {
+      "from": "node_modules",
+      "to": "node_modules",
+      "filter": [
+        "**/*"
+      ]
+    }
   ],
   "extraResources": [
     {
@@ -31,7 +38,7 @@
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true
   },
-  "compression": "maximum",
+  "compression": "normal",
   "removePackageScripts": true,
   "nodeGypRebuild": false,
   "buildDependenciesFromSource": false
