@@ -281,6 +281,7 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
             loading={fileListLoading}
             onFileListChange={handleFileListChange}
             onDirectorySelect={handleDirectorySelect}
+            onRefresh={handleRefresh}
           />
         </div>
       </div>

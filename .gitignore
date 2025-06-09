@@ -45,3 +45,4 @@ tools/*
 
 release/*
 .webpack-cache-fast/*
+.webpack-cache/*

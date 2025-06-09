@@ -8,6 +8,7 @@ import type { MenuProps } from 'antd';
 import type { FileEntry } from '../../../../../../main/types/file';
 import type { SessionInfo } from '../../../../../types';
 import { fileOpenManager } from '../../core/FileOpenManager';
+import { fileDeleteAction } from './actions';
 
 import './FileListContextMenu.css';
 
@@ -22,6 +23,7 @@ export interface FileListContextMenuProps {
   onClose: () => void;
   onDownloadRequest?: (file: FileEntry, selectedFiles: FileEntry[]) => void;
   onUploadRequest?: (currentPath: string) => void;
+  onFileDeleted?: () => void;  // 新增：文件删除后的回调
 }
 
 export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
@@ -34,7 +36,8 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
   currentPath,
   onClose,
   onDownloadRequest,
-  onUploadRequest
+  onUploadRequest,
+  onFileDeleted
 }) => {
   // 添加 ref 用于获取菜单 DOM 元素
   const menuRef = useRef<HTMLDivElement>(null);
@@ -76,9 +79,23 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
   // 监听点击事件，处理点击外部关闭
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
+      const target = event.target as Node;
+
+      // 检查是否点击在主菜单内
+      if (menuRef.current && menuRef.current.contains(target)) {
+        return;
       }
+
+      // 检查是否点击在Ant Design的子菜单内（子菜单通常渲染在body下）
+      const antMenus = document.querySelectorAll('.ant-menu-submenu-popup, .ant-dropdown-menu');
+      for (let i = 0; i < antMenus.length; i++) {
+        if (antMenus[i].contains(target)) {
+          return;
+        }
+      }
+
+      // 如果不在任何菜单内，则关闭菜单
+      onClose();
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -99,81 +116,92 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
 
 
   // 使用 useMemo 缓存菜单项配置
-  const menuItems = useMemo(() => [
-    // 下载选项 - 支持单个文件和批量下载
-    ...(() => {
-      const downloadableFiles = selectedFiles.filter(f => !f.isDirectory);
-      if (downloadableFiles.length === 0) return [];
+  const menuItems = useMemo(() => {
+    console.log('[FileListContextMenu] 生成菜单项配置');
+    return [
+      // 下载选项 - 支持单个文件和批量下载
+      ...(() => {
+        const downloadableFiles = selectedFiles.filter(f => !f.isDirectory);
+        if (downloadableFiles.length === 0) return [];
 
-      const isBatch = downloadableFiles.length > 1;
-      return [{
-        key: 'download',
-        label: isBatch ? `批量下载 (${downloadableFiles.length}个文件)` : '下载'
-      }];
-    })(),
-    {
-      key: 'upload',
-      label: '上传',
-      onClick: () => {
-        console.log('上传文件到:', currentPath);
-        onUploadRequest?.(currentPath);
-      }
-    },
-    {
-      type: 'divider' as const
-    },
-    {
-      key: 'delete',
-      label: '删除',
-      danger: true,
-      onClick: () => {
-        // TODO: 实现删除功能
-        console.log('删除文件:', file.name);
-      }
-    },
-    {
-      key: 'open',
-      label: '打开方式',
-      children: [
-        {
-          key: 'open-internal',
-          label: '内置编辑器',
-          onClick: () => {
-            fileOpenManager.openFile(file, sessionInfo!, tabId, 'built-in');
-          }
-        },
-        {
-          key: 'open-external',
-          label: '外部编辑器',
-          disabled: true, // 暂时禁用
-          onClick: () => {
-            // TODO: 实现外部编辑器打开
-          }
-        },
-        {
-          type: 'divider'
-        },
-        {
-          key: 'set-editor',
-          label: '设置外部编辑器',
-          onClick: () => {
-            // TODO: 实现设置外部编辑器
-          }
+        const isBatch = downloadableFiles.length > 1;
+        return [{
+          key: 'download',
+          label: isBatch ? `批量下载 (${downloadableFiles.length}个文件)` : '下载'
+        }];
+      })(),
+      {
+        key: 'upload',
+        label: '上传',
+        onClick: () => {
+          console.log('上传文件到:', currentPath);
+          onUploadRequest?.(currentPath);
         }
-      ]
-    },
-    {
-      key: 'copy-path',
-      label: '复制路径',
-      onClick: () => {
-        const fullPath = `${currentPath}/${file.name}`.replace(/\/+/g, '/');
-        navigator.clipboard.writeText(fullPath);
-      }
-    }
-  ], [file, selectedFiles, sessionInfo, tabId, currentPath]);
+      },
+      {
+        type: 'divider' as const
+      },
+      {
+        key: 'delete',
+        label: '删除',
+        children: [
+          {
+            key: 'delete-safe',
+            label: '移动到回收站'
+          },
+          {
+            key: 'delete-permanent',
+            label: '永久删除',
+            danger: true
+          }
+        ]
+      },
 
-  const handleClick: MenuProps['onClick'] = (info) => {
-    console.log('菜单点击事件:', info);
+      {
+        key: 'open',
+        label: '打开方式',
+        children: [
+          {
+            key: 'open-internal',
+            label: '内置编辑器',
+            onClick: () => {
+              fileOpenManager.openFile(file, sessionInfo!, tabId, 'built-in');
+            }
+          },
+          {
+            key: 'open-external',
+            label: '外部编辑器',
+            disabled: true, // 暂时禁用
+            onClick: () => {
+              // TODO: 实现外部编辑器打开
+            }
+          },
+          {
+            type: 'divider'
+          },
+          {
+            key: 'set-editor',
+            label: '设置外部编辑器',
+            onClick: () => {
+              // TODO: 实现设置外部编辑器
+            }
+          }
+        ]
+      },
+      {
+        key: 'copy-path',
+        label: '复制路径',
+        onClick: () => {
+          const fullPath = `${currentPath}/${file.name}`.replace(/\/+/g, '/');
+          navigator.clipboard.writeText(fullPath);
+        }
+      },
+
+    ];
+  }, [file, selectedFiles, sessionInfo, tabId, currentPath]);
+
+  const handleClick: MenuProps['onClick'] = async (info) => {
+    console.log('[FileListContextMenu] 菜单点击事件:', info.key);
 
     // 处理下载菜单项
     if (info.key === 'download') {
@@ -189,6 +217,61 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       }
 
       // 关闭右键菜单
+      onClose();
+      return;
+    }
+
+
+
+    // 处理删除菜单项
+    if (info.key === 'delete-safe') {
+      console.log('[FileListContextMenu] 安全删除被点击');
+      if (!sessionInfo) {
+        console.error('缺少会话信息');
+        return;
+      }
+
+      try {
+        const result = await fileDeleteAction.safeDelete({
+          file,
+          sessionInfo,
+          currentPath,
+          type: 'safe'
+        });
+
+        if (result.success && onFileDeleted) {
+          onFileDeleted();
+        }
+      } catch (error) {
+        console.error('[FileListContextMenu] 安全删除失败:', error);
+      }
+
+      onClose();
+      return;
+    }
+
+    if (info.key === 'delete-permanent') {
+      console.log('[FileListContextMenu] 永久删除被点击');
+      if (!sessionInfo) {
+        console.error('缺少会话信息');
+        return;
+      }
+
+      try {
+        const result = await fileDeleteAction.permanentDelete({
+          file,
+          sessionInfo,
+          currentPath,
+          type: 'permanent'
+        });
+
+        if (result.success && onFileDeleted) {
+          onFileDeleted();
+        }
+      } catch (error) {
+        console.error('[FileListContextMenu] 永久删除失败:', error);
+      }
+
       onClose();
       return;
     }
@@ -219,6 +302,8 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
     }
   };
 
+
+
   return (
     <>
       <div
@@ -236,6 +321,8 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
           items={menuItems}
           onClick={handleClick}
           className="context-menu"
+          selectable={false}
+          triggerSubMenuAction="click"
         />
       </div>
 

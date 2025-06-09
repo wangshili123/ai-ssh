@@ -25,6 +25,7 @@ interface FileListProps {
   loading: boolean;
   onFileListChange: (files: FileEntry[]) => void;
   onDirectorySelect?: (path: string) => void;
+  onRefresh?: () => void;  // 新增：刷新回调
 }
 
 // 将权限数字转换为字符串表示
@@ -151,7 +152,8 @@ const FileList: React.FC<FileListProps> = ({
   fileList,
   loading,
   onFileListChange,
-  onDirectorySelect
+  onDirectorySelect,
+  onRefresh
 }) => {
   const [sortedInfo, setSortedInfo] = useState<SorterResult<FileEntry>>({});
   const [tableHeight, setTableHeight] = useState<number>(0);
@@ -335,10 +337,12 @@ const FileList: React.FC<FileListProps> = ({
 
   // 修改处理右键菜单的函数
   const handleContextMenu = useCallback((event: React.MouseEvent, file: FileEntry) => {
+    console.log('[FileList] 右键菜单被触发:', file.name);
     event.preventDefault();
 
     // 获取选中的文件
     const selectedFiles = fileList.filter(f => selectedRowKeys.includes(f.name));
+    console.log('[FileList] 选中的文件:', selectedFiles.map(f => f.name));
 
     setContextMenu({
       x: event.clientX,
@@ -346,6 +350,7 @@ const FileList: React.FC<FileListProps> = ({
       file,
       selectedFiles: selectedFiles.length > 0 ? selectedFiles : [file]
     });
+    console.log('[FileList] 右键菜单状态已设置');
   }, [selectedRowKeys, fileList]);
 
   // 处理关闭右键菜单
@@ -615,6 +620,7 @@ const FileList: React.FC<FileListProps> = ({
           onClose={handleCloseContextMenu}
           onDownloadRequest={handleDownloadRequest}
           onUploadRequest={handleUploadRequest}
+          onFileDeleted={onRefresh}
         />
       )}
 
