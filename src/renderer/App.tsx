@@ -11,6 +11,7 @@ import { BaseConfigModal } from './components/BaseConfigModal/BaseConfigModal';
 import TransferNotificationManager from './components/Transfer/TransferNotificationManager';
 import TransferManager from './components/Transfer/TransferManager';
 import DownloadHistory from './components/Download/DownloadHistory';
+import { AppLoadingScreen } from './components/Common/AppLoadingScreen';
 import type { SessionInfo, SSHService } from './types';
 import { eventBus } from './services/eventBus';
 import { DatabaseService } from '../services/database/DatabaseService';
@@ -35,29 +36,40 @@ const App: React.FC = () => {
   const [baseConfigVisible, setBaseConfigVisible] = useState(false);
   const [downloadHistoryVisible, setDownloadHistoryVisible] = useState(false);
   const [transferManagerVisible, setTransferManagerVisible] = useState(false);
+  const [isAppLoading, setIsAppLoading] = useState(true);
 
   // 初始化数据库和基础服务
   useEffect(() => {
     const initializeApp = async () => {
       try {
         console.log('[App] 开始初始化基础服务...');
+
+        // 模拟初始化步骤，给加载页面足够的时间显示
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         await DatabaseService.getInstance().init();
-        
+
         // 初始化监控服务
         initializeServices(sshService as SSHService);
-        
+
         // 初始化基础配置
         BaseConfig.init();
-        
+
         // 初始化并加载UI设置
         await uiSettingsManager.init();
         const settings = uiSettingsManager.getSettings();
         setIsFileBrowserVisible(settings.isFileBrowserVisible);
         setIsCollapsed(!settings.isAIVisible);
-        
+
         console.log('[App] 基础服务初始化完成');
+
+        // 延迟一点时间，让用户看到加载完成的状态
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setIsAppLoading(false);
       } catch (error) {
         console.error('[App] 基础服务初始化失败:', error);
+        // 即使出错也要隐藏加载页面
+        setIsAppLoading(false);
       }
     };
 
@@ -115,18 +127,24 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <Layout className="app-container">
-      <Layout>
-        <Sider width={48} className="app-toolbar-sider" theme="light">
-          <AppToolbar
-            onSessionListOpen={() => setSessionListVisible(true)}
-            isAICollapsed={isCollapsed}
-            onAICollapse={setIsCollapsed}
-            isFileBrowserVisible={isFileBrowserVisible}
-            onFileBrowserVisibleChange={setIsFileBrowserVisible}
-            onTransferManagerOpen={() => setTransferManagerVisible(true)}
-          />
-        </Sider>
+    <>
+      <AppLoadingScreen
+        visible={isAppLoading}
+        onComplete={() => setIsAppLoading(false)}
+      />
+
+      <Layout className="app-container">
+        <Layout>
+          <Sider width={48} className="app-toolbar-sider" theme="light">
+            <AppToolbar
+              onSessionListOpen={() => setSessionListVisible(true)}
+              isAICollapsed={isCollapsed}
+              onAICollapse={setIsCollapsed}
+              isFileBrowserVisible={isFileBrowserVisible}
+              onFileBrowserVisibleChange={setIsFileBrowserVisible}
+              onTransferManagerOpen={() => setTransferManagerVisible(true)}
+            />
+          </Sider>
         <Layout>
           <Content className="main-content">
             <TerminalTabsManager 
@@ -194,9 +212,10 @@ const App: React.FC = () => {
         onClose={() => setTransferManagerVisible(false)}
       />
 
-      {/* 统一传输通知管理器 */}
-      <TransferNotificationManager />
-    </Layout>
+        {/* 统一传输通知管理器 */}
+        <TransferNotificationManager />
+      </Layout>
+    </>
   );
 };
 

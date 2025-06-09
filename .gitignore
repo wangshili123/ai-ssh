@@ -42,3 +42,6 @@ requirements.txt
 .venv/*
 tests/*
 tools/*
+
+release/*
+.webpack-cache-fast/*

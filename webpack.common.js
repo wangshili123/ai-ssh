@@ -12,6 +12,7 @@ module.exports = {
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
+    symlinks: false, // 禁用符号链接解析，提升性能
     fallback: {
       path: require.resolve('path-browserify'),
       fs: false,

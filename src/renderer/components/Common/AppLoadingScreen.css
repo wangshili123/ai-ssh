@@ -1,0 +1,230 @@
+.app-loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  transition: opacity 0.8s ease-out;
+}
+
+.app-loading-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-container {
+  text-align: center;
+  max-width: 500px;
+  padding: 40px;
+}
+
+.loading-header {
+  margin-bottom: 50px;
+}
+
+.loading-icon {
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: center;
+}
+
+.icon-terminal {
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: iconFloat 3s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+  0%, 100% { 
+    transform: translateY(0px) scale(1); 
+  }
+  50% { 
+    transform: translateY(-8px) scale(1.05); 
+  }
+}
+
+.terminal-screen {
+  width: 40px;
+  height: 30px;
+  background: #1a1a1a;
+  border-radius: 4px;
+  padding: 6px;
+  position: relative;
+  border: 1px solid #333;
+}
+
+.terminal-line {
+  width: 100%;
+  height: 2px;
+  background: #00ff00;
+  margin-bottom: 3px;
+  border-radius: 1px;
+  opacity: 0.7;
+}
+
+.terminal-line:nth-child(1) {
+  width: 80%;
+  animation: terminalBlink 2s ease-in-out infinite;
+}
+
+.terminal-line:nth-child(2) {
+  width: 60%;
+  animation: terminalBlink 2s ease-in-out infinite 0.5s;
+}
+
+.terminal-cursor {
+  width: 8px;
+  height: 2px;
+  background: #00ff00;
+  border-radius: 1px;
+  animation: cursorBlink 1s ease-in-out infinite;
+}
+
+@keyframes terminalBlink {
+  0%, 50%, 100% { opacity: 0.7; }
+  25%, 75% { opacity: 1; }
+}
+
+@keyframes cursorBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.loading-title {
+  color: white !important;
+  margin-bottom: 10px !important;
+  font-weight: 600 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.loading-description {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.loading-progress-section {
+  margin-bottom: 40px;
+}
+
+.loading-step-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.step-text {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 14px;
+}
+
+.progress-text {
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.loading-features {
+  opacity: 0.8;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.feature-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.feature-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  animation: featureIconPulse 2s ease-in-out infinite;
+}
+
+.feature-item:nth-child(1) .feature-icon { animation-delay: 0s; }
+.feature-item:nth-child(2) .feature-icon { animation-delay: 0.5s; }
+.feature-item:nth-child(3) .feature-icon { animation-delay: 1s; }
+.feature-item:nth-child(4) .feature-icon { animation-delay: 1.5s; }
+
+@keyframes featureIconPulse {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 0.8;
+  }
+  50% { 
+    transform: scale(1.1); 
+    opacity: 1;
+  }
+}
+
+.feature-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* 响应式设计 */
+@media (max-width: 600px) {
+  .loading-container {
+    padding: 20px;
+    max-width: 90%;
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .loading-title {
+    font-size: 24px !important;
+  }
+}
+
+/* Ant Design Progress 组件样式覆盖 */
+.app-loading-screen .ant-progress-bg {
+  background: linear-gradient(90deg, #108ee9, #87d068) !important;
+}
+
+.app-loading-screen .ant-progress-outer {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px;
+}
