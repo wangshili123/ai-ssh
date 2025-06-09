@@ -4,14 +4,15 @@
  */
 
 import { message } from 'antd';
-import { 
-  TransferService, 
-  UploadTask, 
-  UploadConfig, 
+import {
+  TransferService,
+  UploadTask,
+  UploadConfig,
   TransferProgress,
   TransferStatus
 } from './transferService';
 import { v4 as uuidv4 } from 'uuid';
+import { eventBus } from './eventBus';
 
 const { ipcRenderer } = window.require('electron');
 
@@ -314,6 +315,9 @@ export class UploadService extends TransferService {
 
     // 显示完成通知
     this.showCompletedNotification(task as UploadTask);
+
+    // 触发文件上传完成事件，通知文件列表更新
+    this.triggerFileUploadedEvents(task as UploadTask);
   }
 
   /**
@@ -543,6 +547,10 @@ export class UploadService extends TransferService {
       // 触发事件
       this.emit('upload-completed', task2);
       console.log(`[UploadService] upload-completed事件已触发: ${taskId}`);
+
+      // 触发文件上传完成事件，通知文件列表更新
+      this.triggerFileUploadedEvents(task2);
+      console.log(`[UploadService] 文件上传完成事件已触发: ${taskId}`);
     } else {
       console.warn(`[UploadService] 无法标记任务完成: taskId=${taskId}, task存在=${!!task2}, status=${task2?.status}`);
     }
@@ -659,6 +667,9 @@ export class UploadService extends TransferService {
 
       // 触发事件
       this.emit('upload-completed', task);
+
+      // 触发文件上传完成事件，通知文件列表更新
+      this.triggerFileUploadedEvents(task);
     }
   }
 
@@ -814,6 +825,41 @@ export class UploadService extends TransferService {
     });
 
     console.log(`[UploadService] 清除了 ${completedTasks.length} 个已完成的任务`);
+  }
+
+  /**
+   * 触发文件上传完成事件
+   */
+  private triggerFileUploadedEvents(task: UploadTask): void {
+    const { config } = task;
+
+    // 获取当前标签页ID（从sessionId推导）
+    const tabId = config.sessionId;
+
+    // 为每个上传的文件触发事件
+    task.localFiles.forEach((file) => {
+      const remotePath = `${config.remotePath}/${file.name}`.replace(/\/+/g, '/');
+
+      console.log(`[UploadService] 触发文件上传完成事件:`, {
+        tabId,
+        fileName: file.name,
+        filePath: remotePath,
+        remotePath,
+        currentPath: config.remotePath,
+        fileSize: file.size,
+        overwrite: config.overwrite
+      });
+
+      eventBus.emit('file-uploaded', {
+        tabId,
+        fileName: file.name,
+        filePath: remotePath,
+        remotePath,
+        currentPath: config.remotePath,
+        fileSize: file.size,
+        overwrite: config.overwrite || false
+      });
+    });
   }
 }
 

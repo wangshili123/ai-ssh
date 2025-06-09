@@ -11,6 +11,8 @@ import DownloadDialog, { type DownloadConfig } from '../../Download/DownloadDial
 import { UploadDialog } from '../../Upload';
 import { downloadService } from '../../../services/downloadService';
 import { uploadService } from '../../../services/uploadService';
+import { eventBus } from '../../../services/eventBus';
+import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
 import { getDefaultDownloadPath } from '../../../utils/downloadUtils';
 import { fileOpenManager } from './core/FileOpenManager';
 import './FileList.css';
@@ -162,7 +164,11 @@ const FileList: React.FC<FileListProps> = ({
   const [uploadDialogVisible, setUploadDialogVisible] = useState(false);
   const [uploadPath, setUploadPath] = useState<string>('');
 
+  // 高亮显示新上传的文件
+  const [highlightedFiles, setHighlightedFiles] = useState<Set<string>>(new Set());
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<any>(null);
 
   // 修改右键菜单状态的类型定义
   const [contextMenu, setContextMenu] = useState<{
@@ -190,6 +196,40 @@ const FileList: React.FC<FileListProps> = ({
       resizeObserver.disconnect();
     };
   }, []);
+
+  // 监听文件上传完成事件
+  useEffect(() => {
+    const handleFileUploaded = async (data: {
+      tabId: string;
+      fileName: string;
+      filePath: string;
+      remotePath: string;
+      currentPath: string;
+      fileSize: number;
+      overwrite: boolean;
+    }) => {
+      console.log('[FileList] 收到文件上传完成事件:', data);
+
+      // 只处理当前标签页和当前路径的上传事件
+      if (data.tabId !== tabId || data.currentPath !== currentPath) {
+        console.log('[FileList] 忽略其他标签页或路径的上传事件');
+        return;
+      }
+
+      try {
+        // 获取新上传文件的详细信息
+        await updateFileListWithNewFile(data.fileName, data.overwrite);
+      } catch (error) {
+        console.error('[FileList] 处理上传完成事件失败:', error);
+      }
+    };
+
+    eventBus.on('file-uploaded', handleFileUploaded);
+
+    return () => {
+      eventBus.off('file-uploaded', handleFileUploaded);
+    };
+  }, [tabId, currentPath]);
 
   // 处理双击事件
   const handleRowDoubleClick = async (record: FileEntry) => {
@@ -313,6 +353,148 @@ const FileList: React.FC<FileListProps> = ({
     setContextMenu(null);
   }, []);
 
+  // 智能更新文件列表，添加新上传的文件
+  const updateFileListWithNewFile = async (fileName: string, overwrite: boolean) => {
+    try {
+      console.log('[FileList] 开始更新文件列表，新文件:', fileName);
+
+      // 从服务器获取新文件的详细信息
+      const files = await sftpConnectionManager.readDirectory(tabId, currentPath, true);
+      const newFile = files.find(f => f.name === fileName);
+
+      if (!newFile) {
+        console.warn('[FileList] 未找到新上传的文件:', fileName);
+        return;
+      }
+
+      console.log('[FileList] 找到新文件信息:', newFile);
+
+      // 检查文件是否已存在（覆盖情况）
+      const existingIndex = fileList.findIndex(f => f.name === fileName);
+      let updatedFileList: FileEntry[];
+
+      if (existingIndex !== -1) {
+        // 文件已存在，更新现有文件信息
+        console.log('[FileList] 更新现有文件:', fileName);
+        updatedFileList = [...fileList];
+        updatedFileList[existingIndex] = newFile;
+      } else {
+        // 新文件，按排序规则插入到正确位置
+        console.log('[FileList] 插入新文件:', fileName);
+        updatedFileList = insertFileInSortedOrder([...fileList], newFile);
+      }
+
+      // 更新文件列表
+      onFileListChange(updatedFileList);
+
+      // 高亮显示新文件
+      highlightFile(fileName);
+
+      // 滚动到新文件位置
+      setTimeout(() => {
+        scrollToFile(fileName, updatedFileList);
+      }, 100);
+
+    } catch (error) {
+      console.error('[FileList] 更新文件列表失败:', error);
+    }
+  };
+
+  // 按当前排序规则插入文件到正确位置
+  const insertFileInSortedOrder = (currentList: FileEntry[], newFile: FileEntry): FileEntry[] => {
+    const { columnKey, order } = sortedInfo;
+
+    // 如果没有排序，使用默认排序（目录优先，然后按名称）
+    if (!columnKey || !order) {
+      // 默认排序：目录优先，名称升序
+      const insertIndex = currentList.findIndex(file => {
+        if (newFile.isDirectory !== file.isDirectory) {
+          return !newFile.isDirectory; // 目录排在前面
+        }
+        return newFile.name.localeCompare(file.name) < 0;
+      });
+
+      if (insertIndex === -1) {
+        return [...currentList, newFile];
+      } else {
+        return [
+          ...currentList.slice(0, insertIndex),
+          newFile,
+          ...currentList.slice(insertIndex)
+        ];
+      }
+    }
+
+    // 根据当前排序规则插入
+    const insertIndex = currentList.findIndex(file => {
+      let comparison = 0;
+
+      switch (columnKey) {
+        case 'name':
+          // 目录优先排序
+          if (newFile.isDirectory !== file.isDirectory) {
+            comparison = newFile.isDirectory ? -1 : 1;
+          } else {
+            comparison = newFile.name.localeCompare(file.name);
+          }
+          break;
+        case 'size':
+          comparison = newFile.size - file.size;
+          break;
+        case 'modifyTime':
+          comparison = newFile.modifyTime - file.modifyTime;
+          break;
+        default:
+          comparison = newFile.name.localeCompare(file.name);
+      }
+
+      return order === 'ascend' ? comparison < 0 : comparison > 0;
+    });
+
+    if (insertIndex === -1) {
+      return [...currentList, newFile];
+    } else {
+      return [
+        ...currentList.slice(0, insertIndex),
+        newFile,
+        ...currentList.slice(insertIndex)
+      ];
+    }
+  };
+
+  // 高亮显示文件
+  const highlightFile = (fileName: string) => {
+    setHighlightedFiles(prev => new Set([...prev, fileName]));
+
+    // 3秒后移除高亮
+    setTimeout(() => {
+      setHighlightedFiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(fileName);
+        return newSet;
+      });
+    }, 3000);
+  };
+
+  // 滚动到指定文件
+  const scrollToFile = (fileName: string, fileListToUse: FileEntry[]) => {
+    const index = fileListToUse.findIndex(file => file.name === fileName);
+    if (index !== -1 && tableRef.current) {
+      console.log('[FileList] 滚动到文件:', fileName, '索引:', index);
+
+      // 计算滚动位置（每行大约32px高度）
+      const rowHeight = 32;
+      const scrollTop = index * rowHeight;
+
+      // 获取表格的滚动容器
+      const tableBody = containerRef.current?.querySelector('.ant-table-body');
+      if (tableBody) {
+        tableBody.scrollTop = scrollTop;
+        console.log('[FileList] 已滚动到位置:', scrollTop);
+      }
+    }
+  };
+
   const columns = [
     {
       title: '文件名',
@@ -327,7 +509,7 @@ const FileList: React.FC<FileListProps> = ({
       },
       sortOrder: sortedInfo.columnKey === 'name' ? sortedInfo.order : null,
       render: (text: string, record: FileEntry) => (
-        <span className="file-list-name-cell">
+        <span className={`file-list-name-cell ${highlightedFiles.has(record.name) ? 'file-list-highlighted' : ''}`}>
           <span className="file-list-icon">{getFileIcon(record)}</span>
           <span className="file-list-name">{text}</span>
         </span>
@@ -403,6 +585,7 @@ const FileList: React.FC<FileListProps> = ({
   return (
     <div className="file-list-container" ref={containerRef}>
       <Table
+        ref={tableRef}
         dataSource={fileList}
         columns={columns}
         rowKey="name"
@@ -416,6 +599,7 @@ const FileList: React.FC<FileListProps> = ({
         onRow={(record) => ({
           onDoubleClick: () => handleRowDoubleClick(record),
           onContextMenu: (e) => handleContextMenu(e, record),
+          className: highlightedFiles.has(record.name) ? 'file-list-row-highlighted' : '',
         })}
       />
 

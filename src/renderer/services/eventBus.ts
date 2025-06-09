@@ -27,6 +27,15 @@ export interface EventMap {
     command: string;
     terminalCommand?: string;
   };
+  'file-uploaded': {
+    tabId: string;
+    fileName: string;
+    filePath: string;
+    remotePath: string;
+    currentPath: string;
+    fileSize: number;
+    overwrite: boolean;
+  };
 }
 
 class EventBus extends EventEmitter {

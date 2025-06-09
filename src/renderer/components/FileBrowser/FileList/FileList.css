@@ -117,3 +117,46 @@
   transform: scale(1.1);
   transition: transform 0.2s ease;
 }
+
+/* 新上传文件高亮样式 */
+.file-list-container .file-list-highlighted {
+  background: linear-gradient(90deg, #e6f7ff, #bae7ff);
+  border-radius: 4px;
+  padding: 2px 4px;
+  animation: highlight-fade 3s ease-out;
+}
+
+.file-list-container .file-list-row-highlighted {
+  background-color: #e6f7ff !important;
+  animation: row-highlight-fade 3s ease-out;
+}
+
+@keyframes highlight-fade {
+  0% {
+    background: linear-gradient(90deg, #52c41a, #95de64);
+    box-shadow: 0 0 8px rgba(82, 196, 26, 0.5);
+  }
+  50% {
+    background: linear-gradient(90deg, #e6f7ff, #bae7ff);
+    box-shadow: 0 0 4px rgba(24, 144, 255, 0.3);
+  }
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+@keyframes row-highlight-fade {
+  0% {
+    background-color: #f6ffed !important;
+    box-shadow: inset 3px 0 0 #52c41a;
+  }
+  50% {
+    background-color: #e6f7ff !important;
+    box-shadow: inset 3px 0 0 #1890ff;
+  }
+  100% {
+    background-color: transparent !important;
+    box-shadow: none;
+  }
+}
