@@ -322,7 +322,7 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
           onClick={handleClick}
           className="context-menu"
           selectable={false}
-          triggerSubMenuAction="click"
+          triggerSubMenuAction="hover"
         />
       </div>
 
