@@ -17,12 +17,6 @@ function createMenu() {
     {
       label: '查看',
       submenu: [
-        {
-          label: '下载历史',
-          click: () => {
-            BrowserWindow.getFocusedWindow()?.webContents.send('open-download-history');
-          }
-        }
       ]
     },
     {

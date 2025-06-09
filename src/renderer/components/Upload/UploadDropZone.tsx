@@ -67,11 +67,6 @@ const UploadDropZone: React.FC<UploadDropZoneProps> = ({
     const errors: string[] = [];
 
     for (const file of fileArray) {
-      // 检查文件大小
-      if (file.size > maxSize) {
-        errors.push(`文件 ${file.name} 超过最大大小限制 (${formatFileSize(maxSize)})`);
-        continue;
-      }
 
       // 检查文件类型（如果指定了 accept）
       if (accept && !accept.split(',').some(type => {
@@ -273,10 +268,10 @@ const UploadDropZone: React.FC<UploadDropZoneProps> = ({
           <InboxOutlined className="drop-zone-icon" />
           <div className="drop-zone-text">
             <Text strong>拖拽文件到此处或点击选择</Text>
-            <br />
+            {/* <br />
             <Text type="secondary">
               支持单个或批量上传，最多 {maxFiles} 个文件，单文件最大 {formatFileSize(maxSize)}
-            </Text>
+            </Text> */}
           </div>
         </div>
 
