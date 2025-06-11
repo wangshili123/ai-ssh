@@ -12,8 +12,25 @@ if (!container) {
 }
 
 const root = createRoot(container);
-root.render(
-  <Provider store={store}>
-    <App />
-  </Provider>
-); 
+
+// 创建应用组件包装器，用于处理加载完成事件
+const AppWrapper: React.FC = () => {
+  React.useEffect(() => {
+    // 当React应用挂载完成后，隐藏初始加载页面
+    const timer = setTimeout(() => {
+      if (window.hideInitialLoading) {
+        window.hideInitialLoading();
+      }
+    }, 100); // 稍微延迟一下，确保应用完全渲染
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Provider store={store}>
+      <App />
+    </Provider>
+  );
+};
+
+root.render(<AppWrapper />);

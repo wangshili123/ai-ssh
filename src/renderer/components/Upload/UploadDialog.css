@@ -1,0 +1,202 @@
+/**
+ * 上传对话框样式
+ * 基于下载对话框的样式设计，保持一致的视觉风格
+ */
+
+.upload-dialog {
+  .ant-modal-body {
+    padding: 24px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .ant-modal-header {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 24px;
+  }
+
+  .ant-modal-footer {
+    border-top: 1px solid #f0f0f0;
+    padding: 10px 16px;
+    text-align: right;
+  }
+}
+
+/* 文件选择区域 */
+.upload-file-section {
+  margin-bottom: 16px;
+
+  .ant-typography-title {
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
+.upload-file-summary {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  border-left: 3px solid #1890ff;
+
+  .ant-typography {
+    margin: 0;
+  }
+}
+
+/* 优化选项样式 */
+.optimization-option {
+  margin-bottom: 16px;
+
+  .ant-form-item {
+    margin-bottom: 12px;
+  }
+
+  .ant-alert {
+    margin-bottom: 12px;
+    border-radius: 6px;
+  }
+
+  .ant-switch {
+    margin-right: 8px;
+  }
+}
+
+
+/* 表单项样式调整 */
+.upload-dialog .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.upload-dialog .ant-form-item-label {
+  padding-bottom: 4px;
+}
+
+.upload-dialog .ant-form-item-label > label {
+  font-weight: 500;
+  color: #262626;
+}
+
+/* 输入框样式 */
+.upload-dialog .ant-input {
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+  transition: all 0.3s;
+}
+
+.upload-dialog .ant-input:hover {
+  border-color: #40a9ff;
+}
+
+.upload-dialog .ant-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* 开关样式 */
+.upload-dialog .ant-switch {
+  background-color: #00000040;
+}
+
+.upload-dialog .ant-switch-checked {
+  background-color: #1890ff;
+}
+
+/* 折叠面板样式 */
+.upload-dialog .ant-collapse {
+  background-color: transparent;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+}
+
+.upload-dialog .ant-collapse-header {
+  padding: 12px 16px !important;
+  background-color: #fafafa;
+  border-radius: 6px 6px 0 0;
+  font-weight: 500;
+}
+
+.upload-dialog .ant-collapse-content {
+  border-top: 1px solid #f0f0f0;
+}
+
+.upload-dialog .ant-collapse-content-box {
+  padding: 16px;
+}
+
+/* 按钮样式 */
+.upload-dialog .ant-btn {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.upload-dialog .ant-btn-primary {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.upload-dialog .ant-btn-primary:hover {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.upload-dialog .ant-btn-primary:disabled {
+  background-color: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #00000040;
+}
+
+/* 选择器样式 */
+.upload-dialog .ant-select {
+  border-radius: 6px;
+}
+
+.upload-dialog .ant-select-selector {
+  border-radius: 6px !important;
+}
+
+/* 数字输入框样式 */
+.upload-dialog .ant-input-number {
+  border-radius: 6px;
+  width: 100%;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .upload-dialog {
+    .ant-modal {
+      width: 90vw !important;
+      margin: 20px;
+    }
+
+    .ant-modal-body {
+      padding: 16px;
+    }
+
+    .optimization-option {
+      .ant-form-item {
+        margin-bottom: 8px;
+      }
+    }
+  }
+}
+
+/* 暗色主题支持 */
+@media (prefers-color-scheme: dark) {
+  .upload-dialog {
+    .upload-file-summary {
+      background-color: #1f1f1f;
+      border-left-color: #177ddc;
+    }
+
+    .session-info {
+      background-color: #1f1f1f;
+    }
+
+    .ant-collapse-header {
+      background-color: #1f1f1f !important;
+    }
+  }
+}

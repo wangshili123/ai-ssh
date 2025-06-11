@@ -3,14 +3,15 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Progress, Button, Space, Typography } from 'antd';
-import { 
-  DownloadOutlined, 
-  PauseOutlined, 
-  PlayCircleOutlined, 
+import { Progress, Button, Space, Typography, Tag } from 'antd';
+import {
+  DownloadOutlined,
+  PauseOutlined,
+  PlayCircleOutlined,
   CloseOutlined,
   CheckCircleOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  ThunderboltOutlined
 } from '@ant-design/icons';
 import { downloadService, type DownloadTask } from '../../services/downloadService';
 import { formatFileSize } from '../../utils/fileUtils';
@@ -56,7 +57,7 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
 
   // 格式化速度
   const formatSpeed = (bytesPerSecond: number): string => {
-    if (bytesPerSecond === 0) return '0 B/s';
+    if (bytesPerSecond === 0 || !isFinite(bytesPerSecond) || bytesPerSecond < 0) return '0 B/s';
     return `${formatFileSize(bytesPerSecond)}/s`;
   };
 
@@ -93,6 +94,19 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
 
   // 获取状态文本
   const getStatusText = () => {
+    if (currentTask.status === 'downloading' && currentTask.progress.compressionPhase) {
+      switch (currentTask.progress.compressionPhase) {
+        case 'compressing':
+          return '正在压缩';
+        case 'transferring':
+          return '传输中';
+        case 'extracting':
+          return '正在解压';
+        default:
+          return '下载中';
+      }
+    }
+
     switch (currentTask.status) {
       case 'pending':
         return '准备中';
@@ -241,6 +255,13 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
         {/* 进度条 */}
         <Progress
           percent={Math.round(currentTask.progress.percentage)}
+          strokeColor={
+            currentTask.status === 'downloading' || currentTask.status === 'pending' ? '#1890ff' :
+            currentTask.status === 'completed' ? '#52c41a' :
+            currentTask.status === 'error' ? '#ff4d4f' :
+            currentTask.status === 'paused' ? '#faad14' : '#1890ff'
+          }
+          trailColor="#f0f0f0"
           size="small"
           status={
             currentTask.status === 'error' ? 'exception' :
@@ -255,7 +276,7 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
             <Text type="secondary" className="progress-text">
               {formatFileSize(currentTask.progress.transferred)} / {formatFileSize(currentTask.progress.total)}
             </Text>
-            
+
             {currentTask.status === 'downloading' && (
               <>
                 <Text type="secondary" className="speed-text">
@@ -268,6 +289,19 @@ export const DownloadNotification: React.FC<DownloadNotificationProps> = ({
             )}
           </Space>
         </div>
+
+        {/* 状态标签区域 - 独立显示 */}
+        {currentTask.parallelEnabled && currentTask.transferChunks && (
+          <div className="notification-tags" style={{ marginTop: '6px', paddingTop: '4px', borderTop: '1px solid #f0f0f0' }}>
+            <Tag
+              icon={<ThunderboltOutlined />}
+              color="blue"
+              style={{ fontSize: '10px', padding: '0 6px', borderRadius: '8px' }}
+            >
+              并行 {currentTask.transferChunks.filter((c: any) => c.status === 'transferring').length}/{currentTask.maxParallelChunks}
+            </Tag>
+          </div>
+        )}
 
         {/* 错误信息 */}
         {currentTask.status === 'error' && currentTask.error && (

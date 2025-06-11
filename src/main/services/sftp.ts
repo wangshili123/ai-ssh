@@ -1,7 +1,7 @@
 import { Client } from 'ssh2';
 import type { SessionInfo } from '../../renderer/types';
 import type { FileEntry } from '../types/file';
-import { convertPermissionsToOctal, isDirectory, isSymlink, shouldFilterRegularFile } from '../../renderer/utils/fileUtils';
+import { convertPermissionsToOctal, isDirectory, isSymlink, shouldFilterRegularFile } from '../utils/fileUtils';
 import * as path from 'path';
 
 
@@ -372,6 +372,77 @@ class SFTPClient {
   }
 
   /**
+   * 上传文件
+   * @param localPath 本地文件路径
+   * @param remotePath 远程文件路径
+   * @param options 上传选项
+   */
+  async uploadFile(
+    localPath: string,
+    remotePath: string,
+    options?: {
+      onProgress?: (transferred: number, total: number) => void;
+      abortSignal?: AbortSignal;
+    }
+  ): Promise<void> {
+    console.log(`[SFTPClient] 上传文件 - connectionId: ${this.connectionId}, local: ${localPath}, remote: ${remotePath}`);
+
+    return new Promise((resolve, reject) => {
+      // 检查本地文件是否存在
+      if (!require('fs').existsSync(localPath)) {
+        reject(new Error(`本地文件不存在: ${localPath}`));
+        return;
+      }
+
+      // 获取文件大小用于进度计算
+      const stats = require('fs').statSync(localPath);
+      const totalSize = stats.size;
+      let transferred = 0;
+
+      // 创建读取流
+      const readStream = require('fs').createReadStream(localPath);
+
+      // 创建写入流
+      const writeStream = this.sftp.createWriteStream(remotePath);
+
+      // 监听进度
+      readStream.on('data', (chunk: Buffer) => {
+        transferred += chunk.length;
+        options?.onProgress?.(transferred, totalSize);
+      });
+
+      // 监听完成
+      writeStream.on('close', () => {
+        console.log(`[SFTPClient] 文件上传完成 - ${remotePath}`);
+        resolve();
+      });
+
+      // 监听错误
+      writeStream.on('error', (err: Error) => {
+        console.error(`[SFTPClient] 文件上传失败 - ${remotePath}:`, err);
+        reject(err);
+      });
+
+      readStream.on('error', (err: Error) => {
+        console.error(`[SFTPClient] 读取本地文件失败 - ${localPath}:`, err);
+        reject(err);
+      });
+
+      // 处理取消信号
+      if (options?.abortSignal) {
+        options.abortSignal.addEventListener('abort', () => {
+          readStream.destroy();
+          writeStream.destroy();
+          reject(new Error('上传被取消'));
+        });
+      }
+
+      // 开始传输
+      readStream.pipe(writeStream);
+    });
+  }
+
+  /**
    * 关闭连接
    */
   async close(): Promise<void> {
@@ -569,6 +640,29 @@ class SFTPManager {
       throw new Error('SFTP连接不存在');
     }
     return client.writeFile(filePath, content, encoding);
+  }
+
+  /**
+   * 上传文件
+   * @param connectionId 连接ID
+   * @param localPath 本地文件路径
+   * @param remotePath 远程文件路径
+   * @param options 上传选项
+   */
+  async uploadFile(
+    connectionId: string,
+    localPath: string,
+    remotePath: string,
+    options?: {
+      onProgress?: (transferred: number, total: number) => void;
+      abortSignal?: AbortSignal;
+    }
+  ): Promise<void> {
+    const client = this.getClient(connectionId);
+    if (!client) {
+      throw new Error('SFTP连接不存在');
+    }
+    return client.uploadFile(localPath, remotePath, options);
   }
 
   /**

@@ -1,0 +1,253 @@
+/* 传输通知组件样式 */
+.transfer-notification {
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  padding: 12px;
+  width: 320px;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.transfer-notification:hover {
+  border-color: #4096ff;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.12), 0 3px 6px -4px rgba(0, 0, 0, 0.16), 0 9px 28px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 通知头部 */
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-name {
+  color: rgba(0, 0, 0, 0.88) !important;
+  font-size: 13px !important;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.status-text {
+  font-size: 11px !important;
+  color: rgba(0, 0, 0, 0.65) !important;
+  font-weight: 500 !important;
+}
+
+.close-button {
+  background: transparent !important;
+  border: none !important;
+  color: rgba(0, 0, 0, 0.45) !important;
+  padding: 2px !important;
+  height: auto !important;
+  min-width: auto !important;
+}
+
+.close-button:hover {
+  color: rgba(0, 0, 0, 0.88) !important;
+  background: #f5f5f5 !important;
+}
+
+.close-button .anticon {
+  font-size: 10px;
+}
+
+/* 通知内容 */
+.notification-content {
+  margin-bottom: 8px;
+}
+
+/* 进度条样式 */
+.notification-content .ant-progress {
+  margin-bottom: 6px;
+}
+
+.notification-content .ant-progress-bg {
+  background: #f0f0f0 !important;
+}
+
+.notification-content .ant-progress-inner {
+  background: #f5f5f5 !important;
+  border-radius: 3px;
+}
+
+.notification-content .ant-progress-success-bg {
+  background: #52c41a !important;
+}
+
+.notification-content .ant-progress-exception .ant-progress-bg {
+  background: #ff4d4f !important;
+}
+
+/* 进度信息 */
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-info .ant-space {
+  flex: 1;
+}
+
+.progress-text,
+.speed-text,
+.time-text {
+  font-size: 10px !important;
+  color: rgba(0, 0, 0, 0.65) !important;
+  margin: 0 !important;
+}
+
+.separator {
+  color: rgba(0, 0, 0, 0.45);
+  margin: 0 2px;
+  font-size: 8px;
+}
+
+/* 优化标签 */
+.notification-tags {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.notification-tags .ant-tag {
+  font-size: 10px;
+  padding: 0 6px;
+  border-radius: 8px;
+  margin: 2px 4px 2px 0;
+}
+
+/* 错误信息 */
+.error-info {
+  margin-top: 6px;
+  padding: 4px 6px;
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  border-radius: 3px;
+}
+
+.error-text {
+  font-size: 10px !important;
+  color: #ff4d4f !important;
+  margin: 0 !important;
+  word-break: break-all;
+}
+
+/* 操作按钮 */
+.notification-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.notification-actions .ant-btn {
+  background: transparent !important;
+  border: none !important;
+  color: rgba(0, 0, 0, 0.65) !important;
+  padding: 2px 6px !important;
+  height: auto !important;
+  font-size: 11px !important;
+  min-width: auto !important;
+}
+
+.notification-actions .ant-btn:hover {
+  color: rgba(0, 0, 0, 0.88) !important;
+  background: #f5f5f5 !important;
+}
+
+.notification-actions .ant-btn.ant-btn-dangerous:hover {
+  color: #ff4d4f !important;
+}
+
+.notification-actions .ant-btn .anticon {
+  font-size: 10px;
+}
+
+/* 状态特定样式 */
+.transfer-notification[data-status="downloading"],
+.transfer-notification[data-status="uploading"] {
+  border-left: 3px solid #1890ff;
+}
+
+.transfer-notification.transfer-upload[data-status="uploading"] {
+  border-left: 3px solid #52c41a;
+}
+
+.transfer-notification[data-status="completed"] {
+  border-left: 3px solid #52c41a;
+}
+
+.transfer-notification[data-status="error"] {
+  border-left: 3px solid #ff4d4f;
+}
+
+.transfer-notification[data-status="paused"] {
+  border-left: 3px solid #faad14;
+}
+
+/* 动画效果 */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.transfer-notification {
+  animation: slideIn 0.3s ease-out;
+}
+
+.transfer-notification.closing {
+  animation: slideOut 0.3s ease-in;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .transfer-notification {
+    width: 280px;
+    padding: 10px;
+  }
+
+  .file-name {
+    max-width: 140px;
+  }
+
+  .progress-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .progress-info .ant-space {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

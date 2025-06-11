@@ -1,8 +1,45 @@
 {
+  "appId": "com.ai-ssh-tool.app",
+  "productName": "AI SSH Tool",
+  "directories": {
+    "output": "release",
+    "buildResources": "assets"
+  },
+  "electronDownload": {
+    "cache": "node_modules/.cache/electron"
+  },
+  "files": [
+    "dist/**/*",
+    "package.json",
+    {
+      "from": "node_modules",
+      "to": "node_modules",
+      "filter": [
+        "**/*"
+      ]
+    }
+  ],
   "extraResources": [
     {
       "from": "node_modules/tree-sitter-bash/tree-sitter-bash.wasm",
       "to": "resources"
+    },
+    {
+      "from": "node_modules/web-tree-sitter/tree-sitter.wasm",
+      "to": "resources"
     }
-  ]
-} 
+  ],
+  "win": {
+    "target": "nsis"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "compression": "normal",
+  "removePackageScripts": true,
+  "nodeGypRebuild": false,
+  "buildDependenciesFromSource": false
+}

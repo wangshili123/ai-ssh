@@ -2,18 +2,24 @@
   "name": "ai-ssh-tool",
   "version": "1.0.0",
   "description": "An AI-powered SSH client",
+  "author": "Developer",
   "main": "dist/main/main.js",
   "scripts": {
     "start": "concurrently \"npm run start:renderer\" \"cross-env NODE_ENV=development npm run start:main\"",
-    "start:main": "tsc -p tsconfig.main.json && electron .",
+    "start:fast": "concurrently --kill-others-on-fail \"npm run start:renderer:fast\" \"cross-env NODE_ENV=development npm run start:main\"",
+    "start:renderer:fast": "webpack serve --config webpack.fast.js",
+    "start:main": "tsc -p tsconfig.main.json --incremental && electron .",
     "start:renderer": "webpack serve --config webpack.dev.js",
     "build": "npm run build:main && npm run build:renderer",
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "webpack --config webpack.prod.js",
-    "postinstall": "electron-builder install-app-deps && npm run rebuild",
-    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "pack": "npm run build && cross-env ELECTRON_BUILDER_CACHE=node_modules/.cache/electron electron-builder --dir",
+    "dist": "npm run build && cross-env ELECTRON_BUILDER_CACHE=node_modules/.cache/electron electron-builder",
+    "dist:win": "npm run build && cross-env ELECTRON_BUILDER_CACHE=node_modules/.cache/electron electron-builder --win",
+    "postinstall": "electron-builder install-app-deps",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:startup": "node scripts/test-startup.js"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.1",
@@ -32,7 +38,6 @@
     "dayjs": "^1.11.13",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
-    "electron": "^25.3.1",
     "generic-pool": "^3.9.0",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.6",
@@ -65,7 +70,6 @@
     "xterm-addon-web-links": "^0.9.0"
   },
   "devDependencies": {
-    "@electron/rebuild": "^3.7.1",
     "@types/better-sqlite3": "^7.6.12",
     "@types/chokidar": "^2.1.7",
     "@types/echarts": "^4.9.22",
@@ -82,6 +86,7 @@
     "copy-webpack-plugin": "^12.0.2",
     "cross-env": "^7.0.3",
     "css-loader": "^6.8.1",
+    "electron": "^25.3.1",
     "electron-builder": "^24.4.0",
     "electron-is-dev": "^3.0.1",
     "events": "^3.3.0",

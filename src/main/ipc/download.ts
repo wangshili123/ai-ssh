@@ -5,9 +5,10 @@
 import { ipcMain, dialog, shell, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { pipeline } from 'stream/promises';
+
 import { sftpManager } from '../services/sftp';
-import { CompressionDownloadService, type CompressionStrategy } from '../services/compressionDownloadService';
+import { CompressionDownloadService, type CompressionStrategy, type CompressionDownloadOptions } from '../services/compressionDownloadService';
+import { ParallelDownloadService, type DownloadChunk } from '../services/parallelDownloadService';
 import type { FileEntry } from '../types/file';
 
 interface DownloadProgress {
@@ -22,6 +23,10 @@ interface DownloadProgress {
   originalSize?: number;
   compressedSize?: number;
   compressionRatio?: number;
+  // 并行下载相关进度信息
+  downloadChunks?: DownloadChunk[];
+  parallelEnabled?: boolean;
+  activeChunks?: number;
 }
 
 export interface DownloadConfig {
@@ -60,6 +65,11 @@ interface DownloadTaskInfo {
   compressedSize?: number;
   compressionRatio?: number;
   compressionPhase?: 'compressing' | 'downloading' | 'extracting' | 'completed';
+  // 新增：并行下载相关字段
+  parallelEnabled?: boolean;
+  maxParallelChunks?: number;
+  downloadChunks?: DownloadChunk[];
+  parallelSupported?: boolean;
 }
 
 class DownloadManager {
@@ -223,6 +233,27 @@ class DownloadManager {
       console.log(`[DownloadManager] 文件信息 - 名称: ${file.name}, 大小: ${file.size}, 扩展名: ${file.name.toLowerCase().split('.').pop()}`);
       console.log(`[DownloadManager] 用户配置 - useCompression: ${config.useCompression}, compressionMethod: ${config.compressionMethod}`);
 
+      // 检查并行下载支持
+      const connectionId = `sftp-${config.sessionId}`;
+      let parallelSupported = false;
+      let parallelEnabled = false;
+      let maxParallelChunks = 1;
+
+      if (config.useParallelDownload && file.size > 10 * 1024 * 1024) { // 大于10MB才考虑并行
+        try {
+          parallelSupported = await ParallelDownloadService.checkParallelSupport(connectionId, file.path);
+          if (parallelSupported) {
+            parallelEnabled = true;
+            maxParallelChunks = config.maxParallelChunks || ParallelDownloadService.getOptimalParallelChunks(file.size);
+            console.log(`[DownloadManager] 并行下载已启用，并行数: ${maxParallelChunks}`);
+          } else {
+            console.log(`[DownloadManager] 远程服务器不支持并行下载，降级为单线程`);
+          }
+        } catch (error) {
+          console.warn(`[DownloadManager] 检查并行下载支持失败:`, error);
+        }
+      }
+
       // 检查是否有未完成的下载（断点续传）
       let resumePosition = 0;
       if (fs.existsSync(tempPath)) {
@@ -249,7 +280,12 @@ class DownloadManager {
         compressionMethod: compressionStrategy.method,
         originalSize: file.size,
         compressionRatio: compressionStrategy.estimatedRatio,
-        compressionPhase: compressionStrategy.enabled ? 'compressing' : undefined
+        compressionPhase: compressionStrategy.enabled ? 'compressing' : undefined,
+        // 并行下载相关字段
+        parallelEnabled,
+        maxParallelChunks,
+        parallelSupported,
+        downloadChunks: []
       };
 
       this.tasks.set(taskId, taskInfo);
@@ -273,7 +309,7 @@ class DownloadManager {
    * 执行下载
    */
   private async performDownload(taskInfo: DownloadTaskInfo): Promise<void> {
-    const { taskId, file, config, localPath, tempPath } = taskInfo;
+    const { taskId, file, config, tempPath } = taskInfo;
 
     try {
       // 构造正确的connectionId（与SFTP连接管理器保持一致）
@@ -292,77 +328,30 @@ class DownloadManager {
         throw new Error('远程文件不存在');
       }
 
-      // 如果启用了压缩，使用压缩下载
+      // 选择下载策略
+      console.log(`[DownloadManager] 选择下载策略 - 压缩: ${taskInfo.compressionEnabled}, 并行: ${taskInfo.parallelEnabled}, 断点: ${taskInfo.resumePosition || 0}`);
+
       if (taskInfo.compressionEnabled && taskInfo.compressionMethod !== 'none') {
-        console.log(`[DownloadManager] 开始压缩下载: ${taskId}, 方法: ${taskInfo.compressionMethod}`);
-        await this.performCompressedDownload(taskInfo, connectionId);
-        return;
-      } else {
-        console.log(`[DownloadManager] 使用普通下载: ${taskId}, 压缩启用: ${taskInfo.compressionEnabled}, 方法: ${taskInfo.compressionMethod}`);
-      }
-
-      // 创建写入流（支持断点续传）
-      const writeStream = fs.createWriteStream(tempPath!, { flags: 'a' }); // 追加模式
-
-      // 分块下载参数
-      const chunkSize = 64 * 1024; // 64KB per chunk
-      const total = file.size;
-      let transferred = taskInfo.resumePosition || 0;
-
-      try {
-        while (transferred < total && !taskInfo.abortController?.signal.aborted) {
-          const remainingBytes = total - transferred;
-          const currentChunkSize = Math.min(chunkSize, remainingBytes);
-
-          // 读取文件块
-          const result = await sftpManager.readFile(
-            connectionId,
-            file.path,
-            transferred,
-            currentChunkSize,
-            'binary'
-          );
-
-          // 写入本地文件
-          const buffer = Buffer.from(result.content, 'binary');
-          writeStream.write(buffer);
-
-          transferred += result.bytesRead;
-
-          // 更新进度
-          this.updateProgress(taskInfo, transferred, total);
-
-          // 检查是否被取消
-          if (taskInfo.abortController?.signal.aborted) {
-            break;
-          }
-        }
-
-        writeStream.end();
-
-        // 检查是否完整下载
-        if (transferred >= total && !taskInfo.abortController?.signal.aborted) {
-          // 下载完成，将临时文件重命名为最终文件
-          if (fs.existsSync(localPath)) {
-            fs.unlinkSync(localPath); // 删除已存在的文件
-          }
-          fs.renameSync(tempPath!, localPath);
-          this.handleDownloadCompleted(taskId, localPath);
-        } else if (taskInfo.isPaused) {
-          // 下载被暂停，保留临时文件
-          console.log(`[DownloadManager] 下载暂停，已保存到位置 ${transferred}`);
+        // 压缩下载
+        if (taskInfo.parallelEnabled && taskInfo.maxParallelChunks! > 1) {
+          console.log(`[DownloadManager] 开始压缩+并行下载: ${taskId}, 方法: ${taskInfo.compressionMethod}, 并行数: ${taskInfo.maxParallelChunks}, 断点: ${taskInfo.resumePosition || 0}`);
+          await this.performCompressedParallelDownload(taskInfo, connectionId);
         } else {
-          // 下载被取消，删除临时文件
-          if (fs.existsSync(tempPath!)) {
-            fs.unlinkSync(tempPath!);
-          }
-          this.handleDownloadCancelled(taskId);
+          console.log(`[DownloadManager] 开始压缩下载: ${taskId}, 方法: ${taskInfo.compressionMethod}, 断点: ${taskInfo.resumePosition || 0}`);
+          await this.performCompressedDownload(taskInfo, connectionId);
         }
-
-      } catch (error) {
-        writeStream.destroy();
-        throw error;
+        return;
       }
+
+      // 如果启用了并行下载，使用并行下载
+      if (taskInfo.parallelEnabled && taskInfo.maxParallelChunks! > 1) {
+        console.log(`[DownloadManager] 开始并行下载: ${taskId}, 并行数: ${taskInfo.maxParallelChunks}, 断点: ${taskInfo.resumePosition || 0}`);
+        await this.performParallelDownload(taskInfo, connectionId);
+        return;
+      }
+
+      console.log(`[DownloadManager] 使用普通下载: ${taskId}, 断点: ${taskInfo.resumePosition || 0}`);
+      await this.performNormalDownload(taskInfo, connectionId);
 
     } catch (error) {
       if (taskInfo.abortController?.signal.aborted) {
@@ -428,31 +417,17 @@ class DownloadManager {
           // 更新任务的压缩阶段
           taskInfo.compressionPhase = phase;
 
-          // 根据阶段调整进度报告
-          let adjustedTransferred = transferred;
-          let adjustedTotal = total;
-
-          switch (phase) {
-            case 'compressing':
-              // 压缩阶段占总进度的10%
-              adjustedTransferred = Math.min(transferred, total * 0.1);
-              adjustedTotal = total;
-              break;
-            case 'downloading':
-              // 下载阶段占总进度的80%（10%-90%）
-              adjustedTransferred = total * 0.1 + (transferred / total) * total * 0.8;
-              adjustedTotal = total;
-              break;
-            case 'extracting':
-              // 解压阶段占总进度的10%（90%-100%）
-              adjustedTransferred = total * 0.9 + (transferred / total) * total * 0.1;
-              adjustedTotal = total;
-              break;
-          }
-
-          this.updateProgress(taskInfo, adjustedTransferred, adjustedTotal);
+          // 直接使用传入的进度值，因为CompressionDownloadService已经做了映射
+          this.updateProgress(taskInfo, transferred, total);
         },
-        abortSignal: taskInfo.abortController?.signal
+        abortSignal: taskInfo.abortController?.signal,
+        resumePosition: taskInfo.resumePosition,
+        remoteTempPath: taskInfo.remoteTempPath,
+        onRemotePathCreated: (remotePath) => {
+          // 保存远程压缩文件路径
+          taskInfo.remoteTempPath = remotePath;
+          console.log(`[DownloadManager] 保存远程压缩文件路径: ${remotePath}`);
+        }
       });
 
       // 压缩下载完成
@@ -516,31 +491,157 @@ class DownloadManager {
   }
 
   /**
+   * 执行并行下载
+   */
+  private async performParallelDownload(taskInfo: DownloadTaskInfo, connectionId: string): Promise<void> {
+    const { taskId, file, localPath, tempPath } = taskInfo;
+
+    try {
+      await ParallelDownloadService.performParallelDownload({
+        taskId,
+        file,
+        sessionId: taskInfo.config.sessionId,
+        localPath,
+        tempPath: tempPath!,
+        maxParallelChunks: taskInfo.maxParallelChunks!,
+        onProgress: (transferred, total, chunks) => {
+          // 更新任务的下载块信息
+          taskInfo.downloadChunks = chunks;
+
+          // 更新进度
+          this.updateProgress(taskInfo, transferred, total);
+        },
+        abortSignal: taskInfo.abortController?.signal,
+        resumePosition: taskInfo.resumePosition
+      });
+
+      // 并行下载完成
+      this.handleDownloadCompleted(taskId, localPath);
+
+    } catch (error) {
+      if (taskInfo.abortController?.signal.aborted) {
+        if (taskInfo.isPaused) {
+          console.log(`[DownloadManager] 并行下载暂停: ${taskId}`);
+        } else {
+          this.handleDownloadCancelled(taskId);
+        }
+      } else {
+        console.error(`[DownloadManager] 并行下载失败: ${taskId}`, error);
+        // 如果并行下载失败，尝试降级到普通下载
+        console.log(`[DownloadManager] 降级到普通下载: ${taskId}`);
+        taskInfo.parallelEnabled = false;
+        taskInfo.maxParallelChunks = 1;
+        taskInfo.downloadChunks = [];
+
+        // 重新开始普通下载
+        await this.performNormalDownload(taskInfo, connectionId);
+      }
+    }
+  }
+
+  /**
+   * 执行压缩+并行下载
+   */
+  private async performCompressedParallelDownload(taskInfo: DownloadTaskInfo, connectionId: string): Promise<void> {
+    const { taskId, file, localPath, tempPath } = taskInfo;
+
+    // 检查压缩方法是否有效
+    const method = taskInfo.compressionMethod!;
+    if (method === 'none') {
+      throw new Error('压缩方法不能为none');
+    }
+
+    // 构建压缩策略
+    const strategy: CompressionStrategy = {
+      enabled: true,
+      method: method,
+      command: this.getCompressionCommand(method),
+      extension: this.getCompressionExtension(method),
+      estimatedRatio: this.getEstimatedRatio(method)
+    };
+
+    try {
+      // 使用压缩下载服务，但在下载阶段启用并行
+      await CompressionDownloadService.performCompressedDownload({
+        taskId,
+        file,
+        sessionId: taskInfo.config.sessionId,
+        localPath,
+        tempPath: tempPath!,
+        strategy,
+        // 传递并行下载参数
+        useParallel: true,
+        maxParallelChunks: taskInfo.maxParallelChunks!,
+        onProgress: (transferred, total, phase) => {
+          // 更新任务的压缩阶段
+          taskInfo.compressionPhase = phase;
+
+          // 直接使用传入的进度值
+          this.updateProgress(taskInfo, transferred, total);
+        },
+        abortSignal: taskInfo.abortController?.signal,
+        resumePosition: taskInfo.resumePosition
+      });
+
+      // 压缩+并行下载完成
+      this.handleDownloadCompleted(taskId, localPath);
+
+    } catch (error) {
+      if (taskInfo.abortController?.signal.aborted) {
+        if (taskInfo.isPaused) {
+          console.log(`[DownloadManager] 压缩+并行下载暂停: ${taskId}`);
+        } else {
+          this.handleDownloadCancelled(taskId);
+        }
+      } else {
+        console.error(`[DownloadManager] 压缩+并行下载失败: ${taskId}`, error);
+        // 降级到普通压缩下载
+        console.log(`[DownloadManager] 降级到普通压缩下载: ${taskId}`);
+        taskInfo.parallelEnabled = false;
+        taskInfo.maxParallelChunks = 1;
+        taskInfo.downloadChunks = [];
+
+        // 重新开始压缩下载
+        await this.performCompressedDownload(taskInfo, connectionId);
+      }
+    }
+  }
+
+  /**
    * 执行普通下载（非压缩）
    */
   private async performNormalDownload(taskInfo: DownloadTaskInfo, connectionId: string): Promise<void> {
     const { taskId, file, localPath, tempPath } = taskInfo;
 
-    // 这里是原来的普通下载逻辑，从原来的performDownload方法移过来
     // 创建写入流（支持断点续传）
     const writeStream = fs.createWriteStream(tempPath!, { flags: 'a' }); // 追加模式
 
-    // 分块下载参数
-    const chunkSize = 64 * 1024; // 64KB per chunk
+    // 自适应缓冲区配置
+    const bufferConfig = {
+      initialChunkSize: 1024 * 1024, // 1MB
+      minChunkSize: 256 * 1024,      // 256KB
+      maxChunkSize: 8 * 1024 * 1024, // 8MB
+      speedThreshold: 1024 * 1024,   // 1MB/s
+      adjustmentFactor: 1.5
+    };
+
+    let currentChunkSize = bufferConfig.initialChunkSize;
     const total = file.size;
     let transferred = taskInfo.resumePosition || 0;
+    let lastSpeedCheck = Date.now();
+    let lastTransferred = transferred;
 
     try {
       while (transferred < total && !taskInfo.abortController?.signal.aborted) {
         const remainingBytes = total - transferred;
-        const currentChunkSize = Math.min(chunkSize, remainingBytes);
+        const readSize = Math.min(currentChunkSize, remainingBytes);
 
         // 读取文件块
         const result = await sftpManager.readFile(
           connectionId,
           file.path,
           transferred,
-          currentChunkSize,
+          readSize,
           'binary'
         );
 
@@ -550,12 +651,35 @@ class DownloadManager {
 
         transferred += result.bytesRead;
 
+        // 自适应调整块大小
+        const now = Date.now();
+        if (now - lastSpeedCheck > 1000) { // 每秒检查一次
+          const timeDiff = (now - lastSpeedCheck) / 1000;
+          const bytesDiff = transferred - lastTransferred;
+          const speed = bytesDiff / timeDiff;
+
+          if (speed > bufferConfig.speedThreshold) {
+            // 速度快，增加块大小
+            currentChunkSize = Math.min(bufferConfig.maxChunkSize, currentChunkSize * bufferConfig.adjustmentFactor);
+          } else if (speed < bufferConfig.speedThreshold / 2) {
+            // 速度慢，减少块大小
+            currentChunkSize = Math.max(bufferConfig.minChunkSize, currentChunkSize / bufferConfig.adjustmentFactor);
+          }
+
+          lastSpeedCheck = now;
+          lastTransferred = transferred;
+        }
+
         // 更新进度
         this.updateProgress(taskInfo, transferred, total);
 
         // 检查是否被取消
         if (taskInfo.abortController?.signal.aborted) {
           break;
+        }
+
+        if (result.bytesRead < readSize) {
+          break; // 读取完成
         }
       }
 
@@ -596,21 +720,28 @@ class DownloadManager {
     // 限制更新频率，避免过于频繁的UI更新
     if (timeDiff < 0.05) return; // 最多每50ms更新一次，提高响应性
 
-    // 计算瞬时速度
+    // 计算瞬时速度，确保不为负数
     const bytesDiff = transferred - taskInfo.lastTransferred;
-    const instantSpeed = timeDiff > 0 ? bytesDiff / timeDiff : 0;
+    let instantSpeed = 0;
+    if (timeDiff > 0 && bytesDiff >= 0) {
+      instantSpeed = bytesDiff / timeDiff;
+    }
 
     // 使用移动平均来平滑速度计算
     if (!taskInfo.speedSamples) {
       taskInfo.speedSamples = [];
     }
 
-    taskInfo.speedSamples.push(instantSpeed);
-    if (taskInfo.speedSamples.length > 10) {
-      taskInfo.speedSamples.shift();
+    // 只有在速度为正数时才添加到样本中
+    if (instantSpeed >= 0) {
+      taskInfo.speedSamples.push(instantSpeed);
+      if (taskInfo.speedSamples.length > 10) {
+        taskInfo.speedSamples.shift();
+      }
     }
 
-    const averageSpeed = taskInfo.speedSamples.reduce((sum, speed) => sum + speed, 0) / taskInfo.speedSamples.length;
+    // 确保平均速度不为负数
+    const averageSpeed = Math.max(0, taskInfo.speedSamples.reduce((sum, speed) => sum + speed, 0) / Math.max(1, taskInfo.speedSamples.length));
 
     // 计算剩余时间
     const remainingBytes = total - transferred;
@@ -629,7 +760,11 @@ class DownloadManager {
       compressionPhase: taskInfo.compressionPhase,
       originalSize: taskInfo.originalSize,
       compressedSize: taskInfo.compressedSize,
-      compressionRatio: taskInfo.compressionRatio
+      compressionRatio: taskInfo.compressionRatio,
+      // 并行下载相关进度信息
+      downloadChunks: taskInfo.downloadChunks,
+      parallelEnabled: taskInfo.parallelEnabled,
+      activeChunks: taskInfo.downloadChunks ? taskInfo.downloadChunks.filter(c => c.status === 'downloading').length : 0
     };
 
     // 更新记录
@@ -649,6 +784,9 @@ class DownloadManager {
       taskInfo.isPaused = true;
       taskInfo.abortController.abort();
       console.log(`[DownloadManager] 暂停下载任务: ${taskId}`);
+
+      // 通知渲染进程暂停状态
+      this.notifyPaused(taskId);
     }
   }
 
@@ -663,12 +801,41 @@ class DownloadManager {
       taskInfo.abortController = new AbortController();
 
       // 检查临时文件大小，更新断点位置
-      if (taskInfo.tempPath && fs.existsSync(taskInfo.tempPath)) {
-        const stats = fs.statSync(taskInfo.tempPath);
+      let resumeFileToCheck = taskInfo.tempPath;
+
+      // 对于压缩下载，检查压缩文件的临时文件
+      if (taskInfo.compressionEnabled && taskInfo.compressionMethod !== 'none') {
+        const extension = this.getCompressionExtension(taskInfo.compressionMethod!);
+        if (taskInfo.parallelEnabled && taskInfo.maxParallelChunks! > 1) {
+          // 压缩+并行下载：检查 .gz.tmp 文件
+          resumeFileToCheck = taskInfo.tempPath + extension + '.tmp';
+        } else {
+          // 仅压缩下载：检查 .gz 文件
+          resumeFileToCheck = taskInfo.tempPath + extension;
+        }
+        console.log(`[DownloadManager] 压缩下载，检查文件: ${resumeFileToCheck}`);
+      }
+
+      if (resumeFileToCheck && fs.existsSync(resumeFileToCheck)) {
+        const stats = fs.statSync(resumeFileToCheck);
         taskInfo.resumePosition = stats.size;
         taskInfo.lastTransferred = stats.size;
         console.log(`[DownloadManager] 恢复下载任务: ${taskId}，从位置 ${stats.size} 继续`);
+        console.log(`[DownloadManager] 任务配置 - 压缩: ${taskInfo.compressionEnabled}, 并行: ${taskInfo.parallelEnabled}`);
+        console.log(`[DownloadManager] 检查文件: ${resumeFileToCheck}, 大小: ${stats.size}`);
+
+        // 断点续传：压缩和并行下载现在都支持断点续传
+        console.log(`[DownloadManager] 断点续传支持所有下载模式: ${taskId}`);
+      } else {
+        console.log(`[DownloadManager] 临时文件不存在或路径无效: ${resumeFileToCheck}`);
+        taskInfo.resumePosition = 0;
       }
+
+      // 通知渲染进程恢复状态
+      this.notifyResumed(taskId);
+
+      // 添加短暂延迟，确保之前的文件句柄完全释放
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // 重新开始下载
       this.performDownload(taskInfo).catch(error => {
@@ -693,6 +860,18 @@ class DownloadManager {
    * 处理下载完成
    */
   private handleDownloadCompleted(taskId: string, filePath: string): void {
+    const taskInfo = this.tasks.get(taskId);
+
+    // 如果设置了打开文件夹，则打开
+    if (taskInfo?.config.openFolder) {
+      try {
+        shell.showItemInFolder(filePath);
+        console.log(`[DownloadManager] 已打开文件夹: ${filePath}`);
+      } catch (error) {
+        console.error(`[DownloadManager] 打开文件夹失败:`, error);
+      }
+    }
+
     this.tasks.delete(taskId);
     this.notifyCompleted(taskId, filePath);
   }
@@ -747,6 +926,24 @@ class DownloadManager {
   private notifyCancelled(taskId: string): void {
     BrowserWindow.getAllWindows().forEach(window => {
       window.webContents.send('download-cancelled', { taskId });
+    });
+  }
+
+  /**
+   * 通知下载暂停
+   */
+  private notifyPaused(taskId: string): void {
+    BrowserWindow.getAllWindows().forEach(window => {
+      window.webContents.send('download-paused', { taskId });
+    });
+  }
+
+  /**
+   * 通知下载恢复
+   */
+  private notifyResumed(taskId: string): void {
+    BrowserWindow.getAllWindows().forEach(window => {
+      window.webContents.send('download-resumed', { taskId });
     });
   }
 }

@@ -80,7 +80,7 @@
 }
 
 /* 文件信息卡片 */
-.file-info-card {
+.download-dialog .download-file-info-card {
   background: #fafafa;
   border: 1px solid #d9d9d9;
   border-left: 3px solid #1890ff;
@@ -89,25 +89,25 @@
   margin-bottom: 24px;
 }
 
-.file-info-header {
+.download-dialog .download-file-info-header {
   display: flex;
   align-items: flex-start;
   gap: 12px;
 }
 
-.file-icon {
+.download-dialog .download-file-icon {
   font-size: 20px;
   color: #1890ff;
   margin-top: 2px;
   flex-shrink: 0;
 }
 
-.file-details {
+.download-dialog .download-file-details {
   flex: 1;
   min-width: 0;
 }
 
-.file-name {
+.download-dialog .download-file-name {
   font-size: 14px;
   font-weight: 500;
   color: rgba(0, 0, 0, 0.88);
@@ -115,18 +115,18 @@
   word-break: break-all;
 }
 
-.file-meta {
+.download-dialog .download-file-meta {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.file-meta .ant-typography {
+.download-dialog .download-file-meta .ant-typography {
   color: rgba(0, 0, 0, 0.65) !important;
   font-size: 12px !important;
 }
 
-.file-path {
+.download-dialog .download-file-path {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
   word-break: break-all;

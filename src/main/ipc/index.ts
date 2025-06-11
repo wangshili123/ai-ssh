@@ -3,6 +3,7 @@ import { initSSHHandlers } from './ssh';
 import { registerSFTPHandlers } from './sftp';
 import { registerEditorHandlers } from './editor';
 import { registerDownloadHandlers } from './download';
+import { uploadIPCHandler } from './upload';
 import { ipcMain, app } from 'electron';
 
 /**
@@ -31,6 +32,10 @@ export function registerAllHandlers(): void {
     // 注册下载处理程序
     console.log('注册下载处理程序...');
     registerDownloadHandlers();
+
+    // 注册上传处理程序
+    console.log('注册上传处理程序...');
+    uploadIPCHandler.registerHandlers();
 
     // 添加获取应用路径的处理程序
     console.log('注册获取应用路径的处理程序...');

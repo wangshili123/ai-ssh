@@ -4,8 +4,249 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI SSH Tool</title>
+    <style>
+      /* 初始加载页面样式 */
+      .initial-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        color: white;
+        transition: opacity 0.5s ease-out;
+      }
+
+      .initial-loading.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .loading-logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 30px;
+        position: relative;
+      }
+
+      .logo-icon {
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        animation: logoFloat 3s ease-in-out infinite;
+      }
+
+      @keyframes logoFloat {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+      }
+
+      .loading-title {
+        font-size: 28px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .loading-subtitle {
+        font-size: 16px;
+        opacity: 0.8;
+        margin-bottom: 40px;
+        text-align: center;
+        line-height: 1.5;
+      }
+
+      .loading-progress {
+        width: 300px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #00d4ff, #090979);
+        border-radius: 2px;
+        animation: progressAnimation 2s ease-in-out infinite;
+        transform: translateX(-100%);
+      }
+
+      @keyframes progressAnimation {
+        0% { transform: translateX(-100%); }
+        50% { transform: translateX(0%); }
+        100% { transform: translateX(100%); }
+      }
+
+      .loading-dots {
+        display: flex;
+        gap: 8px;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        background: white;
+        border-radius: 50%;
+        animation: dotPulse 1.5s ease-in-out infinite;
+      }
+
+      .dot:nth-child(1) { animation-delay: 0s; }
+      .dot:nth-child(2) { animation-delay: 0.2s; }
+      .dot:nth-child(3) { animation-delay: 0.4s; }
+
+      @keyframes dotPulse {
+        0%, 60%, 100% { opacity: 0.3; transform: scale(1); }
+        30% { opacity: 1; transform: scale(1.2); }
+      }
+
+      .loading-features {
+        position: absolute;
+        bottom: 60px;
+        text-align: center;
+        opacity: 0.7;
+        font-size: 14px;
+      }
+
+      .feature-list {
+        display: flex;
+        gap: 30px;
+        justify-content: center;
+        margin-top: 10px;
+      }
+
+      .feature-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        animation: featureSlideIn 0.8s ease-out forwards;
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      .feature-item:nth-child(1) { animation-delay: 1s; }
+      .feature-item:nth-child(2) { animation-delay: 1.3s; }
+      .feature-item:nth-child(3) { animation-delay: 1.6s; }
+
+      @keyframes featureSlideIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .feature-icon {
+        width: 16px;
+        height: 16px;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        animation: iconPulse 2s ease-in-out infinite;
+      }
+
+      @keyframes iconPulse {
+        0%, 100% {
+          transform: scale(1);
+          background: rgba(255, 255, 255, 0.6);
+        }
+        50% {
+          transform: scale(1.1);
+          background: rgba(255, 255, 255, 0.8);
+        }
+      }
+
+      /* 隐藏滚动条 */
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      #root {
+        width: 100%;
+        height: 100vh;
+      }
+    </style>
   </head>
   <body>
+    <!-- 初始加载页面 -->
+    <div id="initial-loading" class="initial-loading">
+      <div class="loading-logo">
+        <div class="logo-icon">🚀</div>
+      </div>
+
+      <div class="loading-title">AI SSH Tool</div>
+      <div class="loading-subtitle">
+        智能SSH客户端正在启动<br>
+        为您准备最佳的终端体验
+      </div>
+
+      <div class="loading-progress">
+        <div class="progress-bar"></div>
+      </div>
+
+      <div class="loading-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+
+      <div class="loading-features">
+        <div>强大功能即将就绪</div>
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-icon">🧠</div>
+            <span>AI智能补全</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">⚡</div>
+            <span>多标签终端</span>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">📁</div>
+            <span>文件管理</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="root"></div>
+
+    <script>
+      // 当React应用加载完成后隐藏初始加载页面
+      window.hideInitialLoading = function() {
+        const loadingElement = document.getElementById('initial-loading');
+        if (loadingElement) {
+          loadingElement.classList.add('fade-out');
+          setTimeout(() => {
+            loadingElement.style.display = 'none';
+          }, 500);
+        }
+      };
+
+      // 设置最大加载时间，防止加载页面一直显示
+      setTimeout(() => {
+        if (window.hideInitialLoading) {
+          window.hideInitialLoading();
+        }
+      }, 10000); // 10秒后强制隐藏
+    </script>
   </body>
-</html> 
+</html>

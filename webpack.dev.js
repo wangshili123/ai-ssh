@@ -11,11 +11,24 @@ const { merge } = require('webpack-merge');
 const common = require('./webpack.common.js');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
+const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 module.exports = merge(common, {
   mode: 'development',
-  devtool: 'inline-source-map',
+  devtool: 'eval-cheap-module-source-map', // 更快的source map
   target: 'electron-renderer',
+  cache: {
+    type: 'filesystem',
+    buildDependencies: {
+      config: [__filename]
+    },
+    cacheDirectory: path.resolve(__dirname, '.webpack-cache')
+  },
+  optimization: {
+    removeAvailableModules: false,
+    removeEmptyChunks: false,
+    splitChunks: false,
+  },
   node: {
     __dirname: false,
     __filename: false
@@ -36,7 +49,17 @@ module.exports = merge(common, {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
+        use: {
+          loader: 'ts-loader',
+          options: {
+            transpileOnly: true, // 只转译，不做类型检查，提升速度
+            experimentalWatchApi: true, // 启用实验性监听API
+            compilerOptions: {
+              skipLibCheck: true,
+              skipDefaultLibCheck: true
+            }
+          }
+        },
         exclude: /node_modules/
       },
       {
@@ -106,14 +129,7 @@ module.exports = merge(common, {
           from: 'node_modules/tree-sitter-bash/tree-sitter-bash.wasm',
           to: 'wasm/'
         },
-        {
-          from: 'node_modules/monaco-editor/min/vs',
-          to: 'vs'
-        },
-        {
-          from: 'node_modules/monaco-editor/min-maps',
-          to: 'min-maps'
-        }
+
       ]
     }),
     new webpack.ProvidePlugin({
@@ -121,11 +137,61 @@ module.exports = merge(common, {
     }),
     new webpack.DefinePlugin({
       'process.env.TREE_SITTER_WASM_PATH': JSON.stringify('/wasm/tree-sitter.wasm')
+    }),
+    new MonacoWebpackPlugin({
+      languages: ['typescript', 'javascript', 'json'], // 进一步减少语言包
+      features: [
+        '!accessibilityHelp',
+        '!bracketMatching',
+        '!caretOperations',
+        '!clipboard',
+        '!codeAction',
+        '!codelens',
+        '!colorDetector',
+        '!comment',
+        '!contextmenu',
+        '!coreCommands',
+        '!cursorUndo',
+        '!dnd',
+        '!find',
+        '!folding',
+        '!fontZoom',
+        '!format',
+        '!gotoError',
+        '!gotoLine',
+        '!gotoSymbol',
+        '!hover',
+        '!iPadShowKeyboard',
+        '!inPlaceReplace',
+        '!inspectTokens',
+        '!linesOperations',
+        '!links',
+        '!multicursor',
+        '!parameterHints',
+        '!quickCommand',
+        '!quickOutline',
+        '!referenceSearch',
+        '!rename',
+        '!smartSelect',
+        '!snippets',
+        '!suggest',
+        '!toggleHighContrast',
+        '!toggleTabFocusMode',
+        '!transpose',
+        '!wordHighlighter',
+        '!wordOperations',
+        '!wordPartOperations'
+      ]
     })
   ],
   devServer: {
     port: localConfig.devPort,
     hot: true,
+    liveReload: false, // 禁用live reload，只使用HMR
+    compress: false, // 开发环境禁用压缩
+    client: {
+      logging: 'warn' // 减少客户端日志
+    },
     static: [
       {
         directory: path.join(__dirname, 'dist/renderer'),
@@ -139,14 +205,7 @@ module.exports = merge(common, {
         directory: path.join(__dirname, 'node_modules/tree-sitter-bash'),
         publicPath: '/wasm'
       },
-      {
-        directory: path.join(__dirname, 'node_modules/monaco-editor/min'),
-        publicPath: '/'
-      },
-      {
-        directory: path.join(__dirname, 'node_modules/monaco-editor/min-maps'),
-        publicPath: '/min-maps'
-      }
+
     ],
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',

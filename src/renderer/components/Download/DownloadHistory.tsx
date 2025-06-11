@@ -91,13 +91,14 @@ export const DownloadHistory: React.FC<DownloadHistoryProps> = ({
     const statusConfig = {
       pending: { color: 'blue', icon: <DownloadOutlined />, text: '等待中' },
       downloading: { color: 'processing', icon: <DownloadOutlined />, text: '下载中' },
+      uploading: { color: 'processing', icon: <DownloadOutlined />, text: '上传中' },
       paused: { color: 'warning', icon: <PauseCircleOutlined />, text: '已暂停' },
       completed: { color: 'success', icon: <CheckCircleOutlined />, text: '已完成' },
       error: { color: 'error', icon: <ExclamationCircleOutlined />, text: '失败' },
       cancelled: { color: 'default', icon: <CloseCircleOutlined />, text: '已取消' }
     };
 
-    const config = statusConfig[status];
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     return (
       <Tag color={config.color} icon={config.icon}>
         {config.text}
@@ -107,12 +108,38 @@ export const DownloadHistory: React.FC<DownloadHistoryProps> = ({
 
   // 获取进度显示
   const getProgressDisplay = (task: DownloadTask) => {
+    const percentage = Math.round(task.progress.percentage); // 四舍五入到整数
+
     if (task.status === 'completed') {
-      return <Progress percent={100} size="small" status="success" />;
+      return (
+        <Progress
+          percent={100}
+          size="small"
+          status="success"
+          strokeColor="#52c41a"
+          trailColor="#f0f0f0"
+        />
+      );
     } else if (task.status === 'error' || task.status === 'cancelled') {
-      return <Progress percent={task.progress.percentage} size="small" status="exception" />;
+      return (
+        <Progress
+          percent={percentage}
+          size="small"
+          status="exception"
+          strokeColor="#ff4d4f"
+          trailColor="#f0f0f0"
+        />
+      );
     } else {
-      return <Progress percent={task.progress.percentage} size="small" />;
+      return (
+        <Progress
+          percent={percentage}
+          size="small"
+          strokeColor={task.status === 'paused' ? '#faad14' : '#1890ff'}
+          trailColor="#f0f0f0"
+          status="active"
+        />
+      );
     }
   };
 

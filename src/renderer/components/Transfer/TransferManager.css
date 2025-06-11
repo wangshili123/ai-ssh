@@ -1,0 +1,392 @@
+/**
+ * 统一传输管理器样式
+ * 基于下载管理器样式，支持上传和下载双模式
+ */
+
+.transfer-manager-modal.ant-modal .ant-modal-content {
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+}
+
+.transfer-manager-modal.ant-modal .ant-modal-header {
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.transfer-manager-modal.ant-modal .ant-modal-title {
+  color: rgba(0, 0, 0, 0.88);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.transfer-manager-modal.ant-modal .ant-modal-close {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.transfer-manager-modal.ant-modal .ant-modal-close:hover {
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.transfer-manager-modal.ant-modal .ant-modal-footer {
+  background: #ffffff;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* 管理器内容 */
+.transfer-manager-content {
+  max-height: 400px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 标签页样式 */
+.transfer-manager-tabs {
+  margin-bottom: 16px;
+}
+
+.transfer-manager-tabs .ant-tabs-nav {
+  background: #f5f5f5;
+  border-radius: 6px;
+  padding: 4px;
+  margin-bottom: 0;
+}
+
+.transfer-manager-tabs .ant-tabs-tab {
+  background: transparent;
+  border: none;
+  color: rgba(0, 0, 0, 0.65);
+  border-radius: 4px;
+  margin: 0 2px;
+  padding: 8px 16px;
+  transition: all 0.3s;
+}
+
+.transfer-manager-tabs .ant-tabs-tab:hover {
+  color: rgba(0, 0, 0, 0.88);
+  background: #e6f7ff;
+}
+
+.transfer-manager-tabs .ant-tabs-tab-active {
+  background: #1890ff !important;
+  color: #fff !important;
+}
+
+.transfer-manager-tabs .ant-tabs-tab-active:hover {
+  background: #40a9ff !important;
+  color: #fff !important;
+}
+
+.transfer-manager-tabs .ant-tabs-ink-bar {
+  display: none;
+}
+
+.transfer-manager-tabs .ant-tabs-content-holder {
+  display: none;
+}
+
+/* 统计信息 */
+.transfer-manager-stats {
+  padding: 8px 0;
+  background: #f5f5f5;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.transfer-manager-stats .ant-typography {
+  color: rgba(0, 0, 0, 0.88);
+  margin: 0;
+}
+
+.transfer-manager-stats .ant-divider-vertical {
+  border-color: #d9d9d9;
+  height: 16px;
+  margin: 0 12px;
+}
+
+/* 任务列表 */
+.transfer-manager-tasks {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 150px;
+  max-height: 280px;
+}
+
+.transfer-manager-task-list {
+  padding-right: 8px;
+}
+
+/* 滚动条样式 */
+.transfer-manager-tasks::-webkit-scrollbar {
+  width: 6px;
+}
+
+.transfer-manager-tasks::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+.transfer-manager-tasks::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 3px;
+}
+
+.transfer-manager-tasks::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+
+/* 空状态样式 */
+.transfer-manager-tasks .ant-empty {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.transfer-manager-tasks .ant-empty-description {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+/* 按钮样式 */
+.transfer-manager-modal.ant-modal .ant-btn {
+  background: #ffffff;
+  border: 1px solid #d9d9d9;
+  color: rgba(0, 0, 0, 0.88);
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.transfer-manager-modal.ant-modal .ant-btn:hover {
+  background: #f5f5f5;
+  border-color: #40a9ff;
+  color: #1890ff;
+}
+
+.transfer-manager-modal.ant-modal .ant-btn-primary {
+  background: #1890ff;
+  border-color: #1890ff;
+  color: #fff;
+}
+
+.transfer-manager-modal.ant-modal .ant-btn-primary:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+  color: #fff;
+}
+
+/* 分割线样式 */
+.transfer-manager-modal.ant-modal .ant-divider {
+  border-color: #f0f0f0;
+  margin: 12px 0;
+}
+
+/* 传输类型特定样式 */
+.transfer-manager-modal .transfer-upload {
+  border-left-color: #52c41a;
+}
+
+.transfer-manager-modal .transfer-download {
+  border-left-color: #1890ff;
+}
+
+/* 标签页图标颜色 */
+.transfer-manager-tabs .ant-tabs-tab .anticon-download {
+  color: #1890ff;
+}
+
+.transfer-manager-tabs .ant-tabs-tab .anticon-upload {
+  color: #52c41a;
+}
+
+.transfer-manager-tabs .ant-tabs-tab .anticon-swap {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.transfer-manager-tabs .ant-tabs-tab-active .anticon-download,
+.transfer-manager-tabs .ant-tabs-tab-active .anticon-upload,
+.transfer-manager-tabs .ant-tabs-tab-active .anticon-swap {
+  color: #fff;
+}
+
+/* 笔记本屏幕优化 (1366x768 等常见分辨率) */
+@media (max-height: 800px) {
+  .transfer-manager-modal.ant-modal {
+    width: 650px !important;
+  }
+
+  .transfer-manager-content {
+    max-height: 320px;
+  }
+
+  .transfer-manager-stats {
+    padding: 8px 12px;
+    margin-bottom: 12px;
+  }
+
+  .transfer-manager-stats .ant-typography {
+    font-size: 12px;
+  }
+
+  .transfer-manager-tabs .ant-tabs-tab {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .transfer-manager-tasks {
+    min-height: 120px;
+    max-height: 220px;
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .transfer-manager-modal.ant-modal {
+    width: 90vw !important;
+    margin: 20px;
+  }
+
+  .transfer-manager-content {
+    max-height: 60vh;
+  }
+
+  .transfer-manager-stats {
+    overflow-x: auto;
+    padding: 8px 12px;
+  }
+
+  .transfer-manager-stats .ant-space {
+    white-space: nowrap;
+  }
+
+  .transfer-manager-tabs .ant-tabs-tab {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .transfer-manager-tasks {
+    max-height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .transfer-manager-modal.ant-modal {
+    width: 95vw !important;
+    margin: 10px;
+  }
+
+  .transfer-manager-tabs .ant-tabs-nav {
+    padding: 2px;
+  }
+
+  .transfer-manager-tabs .ant-tabs-tab {
+    padding: 4px 8px;
+    font-size: 11px;
+    margin: 0 1px;
+  }
+
+  .transfer-manager-stats {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .transfer-manager-stats .ant-divider-vertical {
+    margin: 0 6px;
+  }
+
+  .transfer-manager-tasks {
+    max-height: 200px;
+  }
+}
+
+/* 暗色主题优化 */
+@media (prefers-color-scheme: dark) {
+  .transfer-manager-modal.ant-modal .ant-modal-content {
+    background: #141414;
+    border-color: #434343;
+  }
+
+  .transfer-manager-modal.ant-modal .ant-modal-header {
+    background: #141414;
+    border-bottom-color: #434343;
+  }
+
+  .transfer-manager-modal.ant-modal .ant-modal-footer {
+    background: #141414;
+    border-top-color: #434343;
+  }
+
+  .transfer-manager-modal.ant-modal .ant-modal-title {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .transfer-manager-tabs .ant-tabs-nav {
+    background: #1f1f1f;
+  }
+
+  .transfer-manager-tabs .ant-tabs-tab {
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  .transfer-manager-tabs .ant-tabs-tab:hover {
+    background: #262626;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .transfer-manager-stats {
+    background: #1f1f1f;
+  }
+
+  .transfer-manager-stats .ant-typography {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .transfer-manager-tasks::-webkit-scrollbar-track {
+    background: #1f1f1f;
+  }
+
+  .transfer-manager-tasks::-webkit-scrollbar-thumb {
+    background: #434343;
+  }
+
+  .transfer-manager-tasks::-webkit-scrollbar-thumb:hover {
+    background: #595959;
+  }
+
+  .transfer-manager-modal.ant-modal .ant-btn {
+    background: #1f1f1f;
+    border-color: #434343;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .transfer-manager-modal.ant-modal .ant-btn:hover {
+    background: #262626;
+    border-color: #595959;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .transfer-manager-modal.ant-modal .ant-divider {
+    border-color: #434343;
+  }
+}
+
+/* 动画效果 */
+.transfer-tabs .ant-tabs-tab {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transfer-stats {
+  transition: all 0.3s ease;
+}
+
+.task-list .transfer-progress {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

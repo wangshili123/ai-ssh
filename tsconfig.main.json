@@ -2,7 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "commonjs",
-    "outDir": "dist"
+    "outDir": "dist",
+    "incremental": true,
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "include": ["src/main/**/*"]
 } 

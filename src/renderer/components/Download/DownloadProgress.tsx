@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { Progress, Typography, Space, Button, Tag } from 'antd';
-import { PauseOutlined, PlayCircleOutlined, CloseOutlined, CompressOutlined, DownloadOutlined, FileZipOutlined } from '@ant-design/icons';
+import { PauseOutlined, PlayCircleOutlined, CloseOutlined, CompressOutlined, DownloadOutlined, FileZipOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import type { DownloadTask } from '../../services/downloadService';
 import { formatFileSize } from '../../utils/fileUtils';
 import './DownloadProgress.css';
@@ -26,7 +26,7 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
 }) => {
   // 格式化速度
   const formatSpeed = (bytesPerSecond: number): string => {
-    if (bytesPerSecond === 0) return '0 B/s';
+    if (bytesPerSecond === 0 || !isFinite(bytesPerSecond) || bytesPerSecond < 0) return '0 B/s';
     return `${formatFileSize(bytesPerSecond)}/s`;
   };
 
@@ -48,21 +48,38 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
   // 获取状态颜色
   const getStatusColor = (status: string): string => {
     switch (status) {
+      case 'pending':
+        return '#1890ff'; // 蓝色 - 准备中
       case 'downloading':
-        return '#1890ff';
+        return '#1890ff'; // 蓝色 - 下载中
       case 'completed':
-        return '#52c41a';
+        return '#52c41a'; // 绿色 - 已完成
       case 'error':
-        return '#ff4d4f';
+        return '#ff4d4f'; // 红色 - 错误
       case 'paused':
-        return '#faad14';
+        return '#faad14'; // 橙色 - 暂停
+      case 'cancelled':
+        return '#8c8c8c'; // 灰色 - 已取消
       default:
-        return '#8c8c8c';
+        return '#1890ff'; // 默认蓝色
     }
   };
 
   // 获取状态文本
-  const getStatusText = (status: string): string => {
+  const getStatusText = (status: string, compressionPhase?: string): string => {
+    if (status === 'downloading' && compressionPhase) {
+      switch (compressionPhase) {
+        case 'compressing':
+          return '正在压缩';
+        case 'downloading':
+          return '传输中';
+        case 'extracting':
+          return '正在解压';
+        default:
+          return '下载中';
+      }
+    }
+
     switch (status) {
       case 'pending':
         return '准备中';
@@ -98,11 +115,11 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
   return (
     <div className="download-progress">
       <div className="download-header">
-        <div className="file-info">
-          <Text strong className="file-name">
+        <div className="download-file-info">
+          <Text strong className="download-file-name">
             {task.file.name}
           </Text>
-          <Text type="secondary" className="file-size">
+          <Text type="secondary" className="download-file-size">
             {formatFileSize(task.file.size)}
           </Text>
         </div>
@@ -141,27 +158,20 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
         <Progress
           percent={Math.round(task.progress.percentage)}
           strokeColor={getStatusColor(task.status)}
+          trailColor="#f0f0f0"
           showInfo={false}
           size="small"
+          status={task.status === 'error' ? 'exception' : task.status === 'completed' ? 'success' : 'active'}
         />
         
         <div className="progress-info">
           <Space split={<span className="separator">•</span>}>
             <Text type="secondary" className="status-text">
-              {getStatusText(task.status)}
+              {getStatusText(task.status, task.progress.compressionPhase)}
             </Text>
 
-            {/* 压缩阶段显示 */}
-            {task.status === 'downloading' && task.progress.compressionPhase && (
-              <Tag
-                icon={getCompressionPhaseInfo(task.progress.compressionPhase).icon}
-                color={getCompressionPhaseInfo(task.progress.compressionPhase).color}
-              >
-                {getCompressionPhaseInfo(task.progress.compressionPhase).text}
-              </Tag>
-            )}
-
-            {task.status === 'downloading' && (
+            {/* 只在实际传输阶段显示速度和剩余时间 */}
+            {task.status === 'downloading' && (!task.progress.compressionPhase || task.progress.compressionPhase === 'transferring') && (
               <>
                 <Text type="secondary">
                   {formatSpeed(task.progress.speed)}
@@ -175,16 +185,49 @@ export const DownloadProgress: React.FC<DownloadProgressProps> = ({
             <Text type="secondary">
               {formatFileSize(task.progress.transferred)} / {formatFileSize(task.progress.total)}
             </Text>
+          </Space>
+        </div>
+      </div>
 
-            {/* 压缩效果显示 */}
+      {/* 状态标签区域 - 独立一行 */}
+      {(task.status === 'downloading' || task.compressionEnabled || task.parallelEnabled) && (
+        <div className="status-tags-section">
+          <Space size="small" wrap>
+            {/* 压缩阶段显示 */}
+            {task.status === 'downloading' && task.progress.compressionPhase && (
+              <Tag
+                icon={getCompressionPhaseInfo(task.progress.compressionPhase).icon}
+                color={getCompressionPhaseInfo(task.progress.compressionPhase).color}
+              >
+                {getCompressionPhaseInfo(task.progress.compressionPhase).text}
+              </Tag>
+            )}
+
+            {/* 并行下载状态显示 */}
+            {task.status === 'downloading' && task.parallelEnabled && task.transferChunks && (
+              <Tag
+                icon={<ThunderboltOutlined />}
+                color="blue"
+              >
+                并行 {task.progress.activeChunks || task.transferChunks.filter((c: any) => c.status === 'transferring').length}/{task.maxParallelChunks}
+              </Tag>
+            )}
+
+            {/* 优化效果显示 */}
             {task.compressionEnabled && task.progress.compressionRatio && task.progress.compressionRatio < 0.9 && (
               <Tag color="green">
                 压缩节省 {((1 - task.progress.compressionRatio) * 100).toFixed(0)}%
               </Tag>
             )}
+
+            {task.parallelEnabled && task.maxParallelChunks && task.maxParallelChunks > 1 && (
+              <Tag color="blue">
+                并行提速 {task.maxParallelChunks}x
+              </Tag>
+            )}
           </Space>
         </div>
-      </div>
+      )}
 
       {task.status === 'error' && task.error && (
         <div className="error-message">
