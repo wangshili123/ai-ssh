@@ -24,6 +24,7 @@ export interface FileListContextMenuProps {
   onDownloadRequest?: (file: FileEntry, selectedFiles: FileEntry[]) => void;
   onUploadRequest?: (currentPath: string) => void;
   onFileDeleted?: () => void;  // 新增：文件删除后的回调
+  onCreateRequest?: (type: 'file' | 'folder') => void;  // 新增：创建请求回调
 }
 
 export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
@@ -37,7 +38,8 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
   onClose,
   onDownloadRequest,
   onUploadRequest,
-  onFileDeleted
+  onFileDeleted,
+  onCreateRequest
 }) => {
   // 添加 ref 用于获取菜单 DOM 元素
   const menuRef = useRef<HTMLDivElement>(null);
@@ -119,6 +121,18 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
   const menuItems = useMemo(() => {
     console.log('[FileListContextMenu] 生成菜单项配置');
     return [
+      // 新建选项
+      {
+        key: 'create-folder',
+        label: '新建文件夹'
+      },
+      {
+        key: 'create-file',
+        label: '新建文件'
+      },
+      {
+        type: 'divider' as const
+      },
       // 下载选项 - 支持单个文件和批量下载
       ...(() => {
         const downloadableFiles = selectedFiles.filter(f => !f.isDirectory);
@@ -202,6 +216,22 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
 
   const handleClick: MenuProps['onClick'] = async (info) => {
     console.log('[FileListContextMenu] 菜单点击事件:', info.key);
+
+    // 处理新建文件夹菜单项
+    if (info.key === 'create-folder') {
+      console.log('[FileListContextMenu] 新建文件夹被点击');
+      onCreateRequest?.('folder');
+      onClose(); // 点击菜单项后立即关闭右键菜单
+      return;
+    }
+
+    // 处理新建文件菜单项
+    if (info.key === 'create-file') {
+      console.log('[FileListContextMenu] 新建文件被点击');
+      onCreateRequest?.('file');
+      onClose(); // 点击菜单项后立即关闭右键菜单
+      return;
+    }
 
     // 处理下载菜单项
     if (info.key === 'download') {
@@ -305,28 +335,24 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
 
 
   return (
-    <>
-      <div
-        className="file-list-context-menu"
-        style={{
-          position: 'fixed',
-          left: menuPosition.x,
-          top: menuPosition.y,
-          zIndex: 1000
-        }}
-        ref={menuRef}
-      >
-        <Menu
-          mode="vertical"
-          items={menuItems}
-          onClick={handleClick}
-          className="context-menu"
-          selectable={false}
-          triggerSubMenuAction="hover"
-        />
-      </div>
-
-
-    </>
+    <div
+      className="file-list-context-menu"
+      style={{
+        position: 'fixed',
+        left: menuPosition.x,
+        top: menuPosition.y,
+        zIndex: 1000
+      }}
+      ref={menuRef}
+    >
+      <Menu
+        mode="vertical"
+        items={menuItems}
+        onClick={handleClick}
+        className="context-menu"
+        selectable={false}
+        triggerSubMenuAction="hover"
+      />
+    </div>
   );
 };

@@ -7,6 +7,8 @@ import { getUserName, getGroupName } from '../../../utils';
 import type { FileEntry } from '../../../../main/types/file';
 import type { SessionInfo } from '../../../types';
 import { FileListContextMenu } from './components/ContextMenu/FileListContextMenu';
+import { CreateDialog } from './components/ContextMenu/CreateDialog';
+import { createAction } from './components/ContextMenu/actions/createAction';
 import DownloadDialog, { type DownloadConfig } from '../../Download/DownloadDialog';
 import { UploadDialog } from '../../Upload';
 import { downloadService } from '../../../services/downloadService';
@@ -165,6 +167,10 @@ const FileList: React.FC<FileListProps> = ({
   // 上传对话框状态
   const [uploadDialogVisible, setUploadDialogVisible] = useState(false);
   const [uploadPath, setUploadPath] = useState<string>('');
+
+  // 创建对话框状态
+  const [createDialogVisible, setCreateDialogVisible] = useState(false);
+  const [createType, setCreateType] = useState<'file' | 'folder'>('file');
 
   // 高亮显示新上传的文件
   const [highlightedFiles, setHighlightedFiles] = useState<Set<string>>(new Set());
@@ -333,6 +339,51 @@ const FileList: React.FC<FileListProps> = ({
   const handleUploadDialogClose = () => {
     console.log('FileList: 上传对话框关闭');
     setUploadDialogVisible(false);
+  };
+
+  // 创建请求处理函数
+  const handleCreateRequest = useCallback((type: 'file' | 'folder') => {
+    console.log('FileList: 收到创建请求', type);
+    setCreateType(type);
+    setCreateDialogVisible(true);
+  }, []);
+
+  // 创建确认处理
+  const handleCreateConfirm = async (name: string) => {
+    if (!sessionInfo) {
+      console.error('FileList: 缺少会话信息');
+      return;
+    }
+
+    try {
+      console.log('FileList: 创建确认', { type: createType, name, currentPath });
+
+      const result = await createAction[createType === 'folder' ? 'createFolder' : 'createFile']({
+        name,
+        currentPath,
+        sessionInfo,
+        type: createType
+      });
+
+      if (result.success) {
+        console.log('FileList: 创建成功');
+        setCreateDialogVisible(false);
+
+        // 使用与上传功能相同的逻辑更新文件列表
+        await updateFileListWithNewFile(name, false);
+      } else {
+        console.error('FileList: 创建失败:', result.message);
+        // 不关闭对话框，让用户可以修改后重试
+      }
+    } catch (error) {
+      console.error('FileList: 创建操作异常:', error);
+    }
+  };
+
+  // 创建取消处理
+  const handleCreateCancel = () => {
+    console.log('FileList: 创建取消');
+    setCreateDialogVisible(false);
   };
 
   // 修改处理右键菜单的函数
@@ -621,6 +672,7 @@ const FileList: React.FC<FileListProps> = ({
           onDownloadRequest={handleDownloadRequest}
           onUploadRequest={handleUploadRequest}
           onFileDeleted={onRefresh}
+          onCreateRequest={handleCreateRequest}  // 传递创建请求回调
         />
       )}
 
@@ -651,6 +703,15 @@ const FileList: React.FC<FileListProps> = ({
           onCancel={handleUploadDialogClose}
         />
       )}
+
+      {/* 创建文件/文件夹对话框 */}
+      <CreateDialog
+        visible={createDialogVisible}
+        type={createType}
+        currentPath={currentPath}
+        onConfirm={handleCreateConfirm}
+        onCancel={handleCreateCancel}
+      />
     </div>
   );
 };
