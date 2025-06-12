@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Table, Spin } from 'antd';
+import { Table, Spin, message } from 'antd';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
@@ -9,6 +9,8 @@ import type { SessionInfo } from '../../../types';
 import { FileListContextMenu } from './components/ContextMenu/FileListContextMenu';
 import { CreateDialog } from './components/ContextMenu/CreateDialog';
 import { createAction } from './components/ContextMenu/actions/createAction';
+import { PermissionDialog } from './components/Permission/PermissionDialog';
+import { permissionAction, type PermissionOptions } from './components/ContextMenu/actions/permissionAction';
 import DownloadDialog, { type DownloadConfig } from '../../Download/DownloadDialog';
 import { UploadDialog } from '../../Upload';
 import { downloadService } from '../../../services/downloadService';
@@ -171,6 +173,10 @@ const FileList: React.FC<FileListProps> = ({
   // 创建对话框状态
   const [createDialogVisible, setCreateDialogVisible] = useState(false);
   const [createType, setCreateType] = useState<'file' | 'folder'>('file');
+
+  // 权限设置对话框状态
+  const [permissionDialogVisible, setPermissionDialogVisible] = useState(false);
+  const [permissionFiles, setPermissionFiles] = useState<FileEntry[]>([]);
 
   // 高亮显示新上传的文件
   const [highlightedFiles, setHighlightedFiles] = useState<Set<string>>(new Set());
@@ -384,6 +390,49 @@ const FileList: React.FC<FileListProps> = ({
   const handleCreateCancel = () => {
     console.log('FileList: 创建取消');
     setCreateDialogVisible(false);
+  };
+
+  // 权限设置请求处理函数
+  const handlePermissionRequest = useCallback((files: FileEntry[]) => {
+    console.log('FileList: 收到权限设置请求', files.map(f => f.name));
+    setPermissionFiles(files);
+    setPermissionDialogVisible(true);
+  }, []);
+
+  // 权限设置确认处理
+  const handlePermissionConfirm = async (options: PermissionOptions) => {
+    if (!sessionInfo) {
+      console.error('FileList: 缺少会话信息');
+      return;
+    }
+
+    try {
+      console.log('FileList: 权限设置确认', options);
+
+      const result = await permissionAction.setPermissions(options);
+
+      if (result.success) {
+        console.log('FileList: 权限设置成功');
+        message.success(result.message);
+        setPermissionDialogVisible(false);
+
+        // 刷新文件列表
+        onRefresh?.();
+      } else {
+        console.error('FileList: 权限设置失败:', result.message);
+        message.error(result.message);
+        // 不关闭对话框，让用户可以修改后重试
+      }
+    } catch (error) {
+      console.error('FileList: 权限设置操作异常:', error);
+      message.error('权限设置失败');
+    }
+  };
+
+  // 权限设置取消处理
+  const handlePermissionCancel = () => {
+    console.log('FileList: 权限设置取消');
+    setPermissionDialogVisible(false);
   };
 
   // 修改处理右键菜单的函数
@@ -673,6 +722,7 @@ const FileList: React.FC<FileListProps> = ({
           onUploadRequest={handleUploadRequest}
           onFileDeleted={onRefresh}
           onCreateRequest={handleCreateRequest}  // 传递创建请求回调
+          onPermissionRequest={handlePermissionRequest}  // 传递权限设置请求回调
         />
       )}
 
@@ -712,6 +762,18 @@ const FileList: React.FC<FileListProps> = ({
         onConfirm={handleCreateConfirm}
         onCancel={handleCreateCancel}
       />
+
+      {/* 权限设置对话框 */}
+      {sessionInfo && (
+        <PermissionDialog
+          visible={permissionDialogVisible}
+          files={permissionFiles}
+          sessionInfo={sessionInfo}
+          currentPath={currentPath}
+          onConfirm={handlePermissionConfirm}
+          onCancel={handlePermissionCancel}
+        />
+      )}
     </div>
   );
 };

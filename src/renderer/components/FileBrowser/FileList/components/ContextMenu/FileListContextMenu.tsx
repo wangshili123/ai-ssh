@@ -25,6 +25,7 @@ export interface FileListContextMenuProps {
   onUploadRequest?: (currentPath: string) => void;
   onFileDeleted?: () => void;  // 新增：文件删除后的回调
   onCreateRequest?: (type: 'file' | 'folder') => void;  // 新增：创建请求回调
+  onPermissionRequest?: (files: FileEntry[]) => void;  // 新增：权限设置请求回调
 }
 
 export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
@@ -39,7 +40,8 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
   onDownloadRequest,
   onUploadRequest,
   onFileDeleted,
-  onCreateRequest
+  onCreateRequest,
+  onPermissionRequest
 }) => {
   // 添加 ref 用于获取菜单 DOM 元素
   const menuRef = useRef<HTMLDivElement>(null);
@@ -155,6 +157,14 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       {
         type: 'divider' as const
       },
+      // 权限设置选项
+      {
+        key: 'permissions',
+        label: selectedFiles.length > 1 ? `批量设置权限 (${selectedFiles.length}个项目)` : '设置权限'
+      },
+      {
+        type: 'divider' as const
+      },
       {
         key: 'delete',
         label: '删除',
@@ -247,6 +257,17 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       }
 
       // 关闭右键菜单
+      onClose();
+      return;
+    }
+
+    // 处理权限设置菜单项
+    if (info.key === 'permissions') {
+      console.log('[FileListContextMenu] 权限设置被点击');
+      if (onPermissionRequest) {
+        console.log('调用父组件的权限设置请求回调', selectedFiles.map(f => f.name));
+        onPermissionRequest(selectedFiles);
+      }
       onClose();
       return;
     }
