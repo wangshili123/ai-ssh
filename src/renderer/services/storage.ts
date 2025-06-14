@@ -93,6 +93,19 @@ class StorageService {
         rememberChoices: true,
         defaultOpenMode: 'builtin',
         fileOpenPreferences: {}
+      },
+      baseConfig: {
+        terminalShortcuts: {
+          acceptCompletion: 'Ctrl+Tab',
+          acceptCompletionAlt: 'Alt+/',
+          clearCompletion: 'Escape',
+          navigateUp: 'Alt+ArrowUp',
+          navigateDown: 'Alt+ArrowDown',
+          copy: 'Ctrl+Shift+C',
+          paste: 'Ctrl+Shift+V',
+          clear: 'Ctrl+Shift+L',
+          search: 'Ctrl+Shift+F'
+        }
       }
     };
   }

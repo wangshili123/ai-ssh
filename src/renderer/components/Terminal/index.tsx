@@ -148,6 +148,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     acceptSuggestion,
     updatePendingCommand,
     clearSuggestion,
+    navigateSuggestions,
     onOpenSearch: handleOpenSearch,
     onCopy: handleCopy,
     onPaste: handlePaste,

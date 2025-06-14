@@ -5,6 +5,7 @@ import { WebLinksAddon } from 'xterm-addon-web-links';
 import { SearchAddon } from 'xterm-addon-search';
 import { sshService } from '../../../services/ssh';
 import { eventBus } from '../../../services/eventBus';
+import { TerminalShortcutConfigManager } from '../../../services/config/TerminalShortcutConfig';
 import { terminalOutputService } from '../../../services/terminalOutput';
 import type { SessionInfo } from '../../../../renderer/types/index';
 import type { TerminalProps } from '../types/terminal.types';
@@ -30,6 +31,7 @@ export interface UseTerminalInitProps {
   acceptSuggestion?: () => string | null;
   updatePendingCommand?: (newCommand: string) => void;
   clearSuggestion?: () => void;
+  navigateSuggestions?: (direction: 'up' | 'down') => void;
   onOpenSearch?: () => void;
   onCopy?: () => void;
   onPaste?: () => void;
@@ -53,6 +55,7 @@ export const useTerminalInit = ({
   acceptSuggestion,
   updatePendingCommand,
   clearSuggestion,
+  navigateSuggestions,
   onOpenSearch,
   onCopy,
   onPaste,
@@ -75,6 +78,7 @@ export const useTerminalInit = ({
     acceptSuggestion,
     updatePendingCommand,
     clearSuggestion,
+    navigateSuggestions,
     onOpenSearch,
     onCopy,
     onPaste,
@@ -97,6 +101,7 @@ export const useTerminalInit = ({
       acceptSuggestion,
       updatePendingCommand,
       clearSuggestion,
+      navigateSuggestions,
       onOpenSearch,
       onCopy,
       onPaste,
@@ -107,7 +112,7 @@ export const useTerminalInit = ({
       config,
       instanceId
     };
-  }, [handleInput, handleEnterKey, setIsConnected, acceptSuggestion, updatePendingCommand, clearSuggestion, onOpenSearch, onCopy, onPaste, onClear, sessionInfo, config, instanceId]);
+  }, [handleInput, handleEnterKey, setIsConnected, acceptSuggestion, updatePendingCommand, clearSuggestion, navigateSuggestions, onOpenSearch, onCopy, onPaste, onClear, sessionInfo, config, instanceId]);
 
   // 初始化终端
   useEffect(() => {
@@ -181,6 +186,9 @@ export const useTerminalInit = ({
     // 注册事件处理器
     terminal.onData(callbacksRef.current.handleInput);
     
+    // 获取终端快捷键配置
+    const shortcutConfig = TerminalShortcutConfigManager.getInstance().getConfig();
+
     // 添加全局键盘事件监听器作为备用方案
     const handleGlobalKeyDown = async (ev: KeyboardEvent) => {
       // 检查是否在终端容器内或终端有焦点
@@ -195,51 +203,47 @@ export const useTerminalInit = ({
         return;
       }
 
-      // 处理 Ctrl+Shift 组合键
-      if (ev.ctrlKey && ev.shiftKey) {
-        console.log('[useTerminalInit] Global Ctrl+Shift key detected:', {
-          key: ev.key,
-          ctrlKey: ev.ctrlKey,
-          shiftKey: ev.shiftKey
-        });
-
-        switch (ev.key) {
-          case 'C':
-            // 复制选中文本
-            const selection = terminal.getSelection();
-            if (selection) {
-              ev.preventDefault();
-              console.log('[useTerminalInit] Global Ctrl+Shift+C pressed, copying selected text');
-              if (callbacksRef.current.onCopy) {
-                callbacksRef.current.onCopy();
-              }
-            }
-            break;
-          case 'V':
-            // 粘贴文本
-            ev.preventDefault();
-            console.log('[useTerminalInit] Global Ctrl+Shift+V pressed, pasting text');
-            if (callbacksRef.current.onPaste) {
-              callbacksRef.current.onPaste();
-            }
-            break;
-          case 'L':
-            // 清空终端
-            ev.preventDefault();
-            console.log('[useTerminalInit] Global Ctrl+Shift+L pressed, clearing terminal');
-            if (callbacksRef.current.onClear) {
-              callbacksRef.current.onClear();
-            }
-            break;
-          case 'F':
-            // 打开搜索
-            ev.preventDefault();
-            console.log('[useTerminalInit] Global Ctrl+Shift+F pressed, opening search');
-            if (callbacksRef.current.onOpenSearch) {
-              callbacksRef.current.onOpenSearch();
-            }
-            break;
+      // 处理复制快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.copy)) {
+        const selection = terminal.getSelection();
+        if (selection) {
+          ev.preventDefault();
+          console.log('[useTerminalInit] Global copy shortcut pressed:', shortcutConfig.copy);
+          if (callbacksRef.current.onCopy) {
+            callbacksRef.current.onCopy();
+          }
         }
+        return;
+      }
+
+      // 处理粘贴快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.paste)) {
+        ev.preventDefault();
+        console.log('[useTerminalInit] Global paste shortcut pressed:', shortcutConfig.paste);
+        if (callbacksRef.current.onPaste) {
+          callbacksRef.current.onPaste();
+        }
+        return;
+      }
+
+      // 处理清空终端快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.clear)) {
+        ev.preventDefault();
+        console.log('[useTerminalInit] Global clear shortcut pressed:', shortcutConfig.clear);
+        if (callbacksRef.current.onClear) {
+          callbacksRef.current.onClear();
+        }
+        return;
+      }
+
+      // 处理搜索快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.search)) {
+        ev.preventDefault();
+        console.log('[useTerminalInit] Global search shortcut pressed:', shortcutConfig.search);
+        if (callbacksRef.current.onOpenSearch) {
+          callbacksRef.current.onOpenSearch();
+        }
+        return;
       }
     };
 
@@ -248,6 +252,7 @@ export const useTerminalInit = ({
 
     // 移除currentCommand变量，直接使用pendingCommandRef
     const tabId = eventBus.getCurrentTabId() || '';
+
     terminal.onKey(async (event) => {
       const ev = event.domEvent;
 
@@ -262,11 +267,11 @@ export const useTerminalInit = ({
         });
       }
 
-      // 处理 Tab 键接受补全建议
-      if (ev.key === 'Tab') {
-        ev.preventDefault(); // 阻止默认的 Tab 行为
-        console.log('[useTerminalInit] Tab key pressed for completion');
-        
+      // 处理接受补全建议的快捷键（主要快捷键）
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.acceptCompletion)) {
+        ev.preventDefault();
+        console.log('[useTerminalInit] Accept completion shortcut pressed:', shortcutConfig.acceptCompletion);
+
         // 尝试接受当前的补全建议
         const currentCommand = pendingCommandRef.current;
         const acceptedCommand = callbacksRef.current.acceptSuggestion?.();
@@ -275,7 +280,7 @@ export const useTerminalInit = ({
           // 计算需要写入的补全部分
           const completionPart = acceptedCommand.slice(currentCommand.length);
           console.log('[useTerminalInit] Writing completion part:', { currentCommand, acceptedCommand, completionPart });
-          
+
           // 只发送补全部分到SSH服务，让SSH回显显示，避免重复
           if (completionPart) {
             const shellId = shellIdRef.current;
@@ -294,26 +299,28 @@ export const useTerminalInit = ({
           }
         } else {
           console.log('[useTerminalInit] No suggestion to accept');
-          // 如果没有补全建议，发送Tab字符到终端
-          await callbacksRef.current.handleInput('\t');
+          // 如果没有补全建议且是Tab键，发送Tab字符到终端
+          if (shortcutConfig.acceptCompletion === 'Tab') {
+            await callbacksRef.current.handleInput('\t');
+          }
         }
         return;
       }
-      
-      // 处理 Alt + / 接受补全建议
-      if (ev.key === '/' && ev.altKey) {
-        ev.preventDefault(); // 阻止默认的 / 字符输入
-        console.log('[useTerminalInit] Alt + / pressed for completion');
-        
+
+      // 处理接受补全建议的备用快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.acceptCompletionAlt)) {
+        ev.preventDefault();
+        console.log('[useTerminalInit] Accept completion alt shortcut pressed:', shortcutConfig.acceptCompletionAlt);
+
         // 尝试接受当前的补全建议
         const currentCommand = pendingCommandRef.current;
         const acceptedCommand = callbacksRef.current.acceptSuggestion?.();
         if (acceptedCommand) {
-          console.log('[useTerminalInit] Accepted suggestion via Alt+/:', acceptedCommand);
+          console.log('[useTerminalInit] Accepted suggestion via alt shortcut:', acceptedCommand);
           // 计算需要写入的补全部分
           const completionPart = acceptedCommand.slice(currentCommand.length);
-          console.log('[useTerminalInit] Writing completion part via Alt+/:', { currentCommand, acceptedCommand, completionPart });
-          
+          console.log('[useTerminalInit] Writing completion part via alt shortcut:', { currentCommand, acceptedCommand, completionPart });
+
           // 只发送补全部分到SSH服务，让SSH回显显示，避免重复
           if (completionPart) {
             const shellId = shellIdRef.current;
@@ -331,15 +338,15 @@ export const useTerminalInit = ({
             }
           }
         } else {
-          console.log('[useTerminalInit] No suggestion to accept via Alt+/');
+          console.log('[useTerminalInit] No suggestion to accept via alt shortcut');
         }
         return;
       }
-      
-      // 处理 ESC 键关闭补全框
-      if (ev.key === 'Escape') {
+
+      // 处理清除补全建议的快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.clearCompletion)) {
         ev.preventDefault();
-        console.log('[useTerminalInit] ESC key pressed, clearing suggestions');
+        console.log('[useTerminalInit] Clear completion shortcut pressed:', shortcutConfig.clearCompletion);
         // 清除补全建议
         if (callbacksRef.current.clearSuggestion) {
           callbacksRef.current.clearSuggestion();
@@ -347,23 +354,43 @@ export const useTerminalInit = ({
         return;
       }
 
-      // 处理 Ctrl+Shift+F 打开搜索面板
-      if (ev.key === 'F' && ev.ctrlKey && ev.shiftKey) {
+      // 处理向上导航补全建议的快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.navigateUp)) {
         ev.preventDefault();
-        console.log('[useTerminalInit] Ctrl+Shift+F pressed, opening search panel');
+        console.log('[useTerminalInit] Navigate up shortcut pressed:', shortcutConfig.navigateUp);
+        if (callbacksRef.current.navigateSuggestions) {
+          callbacksRef.current.navigateSuggestions('up');
+        }
+        return;
+      }
+
+      // 处理向下导航补全建议的快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.navigateDown)) {
+        ev.preventDefault();
+        console.log('[useTerminalInit] Navigate down shortcut pressed:', shortcutConfig.navigateDown);
+        if (callbacksRef.current.navigateSuggestions) {
+          callbacksRef.current.navigateSuggestions('down');
+        }
+        return;
+      }
+
+      // 处理搜索快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.search)) {
+        ev.preventDefault();
+        console.log('[useTerminalInit] Search shortcut pressed:', shortcutConfig.search);
         if (callbacksRef.current.onOpenSearch) {
           callbacksRef.current.onOpenSearch();
         }
         return;
       }
 
-      // 处理 Ctrl+Shift+C 复制选中文本
-      if (ev.key === 'C' && ev.ctrlKey && ev.shiftKey) {
+      // 处理复制快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.copy)) {
         // 只有当有选中文本时才处理复制
         const selection = terminal.getSelection();
         if (selection) {
           ev.preventDefault();
-          console.log('[useTerminalInit] Ctrl+Shift+C pressed, copying selected text');
+          console.log('[useTerminalInit] Copy shortcut pressed:', shortcutConfig.copy);
           if (callbacksRef.current.onCopy) {
             callbacksRef.current.onCopy();
           }
@@ -371,20 +398,20 @@ export const useTerminalInit = ({
         }
       }
 
-      // 处理 Ctrl+Shift+V 粘贴文本
-      if (ev.key === 'V' && ev.ctrlKey && ev.shiftKey) {
+      // 处理粘贴快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.paste)) {
         ev.preventDefault();
-        console.log('[useTerminalInit] Ctrl+Shift+V pressed, pasting text');
+        console.log('[useTerminalInit] Paste shortcut pressed:', shortcutConfig.paste);
         if (callbacksRef.current.onPaste) {
           callbacksRef.current.onPaste();
         }
         return;
       }
 
-      // 处理 Ctrl+Shift+L 清空终端
-      if (ev.key === 'L' && ev.ctrlKey && ev.shiftKey) {
+      // 处理清空终端快捷键
+      if (TerminalShortcutConfigManager.matchesShortcut(ev, shortcutConfig.clear)) {
         ev.preventDefault();
-        console.log('[useTerminalInit] Ctrl+Shift+L pressed, clearing terminal');
+        console.log('[useTerminalInit] Clear shortcut pressed:', shortcutConfig.clear);
         if (callbacksRef.current.onClear) {
           callbacksRef.current.onClear();
         }

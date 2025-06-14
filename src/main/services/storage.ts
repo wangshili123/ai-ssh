@@ -18,6 +18,11 @@ export interface UISettings {
   isAIVisible: boolean;
   fileOpenSettings: FileOpenSettings;  // 添加文件打开设置
   externalEditorSettings: ExternalEditorSettings;  // 添加外部编辑器设置
+  baseConfig?: {  // 添加基础配置支持
+    monitor?: any;
+    ai?: any;
+    terminalShortcuts?: any;
+  };
 }
 
 // 文件打开设置接口
@@ -264,6 +269,19 @@ class StorageService {
             rememberChoices: true,
             defaultOpenMode: 'builtin',
             fileOpenPreferences: {}
+          },
+          baseConfig: {
+            terminalShortcuts: {
+              acceptCompletion: 'Ctrl+Tab',
+              acceptCompletionAlt: 'Alt+/',
+              clearCompletion: 'Escape',
+              navigateUp: 'Alt+ArrowUp',
+              navigateDown: 'Alt+ArrowDown',
+              copy: 'Ctrl+Shift+C',
+              paste: 'Ctrl+Shift+V',
+              clear: 'Ctrl+Shift+L',
+              search: 'Ctrl+Shift+F'
+            }
           }
         };
       }
@@ -289,6 +307,19 @@ class StorageService {
           rememberChoices: true,
           defaultOpenMode: 'builtin',
           fileOpenPreferences: {}
+        },
+        baseConfig: {
+          terminalShortcuts: {
+            acceptCompletion: 'Ctrl+Tab',
+            acceptCompletionAlt: 'Alt+/',
+            clearCompletion: 'Escape',
+            navigateUp: 'Alt+ArrowUp',
+            navigateDown: 'Alt+ArrowDown',
+            copy: 'Ctrl+Shift+C',
+            paste: 'Ctrl+Shift+V',
+            clear: 'Ctrl+Shift+L',
+            search: 'Ctrl+Shift+F'
+          }
         }
       };
     }
