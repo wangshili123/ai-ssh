@@ -9,6 +9,7 @@ import type { FileEntry } from '../../../../../../main/types/file';
 import type { SessionInfo } from '../../../../../types';
 import { fileOpenManager } from '../../core/FileOpenManager';
 import { fileDeleteAction } from './actions';
+import { unifiedEditorConfig } from '../../../ExternalEditor/config/UnifiedEditorConfig';
 
 import './FileListContextMenu.css';
 
@@ -26,6 +27,9 @@ export interface FileListContextMenuProps {
   onFileDeleted?: () => void;  // 新增：文件删除后的回调
   onCreateRequest?: (type: 'file' | 'folder') => void;  // 新增：创建请求回调
   onPermissionRequest?: (files: FileEntry[]) => void;  // 新增：权限设置请求回调
+  onOpenWithRequest?: (files: FileEntry[], editorType: 'builtin' | 'external') => void;  // 新增：打开方式请求回调
+  onOpenFileRequest?: (files: FileEntry[], editorType: 'builtin' | 'external') => void;  // 新增：打开文件请求回调
+  onEditorConfigRequest?: () => void;  // 新增：编辑器配置请求回调
 }
 
 export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
@@ -41,10 +45,31 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
   onUploadRequest,
   onFileDeleted,
   onCreateRequest,
-  onPermissionRequest
+  onPermissionRequest,
+  onOpenWithRequest,
+  onOpenFileRequest,
+  onEditorConfigRequest
 }) => {
   // 添加 ref 用于获取菜单 DOM 元素
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // 当前文件的编辑器偏好状态
+  const [currentPreference, setCurrentPreference] = useState<'builtin' | 'external'>('builtin');
+
+  // 当菜单显示时，获取全局的偏好设置
+  useEffect(() => {
+    const loadPreference = async () => {
+      try {
+        const preference = await unifiedEditorConfig.getDefaultOpenMode();
+        setCurrentPreference(preference);
+        console.log('[FileListContextMenu] 加载全局偏好:', preference);
+      } catch (error) {
+        console.error('[FileListContextMenu] 获取全局偏好失败:', error);
+        setCurrentPreference('builtin');
+      }
+    };
+    loadPreference();
+  }, [selectedFiles]); // 每次菜单显示时都重新加载
 
 
 
@@ -121,7 +146,7 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
 
   // 使用 useMemo 缓存菜单项配置
   const menuItems = useMemo(() => {
-    console.log('[FileListContextMenu] 生成菜单项配置');
+    console.log('[FileListContextMenu] 生成菜单项配置, currentPreference:', currentPreference);
     return [
       // 新建选项
       {
@@ -157,6 +182,37 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       {
         type: 'divider' as const
       },
+      // 打开选项（根据当前偏好）
+      {
+        key: 'open-file',
+        label: '打开',
+        disabled: selectedFiles.length !== 1 || selectedFiles[0].isDirectory
+      },
+      // 打开方式子菜单（设置偏好，显示勾选状态）
+      {
+        key: 'open-with',
+        label: '打开方式',
+        disabled: selectedFiles.length !== 1 || selectedFiles[0].isDirectory,
+        children: [
+          {
+            key: 'open-with-builtin',
+            label: '内置编辑器',
+            icon: currentPreference === 'builtin' ? '✓' : undefined
+          },
+          {
+            key: 'open-with-external',
+            label: '外部编辑器',
+            icon: currentPreference === 'external' ? '✓' : undefined
+          },
+          {
+            type: 'divider' as const
+          },
+          {
+            key: 'editor-config',
+            label: '设置外部编辑器'
+          }
+        ]
+      },
       // 权限设置选项
       {
         key: 'permissions',
@@ -181,37 +237,7 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
         ]
       },
 
-      {
-        key: 'open',
-        label: '打开方式',
-        children: [
-          {
-            key: 'open-internal',
-            label: '内置编辑器',
-            onClick: () => {
-              fileOpenManager.openFile(file, sessionInfo!, tabId, 'built-in');
-            }
-          },
-          {
-            key: 'open-external',
-            label: '外部编辑器',
-            disabled: true, // 暂时禁用
-            onClick: () => {
-              // TODO: 实现外部编辑器打开
-            }
-          },
-          {
-            type: 'divider'
-          },
-          {
-            key: 'set-editor',
-            label: '设置外部编辑器',
-            onClick: () => {
-              // TODO: 实现设置外部编辑器
-            }
-          }
-        ]
-      },
+
       {
         key: 'copy-path',
         label: '复制路径',
@@ -222,7 +248,7 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       },
 
     ];
-  }, [file, selectedFiles, sessionInfo, tabId, currentPath]);
+  }, [file, selectedFiles, sessionInfo, tabId, currentPath, currentPreference]);
 
   const handleClick: MenuProps['onClick'] = async (info) => {
     console.log('[FileListContextMenu] 菜单点击事件:', info.key);
@@ -261,12 +287,59 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       return;
     }
 
+    // 处理打开文件（根据当前偏好）
+    if (info.key === 'open-file') {
+      console.log('[FileListContextMenu] 打开文件，使用偏好:', currentPreference);
+      if (onOpenFileRequest) {
+        console.log('调用父组件的打开文件请求回调', selectedFiles.map(f => f.name), currentPreference);
+        onOpenFileRequest(selectedFiles, currentPreference);
+      }
+      onClose();
+      return;
+    }
+
+    // 处理设置打开方式偏好
+    if (info.key === 'open-with-builtin') {
+      console.log('[FileListContextMenu] 设置内置编辑器为默认');
+      // 立即更新本地状态以显示勾选变化
+      setCurrentPreference('builtin');
+      if (onOpenWithRequest) {
+        console.log('调用父组件的打开方式请求回调 - 内置编辑器', selectedFiles.map(f => f.name));
+        onOpenWithRequest(selectedFiles, 'builtin');
+      }
+      onClose();
+      return;
+    }
+
+    if (info.key === 'open-with-external') {
+      console.log('[FileListContextMenu] 设置外部编辑器为默认');
+      // 立即更新本地状态以显示勾选变化
+      setCurrentPreference('external');
+      if (onOpenWithRequest) {
+        console.log('调用父组件的打开方式请求回调 - 外部编辑器', selectedFiles.map(f => f.name));
+        onOpenWithRequest(selectedFiles, 'external');
+      }
+      onClose();
+      return;
+    }
+
     // 处理权限设置菜单项
     if (info.key === 'permissions') {
       console.log('[FileListContextMenu] 权限设置被点击');
       if (onPermissionRequest) {
         console.log('调用父组件的权限设置请求回调', selectedFiles.map(f => f.name));
         onPermissionRequest(selectedFiles);
+      }
+      onClose();
+      return;
+    }
+
+    // 处理编辑器配置菜单项
+    if (info.key === 'editor-config') {
+      console.log('[FileListContextMenu] 编辑器配置被点击');
+      if (onEditorConfigRequest) {
+        console.log('调用父组件的编辑器配置请求回调');
+        onEditorConfigRequest();
       }
       onClose();
       return;

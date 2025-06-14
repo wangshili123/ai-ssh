@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import type { GroupInfo, UISettings } from '../../main/services/storage';
+import type { GroupInfo, UISettings, ExternalEditorSettings } from '../../main/services/storage';
 import type { SessionInfo } from '../../renderer/types/index';
 
 // 会话存储服务
@@ -76,7 +76,38 @@ class StorageService {
     if (!response.success) {
       throw new Error(response.error);
     }
-    return response.data || { isFileBrowserVisible: true, isAIVisible: false };
+    return response.data || {
+      isFileBrowserVisible: true,
+      isAIVisible: false,
+      fileOpenSettings: {
+        defaultEditor: 'built-in',
+        fileTypeAssociations: {}
+      },
+      externalEditorSettings: {
+        editors: [],
+        openMode: 'ask',
+        autoUpload: true,
+        uploadDelay: 2000,
+        tempDirectory: '',
+        fileAssociations: {},
+        rememberChoices: true,
+        defaultOpenMode: 'builtin',
+        fileOpenPreferences: {}
+      }
+    };
+  }
+
+  // 保存外部编辑器设置
+  async saveExternalEditorSettings(settings: ExternalEditorSettings): Promise<void> {
+    const uiSettings = await this.loadUISettings();
+    uiSettings.externalEditorSettings = settings;
+    await this.saveUISettings(uiSettings);
+  }
+
+  // 加载外部编辑器设置
+  async loadExternalEditorSettings(): Promise<ExternalEditorSettings> {
+    const uiSettings = await this.loadUISettings();
+    return uiSettings.externalEditorSettings;
   }
 }
 

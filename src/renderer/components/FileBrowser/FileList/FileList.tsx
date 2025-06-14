@@ -11,6 +11,14 @@ import { CreateDialog } from './components/ContextMenu/CreateDialog';
 import { createAction } from './components/ContextMenu/actions/createAction';
 import { PermissionDialog } from './components/Permission/PermissionDialog';
 import { permissionAction, type PermissionOptions } from './components/ContextMenu/actions/permissionAction';
+import {
+  EditorConfigDialog,
+  EditorSelectorDialog,
+  externalEditorManager,
+  unifiedEditorConfig,
+  type EditorConfig
+} from '../ExternalEditor';
+import { fileOpenManager } from './core/FileOpenManager';
 import DownloadDialog, { type DownloadConfig } from '../../Download/DownloadDialog';
 import { UploadDialog } from '../../Upload';
 import { downloadService } from '../../../services/downloadService';
@@ -18,7 +26,6 @@ import { uploadService } from '../../../services/uploadService';
 import { eventBus } from '../../../services/eventBus';
 import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
 import { getDefaultDownloadPath } from '../../../utils/downloadUtils';
-import { fileOpenManager } from './core/FileOpenManager';
 import './FileList.css';
 
 interface FileListProps {
@@ -178,6 +185,12 @@ const FileList: React.FC<FileListProps> = ({
   const [permissionDialogVisible, setPermissionDialogVisible] = useState(false);
   const [permissionFiles, setPermissionFiles] = useState<FileEntry[]>([]);
 
+  // 外部编辑器对话框状态
+  const [editorConfigVisible, setEditorConfigVisible] = useState(false);
+  const [editorSelectorVisible, setEditorSelectorVisible] = useState(false);
+  const [editorSelectorFile, setEditorSelectorFile] = useState<FileEntry | null>(null);
+  const [availableEditors, setAvailableEditors] = useState<EditorConfig[]>([]);
+
   // 高亮显示新上传的文件
   const [highlightedFiles, setHighlightedFiles] = useState<Set<string>>(new Set());
 
@@ -253,8 +266,48 @@ const FileList: React.FC<FileListProps> = ({
       console.log('[FileList] 双击目录:', { name: record.name, newPath });
       onDirectorySelect?.(newPath);
     } else {
-      // 如果是文件，使用默认方式打开
-      await fileOpenManager.openFile(record, sessionInfo!, tabId);
+      // 如果是文件，根据用户偏好选择打开方式
+      if (!sessionInfo) {
+        message.error('缺少会话信息');
+        return;
+      }
+
+      const preferredEditor = await unifiedEditorConfig.getDefaultOpenMode();
+      console.log(`[FileList] 双击文件: ${record.name}, 全局偏好编辑器: ${preferredEditor}`);
+
+      if (preferredEditor === 'external') {
+        // 使用外部编辑器打开
+        const editors = await unifiedEditorConfig.getEditors();
+        if (editors.length === 0) {
+          message.warning('请先配置外部编辑器');
+          setEditorConfigVisible(true);
+          return;
+        }
+
+        // 设置编辑器选择回调
+        externalEditorManager.setEditorSelectorCallback(async (file) => {
+          return new Promise(async (resolve) => {
+            // 获取可用的编辑器列表
+            const editorList = await unifiedEditorConfig.getEditors();
+            setAvailableEditors(editorList);
+            setEditorSelectorFile(file);
+            setEditorSelectorVisible(true);
+
+            // 临时存储resolve函数
+            (window as any).__editorSelectorResolve = resolve;
+          });
+        });
+
+        // 打开文件
+        externalEditorManager.openFileWithExternalEditor(
+          record,
+          sessionInfo,
+          tabId
+        );
+      } else {
+        // 使用内置编辑器打开
+        await fileOpenManager.openFile(record, sessionInfo, tabId);
+      }
     }
   };
 
@@ -434,6 +487,121 @@ const FileList: React.FC<FileListProps> = ({
     console.log('FileList: 权限设置取消');
     setPermissionDialogVisible(false);
   };
+
+  // 打开方式请求处理
+  const handleOpenWithRequest = useCallback(async (files: FileEntry[], editorType: 'builtin' | 'external') => {
+    console.log(`[FileList] 设置全局打开方式偏好: ${editorType}`);
+
+    try {
+      // 设置全局的默认打开方式
+      await unifiedEditorConfig.setDefaultOpenMode(editorType);
+
+      message.success(`已设置默认使用${editorType === 'builtin' ? '内置' : '外部'}编辑器打开文件`);
+    } catch (error) {
+      console.error('[FileList] 设置打开方式偏好失败:', error);
+      message.error('设置打开方式失败');
+    }
+  }, []);
+
+  // 打开文件请求处理（立即打开）
+  const handleOpenFileRequest = useCallback(async (files: FileEntry[], editorType: 'builtin' | 'external') => {
+    if (files.length !== 1 || files[0].isDirectory) {
+      message.warning('请选择一个文件进行编辑');
+      return;
+    }
+
+    if (!sessionInfo) {
+      message.error('缺少会话信息');
+      return;
+    }
+
+    const file = files[0];
+    console.log(`[FileList] 打开文件请求: ${file.name} - ${editorType}`);
+
+    if (editorType === 'builtin') {
+      // 使用内置编辑器打开
+      fileOpenManager.openFile(file, sessionInfo, tabId, 'built-in');
+    } else {
+      // 使用外部编辑器打开
+      const editors = await unifiedEditorConfig.getEditors();
+      if (editors.length === 0) {
+        message.warning('请先配置外部编辑器');
+        setEditorConfigVisible(true);
+        return;
+      }
+
+      // 设置编辑器选择回调
+      externalEditorManager.setEditorSelectorCallback(async (file) => {
+        return new Promise(async (resolve) => {
+          // 获取可用的编辑器列表
+          const editorList = await unifiedEditorConfig.getEditors();
+          setAvailableEditors(editorList);
+          setEditorSelectorFile(file);
+          setEditorSelectorVisible(true);
+
+          // 临时存储resolve函数
+          (window as any).__editorSelectorResolve = resolve;
+        });
+      });
+
+      // 打开文件
+      externalEditorManager.openFileWithExternalEditor(
+        file,
+        sessionInfo,
+        tabId
+      );
+    }
+  }, [sessionInfo, tabId]);
+
+  // 编辑器配置请求处理
+  const handleEditorConfigRequest = useCallback(() => {
+    console.log('[FileList] 编辑器配置请求');
+    setEditorConfigVisible(true);
+  }, []);
+
+  // 编辑器选择确认处理
+  const handleEditorSelect = useCallback((editorId: string, remember: boolean) => {
+    console.log('[FileList] 编辑器选择:', editorId, remember);
+
+    if (remember && editorSelectorFile) {
+      // 记住文件类型关联
+      const ext = editorSelectorFile.name.split('.').pop();
+      if (ext) {
+        unifiedEditorConfig.setFileAssociation(ext, editorId);
+      }
+    }
+
+    setEditorSelectorVisible(false);
+    setEditorSelectorFile(null);
+
+    // 调用resolve函数
+    const resolve = (window as any).__editorSelectorResolve;
+    if (resolve) {
+      resolve(editorId);
+      delete (window as any).__editorSelectorResolve;
+    }
+  }, [editorSelectorFile]);
+
+  // 编辑器选择取消处理
+  const handleEditorSelectCancel = useCallback(() => {
+    console.log('[FileList] 编辑器选择取消');
+
+    setEditorSelectorVisible(false);
+    setEditorSelectorFile(null);
+
+    // 调用resolve函数
+    const resolve = (window as any).__editorSelectorResolve;
+    if (resolve) {
+      resolve(null);
+      delete (window as any).__editorSelectorResolve;
+    }
+  }, []);
+
+  // 编辑器配置关闭处理
+  const handleEditorConfigClose = useCallback(() => {
+    console.log('[FileList] 编辑器配置关闭');
+    setEditorConfigVisible(false);
+  }, []);
 
   // 修改处理右键菜单的函数
   const handleContextMenu = useCallback((event: React.MouseEvent, file: FileEntry) => {
@@ -723,6 +891,9 @@ const FileList: React.FC<FileListProps> = ({
           onFileDeleted={onRefresh}
           onCreateRequest={handleCreateRequest}  // 传递创建请求回调
           onPermissionRequest={handlePermissionRequest}  // 传递权限设置请求回调
+          onOpenWithRequest={handleOpenWithRequest}  // 传递打开方式请求回调
+          onOpenFileRequest={handleOpenFileRequest}  // 传递打开文件请求回调
+          onEditorConfigRequest={handleEditorConfigRequest}  // 传递编辑器配置请求回调
         />
       )}
 
@@ -772,6 +943,23 @@ const FileList: React.FC<FileListProps> = ({
           currentPath={currentPath}
           onConfirm={handlePermissionConfirm}
           onCancel={handlePermissionCancel}
+        />
+      )}
+
+      {/* 外部编辑器配置对话框 */}
+      <EditorConfigDialog
+        visible={editorConfigVisible}
+        onClose={handleEditorConfigClose}
+      />
+
+      {/* 编辑器选择对话框 */}
+      {editorSelectorFile && (
+        <EditorSelectorDialog
+          visible={editorSelectorVisible}
+          file={editorSelectorFile}
+          editors={availableEditors}
+          onSelect={handleEditorSelect}
+          onCancel={handleEditorSelectCancel}
         />
       )}
     </div>

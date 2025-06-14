@@ -1,0 +1,303 @@
+/* 外部编辑器配置对话框样式 */
+.editor-config-dialog .ant-modal-body {
+  padding: 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.editor-config-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* 编辑器列表区域 */
+.editor-list-section {
+  margin-bottom: 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-header .ant-typography-title {
+  margin-bottom: 0 !important;
+}
+
+.editor-list {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  background-color: #fafafa;
+}
+
+.editor-list .ant-list-item {
+  padding: 16px;
+  border-bottom: 1px solid #e8e8e8;
+  background-color: white;
+  margin-bottom: 0;
+  transition: all 0.2s;
+}
+
+.editor-list .ant-list-item:hover {
+  background-color: #f5f5f5;
+}
+
+.editor-list .ant-list-item:last-child {
+  border-bottom: none;
+  border-radius: 0 0 6px 6px;
+}
+
+.editor-list .ant-list-item:first-child {
+  border-radius: 6px 6px 0 0;
+}
+
+.editor-list .ant-list-item-meta-title {
+  margin-bottom: 4px;
+}
+
+.editor-list .ant-list-item-meta-description {
+  color: #666;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.editor-list .ant-list-item-action {
+  margin-left: 16px;
+}
+
+.editor-list .ant-list-item-action > li {
+  padding: 0 4px;
+}
+
+.editor-list .ant-list-item-action .ant-btn {
+  border: none;
+  box-shadow: none;
+}
+
+/* 设置区域 */
+.settings-section {
+  margin-bottom: 0;
+}
+
+.settings-section .ant-typography-title {
+  margin-bottom: 12px !important;
+  color: #262626;
+  font-size: 14px !important;
+}
+
+.setting-item {
+  margin-bottom: 12px;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
+}
+
+.setting-item .ant-typography {
+  margin-bottom: 0;
+}
+
+/* 单选按钮组 */
+.settings-section .ant-radio-group {
+  width: 100%;
+}
+
+.settings-section .ant-radio-wrapper {
+  display: block;
+  margin-bottom: 8px;
+  margin-right: 0;
+}
+
+.settings-section .ant-radio-wrapper:last-child {
+  margin-bottom: 0;
+}
+
+/* 开关组件 */
+.settings-section .ant-switch {
+  margin-right: 8px;
+}
+
+/* 输入框组 */
+.settings-section .ant-input-group {
+  display: flex;
+  width: 100%;
+}
+
+.settings-section .ant-input-group .ant-input {
+  flex: 1;
+}
+
+.settings-section .ant-input-number {
+  width: 150px;
+}
+
+/* 分割线 */
+.editor-config-content .ant-divider {
+  margin: 24px 0;
+  border-color: #e8e8e8;
+}
+
+/* 标签样式 */
+.editor-list .ant-tag {
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 2px 6px;
+  line-height: 1.2;
+}
+
+/* 按钮样式 */
+.section-header .ant-btn {
+  height: 32px;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.editor-list .ant-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-list .ant-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.editor-list .ant-btn.ant-btn-dangerous:hover {
+  background-color: #fff2f0;
+  color: #ff4d4f;
+}
+
+/* 空状态 */
+.editor-list .ant-list-empty-text {
+  padding: 32px;
+  color: #999;
+  font-size: 14px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .editor-config-dialog {
+    width: 95% !important;
+    max-width: none !important;
+  }
+  
+  .editor-config-dialog .ant-modal-body {
+    padding: 16px;
+    max-height: 60vh;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .editor-list .ant-list-item {
+    padding: 12px;
+  }
+  
+  .editor-list .ant-list-item-action {
+    margin-left: 8px;
+  }
+  
+  .editor-list .ant-list-item-action .ant-btn {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .settings-section .ant-input-number {
+    width: 120px;
+  }
+}
+
+/* 滚动条样式 */
+.editor-config-dialog .ant-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.editor-config-dialog .ant-modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.editor-config-dialog .ant-modal-body::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.editor-config-dialog .ant-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 动画效果 */
+.editor-config-dialog .ant-modal-content {
+  animation: editorConfigFadeIn 0.3s ease-out;
+}
+
+@keyframes editorConfigFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 列表项悬停效果 */
+.editor-list .ant-list-item {
+  cursor: default;
+}
+
+.editor-list .ant-list-item:hover .ant-list-item-action .ant-btn {
+  opacity: 1;
+}
+
+.editor-list .ant-list-item .ant-list-item-action .ant-btn {
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+/* 表单样式优化 */
+.settings-section .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.settings-section .ant-form-item:last-child {
+  margin-bottom: 0;
+}
+
+/* 输入框焦点样式 */
+.settings-section .ant-input:focus,
+.settings-section .ant-input-focused {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.settings-section .ant-input-number:focus,
+.settings-section .ant-input-number-focused {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* 开关样式 */
+.settings-section .ant-switch-checked {
+  background-color: #1890ff;
+}
+
+/* 单选按钮样式 */
+.settings-section .ant-radio-checked .ant-radio-inner {
+  border-color: #1890ff;
+  background-color: #1890ff;
+}
+
+.settings-section .ant-radio:hover .ant-radio-inner {
+  border-color: #1890ff;
+}

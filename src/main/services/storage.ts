@@ -17,6 +17,7 @@ export interface UISettings {
   isFileBrowserVisible: boolean;
   isAIVisible: boolean;
   fileOpenSettings: FileOpenSettings;  // 添加文件打开设置
+  externalEditorSettings: ExternalEditorSettings;  // 添加外部编辑器设置
 }
 
 // 文件打开设置接口
@@ -27,6 +28,31 @@ export interface FileOpenSettings {
       editor: 'built-in';
     }
   }
+}
+
+// 外部编辑器配置接口
+export interface ExternalEditorConfig {
+  id: string;
+  name: string;
+  executablePath: string;
+  arguments?: string;
+  isDefault: boolean;
+  addedTime: number;
+}
+
+// 外部编辑器设置接口
+export interface ExternalEditorSettings {
+  editors: ExternalEditorConfig[];
+  openMode: 'ask' | 'default' | 'remember';
+  autoUpload: boolean;
+  uploadDelay: number;
+  tempDirectory: string;
+  fileAssociations: { [extension: string]: string };
+  rememberChoices: boolean;
+  defaultEditor?: string;
+  // 用户偏好设置
+  defaultOpenMode: 'builtin' | 'external';
+  fileOpenPreferences: { [extension: string]: 'builtin' | 'external' };
 }
 
 // 加密密钥，实际应用中应该使用更安全的方式存储
@@ -227,6 +253,17 @@ class StorageService {
           fileOpenSettings: {
             defaultEditor: 'built-in',
             fileTypeAssociations: {}
+          },
+          externalEditorSettings: {
+            editors: [],
+            openMode: 'ask',
+            autoUpload: true,
+            uploadDelay: 2000,
+            tempDirectory: require('path').join(require('os').tmpdir(), 'electerm-editor'),
+            fileAssociations: {},
+            rememberChoices: true,
+            defaultOpenMode: 'builtin',
+            fileOpenPreferences: {}
           }
         };
       }
@@ -241,6 +278,17 @@ class StorageService {
         fileOpenSettings: {
           defaultEditor: 'built-in',
           fileTypeAssociations: {}
+        },
+        externalEditorSettings: {
+          editors: [],
+          openMode: 'ask',
+          autoUpload: true,
+          uploadDelay: 2000,
+          tempDirectory: require('path').join(require('os').tmpdir(), 'electerm-editor'),
+          fileAssociations: {},
+          rememberChoices: true,
+          defaultOpenMode: 'builtin',
+          fileOpenPreferences: {}
         }
       };
     }
