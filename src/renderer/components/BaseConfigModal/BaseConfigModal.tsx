@@ -72,6 +72,13 @@ export const BaseConfigModal: React.FC<BaseConfigModalProps> = ({
       open={visible}
       onCancel={onClose}
       width={800}
+      height={600}
+      styles={{
+        body: {
+          height: '500px',
+          padding: 0
+        }
+      }}
       footer={
         <Space>
           <Button onClick={onClose}>取消</Button>

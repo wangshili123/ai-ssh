@@ -120,23 +120,16 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // 监听打开基础配置对话框的 IPC 消息
+  // 监听打开下载历史的 IPC 消息
   useEffect(() => {
-    const handleOpenBaseConfig = () => {
-      console.log('[App] 收到打开基础配置对话框的消息');
-      setBaseConfigVisible(true);
-    };
-
     const handleOpenDownloadHistory = () => {
       console.log('[App] 收到打开下载历史的消息');
       setDownloadHistoryVisible(true);
     };
 
-    ipcRenderer.on('open-base-config', handleOpenBaseConfig);
     ipcRenderer.on('open-download-history', handleOpenDownloadHistory);
 
     return () => {
-      ipcRenderer.removeListener('open-base-config', handleOpenBaseConfig);
       ipcRenderer.removeListener('open-download-history', handleOpenDownloadHistory);
     };
   }, []);
@@ -166,6 +159,7 @@ const App: React.FC = () => {
               isFileBrowserVisible={isFileBrowserVisible}
               onFileBrowserVisibleChange={setIsFileBrowserVisible}
               onTransferManagerOpen={() => setTransferManagerVisible(true)}
+              onBaseConfigOpen={() => setBaseConfigVisible(true)}
             />
           </Sider>
         <Layout>

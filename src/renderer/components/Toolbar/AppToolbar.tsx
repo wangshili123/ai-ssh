@@ -1,6 +1,6 @@
 import React from 'react';
 import { Space, Button, Tooltip } from 'antd';
-import { FolderOutlined, FolderOpenOutlined, SwapOutlined } from '@ant-design/icons';
+import { FolderOutlined, FolderOpenOutlined, SwapOutlined, SettingOutlined } from '@ant-design/icons';
 import AIToolbarButton from './AIToolbarButton';
 import './AppToolbar.css';
 
@@ -11,6 +11,7 @@ interface AppToolbarProps {
   isFileBrowserVisible: boolean;
   onFileBrowserVisibleChange: (visible: boolean) => void;
   onTransferManagerOpen?: () => void;
+  onBaseConfigOpen?: () => void;
 }
 
 const AppToolbar: React.FC<AppToolbarProps> = ({
@@ -20,6 +21,7 @@ const AppToolbar: React.FC<AppToolbarProps> = ({
   isFileBrowserVisible,
   onFileBrowserVisibleChange,
   onTransferManagerOpen,
+  onBaseConfigOpen,
 }) => {
   return (
     <div className="toolbar">
@@ -48,10 +50,19 @@ const AppToolbar: React.FC<AppToolbarProps> = ({
             className="toolbar-button"
           />
         </Tooltip>
+
         <AIToolbarButton
           isVisible={!isAICollapsed}
           onClick={() => onAICollapse(!isAICollapsed)}
         />
+         <Tooltip title="基础配置" placement="right">
+          <Button
+            type="text"
+            icon={<SettingOutlined />}
+            onClick={onBaseConfigOpen}
+            className="toolbar-button"
+          />
+        </Tooltip>
       </Space>
     </div>
   );
