@@ -28,8 +28,8 @@ export class ExternalEditorManager {
 
   constructor() {
     // 初始化临时文件管理器
-    // 使用默认临时目录，稍后会在第一次使用时更新
-    this.tempFileManager = new TempFileManager('');
+    // 先使用默认临时目录，配置加载后会更新
+    this.tempFileManager = new TempFileManager();
 
     // 初始化文件监控器
     this.fileWatcher = new FileWatcher(this.tempFileManager);
@@ -380,17 +380,20 @@ export class ExternalEditorManager {
       const settings = await unifiedEditorConfig.getSettings();
       console.log('[ExternalEditorManager] 加载配置:', settings);
 
-      // 设置临时目录
-      if (settings.tempDirectory) {
+      // 设置临时目录 - 确保立即生效
+      if (settings.tempDirectory && settings.tempDirectory.trim()) {
+        console.log('[ExternalEditorManager] 设置用户配置的临时目录:', settings.tempDirectory);
         this.tempFileManager.setTempDirectory(settings.tempDirectory);
-        console.log('[ExternalEditorManager] 设置临时目录:', settings.tempDirectory);
+      } else {
+        console.log('[ExternalEditorManager] 使用默认临时目录:', this.tempFileManager.getTempDirectory());
       }
 
       // 设置文件监控延迟
       this.fileWatcher.setDefaultDebounceDelay(settings.uploadDelay);
 
+      console.log('[ExternalEditorManager] 配置初始化完成');
     } catch (error) {
-      console.error('[ExternalEditorManager] 初始化配置失败:', error);
+      console.error('[ExternalEditorManager] 配置初始化失败:', error);
     }
   }
 
@@ -400,7 +403,10 @@ export class ExternalEditorManager {
   private setupConfigListeners(): void {
     // 监听配置变化，更新临时目录
     eventBus.on('external-editor-config-changed', (config) => {
-      this.tempFileManager.setTempDirectory(config.tempDirectory);
+      if (config.tempDirectory && config.tempDirectory.trim()) {
+        console.log('[ExternalEditorManager] 配置变化 - 更新临时目录:', config.tempDirectory);
+        this.tempFileManager.setTempDirectory(config.tempDirectory);
+      }
       this.fileWatcher.setDefaultDebounceDelay(config.uploadDelay);
     });
 

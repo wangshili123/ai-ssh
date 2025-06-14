@@ -3,6 +3,7 @@ import type { ExternalEditorSettings } from '../../../../main/services/storage';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 import * as os from 'os';
+import { eventBus } from '../../../../services/eventBus';
 
 // 重新导出类型，保持兼容性
 export type { ExternalEditorSettings } from '../../../../main/services/storage';
@@ -67,10 +68,14 @@ export class UnifiedEditorConfigManager {
    */
   private async saveSettings(): Promise<void> {
     if (!this.settings) return;
-    
+
     try {
       await storageService.saveExternalEditorSettings(this.settings);
       console.log('[UnifiedEditorConfig] 配置已保存');
+
+      // 触发配置变化事件，通知其他组件配置已更新
+      eventBus.emit('external-editor-config-changed', this.settings);
+      console.log('[UnifiedEditorConfig] 已触发配置变化事件');
     } catch (error) {
       console.error('[UnifiedEditorConfig] 保存配置失败:', error);
     }

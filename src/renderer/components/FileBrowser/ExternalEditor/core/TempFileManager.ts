@@ -2,7 +2,10 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 import { promisify } from 'util';
-import { sftpService } from '../../../../services/sftp';
+import { downloadService } from '../../../../services/downloadService';
+import { uploadService } from '../../../../services/uploadService';
+import type { DownloadTask, UploadTask } from '../../../../services/transferService';
+import { message } from 'antd';
 
 // 将fs方法转换为Promise版本
 const writeFile = promisify(fs.writeFile);
@@ -38,6 +41,7 @@ export class TempFileManager {
 
   /**
    * 下载远程文件到本地临时目录
+   * 使用downloadService复用现有的下载逻辑，支持进度显示、大文件处理等
    */
   async downloadFile(session: ActiveEditorSession): Promise<FileOperationResult> {
     const { file, sessionInfo, id, tabId } = session;
@@ -51,22 +55,39 @@ export class TempFileManager {
       // 确保临时目录存在
       await this.ensureDirectory(path.dirname(tempFilePath));
 
-      // 使用SFTP服务下载文件，使用正确的连接ID格式
-      const connectionId = `sftp-${tabId}`;
-      console.log('[TempFileManager] 使用connectionId:', connectionId, '下载文件');
-      const result = await sftpService.readFile(connectionId, file.path);
-      const content = result.content;
+      // 使用downloadService下载文件，获得进度显示和大文件支持
+      const downloadConfig = {
+        savePath: path.dirname(tempFilePath),
+        fileName: path.basename(tempFilePath),
+        sessionId: tabId,
+        overwrite: true,
+        openFolder: false, // 不打开文件夹
+        // 最大性能配置 - 启用所有优化选项
+        useCompression: true, // 启用压缩
+        compressionMethod: 'auto' as const, // 自动选择最适合的压缩方法
+        useParallelDownload: true, // 启用并行下载（注意字段名是useParallelDownload）
+        maxParallelChunks: 30 // 最大并行块数，获得最高传输速度
+      };
 
-      // 写入临时文件
-      await writeFile(tempFilePath, content);
+      console.log('[TempFileManager] 使用downloadService下载文件，配置:', downloadConfig);
+
+      // 启动下载任务
+      const taskId = await downloadService.startTransfer({ file, config: downloadConfig });
+
+      // 等待下载完成
+      const downloadResult = await this.waitForDownloadComplete(taskId);
+
+      if (!downloadResult.success) {
+        throw new Error(downloadResult.error || '下载失败');
+      }
 
       // 获取文件统计信息
       const stats = await stat(tempFilePath);
-      
+
       // 更新会话信息
       session.tempFilePath = tempFilePath;
       session.lastModified = stats.mtime.getTime();
-      
+
       // 记录临时文件信息
       const tempFileInfo: TempFileInfo = {
         sessionId: id,
@@ -76,16 +97,16 @@ export class TempFileManager {
         lastModified: stats.mtime.getTime(),
         sessionInfo
       };
-      
+
       this.activeTempFiles.set(id, tempFileInfo);
-      
+
       console.log('[TempFileManager] 文件下载成功:', tempFilePath);
-      
+
       return {
         success: true,
         message: `文件 ${file.name} 下载成功`
       };
-      
+
     } catch (error) {
       console.error('[TempFileManager] 文件下载失败:', error);
       return {
@@ -93,6 +114,42 @@ export class TempFileManager {
         error: `文件下载失败: ${(error as Error).message}`
       };
     }
+  }
+
+  /**
+   * 等待下载任务完成
+   */
+  private async waitForDownloadComplete(taskId: string): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      const handleDownloadCompleted = (task: DownloadTask) => {
+        if (task.id === taskId) {
+          console.log('[TempFileManager] 下载任务完成:', task.id);
+          downloadService.off('download-completed', handleDownloadCompleted);
+          downloadService.off('download-error', handleDownloadError);
+          resolve({ success: true });
+        }
+      };
+
+      const handleDownloadError = (task: DownloadTask) => {
+        if (task.id === taskId) {
+          console.error('[TempFileManager] 下载任务失败:', task.id, task.error);
+          downloadService.off('download-completed', handleDownloadCompleted);
+          downloadService.off('download-error', handleDownloadError);
+          resolve({ success: false, error: task.error || '下载失败' });
+        }
+      };
+
+      // 监听下载事件
+      downloadService.on('download-completed', handleDownloadCompleted);
+      downloadService.on('download-error', handleDownloadError);
+
+      // 设置超时（5分钟）
+      setTimeout(() => {
+        downloadService.off('download-completed', handleDownloadCompleted);
+        downloadService.off('download-error', handleDownloadError);
+        resolve({ success: false, error: '下载超时' });
+      }, 5 * 60 * 1000);
+    });
   }
 
   /**
@@ -109,31 +166,57 @@ export class TempFileManager {
         throw new Error('临时文件不存在');
       }
 
-      // 读取本地文件内容
-      const content = await readFile(tempFilePath);
+      // 获取文件统计信息
+      const stats = await stat(tempFilePath);
 
-      // 上传到远程服务器，使用正确的连接ID格式
-      const connectionId = `sftp-${tabId}`;
-      console.log('[TempFileManager] 使用connectionId:', connectionId, '上传文件');
-      await sftpService.writeFile(connectionId, file.path, content.toString());
+      // 读取本地文件内容并创建File对象
+      const content = await readFile(tempFilePath);
+      const uploadFile = new File([content], file.name, {
+        type: 'application/octet-stream',
+        lastModified: stats.mtime.getTime()
+      });
+
+      // 使用uploadService上传文件，获得进度显示和大文件支持
+      const uploadConfig = {
+        remotePath: path.dirname(file.path),
+        sessionId: tabId,
+        overwrite: true,
+        preservePermissions: true,
+        // 最大性能配置 - 启用所有优化选项
+        useCompression: true, // 启用压缩
+        compressionMethod: 'auto' as const, // 自动选择最适合的压缩方法
+        useParallelTransfer: true, // 启用并行传输
+        maxParallelChunks: 30 // 最大并行块数，获得最高传输速度
+      };
+
+      console.log('[TempFileManager] 使用uploadService上传文件，配置:', uploadConfig);
+
+      // 启动上传任务
+      const taskId = await uploadService.startUpload([uploadFile], uploadConfig);
+
+      // 等待上传完成
+      const uploadResult = await this.waitForUploadComplete(taskId);
+
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || '上传失败');
+      }
 
       // 更新文件修改时间
-      const stats = await stat(tempFilePath);
       session.lastModified = stats.mtime.getTime();
-      
+
       // 更新临时文件信息
       const tempFileInfo = this.activeTempFiles.get(id);
       if (tempFileInfo) {
         tempFileInfo.lastModified = stats.mtime.getTime();
       }
-      
+
       console.log('[TempFileManager] 文件上传成功:', file.path);
-      
+
       return {
         success: true,
         message: `文件 ${file.name} 上传成功`
       };
-      
+
     } catch (error) {
       console.error('[TempFileManager] 文件上传失败:', error);
       return {
@@ -141,6 +224,42 @@ export class TempFileManager {
         error: `文件上传失败: ${(error as Error).message}`
       };
     }
+  }
+
+  /**
+   * 等待上传任务完成
+   */
+  private async waitForUploadComplete(taskId: string): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      const handleUploadCompleted = (task: UploadTask) => {
+        if (task.id === taskId) {
+          console.log('[TempFileManager] 上传任务完成:', task.id);
+          uploadService.off('upload-completed', handleUploadCompleted);
+          uploadService.off('upload-error', handleUploadError);
+          resolve({ success: true });
+        }
+      };
+
+      const handleUploadError = (task: UploadTask) => {
+        if (task.id === taskId) {
+          console.error('[TempFileManager] 上传任务失败:', task.id, task.error);
+          uploadService.off('upload-completed', handleUploadCompleted);
+          uploadService.off('upload-error', handleUploadError);
+          resolve({ success: false, error: task.error || '上传失败' });
+        }
+      };
+
+      // 监听上传事件
+      uploadService.on('upload-completed', handleUploadCompleted);
+      uploadService.on('upload-error', handleUploadError);
+
+      // 设置超时（5分钟）
+      setTimeout(() => {
+        uploadService.off('upload-completed', handleUploadCompleted);
+        uploadService.off('upload-error', handleUploadError);
+        resolve({ success: false, error: '上传超时' });
+      }, 5 * 60 * 1000);
+    });
   }
 
   /**

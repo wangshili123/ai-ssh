@@ -2,9 +2,6 @@
 
 // 配置管理 - 使用统一的配置管理器
 export { UnifiedEditorConfigManager, unifiedEditorConfig } from './config/UnifiedEditorConfig';
-// 保持向后兼容的别名
-export { unifiedEditorConfig as externalEditorConfig } from './config/UnifiedEditorConfig';
-export { unifiedEditorConfig as editorPreferenceManager } from './config/UnifiedEditorConfig';
 
 // 核心管理器
 export { ExternalEditorManager, externalEditorManager } from './core/ExternalEditorManager';
