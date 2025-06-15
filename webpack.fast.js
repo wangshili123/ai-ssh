@@ -110,6 +110,7 @@ module.exports = merge(common, {
       process: 'process/browser'
     }),
     new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify('development'),
       'process.env.TREE_SITTER_WASM_PATH': JSON.stringify('/wasm/tree-sitter.wasm')
     })
   ],

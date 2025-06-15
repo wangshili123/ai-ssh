@@ -101,6 +101,7 @@ module.exports = merge(common, {
       features: ['!gotoSymbol', '!find', '!folding'] // 生产环境保留更多功能
     }),
     new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify('production'),
       'process.env.TREE_SITTER_WASM_PATH': JSON.stringify('./wasm/tree-sitter.wasm')
     })
   ],

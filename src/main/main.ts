@@ -5,6 +5,13 @@ import { localConfig } from '../config/local.config';
 
 // 创建菜单
 function createMenu() {
+  // 生产环境隐藏菜单
+  if (process.env.NODE_ENV === 'production') {
+    Menu.setApplicationMenu(null);
+    return;
+  }
+
+  // 开发环境显示调试菜单
   const template: MenuItemConstructorOptions[] = [
     {
       label: '视图',
@@ -12,11 +19,6 @@ function createMenu() {
         { role: 'reload', label: '刷新' },
         { role: 'forceReload', label: '强制刷新' },
         { role: 'toggleDevTools', label: '开发者工具' }
-      ]
-    },
-    {
-      label: '查看',
-      submenu: [
       ]
     }
   ];

@@ -1,6 +1,7 @@
 {
   "appId": "com.ai-ssh-tool.app",
   "productName": "AI SSH Tool",
+  "copyright": "Copyright © 2024 AI SSH Tool Contributors",
   "directories": {
     "output": "release",
     "buildResources": "assets"
@@ -30,16 +31,61 @@
     }
   ],
   "win": {
-    "target": "nsis"
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64",
+          "ia32"
+        ]
+      },
+      {
+        "target": "portable",
+        "arch": [
+          "x64"
+        ]
+      },
+      {
+        "target": "zip",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "assets/icon.ico",
+    "requestedExecutionLevel": "asInvoker",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "publisherName": "AI SSH Tool Team",
+    "verifyUpdateCodeSignature": false
   },
   "nsis": {
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
+    "allowElevation": true,
     "createDesktopShortcut": true,
-    "createStartMenuShortcut": true
+    "createStartMenuShortcut": true,
+    "shortcutName": "AI SSH Tool",
+    "deleteAppDataOnUninstall": false,
+    "runAfterFinish": true,
+    "menuCategory": "Development",
+    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "displayLanguageSelector": true,
+    "installerLanguages": [
+      "en_US",
+      "zh_CN"
+    ],
+    "language": "2052"
   },
-  "compression": "normal",
+  "portable": {
+    "artifactName": "${productName}-${version}-Portable.${ext}"
+  },
+  "compression": "maximum",
   "removePackageScripts": true,
   "nodeGypRebuild": false,
-  "buildDependenciesFromSource": false
+  "buildDependenciesFromSource": false,
+  "publish": {
+    "provider": "github",
+    "owner": "your-username",
+    "repo": "ai-ssh-tool"
+  }
 }
