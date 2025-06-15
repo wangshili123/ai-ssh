@@ -5,8 +5,13 @@ import { localConfig } from '../config/local.config';
 
 // 创建菜单
 function createMenu() {
-  // 生产环境隐藏菜单
-  if (process.env.NODE_ENV === 'production') {
+  // 添加调试日志
+  console.log('App isPackaged:', app.isPackaged);
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+
+  // 生产环境（打包后）隐藏菜单
+  if (app.isPackaged) {
+    console.log('隐藏菜单 - 生产环境');
     Menu.setApplicationMenu(null);
     return;
   }
