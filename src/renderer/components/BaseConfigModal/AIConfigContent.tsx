@@ -17,8 +17,15 @@ export const AIConfigContent = forwardRef<FormInstance, AIConfigContentProps>(({
 
   // 加载配置
   useEffect(() => {
-    const config = configManager.getConfig();
-    form.setFieldsValue(config);
+    const loadConfig = async () => {
+      try {
+        const config = await configManager.getConfig();
+        form.setFieldsValue(config);
+      } catch (error) {
+        console.error('加载AI配置失败:', error);
+      }
+    };
+    loadConfig();
   }, [form]);
 
   // 测试配置
@@ -91,7 +98,6 @@ export const AIConfigContent = forwardRef<FormInstance, AIConfigContentProps>(({
     <Form
       form={form}
       layout="vertical"
-      initialValues={configManager.getConfig()}
     >
       {/* 基础配置 */}
       <Card type="inner" title="基础配置">

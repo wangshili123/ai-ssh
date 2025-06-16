@@ -68,6 +68,7 @@ class StorageService {
   private storagePath: string;
   private groupsPath: string;
   private uiSettingsPath: string;  // 新增UI设置存储路径
+  private baseConfigPath: string;  // 新增基础配置存储路径
 
   constructor() {
     try {
@@ -76,6 +77,7 @@ class StorageService {
       this.storagePath = path.join(userDataPath, 'sessions.json');
       this.groupsPath = path.join(userDataPath, 'groups.json');
       this.uiSettingsPath = path.join(userDataPath, 'ui-settings.json');  // 新增
+      this.baseConfigPath = path.join(userDataPath, 'base-config.json');  // 新增
     } catch (error) {
       // 如果在渲染进程中，提供一个默认路径
       console.warn('无法获取 app.getPath，使用默认路径', error);
@@ -83,7 +85,8 @@ class StorageService {
       this.storagePath = path.join(defaultPath, 'sessions.json');
       this.groupsPath = path.join(defaultPath, 'groups.json');
       this.uiSettingsPath = path.join(defaultPath, 'ui-settings.json');  // 新增
-      
+      this.baseConfigPath = path.join(defaultPath, 'base-config.json');  // 新增
+
       // 确保目录存在
       if (!fs.existsSync(defaultPath)) {
         fs.mkdirSync(defaultPath, { recursive: true });
@@ -361,7 +364,7 @@ class StorageService {
   async setDefaultEditor(extension: string, editor: 'built-in'): Promise<void> {
     try {
       const settings = await this.loadUISettings();
-      
+
       if (!settings.fileOpenSettings) {
         settings.fileOpenSettings = {
           defaultEditor: 'built-in',
@@ -384,6 +387,40 @@ class StorageService {
     } catch (error) {
       console.error('设置默认打开方式失败:', error);
       throw error;
+    }
+  }
+
+  // 保存基础配置
+  async saveBaseConfig(config: any): Promise<void> {
+    try {
+      console.log('[StorageService] 保存基础配置到文件:', config);
+      await fs.promises.writeFile(
+        this.baseConfigPath,
+        JSON.stringify(config, null, 2)
+      );
+      console.log('[StorageService] 基础配置保存成功');
+    } catch (error) {
+      console.error('保存基础配置失败:', error);
+      throw error;
+    }
+  }
+
+  // 加载基础配置
+  async loadBaseConfig(): Promise<any> {
+    try {
+      if (!fs.existsSync(this.baseConfigPath)) {
+        console.log('[StorageService] 基础配置文件不存在，返回空配置');
+        return {};
+      }
+
+      const data = await fs.promises.readFile(this.baseConfigPath, 'utf8');
+      const config = JSON.parse(data);
+      console.log('[StorageService] 从文件加载基础配置:', config);
+      return config;
+    } catch (error) {
+      console.error('加载基础配置失败:', error);
+      // 发生错误时返回空配置
+      return {};
     }
   }
 }

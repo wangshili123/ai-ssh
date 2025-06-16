@@ -26,11 +26,12 @@ export class AIConfigManager extends BaseConfig {
     return AIConfigManager.instance;
   }
 
-   getConfig(): AIConfig {
-    return  BaseConfig.getConfig('ai') as AIConfig || DEFAULT_AI_CONFIG;
+  async getConfig(): Promise<AIConfig> {
+    const config = await BaseConfig.getConfig('ai') as AIConfig;
+    return config || DEFAULT_AI_CONFIG;
   }
 
-  saveConfig(config: AIConfig): void {
-    BaseConfig.setConfig('ai', config);
+  async saveConfig(config: AIConfig): Promise<void> {
+    await BaseConfig.setConfig('ai', config);
   }
 } 

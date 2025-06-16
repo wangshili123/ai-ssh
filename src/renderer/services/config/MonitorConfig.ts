@@ -20,13 +20,13 @@ export class MonitorConfigManager extends BaseConfig {
     return MonitorConfigManager.instance;
   }
 
-  getConfig(): MonitorConfig {
-    const config =  BaseConfig.getConfig('monitor') as MonitorConfig;
+  async getConfig(): Promise<MonitorConfig> {
+    const config = await BaseConfig.getConfig('monitor') as MonitorConfig;
     console.log('[MonitorConfigManager] 获取配置:', config);
     return config || DEFAULT_MONITOR_CONFIG;
   }
 
-  saveConfig(config: MonitorConfig): void {
-    BaseConfig.setConfig('monitor', config);
+  async saveConfig(config: MonitorConfig): Promise<void> {
+    await BaseConfig.setConfig('monitor', config);
   }
 } 

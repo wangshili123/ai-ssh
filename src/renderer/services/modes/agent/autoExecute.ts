@@ -25,7 +25,7 @@ export class AutoExecuteService {
    */
   async canAutoExecute(commandRisk: CommandRiskLevel): Promise<boolean> {
     try {
-      const config = AIConfigManager.getInstance().getConfig();
+      const config = await AIConfigManager.getInstance().getConfig();
       
       // 如果没有开启自动执行，直接返回 false
       if (!config.agentAutoRun) {

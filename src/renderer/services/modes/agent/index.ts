@@ -162,7 +162,7 @@ class AgentModeServiceImpl implements AgentModeService {
       const history = terminalOutputService.getHistory();
       console.log('终端历史:', history);
 
-      const config = AIConfigManager.getInstance().getConfig();
+      const config = await AIConfigManager.getInstance().getConfig();
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',

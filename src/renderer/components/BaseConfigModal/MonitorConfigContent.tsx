@@ -16,13 +16,24 @@ export const MonitorConfigContent = forwardRef<FormInstance, MonitorConfigConten
 
   // 加载配置
   useEffect(() => {
-    const config = configManager.getConfig();
-    form.setFieldsValue(config);
+    const loadConfig = async () => {
+      try {
+        const config = await configManager.getConfig();
+        form.setFieldsValue(config);
+      } catch (error) {
+        console.error('加载监控配置失败:', error);
+      }
+    };
+    loadConfig();
   }, [form]);
 
   // 处理表单提交
-  const handleValuesChange = (_: any, values: MonitorConfig) => {
-    configManager.saveConfig(values);
+  const handleValuesChange = async (_: any, values: MonitorConfig) => {
+    try {
+      await configManager.saveConfig(values);
+    } catch (error) {
+      console.error('保存监控配置失败:', error);
+    }
   };
 
   return (

@@ -42,12 +42,12 @@ export const BaseConfigModal: React.FC<BaseConfigModalProps> = ({
       console.log('aiValues', aiValues);
       console.log('terminalShortcutValues', terminalShortcutValues);
 
-      // 通过各自的 Manager 更新配置
-      MonitorConfigManager.getInstance().saveConfig(monitorValues);
-      AIConfigManager.getInstance().saveConfig(aiValues);
+      // 通过各自的 Manager 更新配置（现在都是异步的）
+      await MonitorConfigManager.getInstance().saveConfig(monitorValues);
+      await AIConfigManager.getInstance().saveConfig(aiValues);
       await TerminalShortcutConfigManager.getInstance().saveConfig(terminalShortcutValues);
 
-      // 使用 ui-config 方式保存到文件系统
+      // 同时使用 ui-config 方式保存到文件系统（作为备份）
       const currentSettings = uiSettingsManager.getSettings();
       await uiSettingsManager.updateSettings({
         ...currentSettings,

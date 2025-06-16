@@ -48,7 +48,7 @@ class CommandModeServiceImpl implements CommandModeService {
       const excludeCommands = this.getCurrentCommands();
       console.log('排除的命令列表:', excludeCommands);
 
-      const config = AIConfigManager.getInstance().getConfig();
+      const config = await AIConfigManager.getInstance().getConfig();
       
       // 构建用户提示，包含已生成的命令信息
       let userPrompt = input;

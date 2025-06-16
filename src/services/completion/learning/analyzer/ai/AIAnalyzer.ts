@@ -32,7 +32,7 @@ export class AIAnalyzer {
    */
 
   async getConfig(): Promise<AIConfig> {
-    return this.configManager.getConfig();
+    return await this.configManager.getConfig();
   }
 
   /**

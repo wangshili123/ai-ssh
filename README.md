@@ -85,7 +85,7 @@ AI助手: ps aux --sort=-%mem | head -10
 - **桌面框架**: Electron 25.x
 
 ### 后端服务
-- **AI集成**: OpenAI API (GPT-3.5/4)
+- **AI集成**: OpenAI API 
 - **SSH连接**: ssh2 + 连接池优化
 - **数据存储**: SQLite3 + better-sqlite3
 - **文件传输**: SFTP + 压缩+并行传输优化

@@ -137,4 +137,28 @@ export function registerStorageHandlers(): void {
       return { success: false, error: errorMessage };
     }
   });
-} 
+
+  // 保存基础配置
+  ipcMain.handle('storage:save-base-config', async (_, config: any): Promise<IPCResponse> => {
+    try {
+      await storageService.saveBaseConfig(config);
+      return { success: true };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      console.error('保存基础配置失败:', error);
+      return { success: false, error: errorMessage };
+    }
+  });
+
+  // 加载基础配置
+  ipcMain.handle('storage:load-base-config', async (): Promise<IPCResponse<any>> => {
+    try {
+      const config = await storageService.loadBaseConfig();
+      return { success: true, data: config };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      console.error('加载基础配置失败:', error);
+      return { success: false, error: errorMessage };
+    }
+  });
+}
