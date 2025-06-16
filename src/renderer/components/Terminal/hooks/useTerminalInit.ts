@@ -185,9 +185,27 @@ export const useTerminalInit = ({
 
     // 注册事件处理器
     terminal.onData(callbacksRef.current.handleInput);
-    
+
     // 获取终端快捷键配置
-    const shortcutConfig = TerminalShortcutConfigManager.getInstance().getConfig();
+    let shortcutConfig = {
+      acceptCompletion: 'Ctrl+Tab',
+      acceptCompletionAlt: 'Alt+/',
+      clearCompletion: 'Escape',
+      navigateUp: 'Alt+ArrowUp',
+      navigateDown: 'Alt+ArrowDown',
+      copy: 'Ctrl+Shift+C',
+      paste: 'Ctrl+Shift+V',
+      clear: 'Ctrl+Shift+L',
+      search: 'Ctrl+Shift+F'
+    };
+
+    // 异步加载配置
+    TerminalShortcutConfigManager.getInstance().getConfig().then(config => {
+      shortcutConfig = config;
+      console.log('[useTerminalInit] 快捷键配置已加载:', shortcutConfig);
+    }).catch(error => {
+      console.error('[useTerminalInit] 加载快捷键配置失败:', error);
+    });
 
     // 添加全局键盘事件监听器作为备用方案
     const handleGlobalKeyDown = async (ev: KeyboardEvent) => {

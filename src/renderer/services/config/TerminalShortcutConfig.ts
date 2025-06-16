@@ -38,7 +38,7 @@ export class TerminalShortcutConfigManager extends BaseConfig {
   /**
    * 获取终端快捷键配置
    */
-  public getConfig(): TerminalShortcutConfig {
+  public async getConfig(): Promise<TerminalShortcutConfig> {
     try {
       // 优先从ui-config中读取
       const uiSettings = uiSettingsManager.getSettings();
@@ -47,7 +47,7 @@ export class TerminalShortcutConfigManager extends BaseConfig {
       }
 
       // 回退到BaseConfig
-      const config = TerminalShortcutConfigManager.getConfig('terminalShortcuts') as TerminalShortcutConfig;
+      const config = await TerminalShortcutConfigManager.getConfig('terminalShortcuts') as TerminalShortcutConfig;
       return config || this.getDefaultConfig();
     } catch (error) {
       console.error('[TerminalShortcutConfigManager] 获取配置失败:', error);
@@ -84,9 +84,9 @@ export class TerminalShortcutConfigManager extends BaseConfig {
   /**
    * 重置为默认配置
    */
-  public resetToDefault(): void {
+  public async resetToDefault(): Promise<void> {
     const defaultConfig = this.getDefaultConfig();
-    this.saveConfig(defaultConfig);
+    await this.saveConfig(defaultConfig);
   }
 
   /**
@@ -96,6 +96,12 @@ export class TerminalShortcutConfigManager extends BaseConfig {
    * @returns 是否匹配
    */
   public static matchesShortcut(event: KeyboardEvent, shortcut: string): boolean {
+    // 检查快捷键字符串是否有效
+    if (!shortcut || typeof shortcut !== 'string') {
+      console.warn('[TerminalShortcutConfigManager] 无效的快捷键字符串:', shortcut);
+      return false;
+    }
+
     const parts = shortcut.split('+');
     const key = parts[parts.length - 1];
     const modifiers = parts.slice(0, -1);

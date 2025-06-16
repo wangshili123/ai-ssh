@@ -19,15 +19,39 @@ export const TerminalShortcutConfigContent: React.FC<TerminalShortcutConfigConte
 
   useEffect(() => {
     // 初始化表单数据
-    const config = configManager.getConfig();
-    form.setFieldsValue(config);
+    const loadConfig = async () => {
+      try {
+        const config = await configManager.getConfig();
+        form.setFieldsValue(config);
+      } catch (error) {
+        console.error('加载终端快捷键配置失败:', error);
+        // 如果加载失败，设置默认值
+        const defaultConfig = {
+          acceptCompletion: 'Ctrl+Tab',
+          acceptCompletionAlt: 'Alt+/',
+          clearCompletion: 'Escape',
+          navigateUp: 'Alt+ArrowUp',
+          navigateDown: 'Alt+ArrowDown',
+          copy: 'Ctrl+Shift+C',
+          paste: 'Ctrl+Shift+V',
+          clear: 'Ctrl+Shift+L',
+          search: 'Ctrl+Shift+F'
+        };
+        form.setFieldsValue(defaultConfig);
+      }
+    };
+    loadConfig();
   }, [form, configManager]);
 
   // 重置为默认配置
-  const handleResetToDefault = () => {
-    configManager.resetToDefault();
-    const defaultConfig = configManager.getConfig();
-    form.setFieldsValue(defaultConfig);
+  const handleResetToDefault = async () => {
+    try {
+      configManager.resetToDefault();
+      const defaultConfig = await configManager.getConfig();
+      form.setFieldsValue(defaultConfig);
+    } catch (error) {
+      console.error('重置默认配置失败:', error);
+    }
   };
 
   // 快捷键输入框的验证规则
@@ -42,7 +66,17 @@ export const TerminalShortcutConfigContent: React.FC<TerminalShortcutConfigConte
     <Form
       form={form}
       layout="vertical"
-      initialValues={configManager.getConfig()}
+      initialValues={{
+        acceptCompletion: 'Ctrl+Tab',
+        acceptCompletionAlt: 'Alt+/',
+        clearCompletion: 'Escape',
+        navigateUp: 'Alt+ArrowUp',
+        navigateDown: 'Alt+ArrowDown',
+        copy: 'Ctrl+Shift+C',
+        paste: 'Ctrl+Shift+V',
+        clear: 'Ctrl+Shift+L',
+        search: 'Ctrl+Shift+F'
+      }}
       size="small"
     >
       <Space direction="vertical" style={{ width: '100%' }} size="middle">
