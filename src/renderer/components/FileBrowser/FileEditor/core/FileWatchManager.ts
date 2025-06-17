@@ -215,33 +215,126 @@ export class FileWatchManager extends EventEmitter {
    * @param key 监控键
    */
   private async checkFileChanges(key: string): Promise<void> {
-    // 实际实现中，这里需要根据不同的文件系统和远程连接方式来实现
-    // 这里只是一个示例框架
-    
     const state = this.watchStates.get(key)!;
-    
-    // 更新状态
-    state.lastCheckTime = Date.now();
-    
-    // 模拟文件变化检测
-    // 在实际实现中，这里需要通过SFTP或其他方式获取文件信息
-    const newContent = ['模拟的新内容行1', '模拟的新内容行2'];
-    
-    // 发出更新事件
-    this.emit(EditorEvents.FILE_CHANGED, {
-      type: 'update',
-      filePath: state.filePath,
-      sessionId: state.sessionId,
-      timestamp: Date.now(),
-      content: newContent,
-      stats: {
-        ...state.stats,
-        totalUpdates: state.stats.totalUpdates + 1,
-        lastUpdateTime: Date.now(),
-        newLines: newContent.length,
-        updateSize: newContent.join('\n').length
+
+    try {
+      // 更新状态
+      state.lastCheckTime = Date.now();
+
+      // 通过SFTP获取文件信息
+      const { sftpService } = await import('../../../../services/sftp');
+      const connectionId = `sftp-${state.sessionId}`;
+
+      // 获取文件统计信息
+      const stats = await sftpService.stat(connectionId, state.filePath);
+
+      // 检查文件是否有变化
+      const currentSize = stats.size;
+      const currentModified = stats.modifyTime;
+
+      // 如果文件大小或修改时间发生变化
+      if (currentSize !== state.lastSize || currentModified !== state.lastModified) {
+        console.log('[FileWatchManager] 检测到文件变化:', {
+          filePath: state.filePath,
+          oldSize: state.lastSize,
+          newSize: currentSize,
+          oldModified: state.lastModified,
+          newModified: currentModified
+        });
+
+        // 如果文件变大了，读取新增的内容
+        if (currentSize > state.lastSize) {
+          try {
+            // 读取从上次位置到文件末尾的内容
+            const result = await sftpService.readFile(
+              connectionId,
+              state.filePath,
+              state.lastReadPosition,
+              currentSize - state.lastReadPosition
+            );
+            const newContent = result.content;
+
+            // 将新内容按行分割
+            const newLines = newContent.split('\n').filter(line => line.length > 0);
+
+            if (newLines.length > 0) {
+              // 更新状态
+              state.lastSize = currentSize;
+              state.lastModified = currentModified;
+              state.lastReadPosition = currentSize;
+              state.stats.totalUpdates++;
+              state.stats.lastUpdateTime = Date.now();
+              state.stats.newLines = newLines.length;
+              state.stats.updateSize = newContent.length;
+
+              // 发出更新事件
+              this.emit('watch-event', {
+                type: 'update',
+                filePath: state.filePath,
+                sessionId: state.sessionId,
+                timestamp: Date.now(),
+                content: newLines,
+                stats: { ...state.stats }
+              } as FileWatchEventData);
+            }
+          } catch (readError) {
+            console.error('[FileWatchManager] 读取新增内容失败:', readError);
+            // 如果读取失败，重新读取整个文件
+            try {
+              const fullResult = await sftpService.readFile(connectionId, state.filePath);
+              const fullContent = fullResult.content;
+              const allLines = fullContent.split('\n');
+
+              // 更新状态
+              state.lastSize = currentSize;
+              state.lastModified = currentModified;
+              state.lastReadPosition = currentSize;
+              state.stats.totalUpdates++;
+              state.stats.lastUpdateTime = Date.now();
+              state.stats.totalLines = allLines.length;
+
+              // 发出完整内容更新事件
+              this.emit('watch-event', {
+                type: 'update',
+                filePath: state.filePath,
+                sessionId: state.sessionId,
+                timestamp: Date.now(),
+                fullContent: fullContent,
+                stats: { ...state.stats }
+              } as FileWatchEventData);
+            } catch (fullReadError) {
+              throw fullReadError;
+            }
+          }
+        } else {
+          // 文件可能被截断或重写，重新读取整个文件
+          const fullResult = await sftpService.readFile(connectionId, state.filePath);
+          const fullContent = fullResult.content;
+          const allLines = fullContent.split('\n');
+
+          // 更新状态
+          state.lastSize = currentSize;
+          state.lastModified = currentModified;
+          state.lastReadPosition = currentSize;
+          state.stats.totalUpdates++;
+          state.stats.lastUpdateTime = Date.now();
+          state.stats.totalLines = allLines.length;
+
+          // 发出完整内容更新事件
+          this.emit('watch-event', {
+            type: 'update',
+            filePath: state.filePath,
+            sessionId: state.sessionId,
+            timestamp: Date.now(),
+            fullContent: fullContent,
+            stats: { ...state.stats }
+          } as FileWatchEventData);
+        }
       }
-    } as FileWatchEventData);
+    } catch (error) {
+      console.error('[FileWatchManager] 检查文件变化失败:', error);
+      throw error;
+    }
   }
 
   /**

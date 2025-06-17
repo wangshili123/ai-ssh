@@ -119,6 +119,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     isSaving: false,
     mode: EditorMode.BROWSE,
     isLargeFile: false,
+    isAutoScroll: false,
     largeFileInfo: undefined,
     loadingProgress: undefined
   });
@@ -696,8 +697,12 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
         });
       }
       
-      // 更新状态
-      setEditorState(state);
+      // 更新状态，但保留用户设置的 isAutoScroll 状态
+      setEditorState(prevState => ({
+        ...state,
+        // 如果新状态中没有 isAutoScroll 属性，保留之前的值
+        isAutoScroll: state.isAutoScroll !== undefined ? state.isAutoScroll : prevState.isAutoScroll
+      }));
       
       // 在状态更新后，再次检查是否需要加载更多内容
       // 这是为了确保状态变化后立即响应
@@ -854,24 +859,28 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
   }, [currentMode, editorState.isDirty, editorState.isLargeFile, saveFile, dispatch]);
 
   // 处理实时更新切换
-  const handleRealtimeToggle = useCallback((enabled: boolean) => {
+  const handleRealtimeToggle = useCallback(async (enabled: boolean) => {
     if (!editorManagerRef.current) return;
-    
+
     try {
+      console.log('[FileEditorMain] 实时更新开关切换:', enabled);
+
       // 检查是否有实时更新相关方法
       if (enabled) {
         // 使用可选链和类型检查
         if (typeof editorManagerRef.current.startRealtime === 'function') {
-          editorManagerRef.current.startRealtime();
+          await editorManagerRef.current.startRealtime();
+          console.log('[FileEditorMain] 实时更新启动完成');
         } else {
           console.warn('编辑器不支持实时更新功能');
         }
       } else {
         if (typeof editorManagerRef.current.stopRealtime === 'function') {
           editorManagerRef.current.stopRealtime();
+          console.log('[FileEditorMain] 实时更新停止完成');
         }
       }
-      
+
       // 更新状态
       setEditorState(prev => ({ ...prev, isRealtime: enabled }));
     } catch (error) {
@@ -883,8 +892,10 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
   // 处理自动滚动切换
   const handleAutoScrollToggle = useCallback((enabled: boolean) => {
     if (!editorManagerRef.current) return;
-    
+
     try {
+      console.log('自动滚动开关切换:', enabled);
+
       // 检查是否有自动滚动相关方法
       if (typeof editorManagerRef.current.setAutoScroll === 'function') {
         editorManagerRef.current.setAutoScroll(enabled);
@@ -892,7 +903,9 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
         // 如果没有直接方法，可以通过状态管理
         console.warn('编辑器不支持自动滚动功能');
       }
+
       // 更新状态
+      setEditorState(prev => ({ ...prev, isAutoScroll: enabled }));
     } catch (error) {
       console.error('切换自动滚动失败:', error);
       message.error(`切换自动滚动失败: ${error instanceof Error ? error.message : String(error)}`);
@@ -949,6 +962,8 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
         isReadOnly={!!initialConfig?.readOnly}
         showRealtimeToggle={currentMode === EditorMode.BROWSE}
         showAutoScrollToggle={currentMode === EditorMode.BROWSE && editorState.isRealtime}
+        realtimeEnabled={editorState.isRealtime}
+        autoScrollEnabled={editorState.isAutoScroll || false}
       />
 
       <div

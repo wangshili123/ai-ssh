@@ -70,6 +70,7 @@ export class EditorManager extends EventEmitter {
     isSaving: false,
     mode: EditorMode.BROWSE,
     isLargeFile: false,
+    isAutoScroll: false,
     largeFileInfo: undefined,
     loadingProgress: undefined
   };
@@ -82,6 +83,9 @@ export class EditorManager extends EventEmitter {
   private contentManager: EditorContentManager;
   private modeManager: EditorModeManager;
   private readOnlyHandler: EditorReadOnlyHandler | null = null;
+
+  // 实时监控相关
+  private browseMode: any = null; // BrowseMode 实例，用于实时监控
 
   /**
    * 构造函数
@@ -804,14 +808,63 @@ export class EditorManager extends EventEmitter {
   /**
    * 启动实时更新模式
    */
-  public startRealtime(): void {
+  public async startRealtime(): Promise<void> {
     if (this.state.isRealtime) return;
-    
+
     try {
       console.log('[EditorManager] 启动实时更新模式');
+
+      // 只在浏览模式下启动实时监控
+      if (this.state.mode === EditorMode.BROWSE) {
+        // 如果还没有创建 BrowseMode 实例，创建一个
+        if (!this.browseMode) {
+          console.log('[EditorManager] 创建 BrowseMode 实例');
+          // 动态导入 BrowseMode
+          const { BrowseMode } = await import('./BrowseMode');
+          const { ErrorManager } = await import('./ErrorManager');
+
+          const errorManager = new ErrorManager();
+          this.browseMode = new BrowseMode(this.filePath, this.sessionId, errorManager);
+
+          // 设置事件监听
+          this.browseMode.on(EditorEvents.WATCH_STARTED, () => {
+            console.log('[EditorManager] 收到实时监控启动事件');
+          });
+
+          this.browseMode.on(EditorEvents.WATCH_STOPPED, () => {
+            console.log('[EditorManager] 收到实时监控停止事件');
+          });
+
+          // 监听文件变化事件
+          this.browseMode.on(EditorEvents.FILE_CHANGED, (newContent: string) => {
+            console.log('[EditorManager] 收到文件变化事件，内容长度:', newContent.length);
+            if (this.model) {
+              // 获取当前内容
+              const currentContent = this.model.getValue();
+              // 只有当内容真的不同时才更新
+              if (currentContent !== newContent) {
+                console.log('[EditorManager] 更新编辑器内容');
+                this.model.setValue(newContent);
+              }
+            }
+          });
+
+          // 监听内容变化事件（用于增量更新）
+          this.browseMode.on(EditorEvents.CONTENT_CHANGED, (data: any) => {
+            console.log('[EditorManager] 收到内容变化事件:', data);
+            // 这里可以处理增量更新逻辑
+          });
+        }
+
+        console.log('[EditorManager] 启动 BrowseMode 实时监控');
+        // 启动实时监控
+        this.browseMode.startRealtime();
+      }
+
       this.state.isRealtime = true;
       this.emit('stateChanged', this.state);
       this.emit(EditorEvents.WATCH_STARTED);
+      console.log('[EditorManager] 实时更新模式启动完成');
     } catch (error) {
       console.error('[EditorManager] 启动实时更新失败:', error);
       this.setError(error as Error);
@@ -823,9 +876,15 @@ export class EditorManager extends EventEmitter {
    */
   public stopRealtime(): void {
     if (!this.state.isRealtime) return;
-    
+
     try {
       console.log('[EditorManager] 停止实时更新模式');
+
+      // 如果有 BrowseMode 实例，停止实时监控
+      if (this.browseMode && typeof this.browseMode.stopRealtime === 'function') {
+        this.browseMode.stopRealtime();
+      }
+
       this.state.isRealtime = false;
       this.emit('stateChanged', this.state);
       this.emit(EditorEvents.WATCH_STOPPED);
@@ -841,7 +900,22 @@ export class EditorManager extends EventEmitter {
   public setAutoScroll(enabled: boolean): void {
     try {
       console.log(`[EditorManager] ${enabled ? '启用' : '禁用'}自动滚动`);
+
+      // 更新状态
+      const newState = {
+        ...this.state,
+        isAutoScroll: enabled
+      };
+      this.state = newState;
+
+      // 发出状态变化事件
+      this.emit('stateChanged', newState);
       this.emit(EditorEvents.AUTO_SCROLL_CHANGED, enabled);
+
+      // 如果有 BrowseMode 实例，也更新它的状态
+      if (this.browseMode && typeof this.browseMode.setAutoScroll === 'function') {
+        this.browseMode.setAutoScroll(enabled);
+      }
     } catch (error) {
       console.error('[EditorManager] 设置自动滚动失败:', error);
       this.setError(error as Error);

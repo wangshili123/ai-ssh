@@ -3,7 +3,7 @@
  * 提供编辑器的各种操作按钮和功能
  */
 
-import React, { FC, useState } from 'react';
+import React, { FC } from 'react';
 import { Space, Button, Tooltip, Switch, Divider } from 'antd';
 import { 
   SaveOutlined, 
@@ -34,6 +34,8 @@ export interface EditorToolbarProps {
   showEncodingSelector?: boolean;
   showRealtimeToggle?: boolean;
   showAutoScrollToggle?: boolean;
+  realtimeEnabled?: boolean;
+  autoScrollEnabled?: boolean;
 }
 
 const EditorToolbar: FC<EditorToolbarProps> = ({
@@ -51,23 +53,22 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
   isReadOnly,
   showEncodingSelector = true,
   showRealtimeToggle = false,
-  showAutoScrollToggle = false
+  showAutoScrollToggle = false,
+  realtimeEnabled = false,
+  autoScrollEnabled = false
 }) => {
   // 输出调试信息
-  console.log('渲染EditorToolbar组件，isDirty:', isDirty, 'isReadOnly:', isReadOnly);
-  
-  const [realtimeEnabled, setRealtimeEnabled] = useState(false);
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(false);
+  console.log('渲染EditorToolbar组件，isDirty:', isDirty, 'isReadOnly:', isReadOnly, 'realtimeEnabled:', realtimeEnabled);
 
   const handleRealtimeToggle = (checked: boolean) => {
-    setRealtimeEnabled(checked);
+    console.log('实时更新开关切换:', checked);
     if (onRealtimeToggle) {
       onRealtimeToggle(checked);
     }
   };
 
   const handleAutoScrollToggle = (checked: boolean) => {
-    setAutoScrollEnabled(checked);
+    console.log('自动滚动开关切换:', checked);
     if (onAutoScrollToggle) {
       onAutoScrollToggle(checked);
     }
@@ -120,19 +121,21 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
 
       <div className="editor-toolbar-right">
         <Space>
-          <Tooltip title="实时更新">
-              <Switch 
-                size="small" 
+          {showRealtimeToggle && (
+            <Tooltip title="实时更新">
+              <Switch
+                size="small"
                 checked={realtimeEnabled}
                 onChange={handleRealtimeToggle}
                 disabled={isReadOnly}
               />
             </Tooltip>
-          
+          )}
+
           {showAutoScrollToggle && (
             <Tooltip title="自动滚动">
-              <Switch 
-                size="small" 
+              <Switch
+                size="small"
                 checked={autoScrollEnabled}
                 onChange={handleAutoScrollToggle}
               />
@@ -141,7 +144,7 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
           
           <Divider type="vertical" />
           
-          <Tooltip title="浏览模式1">
+          <Tooltip title="浏览模式">
             <Button 
               icon={<EyeOutlined />} 
               onClick={() => onModeSwitch(EditorMode.BROWSE)}

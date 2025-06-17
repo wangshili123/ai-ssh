@@ -476,6 +476,7 @@ export interface FileWatchEventData {
   sessionId: string;
   timestamp: number;
   content?: string[];
+  fullContent?: string;
   error?: Error;
   warning?: string;
   info?: string;

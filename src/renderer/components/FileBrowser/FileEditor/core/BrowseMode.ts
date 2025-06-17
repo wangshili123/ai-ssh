@@ -563,24 +563,29 @@ export class BrowseMode extends EventEmitter {
     this.fileWatcher.on('watch-event', (eventData: FileWatchEventData) => {
       switch (eventData.type) {
         case 'update':
-          if (eventData.content) {
-            // 处理新内容
+          console.log('[BrowseMode] 收到文件更新事件:', eventData);
+
+          if (eventData.fullContent) {
+            // 处理完整内容更新
+            this.handleFullContentUpdate(eventData.fullContent);
+          } else if (eventData.content) {
+            // 处理增量内容更新
             this.handleNewContent(eventData.content);
           }
           break;
-        
+
         case 'error':
           this.errorManager.handleError(
             EditorErrorType.UNKNOWN_ERROR,
             `文件监控错误: ${eventData.error?.message || '未知错误'}`
           );
           break;
-        
+
         case 'warning':
           // 处理警告
           console.warn('文件监控警告:', eventData.warning);
           break;
-        
+
         case 'info':
           // 处理信息
           console.info('文件监控信息:', eventData.info);
@@ -590,39 +595,85 @@ export class BrowseMode extends EventEmitter {
   }
 
   /**
-   * 处理新内容
+   * 处理完整内容更新
+   */
+  private handleFullContentUpdate(fullContent: string): void {
+    console.log('[BrowseMode] 处理完整内容更新，内容长度:', fullContent.length);
+
+    // 清除现有缓存
+    this.state.loadedChunks = {};
+
+    // 更新总行数
+    const lines = fullContent.split('\n');
+    this.state.totalLines = lines.length;
+
+    // 触发完整文件变更事件
+    this.emit(EditorEvents.FILE_CHANGED, fullContent);
+
+    // 如果启用自动滚动，滚动到底部
+    if (this.state.isAutoScroll) {
+      this.scrollToBottom();
+    }
+  }
+
+  /**
+   * 处理新内容（增量更新）
    */
   private handleNewContent(lines: string[]): void {
+    console.log('[BrowseMode] 处理增量内容更新，新增行数:', lines.length);
+
     // 更新缓存
     const visibleEnd = this.state.visibleRange[1];
     const lastChunkKey = `${visibleEnd - (visibleEnd % DEFAULT_CHUNK_SIZE)}`;
     const lastChunk = this.state.loadedChunks[lastChunkKey];
-    
+
     if (lastChunk) {
       // 添加到最后一个块
       lastChunk.content = [...lastChunk.content, ...lines];
       lastChunk.endLine += lines.length;
       lastChunk.lastAccessed = Date.now();
     }
-    
+
     // 更新总行数（如果已知）
     if (this.state.totalLines !== undefined) {
       this.state.totalLines += lines.length;
     }
-    
+
     // 触发内容变更事件
     this.emit(EditorEvents.CONTENT_CHANGED, {
       lines,
       startLine: visibleEnd,
       endLine: visibleEnd + lines.length
     });
-    
-    // 触发文件变更事件
-    this.emit(EditorEvents.FILE_CHANGED, lines.join('\n'));
-    
+
+    // 对于增量更新，我们需要获取完整内容来触发文件变更事件
+    // 这里可以优化为只在需要时获取完整内容
+    this.getFullContent().then(fullContent => {
+      this.emit(EditorEvents.FILE_CHANGED, fullContent);
+    }).catch(error => {
+      console.error('[BrowseMode] 获取完整内容失败:', error);
+      // 如果获取失败，至少触发新增内容的事件
+      this.emit(EditorEvents.FILE_CHANGED, lines.join('\n'));
+    });
+
     // 如果启用自动滚动，滚动到底部
     if (this.state.isAutoScroll) {
       this.scrollToBottom();
+    }
+  }
+
+  /**
+   * 获取完整文件内容
+   */
+  private async getFullContent(): Promise<string> {
+    try {
+      const { sftpService } = await import('../../../../services/sftp');
+      const connectionId = `sftp-${this.sessionId}`;
+      const result = await sftpService.readFile(connectionId, this.filePath);
+      return result.content;
+    } catch (error) {
+      console.error('[BrowseMode] 读取完整文件内容失败:', error);
+      throw error;
     }
   }
 
