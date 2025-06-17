@@ -34,12 +34,17 @@ class FileOpenManager extends EventEmitter {
   async openFile(file: FileEntry, sessionInfo: SessionInfo, tabId: string, editor: 'built-in' = 'built-in'): Promise<void> {
     if (editor === 'built-in') {
       try {
+        console.log('[FileOpenManager] 开始打开文件:', file.name);
+
         // 先创建 SFTP 客户端
+        console.log('[FileOpenManager] 创建SFTP客户端...');
         await sftpService.createClient(tabId, sessionInfo);
 
         // 生成唯一的窗口ID
         const windowId = uuidv4();
-        
+
+        console.log('[FileOpenManager] 正在创建编辑器窗口...');
+
         // 使用 IPC 消息打开编辑器窗口
         const result = await ipcRenderer.invoke('open-editor-window', {
           windowId,
@@ -48,19 +53,18 @@ class FileOpenManager extends EventEmitter {
           title: file.name
         });
 
-        console.log('打开编辑器窗口结果:', result);
-        
+        console.log('[FileOpenManager] 编辑器窗口创建完成:', result);
+
         // 监听窗口关闭事件
         ipcRenderer.once(`editor-window-closed-${windowId}`, async () => {
-          console.log('编辑器窗口已关闭');
+          console.log('[FileOpenManager] 编辑器窗口已关闭');
           // 关闭 SFTP 客户端
           await sftpService.close(tabId);
         });
       } catch (error) {
-        Modal.error({
-          title: '打开文件失败',
-          content: `无法打开文件: ${(error as Error).message}`
-        });
+        console.error('[FileOpenManager] 打开文件失败:', error);
+        // 抛出错误让调用方处理，而不是直接显示Modal
+        throw new Error(`无法打开文件: ${(error as Error).message}`);
       }
     }
   }

@@ -176,12 +176,20 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     }
 
     try {
+      // 设置初始化loading状态
+      dispatch({ type: 'SET_LOADING', loading: true });
+      setEditorState(prevState => ({
+        ...prevState,
+        isLoading: true,
+        error: null
+      }));
+
       console.log('开始初始化编辑器管理器', {
         sessionId,
         filePath,
         containerExists: !!containerRef.current
       });
-      
+
       // 创建编辑器管理器
       const manager = new EditorManager(sessionId, filePath);
       editorManagerRef.current = manager;
@@ -288,13 +296,23 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
       // 更新状态
       setEditorState(currentState);
       console.log('编辑器状态已更新', currentState);
+
+      // 清除loading状态
+      dispatch({ type: 'SET_LOADING', loading: false });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('初始化编辑器失败:', errorMessage, error);
+
+      // 设置错误状态并清除loading
+      dispatch({ type: 'SET_LOADING', loading: false });
+      dispatch({ type: 'SET_ERROR', error: new Error(`初始化编辑器失败: ${errorMessage}`) });
+
       setEditorState(prevState => ({
         ...prevState,
+        isLoading: false,
         error: new Error(`初始化编辑器失败: ${errorMessage}`)
       }));
+
       // 清理失败的初始化
       if (editorManagerRef.current) {
         editorManagerRef.current.destroy();
@@ -888,6 +906,25 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
     console.log('editorState.isDirty状态变化:', editorState.isDirty);
   }, [editorState.isDirty]);
 
+  // 如果正在初始化，显示loading界面
+  if (loading && !editorManagerRef.current) {
+    return (
+      <div className="file-editor-main">
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100%',
+          minHeight: '400px',
+          flexDirection: 'column'
+        }}>
+          <LoadingOutlined style={{ fontSize: 24, marginBottom: 16 }} spin />
+          <span style={{ fontSize: 16, color: '#666' }}>正在初始化编辑器...</span>
+        </div>
+      </div>
+    );
+  }
+
   // 返回JSX元素
   return (
     <div className="file-editor-main">
@@ -918,10 +955,10 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
         className="editor-container"
         ref={containerRef}
         onContextMenu={handleContextMenu}
-        style={{ 
-          flex: 1, 
-          minHeight: '300px', 
-          width: '100%', 
+        style={{
+          flex: 1,
+          minHeight: '300px',
+          width: '100%',
           position: 'relative',
           display: 'flex'
         }}

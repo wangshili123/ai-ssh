@@ -118,6 +118,15 @@
   transition: transform 0.2s ease;
 }
 
+/* 文件打开loading状态样式 */
+.file-list-container .file-list-name-cell .ant-spin {
+  color: #1890ff;
+}
+
+.file-list-container .file-list-name-cell .ant-spin .anticon {
+  color: #1890ff;
+}
+
 /* 新上传文件高亮样式 */
 .file-list-container .file-list-highlighted {
   background: linear-gradient(90deg, #e6f7ff, #bae7ff);

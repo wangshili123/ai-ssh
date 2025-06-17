@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Table, Spin, message } from 'antd';
+import { LoadingOutlined } from '@ant-design/icons';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
@@ -194,6 +195,9 @@ const FileList: React.FC<FileListProps> = ({
   // 高亮显示新上传的文件
   const [highlightedFiles, setHighlightedFiles] = useState<Set<string>>(new Set());
 
+  // 正在打开的文件状态
+  const [openingFiles, setOpeningFiles] = useState<Set<string>>(new Set());
+
   const containerRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<any>(null);
 
@@ -266,47 +270,74 @@ const FileList: React.FC<FileListProps> = ({
       console.log('[FileList] 双击目录:', { name: record.name, newPath });
       onDirectorySelect?.(newPath);
     } else {
+      // 防止重复点击
+      if (openingFiles.has(record.path)) {
+        console.log('[FileList] 文件正在打开中，忽略重复点击:', record.name);
+        return;
+      }
+
       // 如果是文件，根据用户偏好选择打开方式
       if (!sessionInfo) {
         message.error('缺少会话信息');
         return;
       }
 
-      const preferredEditor = await unifiedEditorConfig.getDefaultOpenMode();
-      console.log(`[FileList] 双击文件: ${record.name}, 全局偏好编辑器: ${preferredEditor}`);
+      // 添加到正在打开的文件列表
+      setOpeningFiles(prev => new Set(prev).add(record.path));
 
-      if (preferredEditor === 'external') {
-        // 使用外部编辑器打开
-        const editors = await unifiedEditorConfig.getEditors();
-        if (editors.length === 0) {
-          message.warning('请先配置外部编辑器');
-          setEditorConfigVisible(true);
-          return;
-        }
+      // 显示loading提示
+      const loadingMessage = message.loading(`正在打开文件 ${record.name}...`, 0);
 
-        // 设置编辑器选择回调
-        externalEditorManager.setEditorSelectorCallback(async (file) => {
-          return new Promise(async (resolve) => {
-            // 获取可用的编辑器列表
-            const editorList = await unifiedEditorConfig.getEditors();
-            setAvailableEditors(editorList);
-            setEditorSelectorFile(file);
-            setEditorSelectorVisible(true);
+      try {
+        const preferredEditor = await unifiedEditorConfig.getDefaultOpenMode();
+        console.log(`[FileList] 双击文件: ${record.name}, 全局偏好编辑器: ${preferredEditor}`);
 
-            // 临时存储resolve函数
-            (window as any).__editorSelectorResolve = resolve;
+        if (preferredEditor === 'external') {
+          // 使用外部编辑器打开
+          const editors = await unifiedEditorConfig.getEditors();
+          if (editors.length === 0) {
+            message.warning('请先配置外部编辑器');
+            setEditorConfigVisible(true);
+            return;
+          }
+
+          // 设置编辑器选择回调
+          externalEditorManager.setEditorSelectorCallback(async (file) => {
+            return new Promise(async (resolve) => {
+              // 获取可用的编辑器列表
+              const editorList = await unifiedEditorConfig.getEditors();
+              setAvailableEditors(editorList);
+              setEditorSelectorFile(file);
+              setEditorSelectorVisible(true);
+
+              // 临时存储resolve函数
+              (window as any).__editorSelectorResolve = resolve;
+            });
           });
-        });
 
-        // 打开文件
-        externalEditorManager.openFileWithExternalEditor(
-          record,
-          sessionInfo,
-          tabId
-        );
-      } else {
-        // 使用内置编辑器打开
-        await fileOpenManager.openFile(record, sessionInfo, tabId);
+          // 打开文件
+          await externalEditorManager.openFileWithExternalEditor(
+            record,
+            sessionInfo,
+            tabId
+          );
+        } else {
+          // 使用内置编辑器打开
+          await fileOpenManager.openFile(record, sessionInfo, tabId);
+        }
+      } catch (error) {
+        console.error('[FileList] 打开文件失败:', error);
+        message.error(`打开文件失败: ${(error as Error).message}`);
+      } finally {
+        // 关闭loading提示
+        loadingMessage();
+
+        // 从正在打开的文件列表中移除
+        setOpeningFiles(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(record.path);
+          return newSet;
+        });
       }
     }
   };
@@ -516,42 +547,70 @@ const FileList: React.FC<FileListProps> = ({
     }
 
     const file = files[0];
+
+    // 防止重复点击
+    if (openingFiles.has(file.path)) {
+      console.log('[FileList] 文件正在打开中，忽略重复请求:', file.name);
+      return;
+    }
+
     console.log(`[FileList] 打开文件请求: ${file.name} - ${editorType}`);
 
-    if (editorType === 'builtin') {
-      // 使用内置编辑器打开
-      fileOpenManager.openFile(file, sessionInfo, tabId, 'built-in');
-    } else {
-      // 使用外部编辑器打开
-      const editors = await unifiedEditorConfig.getEditors();
-      if (editors.length === 0) {
-        message.warning('请先配置外部编辑器');
-        setEditorConfigVisible(true);
-        return;
-      }
+    // 添加到正在打开的文件列表
+    setOpeningFiles(prev => new Set(prev).add(file.path));
 
-      // 设置编辑器选择回调
-      externalEditorManager.setEditorSelectorCallback(async (file) => {
-        return new Promise(async (resolve) => {
-          // 获取可用的编辑器列表
-          const editorList = await unifiedEditorConfig.getEditors();
-          setAvailableEditors(editorList);
-          setEditorSelectorFile(file);
-          setEditorSelectorVisible(true);
+    // 显示loading提示
+    const loadingMessage = message.loading(`正在打开文件 ${file.name}...`, 0);
 
-          // 临时存储resolve函数
-          (window as any).__editorSelectorResolve = resolve;
+    try {
+      if (editorType === 'builtin') {
+        // 使用内置编辑器打开
+        await fileOpenManager.openFile(file, sessionInfo, tabId, 'built-in');
+      } else {
+        // 使用外部编辑器打开
+        const editors = await unifiedEditorConfig.getEditors();
+        if (editors.length === 0) {
+          message.warning('请先配置外部编辑器');
+          setEditorConfigVisible(true);
+          return;
+        }
+
+        // 设置编辑器选择回调
+        externalEditorManager.setEditorSelectorCallback(async (file) => {
+          return new Promise(async (resolve) => {
+            // 获取可用的编辑器列表
+            const editorList = await unifiedEditorConfig.getEditors();
+            setAvailableEditors(editorList);
+            setEditorSelectorFile(file);
+            setEditorSelectorVisible(true);
+
+            // 临时存储resolve函数
+            (window as any).__editorSelectorResolve = resolve;
+          });
         });
-      });
 
-      // 打开文件
-      externalEditorManager.openFileWithExternalEditor(
-        file,
-        sessionInfo,
-        tabId
-      );
+        // 打开文件
+        await externalEditorManager.openFileWithExternalEditor(
+          file,
+          sessionInfo,
+          tabId
+        );
+      }
+    } catch (error) {
+      console.error('[FileList] 打开文件失败:', error);
+      message.error(`打开文件失败: ${(error as Error).message}`);
+    } finally {
+      // 关闭loading提示
+      loadingMessage();
+
+      // 从正在打开的文件列表中移除
+      setOpeningFiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(file.path);
+        return newSet;
+      });
     }
-  }, [sessionInfo, tabId]);
+  }, [sessionInfo, tabId, openingFiles, setOpeningFiles]);
 
   // 编辑器配置请求处理
   const handleEditorConfigRequest = useCallback(() => {
@@ -781,12 +840,22 @@ const FileList: React.FC<FileListProps> = ({
         return a.name.localeCompare(b.name);
       },
       sortOrder: sortedInfo.columnKey === 'name' ? sortedInfo.order : null,
-      render: (text: string, record: FileEntry) => (
-        <span className={`file-list-name-cell ${highlightedFiles.has(record.name) ? 'file-list-highlighted' : ''}`}>
-          <span className="file-list-icon">{getFileIcon(record)}</span>
-          <span className="file-list-name">{text}</span>
-        </span>
-      ),
+      render: (text: string, record: FileEntry) => {
+        const isOpening = openingFiles.has(record.path);
+        return (
+          <span className={`file-list-name-cell ${highlightedFiles.has(record.name) ? 'file-list-highlighted' : ''}`}>
+            <span className="file-list-icon">{getFileIcon(record)}</span>
+            <span className="file-list-name">{text}</span>
+            {isOpening && (
+              <Spin
+                size="small"
+                style={{ marginLeft: 8 }}
+                indicator={<LoadingOutlined style={{ fontSize: 12 }} spin />}
+              />
+            )}
+          </span>
+        );
+      },
       width: '35%',
       ellipsis: true,
     },
