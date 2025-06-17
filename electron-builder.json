@@ -16,7 +16,39 @@
       "from": "node_modules",
       "to": "node_modules",
       "filter": [
-        "**/*"
+        "better-sqlite3/**/*",
+        "ssh2/**/*",
+        "ssh2-sftp-client/**/*",
+        "tree-sitter/**/*",
+        "tree-sitter-bash/**/*",
+        "web-tree-sitter/**/*",
+        "chokidar/**/*",
+        "generic-pool/**/*",
+        "iconv-lite/**/*",
+        "jschardet/**/*",
+        "!**/test/**",
+        "!**/tests/**",
+        "!**/docs/**",
+        "!**/examples/**",
+        "!**/demo/**",
+        "!**/samples/**",
+        "!**/*.md",
+        "!**/README*",
+        "!**/LICENSE*",
+        "!**/CHANGELOG*",
+        "!**/HISTORY*",
+        "!**/.git*",
+        "!**/.npm*",
+        "!**/tsconfig.json",
+        "!**/webpack.config.js",
+        "!**/rollup.config.js",
+        "!**/jest.config.js",
+        "!**/.eslint*",
+        "!**/.prettier*",
+        "!**/yarn.lock",
+        "!**/package-lock.json",
+        "!**/*.map",
+        "!**/*.d.ts.map"
       ]
     }
   ],
@@ -70,6 +102,17 @@
   "removePackageScripts": true,
   "nodeGypRebuild": false,
   "buildDependenciesFromSource": false,
+  "asar": {
+    "smartUnpack": true,
+    "ordering": "dist/main/main.js"
+  },
+  "asarUnpack": [
+    "node_modules/better-sqlite3/**/*",
+    "node_modules/tree-sitter/**/*",
+    "node_modules/tree-sitter-bash/**/*",
+    "node_modules/web-tree-sitter/**/*"
+  ],
+  "includeSubNodeModules": false,
   "publish": {
     "provider": "github",
     "owner": "your-username",
