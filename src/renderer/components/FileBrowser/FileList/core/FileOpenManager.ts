@@ -5,10 +5,8 @@
 
 import { FileEntry } from '../../../../../main/types/file';
 import { SessionInfo } from '../../../../types';
-import { Modal } from 'antd';
 import { uiSettingsManager } from '../../../../services/UISettingsManager';
-import { sftpService } from '../../../../services/sftp';
-import { FileListEvents } from './FileListEvents';
+import { sftpConnectionManager } from '../../../../services/sftpConnectionManager';
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 import { ipcRenderer } from 'electron';
@@ -36,9 +34,23 @@ class FileOpenManager extends EventEmitter {
       try {
         console.log('[FileOpenManager] 开始打开文件:', file.name);
 
-        // 先创建 SFTP 客户端
-        console.log('[FileOpenManager] 创建SFTP客户端...');
-        await sftpService.createClient(tabId, sessionInfo);
+        // 检查是否已有SFTP连接，优先复用相同sessionId的连接
+        console.log('[FileOpenManager] 检查SFTP连接状态...');
+        let existingConnection = sftpConnectionManager.getConnection(tabId);
+
+        if (!existingConnection) {
+          // 检查是否有相同sessionId的连接可以复用
+          const sessionConnection = sftpConnectionManager.getConnectionBySessionId(sessionInfo.id);
+          if (sessionConnection) {
+            console.log('[FileOpenManager] 找到相同sessionId的连接，复用连接...');
+            await sftpConnectionManager.createConnection(tabId, sessionInfo);
+          } else {
+            console.log('[FileOpenManager] 未找到现有SFTP连接，创建新连接...');
+            await sftpConnectionManager.createConnection(tabId, sessionInfo);
+          }
+        } else {
+          console.log('[FileOpenManager] 复用现有SFTP连接');
+        }
 
         // 生成唯一的窗口ID
         const windowId = uuidv4();
@@ -58,8 +70,8 @@ class FileOpenManager extends EventEmitter {
         // 监听窗口关闭事件
         ipcRenderer.once(`editor-window-closed-${windowId}`, async () => {
           console.log('[FileOpenManager] 编辑器窗口已关闭');
-          // 关闭 SFTP 客户端
-          await sftpService.close(tabId);
+          // 注意：不要关闭SFTP连接，因为文件浏览器可能还在使用
+          // 连接的生命周期由文件浏览器管理
         });
       } catch (error) {
         console.error('[FileOpenManager] 打开文件失败:', error);

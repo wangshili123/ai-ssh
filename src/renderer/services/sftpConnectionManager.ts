@@ -31,6 +31,8 @@ class SFTPConnectionManager {
   private connections: Map<string, SFTPConnection> = new Map();
   // 存储所有标签页的数据缓存，key 为 tabId
   private tabCaches: Map<string, TabCache> = new Map();
+  // 添加基于sessionId的连接映射，用于连接复用
+  private sessionConnections: Map<string, string> = new Map(); // sessionId -> tabId
   
   /**
    * 创建新的SFTP连接
@@ -43,6 +45,37 @@ class SFTPConnectionManager {
       throw new Error('tabId 不能为空');
     }
 
+    // 检查是否已有相同sessionId的连接可以复用
+    const existingTabId = this.sessionConnections.get(sessionInfo.id);
+    if (existingTabId && this.connections.has(existingTabId)) {
+      const existingConn = this.connections.get(existingTabId)!;
+      console.log(`[SFTPManager] 复用现有连接 - sessionId: ${sessionInfo.id}, 从 tabId: ${existingTabId} 复用到 tabId: ${tabId}`);
+
+      // 为新的tabId创建连接引用，但复用相同的底层连接
+      const newConnection: SFTPConnection = {
+        id: existingConn.id, // 复用相同的连接ID
+        sessionInfo,
+        tabId
+      };
+
+      // 初始化新标签页的缓存
+      const cache: TabCache = {
+        currentPath: '/',
+        history: ['/'],
+        directoryCache: new Map(),
+        treeCache: new Map()
+      };
+
+      this.connections.set(tabId, newConnection);
+      this.tabCaches.set(tabId, cache);
+      this.sessionConnections.set(sessionInfo.id, tabId); // 更新映射到新的tabId
+
+      console.log(`[SFTPManager] 连接复用成功 - tabId: ${tabId}, total connections: ${this.connections.size}`);
+      this.debugConnections();
+
+      return newConnection.id;
+    }
+
     // 如果已存在相同标签页的连接，先关闭它
     const existingConn = this.getConnection(tabId);
     if (existingConn) {
@@ -52,20 +85,20 @@ class SFTPConnectionManager {
 
     console.log(`[SFTPManager] 创建新连接 - tabId: ${tabId}, sessionId: ${sessionInfo.id}`);
     const connectionId = `sftp-${tabId}`;
-    
+
     // 调用主进程创建SFTP客户端
     const result = await ipcRenderer.invoke('sftp:create-client', connectionId, sessionInfo);
     if (!result.success) {
       throw new Error(result.error);
     }
-    
+
     // 保存连接信息
     const connection: SFTPConnection = {
       id: connectionId,
       sessionInfo,
       tabId
     };
-    
+
     // 初始化标签页缓存
     const cache: TabCache = {
       currentPath: '/',
@@ -74,13 +107,14 @@ class SFTPConnectionManager {
       treeCache: new Map()
 
     };
-    
+
     this.connections.set(tabId, connection);
     this.tabCaches.set(tabId, cache);
-    
+    this.sessionConnections.set(sessionInfo.id, tabId); // 建立sessionId到tabId的映射
+
     console.log(`[SFTPManager] 连接创建成功 - tabId: ${tabId}, total connections: ${this.connections.size}`);
     this.debugConnections();
-    
+
     return connectionId;
   }
   
@@ -91,6 +125,19 @@ class SFTPConnectionManager {
    */
   getConnection(tabId: string): SFTPConnection | undefined {
     return this.connections.get(tabId);
+  }
+
+  /**
+   * 根据sessionId查找现有连接
+   * @param sessionId 会话ID
+   * @returns 连接信息
+   */
+  getConnectionBySessionId(sessionId: string): SFTPConnection | undefined {
+    const tabId = this.sessionConnections.get(sessionId);
+    if (tabId) {
+      return this.connections.get(tabId);
+    }
+    return undefined;
   }
 
   /**
@@ -197,11 +244,46 @@ class SFTPConnectionManager {
     const conn = this.connections.get(tabId);
     if (conn) {
       console.log(`[SFTPManager] 关闭连接 - tabId: ${tabId}`);
-      await ipcRenderer.invoke('sftp:close-client', conn.id);
+
+      // 检查是否还有其他tabId在使用相同的连接
+      const sameConnectionTabs = Array.from(this.connections.entries())
+        .filter(([otherTabId, otherConn]) =>
+          otherTabId !== tabId && otherConn.id === conn.id
+        );
+
+      if (sameConnectionTabs.length > 0) {
+        console.log(`[SFTPManager] 连接被其他标签页使用，不关闭底层连接 - connectionId: ${conn.id}, 使用者: ${sameConnectionTabs.map(([id]) => id).join(', ')}`);
+      } else {
+        console.log(`[SFTPManager] 关闭底层连接 - connectionId: ${conn.id}`);
+        await ipcRenderer.invoke('sftp:close-client', conn.id);
+        // 清理sessionId映射
+        this.sessionConnections.delete(conn.sessionInfo.id);
+      }
+
       this.connections.delete(tabId);
       this.tabCaches.delete(tabId);
       console.log(`[SFTPManager] 连接已关闭 - tabId: ${tabId}, remaining connections: ${this.connections.size}`);
     }
+  }
+
+  /**
+   * 预热连接 - 为常用的会话预创建连接
+   * @param sessionInfos 会话信息列表
+   */
+  async warmupConnections(sessionInfos: SessionInfo[]) {
+    console.log('[SFTPManager] 开始预热连接...');
+    const warmupPromises = sessionInfos.slice(0, 3).map(async (sessionInfo, index) => {
+      try {
+        const warmupTabId = `warmup-${sessionInfo.id}-${index}`;
+        await this.createConnection(warmupTabId, sessionInfo);
+        console.log(`[SFTPManager] 预热连接成功 - sessionId: ${sessionInfo.id}`);
+      } catch (error) {
+        console.warn(`[SFTPManager] 预热连接失败 - sessionId: ${sessionInfo.id}:`, error);
+      }
+    });
+
+    await Promise.allSettled(warmupPromises);
+    console.log('[SFTPManager] 连接预热完成');
   }
 
   /**
@@ -213,8 +295,14 @@ class SFTPConnectionManager {
       const cache = this.tabCaches.get(tabId);
       console.log(`- tabId: ${tabId}`);
       console.log(`  sessionId: ${conn.sessionInfo.id}`);
+      console.log(`  connectionId: ${conn.id}`);
       console.log(`  currentPath: ${cache?.currentPath}`);
       console.log(`  cached paths: ${Array.from(cache?.directoryCache.keys() || []).join(', ')}`);
+    });
+
+    console.log('[SFTPManager] SessionId映射:');
+    this.sessionConnections.forEach((tabId, sessionId) => {
+      console.log(`- sessionId: ${sessionId} -> tabId: ${tabId}`);
     });
   }
 }

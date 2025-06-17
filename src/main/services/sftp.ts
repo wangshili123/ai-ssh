@@ -540,6 +540,10 @@ class SFTPClient {
  */
 class SFTPManager {
   private clients: Map<string, SFTPClient> = new Map();
+  // 连接预热缓存：sessionId -> 预热的连接
+  private warmupConnections: Map<string, SFTPClient> = new Map();
+  // 正在预热的连接
+  private warmupPromises: Map<string, Promise<SFTPClient>> = new Map();
 
   /**
    * 创建SFTP客户端
