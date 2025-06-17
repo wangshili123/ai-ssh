@@ -117,7 +117,8 @@ export function registerEditorHandlers(): void {
         await window.loadURL(url);
         window.webContents.openDevTools();
       } else {
-        const htmlPath = path.join(__dirname, '../renderer/editor.html');
+        // 在生产环境中，__dirname 指向 dist/main/ipc，需要正确定位到 dist/renderer/editor.html
+        const htmlPath = path.join(__dirname, '../../renderer/editor.html');
         console.log('[Editor] 生产环境加载文件:', htmlPath);
         await window.loadFile(htmlPath, {
           query: {
