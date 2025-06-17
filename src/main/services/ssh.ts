@@ -1,9 +1,8 @@
 import { Client, Channel } from 'ssh2';
 import type { SessionInfo } from '../../renderer/types';
 import { BrowserWindow } from 'electron';
-import { sftpManager } from './sftp';
 import { storageService } from './storage';
-import { Pool, Factory, Options, createPool } from 'generic-pool';
+import { Pool, createPool } from 'generic-pool';
 
 console.log('Loading SSH service...');
 
@@ -24,25 +23,81 @@ interface PoolConfig {
 class SSHService {
   private shells: Map<string, Channel> = new Map();
   private currentDirectories: Map<string, string> = new Map();
-  
+
   // 连接池相关
   private pools: Map<string, Pool<PooledConnection>> = new Map();
   private configs: Map<string, SessionInfo> = new Map();
   // 添加专用连接管理
   private dedicatedConnections: Map<string, Client> = new Map();
+
+  // 并发控制：防止同一会话的多个服务同时创建连接
+  private connectionPromises: Map<string, Promise<void>> = new Map();
+  private connectionLocks: Map<string, boolean> = new Map();
   
   private readonly DEFAULT_POOL_CONFIG: PoolConfig = {
-    min: 3,                    // 增加核心连接数
-    max: 10,                   // 保持最大连接数
-    idleTimeoutMillis: 600000, // 增加空闲超时时间到10分钟
-    acquireTimeoutMillis: 30000, // 保持获取超时时间
-    priorityRange: 3,          // 优先级范围
+    min: 5,                    // 增加核心连接数，支持更多并发
+    max: 15,                   // 增加最大连接数，应对高并发场景
+    idleTimeoutMillis: 900000, // 增加空闲超时时间到15分钟
+    acquireTimeoutMillis: 10000, // 减少获取超时时间，快速失败
+    priorityRange: 5,          // 增加优先级范围，支持更细粒度的优先级控制
   };
 
   constructor() {
     console.log('Initializing SSHService...');
     // 移除定期清理任务，因为在渲染进程中可能会有问题
     // setInterval(() => this.cleanupPools(), 60 * 1000);
+
+    // 启动时预热常用连接
+    this.initializeFrequentConnections();
+  }
+
+  /**
+   * 初始化常用连接预热
+   */
+  private async initializeFrequentConnections(): Promise<void> {
+    // 延迟5秒后开始预热，避免影响应用启动速度
+    setTimeout(async () => {
+      try {
+        console.log('[SSH] 开始预热常用连接...');
+        const recentSessions = await this.getRecentSessions();
+        await this.warmupFrequentConnections(recentSessions);
+        console.log('[SSH] 常用连接预热完成');
+      } catch (error) {
+        console.error('[SSH] 预热常用连接失败:', error);
+      }
+    }, 5000);
+  }
+
+  /**
+   * 获取最近使用的会话
+   */
+  private async getRecentSessions(): Promise<SessionInfo[]> {
+    try {
+      // TODO: 从存储服务获取最近使用的会话
+      // 暂时返回空数组，后续可以实现会话历史记录功能
+      console.log('[SSH] 暂未实现会话历史记录，跳过预热');
+      return [];
+    } catch (error) {
+      console.error('[SSH] 获取最近会话失败:', error);
+      return [];
+    }
+  }
+
+  /**
+   * 预热常用连接
+   */
+  private async warmupFrequentConnections(sessions: SessionInfo[]): Promise<void> {
+    const warmupPromises = sessions.map(async (session, index) => {
+      try {
+        console.log(`[SSH] 预热连接 ${index + 1}/${sessions.length}: ${session.host}`);
+        await this.connect(session);
+        console.log(`[SSH] 预热连接成功: ${session.host}`);
+      } catch (error) {
+        console.warn(`[SSH] 预热连接失败 ${session.host}:`, error);
+      }
+    });
+
+    await Promise.allSettled(warmupPromises);
   }
 
   /**
@@ -112,8 +167,8 @@ class SSHService {
 
     return createPool(factory, {
       ...this.DEFAULT_POOL_CONFIG,
-      testOnBorrow: true,      // 保持借用时检查
-      autostart: false,        // 禁用自动启动
+      testOnBorrow: false,     // 禁用借用时检查，提升性能
+      autostart: true,         // 启用自动启动，立即创建核心连接
       evictionRunIntervalMillis: 0, // 禁用定时清理
       fifo: false,             // 后进先出，优化性能
     });
@@ -226,6 +281,38 @@ class SSHService {
   async connect(sessionInfo: SessionInfo): Promise<void> {
     console.log('SSHService.connect called with:', sessionInfo);
     const { id } = sessionInfo;
+
+    // 并发控制：如果已有连接正在创建，等待其完成
+    const existingPromise = this.connectionPromises.get(id);
+    if (existingPromise) {
+      console.log(`[SSH] 检测到并发连接请求，等待现有连接完成: ${id}`);
+      await existingPromise;
+      return;
+    }
+
+    // 检查是否已有连接
+    if (this.dedicatedConnections.has(id)) {
+      console.log(`[SSH] 连接已存在，直接返回: ${id}`);
+      return;
+    }
+
+    // 创建连接Promise并存储，用于并发控制
+    const connectionPromise = this.createConnectionInternal(sessionInfo);
+    this.connectionPromises.set(id, connectionPromise);
+
+    try {
+      await connectionPromise;
+    } finally {
+      // 清理连接Promise
+      this.connectionPromises.delete(id);
+    }
+  }
+
+  /**
+   * 内部连接创建方法
+   */
+  private async createConnectionInternal(sessionInfo: SessionInfo): Promise<void> {
+    const { id } = sessionInfo;
     const startTime = Date.now();
 
     // 1. 快速创建专用连接
@@ -275,13 +362,13 @@ class SSHService {
   }
 
   /**
-   * 异步初始化连接池
+   * 异步初始化连接池 - 优化预热策略
    */
   private initializePoolAsync(sessionId: string, sessionInfo: SessionInfo): void {
     console.log(`[SSH] 开始异步初始化连接池 ${sessionId}...`);
 
-    // 短暂延迟后在后台初始化连接池
-    setTimeout(async () => {
+    // 立即初始化连接池，不延迟
+    setImmediate(async () => {
       try {
         const poolStartTime = Date.now();
 
@@ -291,9 +378,9 @@ class SSHService {
         this.pools.set(sessionId, pool);
         console.log(`[SSH] 连接池创建完成 ${sessionId}`);
 
-        // 预热连接池
-        console.log(`[SSH] 开始异步预热连接池 ${sessionId}, 需要创建 ${this.DEFAULT_POOL_CONFIG.min} 个连接...`);
-        await this.warmupPool(pool, sessionId);
+        // 积极预热连接池 - 并行创建连接
+        console.log(`[SSH] 开始积极预热连接池 ${sessionId}, 需要创建 ${this.DEFAULT_POOL_CONFIG.min} 个连接...`);
+        await this.aggressiveWarmupPool(pool, sessionId);
 
         console.log(`[SSH] 异步连接池初始化完成 ${sessionId}, 耗时: ${Date.now() - poolStartTime}ms`);
         console.log(`Connection pool initialized for session ${sessionId}`);
@@ -301,11 +388,38 @@ class SSHService {
         console.error(`[SSH] 异步连接池初始化失败 ${sessionId}:`, error);
         console.log(`[SSH] 回退到仅使用专用连接模式 ${sessionId}`);
       }
-    }, 100); // 100ms延迟，确保专用连接优先完成
+    });
   }
 
   /**
-   * 预热连接池
+   * 积极预热连接池 - 优化版本
+   */
+  private async aggressiveWarmupPool(pool: Pool<PooledConnection>, sessionId: string): Promise<void> {
+    const warmupStartTime = Date.now();
+
+    // 并行创建所有核心连接，不等待单个连接完成
+    const warmupPromises = Array(this.DEFAULT_POOL_CONFIG.min)
+      .fill(0)
+      .map(async (_, index) => {
+        try {
+          const connStartTime = Date.now();
+          console.log(`[SSH] 开始创建连接池连接 ${index + 1}/${this.DEFAULT_POOL_CONFIG.min} (${sessionId})...`);
+          const conn = await pool.acquire();
+          console.log(`[SSH] 连接池连接 ${index + 1} 创建成功 (${sessionId}), 耗时: ${Date.now() - connStartTime}ms`);
+          await pool.release(conn);
+          console.log(`[SSH] 连接池连接 ${index + 1} 已释放回池中 (${sessionId})`);
+        } catch (error) {
+          console.error(`[SSH] 预热连接 ${index + 1} 失败 (${sessionId}):`, error);
+        }
+      });
+
+    // 等待所有连接创建完成，但不阻塞主流程
+    await Promise.allSettled(warmupPromises);
+    console.log(`[SSH] 连接池预热完成 ${sessionId}, 总耗时: ${Date.now() - warmupStartTime}ms`);
+  }
+
+  /**
+   * 预热连接池 - 保留原方法作为备用
    */
   private async warmupPool(pool: Pool<PooledConnection>, sessionId: string): Promise<void> {
     await Promise.all(

@@ -168,7 +168,7 @@ export function registerSFTPHandlers(): void {
       permissions: number;
     }>> => {
       try {
-        console.log(`[SFTP] 获取文件状态 - connectionId: ${connectionId}, path: ${filePath}`);
+        console.log(`[SFTP] 获取文件状态 - connectionId1: ${connectionId}, path: ${filePath}`);
         const stats = await sftpManager.stat(connectionId, filePath);
         return {
           success: true,

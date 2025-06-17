@@ -144,7 +144,7 @@ const Navigation: React.FC<NavigationProps> = ({
         <Button
           icon={<SyncOutlined />}
           onClick={handleSync}
-          title="同步到终端"
+          title="同步当前路径到终端"
         />
       </Space>
     </div>

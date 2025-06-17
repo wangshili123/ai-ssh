@@ -100,7 +100,9 @@ export class EditorContentManager extends EventEmitter {
   private async getFileInfo(): Promise<{size: number}> {
     try {
       console.log('[EditorContentManager] 获取文件信息:', this.filePath);
-      const result = await sftpService.stat(this.sessionId, this.filePath);
+      // 生成正确的connectionId，因为sftpService期望的是connectionId格式
+      const connectionId = `sftp-${this.sessionId}`;
+      const result = await sftpService.stat(connectionId, this.filePath);
       console.log('[EditorContentManager] 文件大小:', result.size);
       this.fileSize = result.size;
       
@@ -155,7 +157,9 @@ export class EditorContentManager extends EventEmitter {
       } else {
         // 小文件直接加载全部内容
         console.log('[EditorContentManager] 文件较小，直接加载全部内容');
-        const result = await sftpService.readFile(this.sessionId, this.filePath);
+        // 生成正确的connectionId，因为sftpService期望的是connectionId格式
+        const connectionId = `sftp-${this.sessionId}`;
+        const result = await sftpService.readFile(connectionId, this.filePath);
         this.originalContent = result.content;
         this.loadedContentSize = result.bytesRead;
         this.isDirty = false; // 重置脏状态
@@ -208,7 +212,9 @@ export class EditorContentManager extends EventEmitter {
       console.log(`[EditorContentManager] 开始加载文件块 - 起始位置: ${start}, 长度: ${length}, 文件总大小: ${this.fileSize}`);
       this.emit(EditorEvents.LOADING_STARTED);
       
-      const result = await sftpService.readFile(this.sessionId, this.filePath, start, length);
+      // 生成正确的connectionId，因为sftpService期望的是connectionId格式
+      const connectionId = `sftp-${this.sessionId}`;
+      const result = await sftpService.readFile(connectionId, this.filePath, start, length);
       console.log(`[EditorContentManager] 块加载成功 - 实际读取字节数: ${result.bytesRead}, 总大小: ${result.totalSize}, 内容长度: ${result.content.length}`);
       
       // 更新已加载内容大小
@@ -414,7 +420,9 @@ export class EditorContentManager extends EventEmitter {
         lastFewChars: content.slice(-10).split('').map(c => c.charCodeAt(0))
       });
       
-      await sftpService.writeFile(this.sessionId, this.filePath, content);
+      // 生成正确的connectionId，因为sftpService期望的是connectionId格式
+      const connectionId = `sftp-${this.sessionId}`;
+      await sftpService.writeFile(connectionId, this.filePath, content);
       console.log('[EditorContentManager] 文件保存成功');
       
       this.originalContent = content;
@@ -910,7 +918,9 @@ export class EditorContentManager extends EventEmitter {
       this.emit(EditorEvents.SAVING_STARTED);
       
       // 使用 sftpService 替代 window.electron.sftpService，并将编码转换为合适的类型
-      await sftpService.writeFile(this.sessionId, path, contentToSave, encodingToUse as any);
+      // 生成正确的connectionId，因为sftpService期望的是connectionId格式
+      const connectionId = `sftp-${this.sessionId}`;
+      await sftpService.writeFile(connectionId, path, contentToSave, encodingToUse as any);
       
       this.isSaving = false;
       this.emit(EditorEvents.SAVING_COMPLETED);

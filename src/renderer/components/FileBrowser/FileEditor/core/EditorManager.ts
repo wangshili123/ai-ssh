@@ -466,8 +466,10 @@ export class EditorManager extends EventEmitter {
           }
         };
         
+        // 生成正确的connectionId，因为sftpService期望的是connectionId格式
+        const connectionId = `sftp-${sessionId}`;
         // 并行读取整个文件，添加进度回调
-        const result = await sftpService.readLargeFile(sessionId, filePath, {
+        const result = await sftpService.readLargeFile(connectionId, filePath, {
           chunkSize: 131072, // 128KB
           maxParallelChunks: 8,
           onProgress

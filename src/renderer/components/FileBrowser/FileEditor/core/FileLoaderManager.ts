@@ -79,7 +79,9 @@ export class FileLoaderManager extends EventEmitter {
    */
   public async initialize(): Promise<void> {
     try {
-      const stats = await sftpService.stat(this.sessionId, this.filePath);
+      // 生成正确的connectionId，因为sftpService期望的是connectionId格式
+      const connectionId = `sftp-${this.sessionId}`;
+      const stats = await sftpService.stat(connectionId, this.filePath);
       this.fileInfo = {
         size: stats.size,
         modifyTime: stats.modifyTime,
@@ -121,8 +123,10 @@ export class FileLoaderManager extends EventEmitter {
       const chunkSize = 1024 * 1024; // 1MB
 
       while (offset < this.fileInfo!.size) {
+        // 生成正确的connectionId，因为sftpService期望的是connectionId格式
+        const connectionId = `sftp-${this.sessionId}`;
         const result = await sftpService.readFile(
-          this.sessionId,
+          connectionId,
           this.filePath,
           offset,
           chunkSize
@@ -261,8 +265,10 @@ export class FileLoaderManager extends EventEmitter {
       const estimatedStart = startLine * 50; // 假设每行平均50字节
       const estimatedLength = lineCount * 50;
 
+      // 生成正确的connectionId，因为sftpService期望的是connectionId格式
+      const connectionId = `sftp-${this.sessionId}`;
       const result = await sftpService.readFile(
-        this.sessionId,
+        connectionId,
         this.filePath,
         estimatedStart,
         estimatedLength,

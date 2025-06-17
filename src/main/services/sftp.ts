@@ -3,6 +3,7 @@ import type { SessionInfo } from '../../renderer/types';
 import type { FileEntry } from '../types/file';
 import { convertPermissionsToOctal, isDirectory, isSymlink, shouldFilterRegularFile } from '../utils/fileUtils';
 import * as path from 'path';
+import { sshService } from './ssh';
 
 
 /**
@@ -15,59 +16,48 @@ interface SFTPCache {
 }
 
 /**
- * SFTP客户端类
+ * SFTP客户端类 - 复用SSH连接池
  */
 class SFTPClient {
-  private client: Client;
   private sftp: any;  // ssh2的SFTP类型定义不完整，暂时使用any
   private cache: SFTPCache;
+  private sftpConnection: any; // 存储从SSH服务获取的SFTP连接信息
 
   constructor(private sessionInfo: SessionInfo, private connectionId: string) {
-    this.client = new Client();
+    // 不再创建独立的SSH客户端，而是复用SSH服务的连接池
+    // this.client = new Client();
+
     // 初始化缓存
     this.cache = {
       currentPath: '/',
       pathHistory: ['/'],
       directoryCache: new Map()
     };
-    console.log(`[SFTPClient] 创建实例 - connectionId: ${connectionId}, sessionId: ${sessionInfo.id}`);
+    console.log(`[SFTPClient] 创建实例（复用SSH连接） - connectionId: ${connectionId}, sessionId: ${sessionInfo.id}`);
   }
 
   /**
-   * 连接SFTP服务器
+   * 连接SFTP服务器 - 复用SSH连接池
    */
   async connect(): Promise<void> {
-    const { host, port, username, password, privateKey, authType } = this.sessionInfo;
-    
-    const config: any = {
-      host,
-      port,
-      username
-    };
+    console.log(`[SFTPClient] 开始连接SFTP（复用SSH连接） - sessionId: ${this.sessionInfo.id}`);
 
-    // 根据认证类型设置认证方式
-    if (authType === 'password' && password) {
-      config.password = password;
-    } else if (authType === 'privateKey' && privateKey) {
-      config.privateKey = privateKey;
-    } else {
-      throw new Error('无效的认证配置');
+    try {
+      // 确保SSH连接存在
+      if (!sshService.isConnected(this.sessionInfo.id)) {
+        console.log(`[SFTPClient] SSH连接不存在，先创建SSH连接 - sessionId: ${this.sessionInfo.id}`);
+        await sshService.connect(this.sessionInfo);
+      }
+
+      // 从SSH服务获取SFTP连接
+      this.sftpConnection = await sshService.getSFTPConnection(this.sessionInfo.id);
+      this.sftp = this.sftpConnection.sftp;
+
+      console.log(`[SFTPClient] SFTP连接建立成功（复用SSH连接） - sessionId: ${this.sessionInfo.id}`);
+    } catch (error) {
+      console.error(`[SFTPClient] SFTP连接失败 - sessionId: ${this.sessionInfo.id}:`, error);
+      throw error;
     }
-
-    return new Promise((resolve, reject) => {
-      this.client.on('ready', () => {
-        this.client.sftp((err, sftp) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          this.sftp = sftp;
-          resolve();
-        });
-      }).on('error', (err) => {
-        reject(err);
-      }).connect(config);
-    });
   }
 
   /**
@@ -281,49 +271,30 @@ class SFTPClient {
   }
 
   /**
-   * 执行远程命令
+   * 执行远程命令 - 使用SSH连接池
    * @param command 要执行的命令
    */
   async executeCommand(command: string): Promise<{ success: boolean; stdout: string; stderr: string; exitCode: number }> {
-    console.log(`[SFTPClient] 执行命令 - connectionId: ${this.connectionId}, command: ${command}`);
+    console.log(`[SFTPClient] 执行命令（使用SSH连接池） - connectionId: ${this.connectionId}, command: ${command}`);
 
-    return new Promise((resolve, reject) => {
-      this.client.exec(command, (err, stream) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-
-        let stdout = '';
-        let stderr = '';
-        let exitCode = 0;
-
-        stream.on('data', (data: Buffer) => {
-          stdout += data.toString();
-        });
-
-        stream.stderr?.on('data', (data: Buffer) => {
-          stderr += data.toString();
-        });
-
-        stream.on('exit', (code: number) => {
-          exitCode = code;
-        });
-
-        stream.on('close', () => {
-          resolve({
-            success: exitCode === 0,
-            stdout,
-            stderr,
-            exitCode
-          });
-        });
-
-        stream.on('error', (err: Error) => {
-          reject(err);
-        });
-      });
-    });
+    // 使用SSH服务的连接池执行命令
+    try {
+      const output = await sshService.executeCommand(this.sessionInfo.id, command);
+      return {
+        success: true,
+        stdout: output,
+        stderr: '',
+        exitCode: 0
+      };
+    } catch (error) {
+      console.error(`[SFTPClient] 命令执行失败:`, error);
+      return {
+        success: false,
+        stdout: '',
+        stderr: (error as Error).message,
+        exitCode: 1
+      };
+    }
   }
 
   /**
@@ -443,14 +414,24 @@ class SFTPClient {
   }
 
   /**
-   * 关闭连接
+   * 关闭连接 - 释放SSH连接池资源
    */
   async close(): Promise<void> {
-    console.log(`[SFTPClient] 关闭连接 - connectionId: ${this.connectionId}`);
-    return new Promise((resolve) => {
-      this.client.end();
-      resolve();
-    });
+    console.log(`[SFTPClient] 关闭连接（释放SSH连接池资源） - connectionId: ${this.connectionId}`);
+
+    // 如果有SFTP连接，释放回连接池
+    if (this.sftpConnection && this.sftpConnection.poolConn && this.sftpConnection.pool) {
+      try {
+        await this.sftpConnection.pool.release(this.sftpConnection.poolConn);
+        console.log(`[SFTPClient] SFTP连接已释放回连接池 - sessionId: ${this.sessionInfo.id}`);
+      } catch (error) {
+        console.error(`[SFTPClient] 释放SFTP连接失败:`, error);
+      }
+    }
+
+    // 清理引用
+    this.sftp = null;
+    this.sftpConnection = null;
   }
 
   /**
@@ -473,64 +454,43 @@ class SFTPClient {
   }> {
     console.log(`[SFTPClient] 服务端过滤文件 - connectionId: ${this.connectionId}, path: ${filePath}, pattern: ${pattern}`);
 
-    return new Promise((resolve, reject) => {
-      // 构建grep命令
-      let grepCmd = 'grep';
-      if (!options.caseSensitive) {
-        grepCmd += ' -i';
-      }
-      if (options.isRegex) {
-        grepCmd += ' -E';
-      } else {
-        grepCmd += ' -F';
-      }
-      grepCmd += ` "${pattern.replace(/"/g, '\\"')}" "${filePath}"`;
-      
-      // 添加统计命令
-      const countCmd = `wc -l "${filePath}"`;
-      
-      // 组合命令
-      const cmd = `${countCmd}; ${grepCmd}`;
+    // 构建grep命令
+    let grepCmd = 'grep';
+    if (!options.caseSensitive) {
+      grepCmd += ' -i';
+    }
+    if (options.isRegex) {
+      grepCmd += ' -E';
+    } else {
+      grepCmd += ' -F';
+    }
+    grepCmd += ` "${pattern.replace(/"/g, '\\"')}" "${filePath}"`;
 
-      // 在SSH会话中执行命令
-      this.client.exec(cmd, (err: Error | undefined, stream: any) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+    // 添加统计命令
+    const countCmd = `wc -l "${filePath}"`;
 
-        let output = '';
-        let totalLines = 0;
-        let matchedLines: string[] = [];
+    // 组合命令
+    const cmd = `${countCmd}; ${grepCmd}`;
 
-        stream.on('data', (data: Buffer) => {
-          output += data.toString();
-        });
+    try {
+      // 使用SSH服务执行命令
+      const output = await sshService.executeCommand(this.sessionInfo.id, cmd);
 
-        stream.stderr.on('data', (data: Buffer) => {
-          console.error(`[SFTPClient] Grep错误 - ${data.toString()}`);
-        });
+      // 解析结果
+      const lines = output.split('\n');
+      // 第一行是总行数
+      const totalLines = parseInt(lines[0].trim(), 10);
+      // 剩下的是匹配行
+      const matchedLines = lines.slice(1).filter(line => line.trim());
 
-        stream.on('close', () => {
-          try {
-            // 解析结果
-            const lines = output.split('\n');
-            // 第一行是总行数
-            totalLines = parseInt(lines[0].trim(), 10);
-            // 剩下的是匹配行
-            matchedLines = lines.slice(1).filter(line => line.trim());
-
-            resolve({
-              content: matchedLines,
-              totalLines,
-              matchedLines: matchedLines.length
-            });
-          } catch (error) {
-            reject(new Error('解析过滤结果失败: ' + error));
-          }
-        });
-      });
-    });
+      return {
+        content: matchedLines,
+        totalLines,
+        matchedLines: matchedLines.length
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 }
 

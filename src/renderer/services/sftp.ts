@@ -93,6 +93,7 @@ class SFTPService {
     isDirectory: boolean;
     permissions: number;
   }> {
+    console.log(`[SFTPService] 获取文件状态 - sessionId: ${sessionId}, path: ${filePath}`);
     const result = await ipcRenderer.invoke('sftp:stat', sessionId, filePath);
     if (!result.success) {
       throw new Error(result.error);
