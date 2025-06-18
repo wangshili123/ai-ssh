@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import { registerAllHandlers } from './ipc';
+import { localConfig } from '@/config/local.config';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -17,7 +18,7 @@ function createWindow() {
 
   // 加载应用
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:3000');
+    mainWindow.loadURL('http://localhost:'+localConfig.mainPort);
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));

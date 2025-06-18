@@ -563,7 +563,7 @@ export class BrowseMode extends EventEmitter {
     this.fileWatcher.on('watch-event', (eventData: FileWatchEventData) => {
       switch (eventData.type) {
         case 'update':
-          console.log('[BrowseMode] 收到文件更新事件:', eventData);
+          console.log('[BrowseMode] 收到文件更新事1件:', eventData);
 
           if (eventData.fullContent) {
             // 处理完整内容更新

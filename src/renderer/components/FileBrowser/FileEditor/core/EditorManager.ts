@@ -837,7 +837,7 @@ export class EditorManager extends EventEmitter {
 
           // 监听文件变化事件
           this.browseMode.on(EditorEvents.FILE_CHANGED, (newContent: string) => {
-            console.log('[EditorManager] 收到文件变化事件，内容长度:', newContent.length);
+            console.log('[EditorManager] 收到文件变化1事件，内容长度:', newContent.length);
             if (this.model) {
               // 获取当前内容
               const currentContent = this.model.getValue();
@@ -845,6 +845,12 @@ export class EditorManager extends EventEmitter {
               if (currentContent !== newContent) {
                 console.log('[EditorManager] 更新编辑器内容');
                 this.model.setValue(newContent);
+
+                // 如果启用了自动滚动，滚动到底部
+                if (this.state.isAutoScroll && this.editor) {
+                  console.log('[EditorManager] 自动滚动到底部');
+                  this.scrollToBottom();
+                }
               }
             }
           });
@@ -853,6 +859,14 @@ export class EditorManager extends EventEmitter {
           this.browseMode.on(EditorEvents.CONTENT_CHANGED, (data: any) => {
             console.log('[EditorManager] 收到内容变化事件:', data);
             // 这里可以处理增量更新逻辑
+          });
+
+          // 监听滚动到底部事件
+          this.browseMode.on('scrollToBottom', () => {
+            console.log('[EditorManager] 收到滚动到底部事件');
+            if (this.editor) {
+              this.scrollToBottom();
+            }
           });
         }
 
@@ -919,6 +933,45 @@ export class EditorManager extends EventEmitter {
     } catch (error) {
       console.error('[EditorManager] 设置自动滚动失败:', error);
       this.setError(error as Error);
+    }
+  }
+
+  /**
+   * 滚动到底部
+   */
+  private scrollToBottom(): void {
+    if (!this.editor) return;
+
+    try {
+      console.log('[EditorManager] 执行滚动到底部');
+
+      // 使用 requestAnimationFrame 确保在下一帧执行滚动
+      requestAnimationFrame(() => {
+        if (this.editor) {
+          // 获取编辑器的滚动信息
+          const scrollHeight = this.editor.getScrollHeight();
+          const layoutInfo = this.editor.getLayoutInfo();
+          const viewportHeight = layoutInfo.height;
+
+          // 计算滚动到底部的位置
+          const scrollTop = Math.max(0, scrollHeight - viewportHeight);
+
+          console.log('[EditorManager] 滚动信息:', {
+            scrollHeight,
+            viewportHeight,
+            scrollTop,
+            currentScrollTop: this.editor.getScrollTop()
+          });
+
+          // 执行滚动
+          this.editor.setScrollTop(scrollTop);
+
+          // 可选：添加平滑滚动效果
+          // this.editor.revealLine(this.model?.getLineCount() || 1);
+        }
+      });
+    } catch (error) {
+      console.error('[EditorManager] 滚动到底部失败:', error);
     }
   }
 
