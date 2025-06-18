@@ -99,9 +99,9 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
             <Button icon={<ReloadOutlined />} onClick={onRefresh} />
           </Tooltip>
           <Divider type="vertical" />
-          <Tooltip title="搜索">
+          {/* <Tooltip title="搜索">
             <Button icon={<SearchOutlined />} onClick={() => onSearch('')} />
-          </Tooltip>
+          </Tooltip> */}
           <Tooltip title="过滤">
             <Button icon={<FilterOutlined />} onClick={() => onFilter('')} />
           </Tooltip>

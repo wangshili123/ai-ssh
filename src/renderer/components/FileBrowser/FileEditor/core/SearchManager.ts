@@ -70,22 +70,37 @@ export class SearchManager extends EventEmitter {
     try {
       // 使用Monaco编辑器的查找功能
       if (this.findController) {
-        // 设置查找选项
-        this.findController.getState().changeMatchCase(config.caseSensitive);
-        this.findController.getState().changeWholeWord(config.wholeWord);
-        this.findController.getState().changeRegex(config.isRegex);
-        
-        // 开始查找
-        this.findController.start({
-          forceRevealReplace: false,
-          seedSearchStringFromSelection: false,
-          shouldFocus: 0,
-          shouldAnimate: true,
-          updateSearchScope: false
-        });
-        
-        // 设置查找文本
-        this.findController.getState().change(config.pattern, this.findController.getState().replaceString);
+        try {
+          const state = this.findController.getState();
+
+          // 安全地设置查找选项，检查方法是否存在
+          if (typeof state.changeMatchCase === 'function') {
+            state.changeMatchCase(config.caseSensitive);
+          }
+          if (typeof state.changeWholeWord === 'function') {
+            state.changeWholeWord(config.wholeWord);
+          }
+          if (typeof state.changeRegex === 'function') {
+            state.changeRegex(config.isRegex);
+          }
+
+          // 开始查找
+          this.findController.start({
+            forceRevealReplace: false,
+            seedSearchStringFromSelection: false,
+            shouldFocus: 0,
+            shouldAnimate: true,
+            updateSearchScope: false
+          });
+
+          // 设置查找文本
+          if (typeof state.change === 'function') {
+            state.change(config.pattern, state.replaceString || '');
+          }
+        } catch (findError) {
+          console.warn('[SearchManager] Monaco查找控制器操作失败，使用备用搜索:', findError);
+          // 如果Monaco查找失败，继续使用我们自己的搜索实现
+        }
       }
       
       // 获取搜索结果

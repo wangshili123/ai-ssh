@@ -376,7 +376,11 @@ export class EditorManager extends EventEmitter {
       // 更新内容管理器
       this.contentManager.setEditor(this.editor);
       this.contentManager.setModel(this.model);
-      
+
+      // 设置内容管理器的初始模式
+      console.log(`[EditorManager] 设置内容管理器初始模式为: ${this.state.mode}`);
+      this.contentManager.setMode(this.state.mode);
+
       // 更新模式管理器
       this.modeManager.setEditor(this.editor);
       
@@ -521,7 +525,15 @@ export class EditorManager extends EventEmitter {
     }
     
     // 正常的模式切换
-    return this.modeManager.switchMode(mode);
+    const result = await this.modeManager.switchMode(mode);
+
+    // 如果模式切换成功，更新内容管理器的模式
+    if (result) {
+      console.log(`[EditorManager] 模式切换成功，更新内容管理器模式为: ${mode}`);
+      this.contentManager.setMode(mode);
+    }
+
+    return result;
   }
 
   /**
