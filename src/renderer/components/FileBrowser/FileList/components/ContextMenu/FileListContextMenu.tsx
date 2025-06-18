@@ -16,7 +16,7 @@ import './FileListContextMenu.css';
 export interface FileListContextMenuProps {
   x: number;
   y: number;
-  file: FileEntry;
+  file: FileEntry | null;  // 允许为null，表示空白区域右键
   selectedFiles?: FileEntry[];
   sessionInfo?: SessionInfo;
   tabId: string;
@@ -36,7 +36,7 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
   x,
   y,
   file,
-  selectedFiles = [file],
+  selectedFiles = [],
   sessionInfo,
   tabId,
   currentPath,
@@ -146,9 +146,14 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
 
   // 使用 useMemo 缓存菜单项配置
   const menuItems = useMemo(() => {
-    console.log('[FileListContextMenu] 生成菜单项配置, currentPreference:', currentPreference);
+    console.log('[FileListContextMenu] 生成菜单项配置, currentPreference:', currentPreference, 'file:', file, 'selectedFiles:', selectedFiles);
+
+    // 判断是否为空白区域（没有具体文件）
+    const isBlankArea = !file;
+    const hasSelectedFiles = selectedFiles && selectedFiles.length > 0;
+
     return [
-      // 新建选项
+      // 新建选项（始终可用）
       {
         key: 'create-folder',
         label: '新建文件夹'
@@ -162,13 +167,15 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       },
       // 下载选项 - 支持单个文件和批量下载
       ...(() => {
-        const downloadableFiles = selectedFiles.filter(f => !f.isDirectory);
+        if (!hasSelectedFiles) return [];
+        const downloadableFiles = selectedFiles.filter(f => f && !f.isDirectory);
         if (downloadableFiles.length === 0) return [];
 
         const isBatch = downloadableFiles.length > 1;
         return [{
           key: 'download',
-          label: isBatch ? `批量下载 (${downloadableFiles.length}个文件)` : '下载'
+          label: isBatch ? `批量下载 (${downloadableFiles.length}个文件)` : '下载',
+          disabled: isBlankArea && !hasSelectedFiles
         }];
       })(),
       {
@@ -186,13 +193,13 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       {
         key: 'open-file',
         label: '打开',
-        disabled: selectedFiles.length !== 1 || selectedFiles[0].isDirectory
+        disabled: isBlankArea || !hasSelectedFiles || selectedFiles.length !== 1 || selectedFiles[0].isDirectory
       },
       // 打开方式子菜单（设置偏好，显示勾选状态）
       {
         key: 'open-with',
         label: '打开方式',
-        disabled: selectedFiles.length !== 1 || selectedFiles[0].isDirectory,
+        disabled: isBlankArea || !hasSelectedFiles || selectedFiles.length !== 1 || selectedFiles[0].isDirectory,
         children: [
           {
             key: 'open-with-builtin',
@@ -216,7 +223,8 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       // 权限设置选项
       {
         key: 'permissions',
-        label: selectedFiles.length > 1 ? `批量设置权限 (${selectedFiles.length}个项目)` : '设置权限'
+        label: hasSelectedFiles && selectedFiles.length > 1 ? `批量设置权限 (${selectedFiles.length}个项目)` : '设置权限',
+        disabled: isBlankArea || !hasSelectedFiles
       },
       {
         type: 'divider' as const
@@ -224,6 +232,7 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       {
         key: 'delete',
         label: '删除',
+        disabled: isBlankArea || !hasSelectedFiles,
         children: [
           {
             key: 'delete-safe',
@@ -236,17 +245,18 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
           }
         ]
       },
-
-
+      // 复制路径选项（只有单个文件时显示）
       {
         key: 'copy-path',
         label: '复制路径',
+        disabled: isBlankArea || !file,
         onClick: () => {
-          const fullPath = `${currentPath}/${file.name}`.replace(/\/+/g, '/');
-          navigator.clipboard.writeText(fullPath);
+          if (file) {
+            const fullPath = `${currentPath}/${file.name}`.replace(/\/+/g, '/');
+            navigator.clipboard.writeText(fullPath);
+          }
         }
-      },
-
+      }
     ];
   }, [file, selectedFiles, sessionInfo, tabId, currentPath, currentPreference]);
 
@@ -279,7 +289,7 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       // 使用回调通知父组件
       if (onDownloadRequest) {
         console.log('调用父组件的下载请求回调');
-        onDownloadRequest(file, downloadableFiles);
+        onDownloadRequest(file || downloadableFiles[0], downloadableFiles);
       }
 
       // 关闭右键菜单
@@ -291,7 +301,7 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
     if (info.key === 'open-file') {
       console.log('[FileListContextMenu] 打开文件，使用偏好:', currentPreference);
       if (onOpenFileRequest) {
-        console.log('调用父组件的打开文件请求回调', selectedFiles.map(f => f.name), currentPreference);
+        console.log('调用父组件的打开文件请求回调', selectedFiles.map(f => f?.name), currentPreference);
         onOpenFileRequest(selectedFiles, currentPreference);
       }
       onClose();

@@ -61,10 +61,41 @@
 .context-menu.ant-menu .ant-menu-item-disabled {
   color: rgba(0, 0, 0, 0.25) !important;
   cursor: not-allowed;
+  opacity: 0.5;
+  background-color: rgba(0, 0, 0, 0.02) !important;
 }
 
 .context-menu.ant-menu .ant-menu-item-disabled:hover {
+  background: rgba(0, 0, 0, 0.02) !important;
+  color: rgba(0, 0, 0, 0.25) !important;
+}
+
+.context-menu.ant-menu .ant-menu-item-disabled .ant-menu-title-content {
+  color: rgba(0, 0, 0, 0.25) !important;
+}
+
+.context-menu.ant-menu .ant-menu-item-disabled .anticon {
+  color: rgba(0, 0, 0, 0.25) !important;
+}
+
+/* 禁用的子菜单样式 */
+.context-menu.ant-menu .ant-menu-submenu-disabled {
+  color: rgba(0, 0, 0, 0.25) !important;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.context-menu.ant-menu .ant-menu-submenu-disabled:hover {
   background: none !important;
+  color: rgba(0, 0, 0, 0.25) !important;
+}
+
+.context-menu.ant-menu .ant-menu-submenu-disabled .ant-menu-title-content {
+  color: rgba(0, 0, 0, 0.25) !important;
+}
+
+.context-menu.ant-menu .ant-menu-submenu-disabled .ant-menu-submenu-arrow {
+  color: rgba(0, 0, 0, 0.25) !important;
 }
 
 .context-menu.ant-menu .ant-menu-item-divider {

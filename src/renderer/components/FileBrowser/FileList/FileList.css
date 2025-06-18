@@ -26,7 +26,15 @@
 .file-list-container .ant-table-body {
   overflow-y: auto !important;
   overflow-x: auto !important;
-  height: calc(100% - 38px) !important;
+}
+
+/* 关键修复：确保Ant Design内部容器占满高度 */
+.file-list-container .ant-spin-container {
+  height: 100% !important;
+}
+
+.file-list-container .ant-spin-nested-loading {
+  height: 100% !important;
 }
 
 /* 自定义滚动条样式 */

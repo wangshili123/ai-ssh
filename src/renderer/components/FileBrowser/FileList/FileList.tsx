@@ -168,7 +168,7 @@ const FileList: React.FC<FileListProps> = ({
   onRefresh
 }) => {
   const [sortedInfo, setSortedInfo] = useState<SorterResult<FileEntry>>({});
-  const [tableHeight, setTableHeight] = useState<number>(0);
+  const [tableHeight, setTableHeight] = useState<number>(400); // 设置默认高度
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [downloadDialogVisible, setDownloadDialogVisible] = useState(false);
   const [downloadFile, setDownloadFile] = useState<FileEntry | null>(null);
@@ -209,15 +209,17 @@ const FileList: React.FC<FileListProps> = ({
     selectedFiles?: FileEntry[];
   } | null>(null);
 
-  // 监听容器高度变化
+  // 监听容器高度变化，确保表格占满整个容器
   useEffect(() => {
     if (!containerRef.current) return;
 
     const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
         const height = entry.contentRect.height;
-        // 减去表头高度(38px)和一些边距
-        setTableHeight(height - 38);
+        // 设置表格高度为容器完整高度减去表头高度
+        const calculatedHeight = Math.max(height - 38, 200); // 最小高度200px
+        setTableHeight(calculatedHeight);
+        console.log('[FileList] 容器高度变化:', { containerHeight: height, tableHeight: calculatedHeight });
       }
     });
 
@@ -680,6 +682,32 @@ const FileList: React.FC<FileListProps> = ({
     console.log('[FileList] 右键菜单状态已设置');
   }, [selectedRowKeys, fileList]);
 
+  // 处理空白区域右键菜单
+  const handleContainerContextMenu = useCallback((event: React.MouseEvent) => {
+    // 检查是否点击在表格行上，如果是则不处理（让行的右键事件处理）
+    const target = event.target as HTMLElement;
+    const isOnRow = target.closest('tr');
+
+    if (isOnRow) {
+      return; // 如果点击在行上，让行的右键事件处理
+    }
+
+    console.log('[FileList] 空白区域右键菜单被触发');
+    event.preventDefault();
+
+    // 获取选中的文件，如果没有选中文件则传空数组
+    const selectedFiles = fileList.filter(f => selectedRowKeys.includes(f.name));
+    console.log('[FileList] 空白区域选中的文件:', selectedFiles.map(f => f.name));
+
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      file: null as any, // 空白区域没有特定文件
+      selectedFiles: selectedFiles.length > 0 ? selectedFiles : []
+    });
+    console.log('[FileList] 空白区域右键菜单状态已设置');
+  }, [selectedRowKeys, fileList]);
+
   // 处理关闭右键菜单
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu(null);
@@ -925,7 +953,7 @@ const FileList: React.FC<FileListProps> = ({
   };
 
   return (
-    <div className="file-list-container" ref={containerRef}>
+    <div className="file-list-container" ref={containerRef} onContextMenu={handleContainerContextMenu}>
       <Table
         ref={tableRef}
         dataSource={fileList}
@@ -950,7 +978,7 @@ const FileList: React.FC<FileListProps> = ({
           x={contextMenu.x}
           y={contextMenu.y}
           file={contextMenu.file}
-          selectedFiles={contextMenu.selectedFiles}
+          selectedFiles={contextMenu.selectedFiles || []}
           sessionInfo={sessionInfo}
           tabId={tabId}
           currentPath={currentPath}
