@@ -144,6 +144,24 @@ export class FilterManager extends EventEmitter {
   }
 
   /**
+   * 获取当前过滤统计信息
+   * @returns 过滤统计信息
+   */
+  getCurrentFilterStats(): { totalLines: number; matchedLines: number } | null {
+    if (!this.isActive() || !this.originalModel || !this.filteredModel) {
+      return null;
+    }
+
+    const totalLines = this.originalModel.getLineCount();
+    const matchedLines = this.filteredModel.getLineCount();
+
+    return {
+      totalLines,
+      matchedLines
+    };
+  }
+
+  /**
    * 销毁过滤管理器
    */
   destroy() {
