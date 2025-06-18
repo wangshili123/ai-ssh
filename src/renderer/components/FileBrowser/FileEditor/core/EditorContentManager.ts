@@ -359,7 +359,7 @@ export class EditorContentManager extends EventEmitter {
   public getLargeFileInfo(): LargeFileInfo {
     const loadedSize = this.loadedContentSize;
     const totalSize = this.fileSize;
-    
+
     // 确保即使在初始化时也有合理的值
     if (loadedSize === 0 && totalSize > 0 && this.isLargeFile) {
       // 防止除零错误
@@ -371,18 +371,26 @@ export class EditorContentManager extends EventEmitter {
         isComplete: false
       };
     }
-    
+
     const hasMore = loadedSize < totalSize;
-    
+
     // 增强日志记录
     console.log(`[EditorContentManager] getLargeFileInfo: loadedSize=${loadedSize}, totalSize=${totalSize}, hasMore=${hasMore}, 差值=${totalSize - loadedSize} 字节`);
-    
+
     return {
       loadedSize,
       totalSize,
       hasMore,
       isComplete: loadedSize >= totalSize
     };
+  }
+
+  /**
+   * 获取文件大小
+   * @returns 文件大小（字节）
+   */
+  public getFileSize(): number {
+    return this.fileSize;
   }
 
   /**

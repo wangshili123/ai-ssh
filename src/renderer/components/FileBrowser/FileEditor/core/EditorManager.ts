@@ -996,6 +996,14 @@ export class EditorManager extends EventEmitter {
   }
 
   /**
+   * 获取文件大小
+   * @returns 文件大小（字节）
+   */
+  public getFileSize(): number {
+    return this.contentManager.getFileSize();
+  }
+
+  /**
    * 加载更多内容
    * 用于大文件滚动加载
    */

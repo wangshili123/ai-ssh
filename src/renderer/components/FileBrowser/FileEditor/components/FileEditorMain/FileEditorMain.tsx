@@ -1103,7 +1103,7 @@ export const FileEditorMain = observer(forwardRef<FileEditorMainRef, FileEditorM
         cursorPosition={editorState.cursorPosition}
         fileInfo={{
           path: filePath,
-          size: editorState.largeFileInfo?.totalSize || 0,
+          size: editorManagerRef.current?.getFileSize() || editorState.largeFileInfo?.totalSize || 0,
           encoding: editorState.encoding
         }}
         isDirty={editorState.isDirty}
