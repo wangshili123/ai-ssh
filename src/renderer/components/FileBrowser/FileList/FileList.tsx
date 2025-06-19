@@ -1,11 +1,7 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Table, Spin, message } from 'antd';
-import { LoadingOutlined } from '@ant-design/icons';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
-// 移除 re-resizable，使用原生实现
-import dayjs from 'dayjs';
-import { getUserName, getGroupName } from '../../../utils';
 import type { FileEntry } from '../../../../main/types/file';
 import type { SessionInfo } from '../../../types';
 import { FileListContextMenu } from './components/ContextMenu/FileListContextMenu';
@@ -17,16 +13,13 @@ import {
   EditorConfigDialog,
   EditorSelectorDialog,
   externalEditorManager,
-  unifiedEditorConfig,
-  type EditorConfig
+  unifiedEditorConfig
 } from '../ExternalEditor';
 import { fileOpenManager } from './core/FileOpenManager';
 import DownloadDialog, { type DownloadConfig } from '../../Download/DownloadDialog';
 import { UploadDialog } from '../../Upload';
 import { downloadService } from '../../../services/downloadService';
-import { uploadService } from '../../../services/uploadService';
 import { eventBus } from '../../../services/eventBus';
-import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
 import { getDefaultDownloadPath } from '../../../utils/downloadUtils';
 import './FileList.css';
 
@@ -41,122 +34,13 @@ interface FileListProps {
   onRefresh?: () => void;  // 新增：刷新回调
 }
 
-// 将权限数字转换为字符串表示
-const formatPermissions = (permissions: number): string => {
-  // 将权限转换为 4 位八进制字符串
-  const modeStr = permissions.toString(8).padStart(5, '0');
+import { formatPermissions, formatFileSize, getFileIcon } from './utils/fileFormatters';
+import { useFileListColumns } from './hooks/useFileListColumns';
+import { useDialogStates } from './hooks/useDialogStates';
+import { useFileOperations } from './hooks/useFileOperations';
+import { ResizableTitle } from './components/ResizableTitle';
 
-  // 文件类型映射
-  const fileType: { [key: string]: string } = {
-    '0': '-', // 普通文件
-    '1': 'p', // 命名管道
-    '2': 'c', // 字符设备
-    '4': 'd', // 目录
-    '6': 'b', // 块设备
-    '10': '-', // 普通文件
-    '12': 'l', // 符号链接
-    '14': 's'  // 套接字
-  };
 
-  // 权限位映射
-  const permissionBits: { [key: string]: string } = {
-    '0': '---',
-    '1': '--x',
-    '2': '-w-',
-    '3': '-wx',
-    '4': 'r--',
-    '5': 'r-x',
-    '6': 'rw-',
-    '7': 'rwx'
-  };
-
-  // 解析文件类型
-  const type = fileType[modeStr[0]] || '-';
-
-  // 解析所有者、组和其他用户的权限
-  const owner = permissionBits[modeStr[2]] || '---';
-  const group = permissionBits[modeStr[3]] || '---';
-  const others = permissionBits[modeStr[4]] || '---';
-
-  // 组合成完整的权限字符串
-  return `${type}${owner}${group}${others}`;
-};
-
-// 格式化文件大小
-const formatFileSize = (size: number): string => {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let index = 0;
-  let fileSize = size;
-
-  while (fileSize >= 1024 && index < units.length - 1) {
-    fileSize /= 1024;
-    index++;
-  }
-
-  return `${fileSize.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
-};
-
-// 获取文件图标
-const getFileIcon = (file: FileEntry): string => {
-  if (file.isDirectory) {
-    return '📁';
-  }
-
-  // 根据文件扩展名返回对应图标
-  const iconMap: { [key: string]: string } = {
-    // 文本文件
-    'txt': '📄',
-    'log': '📋',
-    'md': '📝',
-    // 代码文件
-    'js': '📜',
-    'ts': '📜',
-    'jsx': '📜',
-    'tsx': '📜',
-    'json': '📜',
-    'html': '📜',
-    'css': '📜',
-    'less': '📜',
-    'scss': '📜',
-    // 图片文件
-    'jpg': '🖼️',
-    'jpeg': '🖼️',
-    'png': '🖼️',
-    'gif': '🖼️',
-    'svg': '🖼️',
-    // 压缩文件
-    'zip': '📦',
-    'rar': '📦',
-    'tar': '📦',
-    'gz': '📦',
-    // 可执行文件
-    'exe': '⚙️',
-    'sh': '⚙️',
-    'bat': '⚙️',
-    // 配置文件
-    'conf': '⚙️',
-    'config': '⚙️',
-    'yml': '⚙️',
-    'yaml': '⚙️',
-    'env': '⚙️',
-  };
-
-  return iconMap[file.extension] || '📄';
-};
-
-// 修改右键菜单状态的类型定义
-type MenuItem = {
-  key: string;
-  label: string;
-  danger?: boolean;
-  disabled?: boolean;
-  onClick?: () => void;
-  children?: (MenuItem | MenuDivider)[];
-};
-
-type MenuDivider = {
-  type: 'divider';
-};
 
 const FileList: React.FC<FileListProps> = ({
   sessionInfo,
@@ -171,9 +55,6 @@ const FileList: React.FC<FileListProps> = ({
   const [sortedInfo, setSortedInfo] = useState<SorterResult<FileEntry>>({});
   const [tableHeight, setTableHeight] = useState<number>(400); // 设置默认高度
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [downloadDialogVisible, setDownloadDialogVisible] = useState(false);
-  const [downloadFile, setDownloadFile] = useState<FileEntry | null>(null);
-  const [downloadFiles, setDownloadFiles] = useState<FileEntry[]>([]);
 
   // 列宽状态管理
   const [columnWidths, setColumnWidths] = useState({
@@ -185,29 +66,23 @@ const FileList: React.FC<FileListProps> = ({
     ownership: 120   // 用户/组列
   });
 
-  // 上传对话框状态
-  const [uploadDialogVisible, setUploadDialogVisible] = useState(false);
-  const [uploadPath, setUploadPath] = useState<string>('');
-
-  // 创建对话框状态
-  const [createDialogVisible, setCreateDialogVisible] = useState(false);
-  const [createType, setCreateType] = useState<'file' | 'folder'>('file');
-
-  // 权限设置对话框状态
-  const [permissionDialogVisible, setPermissionDialogVisible] = useState(false);
-  const [permissionFiles, setPermissionFiles] = useState<FileEntry[]>([]);
-
-  // 外部编辑器对话框状态
-  const [editorConfigVisible, setEditorConfigVisible] = useState(false);
-  const [editorSelectorVisible, setEditorSelectorVisible] = useState(false);
-  const [editorSelectorFile, setEditorSelectorFile] = useState<FileEntry | null>(null);
-  const [availableEditors, setAvailableEditors] = useState<EditorConfig[]>([]);
-
   // 高亮显示新上传的文件
   const [highlightedFiles, setHighlightedFiles] = useState<Set<string>>(new Set());
 
   // 正在打开的文件状态
   const [openingFiles, setOpeningFiles] = useState<Set<string>>(new Set());
+
+  // 使用对话框状态管理hook
+  const dialogStates = useDialogStates();
+
+  // 使用文件操作hook
+  const fileOperations = useFileOperations({
+    tabId,
+    currentPath,
+    fileList,
+    onFileListChange,
+    sortedInfo
+  });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<any>(null);
@@ -262,7 +137,15 @@ const FileList: React.FC<FileListProps> = ({
 
       try {
         // 获取新上传文件的详细信息
-        await updateFileListWithNewFile(data.fileName, data.overwrite);
+        await fileOperations.updateFileListWithNewFile(data.fileName, data.overwrite);
+
+        // 高亮显示新文件
+        highlightFile(data.fileName);
+
+        // 滚动到新文件位置
+        setTimeout(() => {
+          scrollToFile(data.fileName, fileList);
+        }, 100);
       } catch (error) {
         console.error('[FileList] 处理上传完成事件失败:', error);
       }
@@ -346,7 +229,7 @@ const FileList: React.FC<FileListProps> = ({
           const editors = await unifiedEditorConfig.getEditors();
           if (editors.length === 0) {
             message.warning('请先配置外部编辑器');
-            setEditorConfigVisible(true);
+            dialogStates.setEditorConfigVisible(true);
             return;
           }
 
@@ -355,9 +238,9 @@ const FileList: React.FC<FileListProps> = ({
             return new Promise(async (resolve) => {
               // 获取可用的编辑器列表
               const editorList = await unifiedEditorConfig.getEditors();
-              setAvailableEditors(editorList);
-              setEditorSelectorFile(file);
-              setEditorSelectorVisible(true);
+              dialogStates.setAvailableEditors(editorList);
+              dialogStates.setEditorSelectorFile(file);
+              dialogStates.setEditorSelectorVisible(true);
 
               // 临时存储resolve函数
               (window as any).__editorSelectorResolve = resolve;
@@ -402,10 +285,10 @@ const FileList: React.FC<FileListProps> = ({
   // 下载处理函数
   const handleDownloadRequest = useCallback((file: FileEntry, selectedFiles: FileEntry[]) => {
     console.log('FileList: 收到下载请求', file.name, selectedFiles.length);
-    setDownloadFile(file);
-    setDownloadFiles(selectedFiles);
-    setDownloadDialogVisible(true);
-  }, []);
+    dialogStates.setDownloadFile(file);
+    dialogStates.setDownloadFiles(selectedFiles);
+    dialogStates.setDownloadDialogVisible(true);
+  }, [dialogStates]);
 
   // 下载确认处理
   const handleDownloadConfirm = async (config: DownloadConfig) => {
@@ -416,7 +299,7 @@ const FileList: React.FC<FileListProps> = ({
         return;
       }
 
-      const downloadableFiles = downloadFiles.filter(f => !f.isDirectory);
+      const downloadableFiles = dialogStates.downloadFiles.filter(f => !f.isDirectory);
       const configWithSession = {
         ...config,
         sessionId: tabId
@@ -436,7 +319,7 @@ const FileList: React.FC<FileListProps> = ({
         }
       }
 
-      setDownloadDialogVisible(false);
+      dialogStates.setDownloadDialogVisible(false);
     } catch (error) {
       console.error('下载失败:', error);
     }
@@ -445,22 +328,22 @@ const FileList: React.FC<FileListProps> = ({
   // 下载取消处理
   const handleDownloadCancel = () => {
     console.log('FileList: 下载取消');
-    setDownloadDialogVisible(false);
+    dialogStates.setDownloadDialogVisible(false);
   };
 
   // 上传处理函数
   const handleUploadRequest = useCallback((targetPath: string) => {
     console.log('FileList: 收到上传请求', targetPath);
-    setUploadPath(targetPath);
-    setUploadDialogVisible(true);
-  }, []);
+    dialogStates.setUploadPath(targetPath);
+    dialogStates.setUploadDialogVisible(true);
+  }, [dialogStates]);
 
   // 上传确认处理
   const handleUploadConfirm = async (config: any) => {
     console.log('FileList: 上传确认', config);
     try {
       // 上传逻辑由 UploadDialog 内部处理，这里只关闭对话框
-      setUploadDialogVisible(false);
+      dialogStates.setUploadDialogVisible(false);
       // 刷新文件列表 - 传递当前文件列表，实际的刷新逻辑由父组件处理
       onFileListChange?.(fileList);
     } catch (error) {
@@ -468,24 +351,18 @@ const FileList: React.FC<FileListProps> = ({
     }
   };
 
-  // 上传取消处理
-  const handleUploadCancel = () => {
-    console.log('FileList: 上传取消');
-    setUploadDialogVisible(false);
-  };
-
   // 上传对话框关闭处理（不触发取消逻辑）
   const handleUploadDialogClose = () => {
     console.log('FileList: 上传对话框关闭');
-    setUploadDialogVisible(false);
+    dialogStates.setUploadDialogVisible(false);
   };
 
   // 创建请求处理函数
   const handleCreateRequest = useCallback((type: 'file' | 'folder') => {
     console.log('FileList: 收到创建请求', type);
-    setCreateType(type);
-    setCreateDialogVisible(true);
-  }, []);
+    dialogStates.setCreateType(type);
+    dialogStates.setCreateDialogVisible(true);
+  }, [dialogStates]);
 
   // 创建确认处理
   const handleCreateConfirm = async (name: string) => {
@@ -495,21 +372,21 @@ const FileList: React.FC<FileListProps> = ({
     }
 
     try {
-      console.log('FileList: 创建确认', { type: createType, name, currentPath });
+      console.log('FileList: 创建确认', { type: dialogStates.createType, name, currentPath });
 
-      const result = await createAction[createType === 'folder' ? 'createFolder' : 'createFile']({
+      const result = await createAction[dialogStates.createType === 'folder' ? 'createFolder' : 'createFile']({
         name,
         currentPath,
         sessionInfo,
-        type: createType
+        type: dialogStates.createType
       });
 
       if (result.success) {
         console.log('FileList: 创建成功');
-        setCreateDialogVisible(false);
+        dialogStates.setCreateDialogVisible(false);
 
         // 使用与上传功能相同的逻辑更新文件列表
-        await updateFileListWithNewFile(name, false);
+        await fileOperations.updateFileListWithNewFile(name, false);
       } else {
         console.error('FileList: 创建失败:', result.message);
         // 不关闭对话框，让用户可以修改后重试
@@ -522,15 +399,15 @@ const FileList: React.FC<FileListProps> = ({
   // 创建取消处理
   const handleCreateCancel = () => {
     console.log('FileList: 创建取消');
-    setCreateDialogVisible(false);
+    dialogStates.setCreateDialogVisible(false);
   };
 
   // 权限设置请求处理函数
   const handlePermissionRequest = useCallback((files: FileEntry[]) => {
     console.log('FileList: 收到权限设置请求', files.map(f => f.name));
-    setPermissionFiles(files);
-    setPermissionDialogVisible(true);
-  }, []);
+    dialogStates.setPermissionFiles(files);
+    dialogStates.setPermissionDialogVisible(true);
+  }, [dialogStates]);
 
   // 权限设置确认处理
   const handlePermissionConfirm = async (options: PermissionOptions) => {
@@ -547,7 +424,7 @@ const FileList: React.FC<FileListProps> = ({
       if (result.success) {
         console.log('FileList: 权限设置成功');
         message.success(result.message);
-        setPermissionDialogVisible(false);
+        dialogStates.setPermissionDialogVisible(false);
 
         // 刷新文件列表
         onRefresh?.();
@@ -565,11 +442,11 @@ const FileList: React.FC<FileListProps> = ({
   // 权限设置取消处理
   const handlePermissionCancel = () => {
     console.log('FileList: 权限设置取消');
-    setPermissionDialogVisible(false);
+    dialogStates.setPermissionDialogVisible(false);
   };
 
   // 打开方式请求处理
-  const handleOpenWithRequest = useCallback(async (files: FileEntry[], editorType: 'builtin' | 'external') => {
+  const handleOpenWithRequest = useCallback(async (_files: FileEntry[], editorType: 'builtin' | 'external') => {
     console.log(`[FileList] 设置全局打开方式偏好: ${editorType}`);
 
     try {
@@ -620,7 +497,7 @@ const FileList: React.FC<FileListProps> = ({
         const editors = await unifiedEditorConfig.getEditors();
         if (editors.length === 0) {
           message.warning('请先配置外部编辑器');
-          setEditorConfigVisible(true);
+          dialogStates.setEditorConfigVisible(true);
           return;
         }
 
@@ -629,9 +506,9 @@ const FileList: React.FC<FileListProps> = ({
           return new Promise(async (resolve) => {
             // 获取可用的编辑器列表
             const editorList = await unifiedEditorConfig.getEditors();
-            setAvailableEditors(editorList);
-            setEditorSelectorFile(file);
-            setEditorSelectorVisible(true);
+            dialogStates.setAvailableEditors(editorList);
+            dialogStates.setEditorSelectorFile(file);
+            dialogStates.setEditorSelectorVisible(true);
 
             // 临时存储resolve函数
             (window as any).__editorSelectorResolve = resolve;
@@ -664,23 +541,23 @@ const FileList: React.FC<FileListProps> = ({
   // 编辑器配置请求处理
   const handleEditorConfigRequest = useCallback(() => {
     console.log('[FileList] 编辑器配置请求');
-    setEditorConfigVisible(true);
-  }, []);
+    dialogStates.setEditorConfigVisible(true);
+  }, [dialogStates]);
 
   // 编辑器选择确认处理
   const handleEditorSelect = useCallback((editorId: string, remember: boolean) => {
     console.log('[FileList] 编辑器选择:', editorId, remember);
 
-    if (remember && editorSelectorFile) {
+    if (remember && dialogStates.editorSelectorFile) {
       // 记住文件类型关联
-      const ext = editorSelectorFile.name.split('.').pop();
+      const ext = dialogStates.editorSelectorFile.name.split('.').pop();
       if (ext) {
         unifiedEditorConfig.setFileAssociation(ext, editorId);
       }
     }
 
-    setEditorSelectorVisible(false);
-    setEditorSelectorFile(null);
+    dialogStates.setEditorSelectorVisible(false);
+    dialogStates.setEditorSelectorFile(null);
 
     // 调用resolve函数
     const resolve = (window as any).__editorSelectorResolve;
@@ -688,14 +565,14 @@ const FileList: React.FC<FileListProps> = ({
       resolve(editorId);
       delete (window as any).__editorSelectorResolve;
     }
-  }, [editorSelectorFile]);
+  }, [dialogStates]);
 
   // 编辑器选择取消处理
   const handleEditorSelectCancel = useCallback(() => {
     console.log('[FileList] 编辑器选择取消');
 
-    setEditorSelectorVisible(false);
-    setEditorSelectorFile(null);
+    dialogStates.setEditorSelectorVisible(false);
+    dialogStates.setEditorSelectorFile(null);
 
     // 调用resolve函数
     const resolve = (window as any).__editorSelectorResolve;
@@ -703,13 +580,13 @@ const FileList: React.FC<FileListProps> = ({
       resolve(null);
       delete (window as any).__editorSelectorResolve;
     }
-  }, []);
+  }, [dialogStates]);
 
   // 编辑器配置关闭处理
   const handleEditorConfigClose = useCallback(() => {
     console.log('[FileList] 编辑器配置关闭');
-    setEditorConfigVisible(false);
-  }, []);
+    dialogStates.setEditorConfigVisible(false);
+  }, [dialogStates]);
 
   // 修改处理右键菜单的函数
   const handleContextMenu = useCallback((event: React.MouseEvent, file: FileEntry) => {
@@ -760,265 +637,17 @@ const FileList: React.FC<FileListProps> = ({
     setContextMenu(null);
   }, []);
 
-  // 智能更新文件列表，添加新上传的文件
-  const updateFileListWithNewFile = async (fileName: string, overwrite: boolean) => {
-    try {
-      console.log('[FileList] 开始更新文件列表，新文件:', fileName);
-
-      // 从服务器获取新文件的详细信息
-      const files = await sftpConnectionManager.readDirectory(tabId, currentPath, true);
-      const newFile = files.find(f => f.name === fileName);
-
-      if (!newFile) {
-        console.warn('[FileList] 未找到新上传的文件:', fileName);
-        return;
-      }
-
-      console.log('[FileList] 找到新文件信息:', newFile);
-
-      // 检查文件是否已存在（覆盖情况）
-      const existingIndex = fileList.findIndex(f => f.name === fileName);
-      let updatedFileList: FileEntry[];
-
-      if (existingIndex !== -1) {
-        // 文件已存在，更新现有文件信息
-        console.log('[FileList] 更新现有文件:', fileName);
-        updatedFileList = [...fileList];
-        updatedFileList[existingIndex] = newFile;
-      } else {
-        // 新文件，按排序规则插入到正确位置
-        console.log('[FileList] 插入新文件:', fileName);
-        updatedFileList = insertFileInSortedOrder([...fileList], newFile);
-      }
-
-      // 更新文件列表
-      onFileListChange(updatedFileList);
-
-      // 高亮显示新文件
-      highlightFile(fileName);
-
-      // 滚动到新文件位置
-      setTimeout(() => {
-        scrollToFile(fileName, updatedFileList);
-      }, 100);
-
-    } catch (error) {
-      console.error('[FileList] 更新文件列表失败:', error);
-    }
-  };
-
-  // 按当前排序规则插入文件到正确位置
-  const insertFileInSortedOrder = (currentList: FileEntry[], newFile: FileEntry): FileEntry[] => {
-    const { columnKey, order } = sortedInfo;
-
-    // 如果没有排序，使用默认排序（目录优先，然后按名称）
-    if (!columnKey || !order) {
-      // 默认排序：目录优先，名称升序
-      const insertIndex = currentList.findIndex(file => {
-        if (newFile.isDirectory !== file.isDirectory) {
-          return !newFile.isDirectory; // 目录排在前面
-        }
-        return newFile.name.localeCompare(file.name) < 0;
-      });
-
-      if (insertIndex === -1) {
-        return [...currentList, newFile];
-      } else {
-        return [
-          ...currentList.slice(0, insertIndex),
-          newFile,
-          ...currentList.slice(insertIndex)
-        ];
-      }
-    }
-
-    // 根据当前排序规则插入
-    const insertIndex = currentList.findIndex(file => {
-      let comparison = 0;
-
-      switch (columnKey) {
-        case 'name':
-          // 目录优先排序
-          if (newFile.isDirectory !== file.isDirectory) {
-            comparison = newFile.isDirectory ? -1 : 1;
-          } else {
-            comparison = newFile.name.localeCompare(file.name);
-          }
-          break;
-        case 'size':
-          comparison = newFile.size - file.size;
-          break;
-        case 'modifyTime':
-          comparison = newFile.modifyTime - file.modifyTime;
-          break;
-        default:
-          comparison = newFile.name.localeCompare(file.name);
-      }
-
-      return order === 'ascend' ? comparison < 0 : comparison > 0;
-    });
-
-    if (insertIndex === -1) {
-      return [...currentList, newFile];
-    } else {
-      return [
-        ...currentList.slice(0, insertIndex),
-        newFile,
-        ...currentList.slice(insertIndex)
-      ];
-    }
-  };
-
   // 高亮显示文件
   const highlightFile = (fileName: string) => {
-    setHighlightedFiles(prev => new Set([...prev, fileName]));
-
-    // 3秒后移除高亮
-    setTimeout(() => {
-      setHighlightedFiles(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(fileName);
-        return newSet;
-      });
-    }, 3000);
+    fileOperations.highlightFile(fileName, setHighlightedFiles);
   };
 
   // 滚动到指定文件
   const scrollToFile = (fileName: string, fileListToUse: FileEntry[]) => {
-    const index = fileListToUse.findIndex(file => file.name === fileName);
-    if (index !== -1 && tableRef.current) {
-      console.log('[FileList] 滚动到文件:', fileName, '索引:', index);
-
-      // 计算滚动位置（每行大约32px高度）
-      const rowHeight = 32;
-      const scrollTop = index * rowHeight;
-
-      // 获取表格的滚动容器
-      const tableBody = containerRef.current?.querySelector('.ant-table-body');
-      if (tableBody) {
-        tableBody.scrollTop = scrollTop;
-        console.log('[FileList] 已滚动到位置:', scrollTop);
-      }
-    }
+    fileOperations.scrollToFile(fileName, fileListToUse, containerRef);
   };
 
-  // 原生实现的可调整大小列头组件
-  const ResizableTitle = (props: any) => {
-    const { onResizeStop, width, columnIndex, ...restProps } = props;
-    const [isResizing, setIsResizing] = useState(false);
-    const [startX, setStartX] = useState(0);
-    const [startWidth, setStartWidth] = useState(0);
-    // 移除未使用的ref
 
-    if (!width) {
-      return <th {...restProps} />;
-    }
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      setIsResizing(true);
-      setStartX(e.clientX);
-      setStartWidth(width);
-
-      console.log('[FileList] 开始拖拽:', { startX: e.clientX, startWidth: width });
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-
-      const deltaX = e.clientX - startX;
-      const newWidth = Math.max(startWidth + deltaX, 50); // 最小宽度50px
-
-      console.log('[FileList] 拖拽中:', { deltaX, newWidth });
-
-      // 直接操作DOM提供视觉反馈，不更新React状态
-      if (containerRef.current && typeof columnIndex === 'number') {
-        const table = containerRef.current.querySelector('.ant-table-content table');
-        if (table) {
-          // 更新表头
-          const headerCells = table.querySelectorAll('.ant-table-thead th');
-          const headerCell = headerCells[columnIndex] as HTMLElement;
-          if (headerCell) {
-            headerCell.style.width = `${newWidth}px`;
-            headerCell.style.minWidth = `${newWidth}px`;
-            headerCell.style.maxWidth = `${newWidth}px`;
-          }
-
-          // 更新表体
-          const bodyRows = table.querySelectorAll('.ant-table-tbody tr');
-          bodyRows.forEach((row: any) => {
-            const cells = row.querySelectorAll('td');
-            const cell = cells[columnIndex] as HTMLElement;
-            if (cell) {
-              cell.style.width = `${newWidth}px`;
-              cell.style.minWidth = `${newWidth}px`;
-              cell.style.maxWidth = `${newWidth}px`;
-            }
-          });
-        }
-      }
-    };
-
-    const handleMouseUp = (e: MouseEvent) => {
-      if (!isResizing) return;
-
-      setIsResizing(false);
-
-      const deltaX = e.clientX - startX;
-      const finalWidth = Math.max(startWidth + deltaX, 50);
-
-      console.log('[FileList] 拖拽结束:', {
-        startX,
-        endX: e.clientX,
-        deltaX,
-        startWidth,
-        finalWidth
-      });
-
-      if (onResizeStop) {
-        onResizeStop(finalWidth);
-      }
-    };
-
-    // 添加全局鼠标事件监听
-    useEffect(() => {
-      if (isResizing) {
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-        document.body.style.cursor = 'col-resize';
-        document.body.style.userSelect = 'none';
-
-        return () => {
-          document.removeEventListener('mousemove', handleMouseMove);
-          document.removeEventListener('mouseup', handleMouseUp);
-          document.body.style.cursor = '';
-          document.body.style.userSelect = '';
-        };
-      }
-    }, [isResizing, startX, startWidth]);
-
-    return (
-      <th {...restProps} style={{ position: 'relative', ...restProps.style }}>
-        {restProps.children}
-        <div
-          className="file-list-resize-handle-native"
-          onMouseDown={handleMouseDown}
-          style={{
-            position: 'absolute',
-            right: '-2px',
-            top: 0,
-            bottom: 0,
-            width: '4px',
-            cursor: 'col-resize',
-            backgroundColor: 'transparent',
-            zIndex: 999,
-          }}
-        />
-      </th>
-    );
-  };
 
   // 处理列宽调整 - 简化版本，只在拖拽结束时更新
   const handleResize = useCallback((index: number) => {
@@ -1039,130 +668,17 @@ const FileList: React.FC<FileListProps> = ({
     return { immediateUpdate };
   }, [columnWidths]);
 
-  const columns = useMemo(() => [
-    {
-      title: '文件名',
-      dataIndex: 'name',
-      key: 'name',
-      sorter: (a: FileEntry, b: FileEntry) => {
-        // 目录优先排序
-        if (a.isDirectory !== b.isDirectory) {
-          return a.isDirectory ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name);
-      },
-      sortOrder: sortedInfo.columnKey === 'name' ? sortedInfo.order : null,
-      render: (text: string, record: FileEntry) => {
-        const isOpening = openingFiles.has(record.path);
-        return (
-          <span className={`file-list-name-cell ${highlightedFiles.has(record.name) ? 'file-list-highlighted' : ''}`}>
-            <span className="file-list-icon">{getFileIcon(record)}</span>
-            <span className="file-list-name">{text}</span>
-            {isOpening && (
-              <Spin
-                size="small"
-                style={{ marginLeft: 8 }}
-                indicator={<LoadingOutlined style={{ fontSize: 12 }} spin />}
-              />
-            )}
-          </span>
-        );
-      },
-      width: columnWidths.name,
-      ellipsis: true,
-      onHeaderCell: () => {
-        const { immediateUpdate } = handleResize(0);
-        return {
-          width: columnWidths.name,
-          columnIndex: 0,
-          onResizeStop: immediateUpdate,
-        } as any;
-      },
-    },
-    {
-      title: '大小',
-      dataIndex: 'size',
-      key: 'size',
-      sorter: (a: FileEntry, b: FileEntry) => a.size - b.size,
-      sortOrder: sortedInfo.columnKey === 'size' ? sortedInfo.order : null,
-      render: (size: number, record: FileEntry) =>
-        record.isDirectory ? '-' : formatFileSize(size),
-      width: columnWidths.size,
-      onHeaderCell: () => {
-        const { immediateUpdate } = handleResize(1);
-        return {
-          width: columnWidths.size,
-          columnIndex: 1,
-          onResizeStop: immediateUpdate,
-        } as any;
-      },
-    },
-    {
-      title: '类型',
-      key: 'type',
-      render: (_: unknown, record: FileEntry) =>
-        record.isDirectory ? '文件夹' : '文件',
-      width: columnWidths.type,
-      onHeaderCell: () => {
-        const { immediateUpdate } = handleResize(2);
-        return {
-          width: columnWidths.type,
-          columnIndex: 2,
-          onResizeStop: immediateUpdate,
-        } as any;
-      },
-    },
-    {
-      title: '修改时间',
-      dataIndex: 'modifyTime',
-      key: 'modifyTime',
-      sorter: (a: FileEntry, b: FileEntry) => a.modifyTime - b.modifyTime,
-      sortOrder: sortedInfo.columnKey === 'modifyTime' ? sortedInfo.order : null,
-      render: (time: number) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
-      width: columnWidths.modifyTime,
-      onHeaderCell: () => {
-        const { immediateUpdate } = handleResize(3);
-        return {
-          width: columnWidths.modifyTime,
-          columnIndex: 3,
-          onResizeStop: immediateUpdate,
-        } as any;
-      },
-    },
-    {
-      title: '权限',
-      dataIndex: 'permissions',
-      key: 'permissions',
-      render: (permissions: number) => formatPermissions(permissions),
-      width: columnWidths.permissions,
-      onHeaderCell: () => {
-        const { immediateUpdate } = handleResize(4);
-        return {
-          width: columnWidths.permissions,
-          columnIndex: 4,
-          onResizeStop: immediateUpdate,
-        } as any;
-      },
-    },
-    {
-      title: '用户/组',
-      key: 'ownership',
-      render: (_: unknown, record: FileEntry) => {
-        const owner = record.owner !== undefined ? getUserName(record.owner) : '-';
-        const group = record.group !== undefined ? getGroupName(record.group) : '-';
-        return `${owner}/${group}`;
-      },
-      width: columnWidths.ownership,
-      onHeaderCell: () => {
-        const { immediateUpdate } = handleResize(5);
-        return {
-          width: columnWidths.ownership,
-          columnIndex: 5,
-          onResizeStop: immediateUpdate,
-        } as any;
-      },
-    },
-  ], [columnWidths, sortedInfo, openingFiles, highlightedFiles, handleResize]);
+  const columns = useFileListColumns({
+    columnWidths,
+    sortedInfo,
+    openingFiles,
+    highlightedFiles,
+    handleResize,
+    formatPermissions,
+    formatFileSize,
+    getFileIcon,
+    containerRef
+  });
 
   if (loading) {
     return (
@@ -1233,11 +749,11 @@ const FileList: React.FC<FileListProps> = ({
       )}
 
       {/* 下载对话框 */}
-      {sessionInfo && downloadFile && (
+      {sessionInfo && dialogStates.downloadFile && (
         <DownloadDialog
-          visible={downloadDialogVisible}
-          file={downloadFile}
-          files={downloadFiles}
+          visible={dialogStates.downloadDialogVisible}
+          file={dialogStates.downloadFile}
+          files={dialogStates.downloadFiles}
           sessionInfo={sessionInfo}
           defaultSavePath={getDefaultDownloadPath()}
           onConfirm={handleDownloadConfirm}
@@ -1248,8 +764,8 @@ const FileList: React.FC<FileListProps> = ({
       {/* 上传对话框 */}
       {sessionInfo && (
         <UploadDialog
-          visible={uploadDialogVisible}
-          defaultRemotePath={uploadPath}
+          visible={dialogStates.uploadDialogVisible}
+          defaultRemotePath={dialogStates.uploadPath}
           sessionInfo={{
             id: tabId,
             host: sessionInfo.host,
@@ -1262,8 +778,8 @@ const FileList: React.FC<FileListProps> = ({
 
       {/* 创建文件/文件夹对话框 */}
       <CreateDialog
-        visible={createDialogVisible}
-        type={createType}
+        visible={dialogStates.createDialogVisible}
+        type={dialogStates.createType}
         currentPath={currentPath}
         onConfirm={handleCreateConfirm}
         onCancel={handleCreateCancel}
@@ -1272,8 +788,8 @@ const FileList: React.FC<FileListProps> = ({
       {/* 权限设置对话框 */}
       {sessionInfo && (
         <PermissionDialog
-          visible={permissionDialogVisible}
-          files={permissionFiles}
+          visible={dialogStates.permissionDialogVisible}
+          files={dialogStates.permissionFiles}
           sessionInfo={sessionInfo}
           currentPath={currentPath}
           onConfirm={handlePermissionConfirm}
@@ -1283,16 +799,16 @@ const FileList: React.FC<FileListProps> = ({
 
       {/* 外部编辑器配置对话框 */}
       <EditorConfigDialog
-        visible={editorConfigVisible}
+        visible={dialogStates.editorConfigVisible}
         onClose={handleEditorConfigClose}
       />
 
       {/* 编辑器选择对话框 */}
-      {editorSelectorFile && (
+      {dialogStates.editorSelectorFile && (
         <EditorSelectorDialog
-          visible={editorSelectorVisible}
-          file={editorSelectorFile}
-          editors={availableEditors}
+          visible={dialogStates.editorSelectorVisible}
+          file={dialogStates.editorSelectorFile}
+          editors={dialogStates.availableEditors}
           onSelect={handleEditorSelect}
           onCancel={handleEditorSelectCancel}
         />
