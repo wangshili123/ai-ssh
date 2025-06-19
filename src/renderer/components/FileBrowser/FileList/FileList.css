@@ -11,6 +11,7 @@
 
 .file-list-container .ant-table {
   height: 100%;
+  table-layout: fixed; /* 关键：固定表格布局，允许列宽调整 */
 }
 
 .file-list-container .ant-table-container {
@@ -63,6 +64,7 @@
   font-weight: 500;
   font-size: 12px;
   user-select: none;
+  position: relative; /* 为列宽调整手柄提供定位基准 */
 }
 
 /* 禁用列宽调整 */
@@ -176,4 +178,101 @@
     background-color: transparent !important;
     box-shadow: none;
   }
+}
+
+/* 列宽调整手柄样式 */
+.file-list-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 1;
+  transition: background-color 0.2s ease;
+}
+
+.file-list-resize-handle:hover {
+  background: #1890ff;
+}
+
+/* 调整手柄在表头右边缘的样式 */
+.file-list-container .ant-table-thead > tr > th:hover .file-list-resize-handle {
+  background: rgba(24, 144, 255, 0.3);
+}
+
+/* 调整过程中的视觉反馈 */
+.file-list-container .ant-table-thead > tr > th.resizing {
+  background-color: #f0f8ff;
+}
+
+/* 确保调整手柄在最右侧列也能正常显示 */
+.file-list-container .ant-table-thead > tr > th:last-child .file-list-resize-handle {
+  display: none;
+}
+
+/* 确保表格内部的table元素也使用固定布局 */
+.file-list-container .ant-table-content table {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+/* 移除冲突的CSS变量规则 */
+/* 注释掉这些规则，因为它们与我们的动态宽度设置冲突 */
+/*
+.file-list-container .ant-table-thead > tr > th,
+.file-list-container .ant-table-tbody > tr > td {
+  width: var(--column-width) !important;
+  min-width: var(--column-width) !important;
+  max-width: var(--column-width) !important;
+}
+*/
+
+/* 重要：移除可能阻止调整的样式 */
+.file-list-container .ant-table-thead > tr > th {
+  overflow: visible !important; /* 允许调整手柄超出边界 */
+  min-width: 50px !important; /* 设置最小宽度 */
+  max-width: none !important; /* 移除最大宽度限制 */
+  /* 移除 width: auto，让我们的JS设置的宽度生效 */
+}
+
+/* 确保单元格内容不会撑开列宽，但允许调整 */
+.file-list-container .ant-table-tbody > tr > td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 50px !important;
+  max-width: none !important;
+}
+
+/* 重要：确保调整手柄可以正常工作 */
+.file-list-container .ant-table-thead > tr > th .file-list-resize-handle {
+  position: absolute !important;
+  right: -2px !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 4px !important;
+  cursor: col-resize !important;
+  z-index: 999 !important; /* 确保在最上层 */
+  background: transparent !important; /* 默认透明，不要一直显示蓝色 */
+}
+
+/* 调整时的视觉反馈 */
+.file-list-container .ant-table-thead > tr > th .file-list-resize-handle:hover {
+  background: rgba(24, 144, 255, 0.5) !important;
+}
+
+/* 原生实现的调整手柄样式 */
+.file-list-resize-handle-native {
+  transition: background-color 0.2s ease;
+}
+
+.file-list-resize-handle-native:hover {
+  background: rgba(24, 144, 255, 0.5) !important;
+}
+
+/* 表头悬停时显示手柄 */
+.file-list-container .ant-table-thead > tr > th:hover .file-list-resize-handle-native {
+  background: rgba(24, 144, 255, 0.3) !important;
 }

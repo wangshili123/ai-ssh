@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Table, Spin, message } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
+// 移除 re-resizable，使用原生实现
 import dayjs from 'dayjs';
 import { getUserName, getGroupName } from '../../../utils';
 import type { FileEntry } from '../../../../main/types/file';
@@ -174,6 +175,16 @@ const FileList: React.FC<FileListProps> = ({
   const [downloadFile, setDownloadFile] = useState<FileEntry | null>(null);
   const [downloadFiles, setDownloadFiles] = useState<FileEntry[]>([]);
 
+  // 列宽状态管理
+  const [columnWidths, setColumnWidths] = useState({
+    name: 280,      // 文件名列
+    size: 100,      // 大小列
+    type: 80,       // 类型列
+    modifyTime: 150, // 修改时间列
+    permissions: 100, // 权限列
+    ownership: 120   // 用户/组列
+  });
+
   // 上传对话框状态
   const [uploadDialogVisible, setUploadDialogVisible] = useState(false);
   const [uploadPath, setUploadPath] = useState<string>('');
@@ -263,6 +274,42 @@ const FileList: React.FC<FileListProps> = ({
       eventBus.off('file-uploaded', handleFileUploaded);
     };
   }, [tabId, currentPath]);
+
+  // 强制更新表格列宽 - 使用正确的宽度值
+  useEffect(() => {
+    console.log('[FileList] 列宽状态更新:', columnWidths);
+
+    const updateColumnWidths = () => {
+      if (!containerRef.current) return;
+
+      const table = containerRef.current.querySelector('.ant-table-content table');
+      if (!table) return;
+
+      const widths = Object.values(columnWidths);
+
+      const updateCells = (cells: NodeListOf<Element>) => {
+        cells.forEach((cell: any, index) => {
+          if (widths[index]) {
+            const width = `${widths[index]}px`;
+            cell.style.width = width;
+            cell.style.minWidth = width;
+            cell.style.maxWidth = width;
+          }
+        });
+      };
+
+      const headerCells = table.querySelectorAll('.ant-table-thead th');
+      updateCells(headerCells);
+
+      const visibleRows = table.querySelectorAll('.ant-table-tbody tr');
+      visibleRows.forEach((row: any) => {
+        const cells = row.querySelectorAll('td');
+        updateCells(cells);
+      });
+    };
+
+    requestAnimationFrame(updateColumnWidths);
+  }, [columnWidths]);
 
   // 处理双击事件
   const handleRowDoubleClick = async (record: FileEntry) => {
@@ -855,7 +902,144 @@ const FileList: React.FC<FileListProps> = ({
     }
   };
 
-  const columns = [
+  // 原生实现的可调整大小列头组件
+  const ResizableTitle = (props: any) => {
+    const { onResizeStop, width, columnIndex, ...restProps } = props;
+    const [isResizing, setIsResizing] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [startWidth, setStartWidth] = useState(0);
+    // 移除未使用的ref
+
+    if (!width) {
+      return <th {...restProps} />;
+    }
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      setIsResizing(true);
+      setStartX(e.clientX);
+      setStartWidth(width);
+
+      console.log('[FileList] 开始拖拽:', { startX: e.clientX, startWidth: width });
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      const deltaX = e.clientX - startX;
+      const newWidth = Math.max(startWidth + deltaX, 50); // 最小宽度50px
+
+      console.log('[FileList] 拖拽中:', { deltaX, newWidth });
+
+      // 直接操作DOM提供视觉反馈，不更新React状态
+      if (containerRef.current && typeof columnIndex === 'number') {
+        const table = containerRef.current.querySelector('.ant-table-content table');
+        if (table) {
+          // 更新表头
+          const headerCells = table.querySelectorAll('.ant-table-thead th');
+          const headerCell = headerCells[columnIndex] as HTMLElement;
+          if (headerCell) {
+            headerCell.style.width = `${newWidth}px`;
+            headerCell.style.minWidth = `${newWidth}px`;
+            headerCell.style.maxWidth = `${newWidth}px`;
+          }
+
+          // 更新表体
+          const bodyRows = table.querySelectorAll('.ant-table-tbody tr');
+          bodyRows.forEach((row: any) => {
+            const cells = row.querySelectorAll('td');
+            const cell = cells[columnIndex] as HTMLElement;
+            if (cell) {
+              cell.style.width = `${newWidth}px`;
+              cell.style.minWidth = `${newWidth}px`;
+              cell.style.maxWidth = `${newWidth}px`;
+            }
+          });
+        }
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (!isResizing) return;
+
+      setIsResizing(false);
+
+      const deltaX = e.clientX - startX;
+      const finalWidth = Math.max(startWidth + deltaX, 50);
+
+      console.log('[FileList] 拖拽结束:', {
+        startX,
+        endX: e.clientX,
+        deltaX,
+        startWidth,
+        finalWidth
+      });
+
+      if (onResizeStop) {
+        onResizeStop(finalWidth);
+      }
+    };
+
+    // 添加全局鼠标事件监听
+    useEffect(() => {
+      if (isResizing) {
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+
+        return () => {
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+        };
+      }
+    }, [isResizing, startX, startWidth]);
+
+    return (
+      <th {...restProps} style={{ position: 'relative', ...restProps.style }}>
+        {restProps.children}
+        <div
+          className="file-list-resize-handle-native"
+          onMouseDown={handleMouseDown}
+          style={{
+            position: 'absolute',
+            right: '-2px',
+            top: 0,
+            bottom: 0,
+            width: '4px',
+            cursor: 'col-resize',
+            backgroundColor: 'transparent',
+            zIndex: 999,
+          }}
+        />
+      </th>
+    );
+  };
+
+  // 处理列宽调整 - 简化版本，只在拖拽结束时更新
+  const handleResize = useCallback((index: number) => {
+    // 立即更新函数（用于拖拽结束）
+    const immediateUpdate = (width: number) => {
+      const newColumnWidths = { ...columnWidths };
+      const columnKeys = Object.keys(newColumnWidths);
+      const columnKey = columnKeys[index] as keyof typeof columnWidths;
+
+      if (columnKey) {
+        const newWidth = Math.max(width, 50); // 最小宽度50px
+        newColumnWidths[columnKey] = newWidth;
+        setColumnWidths(newColumnWidths);
+        console.log('[FileList] 列宽更新完成:', { columnKey, newWidth });
+      }
+    };
+
+    return { immediateUpdate };
+  }, [columnWidths]);
+
+  const columns = useMemo(() => [
     {
       title: '文件名',
       dataIndex: 'name',
@@ -884,8 +1068,16 @@ const FileList: React.FC<FileListProps> = ({
           </span>
         );
       },
-      width: '35%',
+      width: columnWidths.name,
       ellipsis: true,
+      onHeaderCell: () => {
+        const { immediateUpdate } = handleResize(0);
+        return {
+          width: columnWidths.name,
+          columnIndex: 0,
+          onResizeStop: immediateUpdate,
+        } as any;
+      },
     },
     {
       title: '大小',
@@ -893,16 +1085,32 @@ const FileList: React.FC<FileListProps> = ({
       key: 'size',
       sorter: (a: FileEntry, b: FileEntry) => a.size - b.size,
       sortOrder: sortedInfo.columnKey === 'size' ? sortedInfo.order : null,
-      render: (size: number, record: FileEntry) => 
+      render: (size: number, record: FileEntry) =>
         record.isDirectory ? '-' : formatFileSize(size),
-      width: 100,
+      width: columnWidths.size,
+      onHeaderCell: () => {
+        const { immediateUpdate } = handleResize(1);
+        return {
+          width: columnWidths.size,
+          columnIndex: 1,
+          onResizeStop: immediateUpdate,
+        } as any;
+      },
     },
     {
       title: '类型',
       key: 'type',
-      render: (_: unknown, record: FileEntry) => 
+      render: (_: unknown, record: FileEntry) =>
         record.isDirectory ? '文件夹' : '文件',
-      width: 80,
+      width: columnWidths.type,
+      onHeaderCell: () => {
+        const { immediateUpdate } = handleResize(2);
+        return {
+          width: columnWidths.type,
+          columnIndex: 2,
+          onResizeStop: immediateUpdate,
+        } as any;
+      },
     },
     {
       title: '修改时间',
@@ -911,14 +1119,30 @@ const FileList: React.FC<FileListProps> = ({
       sorter: (a: FileEntry, b: FileEntry) => a.modifyTime - b.modifyTime,
       sortOrder: sortedInfo.columnKey === 'modifyTime' ? sortedInfo.order : null,
       render: (time: number) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
-      width: 150,
+      width: columnWidths.modifyTime,
+      onHeaderCell: () => {
+        const { immediateUpdate } = handleResize(3);
+        return {
+          width: columnWidths.modifyTime,
+          columnIndex: 3,
+          onResizeStop: immediateUpdate,
+        } as any;
+      },
     },
     {
       title: '权限',
       dataIndex: 'permissions',
       key: 'permissions',
       render: (permissions: number) => formatPermissions(permissions),
-      width: 100,
+      width: columnWidths.permissions,
+      onHeaderCell: () => {
+        const { immediateUpdate } = handleResize(4);
+        return {
+          width: columnWidths.permissions,
+          columnIndex: 4,
+          onResizeStop: immediateUpdate,
+        } as any;
+      },
     },
     {
       title: '用户/组',
@@ -928,9 +1152,17 @@ const FileList: React.FC<FileListProps> = ({
         const group = record.group !== undefined ? getGroupName(record.group) : '-';
         return `${owner}/${group}`;
       },
-      width: 120,
+      width: columnWidths.ownership,
+      onHeaderCell: () => {
+        const { immediateUpdate } = handleResize(5);
+        return {
+          width: columnWidths.ownership,
+          columnIndex: 5,
+          onResizeStop: immediateUpdate,
+        } as any;
+      },
     },
-  ];
+  ], [columnWidths, sortedInfo, openingFiles, highlightedFiles, handleResize]);
 
   if (loading) {
     return (
@@ -962,10 +1194,16 @@ const FileList: React.FC<FileListProps> = ({
         pagination={false}
         size="small"
         onChange={handleTableChange}
-        scroll={{ x: 'max-content', y: tableHeight }}
-        sticky
+        scroll={{ y: tableHeight }}
+        sticky={false} // 禁用sticky，可能会干扰调整
         showSorterTooltip={false}
         rowSelection={rowSelection}
+        tableLayout="fixed" // 明确指定固定布局
+        components={{
+          header: {
+            cell: ResizableTitle,
+          },
+        }}
         onRow={(record) => ({
           onDoubleClick: () => handleRowDoubleClick(record),
           onContextMenu: (e) => handleContextMenu(e, record),
