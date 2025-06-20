@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Spin } from 'antd';
+import { Resizable } from 're-resizable';
 import DirectoryTree from '../DirectoryTree/DirectoryTree';
 import FileList from '../FileList/FileList';
 import Navigation from '../Navigation/Navigation';
@@ -14,10 +15,11 @@ import './FileBrowserMain.css';
 
 const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId }) => {
   console.log('[FileBrowser] 组件渲染:', { sessionInfo, tabId });
-  
+
   const [tabState, setTabState] = useState<FileBrowserTabState>();
   const [fileListLoading, setFileListLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
+  const [treeWidth, setTreeWidth] = useState(250); // 左侧导航树的宽度
   const mountedRef = useRef(false);
 
   // 初始化连接和加载数据
@@ -259,19 +261,39 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
         />
       </div>
       <div className="file-browser-content">
-        <div className="file-browser-tree">
-          <DirectoryTree
-            sessionInfo={sessionInfo}
-            tabId={tabId}
-            treeData={tabState.treeData}
-            expandedKeys={tabState.expandedKeys}
-            loading={false}
-            onExpand={handleExpand}
-            onSelect={handleSelect}
-            onTreeDataUpdate={handleTreeDataUpdate}
-            currentPath={tabState.currentPath}
-          />
-        </div>
+        <Resizable
+          size={{ width: treeWidth, height: '100%' }}
+          onResizeStop={(e, direction, ref, d) => {
+            setTreeWidth(treeWidth + d.width);
+          }}
+          minWidth={150}
+          maxWidth={500}
+          enable={{
+            top: false,
+            right: true,
+            bottom: false,
+            left: false,
+            topRight: false,
+            bottomRight: false,
+            bottomLeft: false,
+            topLeft: false,
+          }}
+          className="file-browser-tree-resizable"
+        >
+          <div className="file-browser-tree">
+            <DirectoryTree
+              sessionInfo={sessionInfo}
+              tabId={tabId}
+              treeData={tabState.treeData}
+              expandedKeys={tabState.expandedKeys}
+              loading={false}
+              onExpand={handleExpand}
+              onSelect={handleSelect}
+              onTreeDataUpdate={handleTreeDataUpdate}
+              currentPath={tabState.currentPath}
+            />
+          </div>
+        </Resizable>
         <div className="file-browser-files">
           <FileList
             sessionInfo={sessionInfo}

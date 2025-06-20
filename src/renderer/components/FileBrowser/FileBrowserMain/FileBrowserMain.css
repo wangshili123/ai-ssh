@@ -25,13 +25,36 @@
   flex-direction: row;
 }
 
-.file-browser-tree {
-  width: 250px;
+/* 可调节大小的树容器 */
+.file-browser-tree-resizable {
   height: 100%;
-  overflow: auto;
   border-right: 1px solid #e8e8e8;
   background-color: #fff;
   flex-shrink: 0;
+  position: relative;
+}
+
+/* 调节手柄样式 */
+.file-browser-tree-resizable .react-resizable-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: transparent;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.file-browser-tree-resizable .react-resizable-handle:hover {
+  background: #1890ff;
+}
+
+.file-browser-tree {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: #fff;
 }
 
 .file-browser-files {
