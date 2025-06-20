@@ -47,11 +47,13 @@ export const BaseConfigModal: React.FC<BaseConfigModalProps> = ({
       await AIConfigManager.getInstance().saveConfig(aiValues);
       await TerminalShortcutConfigManager.getInstance().saveConfig(terminalShortcutValues);
 
-      // 同时使用 ui-config 方式保存到文件系统（作为备份）
+      // 使用 uiSettingsManager 保存基础配置
+      // 现在所有配置都通过同一个管理器，不会有缓存不一致问题
       const currentSettings = uiSettingsManager.getSettings();
       await uiSettingsManager.updateSettings({
         ...currentSettings,
         baseConfig: {
+          ...currentSettings.baseConfig,
           monitor: monitorValues,
           ai: aiValues,
           terminalShortcuts: terminalShortcutValues

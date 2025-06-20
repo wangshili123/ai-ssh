@@ -1,4 +1,4 @@
-import { storageService } from '../../../../services/storage';
+import { uiSettingsManager } from '../../../../services/UISettingsManager';
 import type { ExternalEditorSettings } from '../../../../main/services/storage';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
@@ -24,13 +24,11 @@ export interface EditorValidationResult {
 
 /**
  * 统一的外部编辑器配置管理器
- * 使用storage服务进行持久化，将所有编辑器相关配置保存在一个文件中
+ * 使用UISettingsManager作为单一数据源，避免缓存不一致问题
  */
 export class UnifiedEditorConfigManager {
-  private settings: ExternalEditorSettings | null = null;
-
   constructor() {
-    this.loadSettings();
+    // 不再需要私有缓存，直接使用uiSettingsManager
   }
 
   /**
@@ -51,47 +49,36 @@ export class UnifiedEditorConfigManager {
   }
 
   /**
-   * 加载设置
+   * 获取外部编辑器设置
    */
-  private async loadSettings(): Promise<void> {
+  private async getExternalEditorSettings(): Promise<ExternalEditorSettings> {
     try {
-      this.settings = await storageService.loadExternalEditorSettings();
-      console.log('[UnifiedEditorConfig] 配置已加载');
+      const uiSettings = uiSettingsManager.getSettings();
+      return uiSettings.externalEditorSettings || this.getDefaultSettings();
     } catch (error) {
-      console.error('[UnifiedEditorConfig] 加载配置失败:', error);
-      this.settings = this.getDefaultSettings();
+      console.error('[UnifiedEditorConfig] 获取配置失败:', error);
+      return this.getDefaultSettings();
     }
   }
 
   /**
-   * 保存设置
+   * 保存外部编辑器设置
    */
-  private async saveSettings(): Promise<void> {
-    if (!this.settings) return;
-
+  private async saveExternalEditorSettings(settings: ExternalEditorSettings): Promise<void> {
     try {
-      await storageService.saveExternalEditorSettings(this.settings);
+      const currentUiSettings = uiSettingsManager.getSettings();
+      await uiSettingsManager.updateSettings({
+        ...currentUiSettings,
+        externalEditorSettings: settings
+      });
       console.log('[UnifiedEditorConfig] 配置已保存');
 
       // 触发配置变化事件，通知其他组件配置已更新
-      eventBus.emit('external-editor-config-changed', this.settings);
+      eventBus.emit('external-editor-config-changed', settings);
       console.log('[UnifiedEditorConfig] 已触发配置变化事件');
     } catch (error) {
       console.error('[UnifiedEditorConfig] 保存配置失败:', error);
-    }
-  }
-
-  /**
-   * 确保设置已加载
-   */
-  private async ensureLoaded(): Promise<void> {
-    if (!this.settings) {
-      await this.loadSettings();
-    }
-    // 如果加载后仍然为空，使用默认设置
-    if (!this.settings) {
-      this.settings = this.getDefaultSettings();
-      console.log('[UnifiedEditorConfig] 使用默认设置');
+      throw error;
     }
   }
 
@@ -99,17 +86,16 @@ export class UnifiedEditorConfigManager {
    * 获取所有设置
    */
   async getSettings(): Promise<ExternalEditorSettings> {
-    await this.ensureLoaded();
-    return { ...this.settings! };
+    return await this.getExternalEditorSettings();
   }
 
   /**
    * 更新设置
    */
   async updateSettings(updates: Partial<ExternalEditorSettings>): Promise<void> {
-    await this.ensureLoaded();
-    this.settings = { ...this.settings!, ...updates };
-    await this.saveSettings();
+    const currentSettings = await this.getExternalEditorSettings();
+    const newSettings = { ...currentSettings, ...updates };
+    await this.saveExternalEditorSettings(newSettings);
   }
 
   // ==================== 编辑器管理 ====================
@@ -126,29 +112,29 @@ export class UnifiedEditorConfigManager {
    * 添加编辑器
    */
   async addEditor(name: string, executablePath: string, args?: string, isDefault?: boolean): Promise<string> {
-    await this.ensureLoaded();
-    
+    const currentSettings = await this.getExternalEditorSettings();
+
     const editorId = uuidv4();
     const newEditor: EditorConfig = {
       id: editorId,
       name: name.trim(),
       executablePath: executablePath.trim(),
       arguments: args?.trim(),
-      isDefault: isDefault || this.settings!.editors.length === 0,
+      isDefault: isDefault || currentSettings.editors.length === 0,
       addedTime: Date.now()
     };
 
     // 如果设为默认，取消其他编辑器的默认状态
     if (newEditor.isDefault) {
-      this.settings!.editors.forEach(editor => {
+      currentSettings.editors.forEach(editor => {
         editor.isDefault = false;
       });
-      this.settings!.defaultEditor = editorId;
+      currentSettings.defaultEditor = editorId;
     }
 
-    this.settings!.editors.push(newEditor);
-    await this.saveSettings();
-    
+    currentSettings.editors.push(newEditor);
+    await this.saveExternalEditorSettings(currentSettings);
+
     console.log('[UnifiedEditorConfig] 添加编辑器:', newEditor);
     return editorId;
   }
@@ -157,33 +143,33 @@ export class UnifiedEditorConfigManager {
    * 删除编辑器
    */
   async removeEditor(editorId: string): Promise<void> {
-    await this.ensureLoaded();
-    
-    const editorIndex = this.settings!.editors.findIndex(e => e.id === editorId);
+    const currentSettings = await this.getExternalEditorSettings();
+
+    const editorIndex = currentSettings.editors.findIndex(e => e.id === editorId);
     if (editorIndex === -1) {
       console.warn('[UnifiedEditorConfig] 编辑器不存在:', editorId);
       return;
     }
 
-    const removedEditor = this.settings!.editors[editorIndex];
-    this.settings!.editors.splice(editorIndex, 1);
+    const removedEditor = currentSettings.editors[editorIndex];
+    currentSettings.editors.splice(editorIndex, 1);
 
     // 如果删除的是默认编辑器，设置新的默认编辑器
-    if (removedEditor.isDefault && this.settings!.editors.length > 0) {
-      this.settings!.editors[0].isDefault = true;
-      this.settings!.defaultEditor = this.settings!.editors[0].id;
-    } else if (this.settings!.editors.length === 0) {
-      delete this.settings!.defaultEditor;
+    if (removedEditor.isDefault && currentSettings.editors.length > 0) {
+      currentSettings.editors[0].isDefault = true;
+      currentSettings.defaultEditor = currentSettings.editors[0].id;
+    } else if (currentSettings.editors.length === 0) {
+      delete currentSettings.defaultEditor;
     }
 
     // 清理相关的文件关联
-    Object.keys(this.settings!.fileAssociations).forEach(ext => {
-      if (this.settings!.fileAssociations[ext] === editorId) {
-        delete this.settings!.fileAssociations[ext];
+    Object.keys(currentSettings.fileAssociations).forEach(ext => {
+      if (currentSettings.fileAssociations[ext] === editorId) {
+        delete currentSettings.fileAssociations[ext];
       }
     });
 
-    await this.saveSettings();
+    await this.saveExternalEditorSettings(currentSettings);
     console.log('[UnifiedEditorConfig] 删除编辑器:', removedEditor.name);
   }
 
@@ -191,9 +177,9 @@ export class UnifiedEditorConfigManager {
    * 更新编辑器
    */
   async updateEditor(editorId: string, updates: Partial<EditorConfig>): Promise<void> {
-    await this.ensureLoaded();
-    
-    const editor = this.settings!.editors.find(e => e.id === editorId);
+    const currentSettings = await this.getExternalEditorSettings();
+
+    const editor = currentSettings.editors.find(e => e.id === editorId);
     if (!editor) {
       console.warn('[UnifiedEditorConfig] 编辑器不存在:', editorId);
       return;
@@ -204,15 +190,15 @@ export class UnifiedEditorConfigManager {
 
     // 如果设为默认，取消其他编辑器的默认状态
     if (updates.isDefault) {
-      this.settings!.editors.forEach(e => {
+      currentSettings.editors.forEach(e => {
         if (e.id !== editorId) {
           e.isDefault = false;
         }
       });
-      this.settings!.defaultEditor = editorId;
+      currentSettings.defaultEditor = editorId;
     }
 
-    await this.saveSettings();
+    await this.saveExternalEditorSettings(currentSettings);
     console.log('[UnifiedEditorConfig] 更新编辑器:', editor.name);
   }
 
@@ -228,24 +214,24 @@ export class UnifiedEditorConfigManager {
    * 设置默认编辑器
    */
   async setDefaultEditor(editorId: string): Promise<void> {
-    await this.ensureLoaded();
-    
-    const editor = this.settings!.editors.find(e => e.id === editorId);
+    const currentSettings = await this.getExternalEditorSettings();
+
+    const editor = currentSettings.editors.find(e => e.id === editorId);
     if (!editor) {
       console.warn('[UnifiedEditorConfig] 编辑器不存在:', editorId);
       return;
     }
 
     // 取消所有编辑器的默认状态
-    this.settings!.editors.forEach(e => {
+    currentSettings.editors.forEach(e => {
       e.isDefault = false;
     });
 
     // 设置新的默认编辑器
     editor.isDefault = true;
-    this.settings!.defaultEditor = editorId;
+    currentSettings.defaultEditor = editorId;
 
-    await this.saveSettings();
+    await this.saveExternalEditorSettings(currentSettings);
     console.log('[UnifiedEditorConfig] 设置默认编辑器:', editor.name);
   }
 
@@ -255,18 +241,18 @@ export class UnifiedEditorConfigManager {
    * 设置文件关联
    */
   async setFileAssociation(extension: string, editorId: string): Promise<void> {
-    await this.ensureLoaded();
-    
-    const editor = this.settings!.editors.find(e => e.id === editorId);
+    const currentSettings = await this.getExternalEditorSettings();
+
+    const editor = currentSettings.editors.find(e => e.id === editorId);
     if (!editor) {
       console.warn('[UnifiedEditorConfig] 编辑器不存在:', editorId);
       return;
     }
 
     const cleanExt = extension.replace(/^\./, '').toLowerCase();
-    this.settings!.fileAssociations[cleanExt] = editorId;
-    
-    await this.saveSettings();
+    currentSettings.fileAssociations[cleanExt] = editorId;
+
+    await this.saveExternalEditorSettings(currentSettings);
     console.log('[UnifiedEditorConfig] 设置文件关联:', cleanExt, '->', editor.name);
   }
 
@@ -289,20 +275,15 @@ export class UnifiedEditorConfigManager {
    * 设置文件类型的编辑器偏好
    */
   async setFilePreference(fileName: string, editorType: 'builtin' | 'external'): Promise<void> {
-    await this.ensureLoaded();
-
-    if (!this.settings) {
-      console.error('[UnifiedEditorConfig] 设置未加载');
-      return;
-    }
+    const currentSettings = await this.getExternalEditorSettings();
 
     const extension = path.extname(fileName).replace(/^\./, '').toLowerCase();
     if (extension) {
-      if (!this.settings.fileOpenPreferences) {
-        this.settings.fileOpenPreferences = {};
+      if (!currentSettings.fileOpenPreferences) {
+        currentSettings.fileOpenPreferences = {};
       }
-      this.settings.fileOpenPreferences[extension] = editorType;
-      await this.saveSettings();
+      currentSettings.fileOpenPreferences[extension] = editorType;
+      await this.saveExternalEditorSettings(currentSettings);
       console.log(`[UnifiedEditorConfig] 设置 .${extension} 文件偏好为: ${editorType}`);
     }
   }
@@ -324,15 +305,9 @@ export class UnifiedEditorConfigManager {
    * 设置默认打开方式
    */
   async setDefaultOpenMode(mode: 'builtin' | 'external'): Promise<void> {
-    await this.ensureLoaded();
-
-    if (!this.settings) {
-      console.error('[UnifiedEditorConfig] 设置未加载');
-      return;
-    }
-
-    this.settings.defaultOpenMode = mode;
-    await this.saveSettings();
+    const currentSettings = await this.getExternalEditorSettings();
+    currentSettings.defaultOpenMode = mode;
+    await this.saveExternalEditorSettings(currentSettings);
     console.log(`[UnifiedEditorConfig] 设置默认打开方式为: ${mode}`);
   }
 
