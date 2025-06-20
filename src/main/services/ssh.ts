@@ -471,29 +471,63 @@ class SSHService {
    * 断开连接
    */
   async disconnect(sessionId: string): Promise<void> {
-    // 1. 清理连接池
-    const pool = this.pools.get(sessionId);
-    if (pool) {
-      await pool.drain();
-      await pool.clear();
-      this.pools.delete(sessionId);
-      this.configs.delete(sessionId);
-    }
+    console.log(`[SSH] Disconnecting session: ${sessionId}`);
 
-    // 2. 清理专用连接
-    const dedicatedClient = this.dedicatedConnections.get(sessionId);
-    if (dedicatedClient) {
-      dedicatedClient.end();
-      this.dedicatedConnections.delete(sessionId);
-    }
-
-    // 3. 清理相关的shells
+    // 1. 清理相关的shells（优先处理，避免残留）
+    const shellsToClean = [];
     for (const [shellId, shell] of this.shells.entries()) {
-      if (shellId.startsWith(sessionId + '-')) {
-        shell.end();
-        this.shells.delete(shellId);
+      if (shellId.startsWith(sessionId + '-') || shellId === sessionId) {
+        shellsToClean.push({ shellId, shell });
       }
     }
+
+    for (const { shellId, shell } of shellsToClean) {
+      try {
+        console.log(`[SSH] Cleaning up shell: ${shellId}`);
+        // 移除所有监听器避免触发事件
+        shell.removeAllListeners();
+        // 关闭shell
+        shell.end();
+        // 从映射中删除
+        this.shells.delete(shellId);
+        console.log(`[SSH] Shell ${shellId} cleaned up successfully`);
+      } catch (error) {
+        console.error(`[SSH] Error cleaning up shell ${shellId}:`, error);
+      }
+    }
+
+    // 2. 清理连接池
+    const pool = this.pools.get(sessionId);
+    if (pool) {
+      try {
+        console.log(`[SSH] Draining connection pool for: ${sessionId}`);
+        await pool.drain();
+        await pool.clear();
+        this.pools.delete(sessionId);
+        this.configs.delete(sessionId);
+        console.log(`[SSH] Connection pool cleaned up for: ${sessionId}`);
+      } catch (error) {
+        console.error(`[SSH] Error cleaning up connection pool for ${sessionId}:`, error);
+      }
+    }
+
+    // 3. 清理专用连接
+    const dedicatedClient = this.dedicatedConnections.get(sessionId);
+    if (dedicatedClient) {
+      try {
+        console.log(`[SSH] Closing dedicated connection for: ${sessionId}`);
+        dedicatedClient.end();
+        this.dedicatedConnections.delete(sessionId);
+        console.log(`[SSH] Dedicated connection closed for: ${sessionId}`);
+      } catch (error) {
+        console.error(`[SSH] Error closing dedicated connection for ${sessionId}:`, error);
+      }
+    }
+
+    // 4. 清理目录映射
+    this.currentDirectories.delete(sessionId);
+
+    console.log(`[SSH] Session ${sessionId} disconnected successfully`);
   }
 
   /**
@@ -569,13 +603,24 @@ class SSHService {
       usingDedicatedConnection = true;
     }
 
-    // 如果这个 shellId 已经存在，先关闭它
+    // 如果这个 shellId 已经存在，先关闭它并等待清理完成
     if (this.shells.has(shellId)) {
-      console.log(`Shell ${shellId} already exists, closing it first`);
+      console.log(`[SSH] Shell ${shellId} already exists, closing it first`);
       const oldShell = this.shells.get(shellId);
       if (oldShell) {
-        oldShell.end();
-        this.shells.delete(shellId);
+        try {
+          // 先移除监听器避免触发事件
+          oldShell.removeAllListeners();
+          // 关闭shell
+          oldShell.end();
+          // 从映射中删除
+          this.shells.delete(shellId);
+          console.log(`[SSH] Old shell ${shellId} cleaned up successfully`);
+          // 等待一小段时间确保清理完成
+          await new Promise(resolve => setTimeout(resolve, 50));
+        } catch (error) {
+          console.error(`[SSH] Error cleaning up old shell ${shellId}:`, error);
+        }
       }
     }
 

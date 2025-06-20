@@ -97,56 +97,85 @@ export const useContextMenu = ({
     if (terminalRef.current && sessionInfo) {
       terminalRef.current.clear();
       try {
-        if (shellIdRef.current) {
+        const oldShellId = shellIdRef.current;
+
+        // 1. 先断开现有连接并清理状态
+        if (oldShellId) {
+          console.log('[useContextMenu] Cleaning up existing shell:', oldShellId);
           // 清除终端输出缓存
-          terminalOutputService.clearOutput(shellIdRef.current);
-          await sshService.disconnect(shellIdRef.current);
+          terminalOutputService.clearOutput(oldShellId);
+          // 断开SSH连接
+          await sshService.disconnect(oldShellId);
+          // 清空shellId引用
           shellIdRef.current = '';
+          // 等待一小段时间确保清理完成
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
+
+        // 2. 更新连接状态
         setIsConnected(false);
-        eventBus.emit('terminal-connection-change', { 
-          shellId: shellIdRef.current || '', 
-          connected: false 
+        eventBus.emit('terminal-connection-change', {
+          shellId: oldShellId || '',
+          connected: false
         });
 
-        // 等待连接就绪
+        // 3. 等待连接就绪
+        console.log('[useContextMenu] Waiting for connection to be ready');
         await waitForConnection(sessionInfo);
-        
-        const shellId = sessionInfo.id + (instanceId ? `-${instanceId}` : '');
-        shellIdRef.current = shellId;
+
+        // 4. 创建新的shell会话（生成新的instanceId避免冲突）
+        const newInstanceId = Date.now().toString();
+        const newShellId = sessionInfo.id + `-${newInstanceId}`;
+        console.log('[useContextMenu] Creating new shell with new instanceId:', {
+          oldInstanceId: instanceId,
+          newInstanceId,
+          newShellId
+        });
+        shellIdRef.current = newShellId;
 
         await sshService.createShell(
-          shellId,
+          newShellId,
           (data) => {
             terminalRef.current?.write(data);
             // 收集终端输出
-            terminalOutputService.addOutput(shellId, data);
+            terminalOutputService.addOutput(newShellId, data);
           },
           () => {
+            console.log('[useContextMenu] Shell closed callback triggered');
             setIsConnected(false);
             shellIdRef.current = '';
             eventBus.setCurrentShellId('');
             terminalRef.current?.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
             // 清除终端输出缓存
-            terminalOutputService.clearOutput(shellId);
+            terminalOutputService.clearOutput(newShellId);
             // 发送连接状态变化事件
-            eventBus.emit('terminal-connection-change', { 
-              shellId: shellIdRef.current || '', 
-              connected: false 
+            eventBus.emit('terminal-connection-change', {
+              shellId: '',
+              connected: false
             });
           }
         );
 
+        // 5. 更新连接状态和事件总线
         setIsConnected(true);
-        eventBus.setCurrentShellId(shellId);
+        eventBus.setCurrentShellId(newShellId);
+
         // 发送连接状态变化事件
-        eventBus.emit('terminal-connection-change', { 
-          shellId: shellIdRef.current || '', 
-          connected: true 
+        eventBus.emit('terminal-connection-change', {
+          shellId: newShellId,
+          connected: true
+        });
+
+        console.log('[useContextMenu] Terminal reload completed successfully:', {
+          newShellId,
+          newInstanceId
         });
       } catch (error: any) {
         console.error('[useContextMenu] Failed to reload terminal:', error);
-        terminalRef.current.write(`\r\n\x1b[31m重新连接失败: ${error}\x1b[0m\r\n`);
+        terminalRef.current.write(`\r\n\x1b[31m重新连接失败: ${error.message || error}\x1b[0m\r\n`);
+        // 确保状态一致
+        setIsConnected(false);
+        shellIdRef.current = '';
       }
     }
   }, [terminalRef, shellIdRef, sessionInfo, instanceId, setIsConnected]);
