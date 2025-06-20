@@ -7,6 +7,7 @@ export interface TerminalTab {
   instanceId: string;
   tabId: string;
   connected: boolean;
+  connecting?: boolean;
 }
 
 export interface TerminalTabsManagerProps {

@@ -99,23 +99,32 @@ export const useContextMenu = ({
       try {
         const oldShellId = shellIdRef.current;
 
-        // 1. 先断开现有连接并清理状态
+        // 1. 先清理现有状态
         if (oldShellId) {
           console.log('[useContextMenu] Cleaning up existing shell:', oldShellId);
           // 清除终端输出缓存
           terminalOutputService.clearOutput(oldShellId);
-          // 断开SSH连接
-          await sshService.disconnect(oldShellId);
+          // 清理渲染进程的事件监听器
+          const { ipcRenderer } = window.require('electron');
+          ipcRenderer.removeAllListeners(`ssh:data:${oldShellId}`);
+          ipcRenderer.removeAllListeners(`ssh:close:${oldShellId}`);
           // 清空shellId引用
           shellIdRef.current = '';
           // 等待一小段时间确保清理完成
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
 
-        // 2. 更新连接状态
+        // 2. 更新连接状态为断开
         setIsConnected(false);
         eventBus.emit('terminal-connection-change', {
           shellId: oldShellId || '',
+          connected: false
+        });
+
+        // 发送连接中状态（用于标签页显示）
+        const currentShellId = sessionInfo.id + `-${instanceId}`;
+        eventBus.emit('terminal-connection-change', {
+          shellId: currentShellId,
           connected: false
         });
 
@@ -123,12 +132,10 @@ export const useContextMenu = ({
         console.log('[useContextMenu] Waiting for connection to be ready');
         await waitForConnection(sessionInfo);
 
-        // 4. 创建新的shell会话（生成新的instanceId避免冲突）
-        const newInstanceId = Date.now().toString();
-        const newShellId = sessionInfo.id + `-${newInstanceId}`;
-        console.log('[useContextMenu] Creating new shell with new instanceId:', {
-          oldInstanceId: instanceId,
-          newInstanceId,
+        // 4. 创建新的shell会话（使用当前的instanceId保持一致性）
+        const newShellId = sessionInfo.id + `-${instanceId}`;
+        console.log('[useContextMenu] Creating new shell with current instanceId:', {
+          instanceId,
           newShellId
         });
         shellIdRef.current = newShellId;
@@ -150,7 +157,7 @@ export const useContextMenu = ({
             terminalOutputService.clearOutput(newShellId);
             // 发送连接状态变化事件
             eventBus.emit('terminal-connection-change', {
-              shellId: '',
+              shellId: newShellId,
               connected: false
             });
           }
@@ -166,9 +173,11 @@ export const useContextMenu = ({
           connected: true
         });
 
+
+
         console.log('[useContextMenu] Terminal reload completed successfully:', {
           newShellId,
-          newInstanceId
+          instanceId
         });
       } catch (error: any) {
         console.error('[useContextMenu] Failed to reload terminal:', error);

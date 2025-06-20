@@ -3,7 +3,7 @@ import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 import { SearchAddon } from 'xterm-addon-search';
-import { Dropdown } from 'antd';
+import { Dropdown, Spin } from 'antd';
 import { eventBus } from '../../services/eventBus';
 import type { SessionInfo } from '../../../renderer/types/index';
 import { TerminalProps } from './types/terminal.types';
@@ -22,6 +22,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
   const containerRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isSearchPanelVisible, setIsSearchPanelVisible] = useState(false);
 
   // 创建终端引用
@@ -168,6 +169,40 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     return () => clearTimeout(timer);
   }, []);
 
+  // 监听连接状态变化，控制加载状态
+  useEffect(() => {
+    const handleConnectionChange = (data: { shellId: string; connected: boolean }) => {
+      if (!sessionInfo || !instanceId) return;
+
+      const currentShellId = `${sessionInfo.id}-${instanceId}`;
+      if (data.shellId === currentShellId) {
+        console.log('[Terminal] 连接状态变化:', data);
+        if (data.connected) {
+          setIsConnecting(false);
+          setIsConnected(true);
+        } else {
+          setIsConnected(false);
+          // 如果是断开连接但不是初始状态，说明正在重连
+          if (isConnected) {
+            setIsConnecting(true);
+          }
+        }
+      }
+    };
+
+    eventBus.on('terminal-connection-change', handleConnectionChange);
+    return () => {
+      eventBus.off('terminal-connection-change', handleConnectionChange);
+    };
+  }, [sessionInfo, instanceId, isConnected]);
+
+  // 初始连接状态设置
+  useEffect(() => {
+    if (sessionInfo && instanceId && isReady && !isConnected) {
+      setIsConnecting(true);
+    }
+  }, [sessionInfo, instanceId, isReady, isConnected]);
+
   // 鼠标定位事件监听器
   useEffect(() => {
     if (!isReady || !containerRef.current) {
@@ -298,6 +333,19 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
         <Dropdown menu={{ items: menuItems }} trigger={['contextMenu']}>
           <div ref={containerRef} className="terminal-content" />
         </Dropdown>
+
+        {/* 连接加载覆盖层 */}
+        {isConnecting && (
+          <div className="terminal-loading-overlay">
+            <div className="terminal-loading-content">
+              <Spin size="large" />
+              <div className="terminal-loading-text">
+                正在连接到 {sessionInfo?.name || sessionInfo?.host}...
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="completion-container">
           <CompletionDropdown
             visible={dropdownVisible}

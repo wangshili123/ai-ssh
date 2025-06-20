@@ -118,7 +118,8 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
       sessionInfo,
       instanceId,
       tabId,
-      connected: false
+      connected: false,
+      connecting: true
     };
 
     console.log('[TerminalTabsManager] 新标签页数据:', newTab);
@@ -160,11 +161,25 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
   useEffect(() => {
     const handleConnectionChange = (data: { shellId: string; connected: boolean }) => {
       console.log('[TerminalTabsManager] 连接状态变化:', data);
-      setTabs(prevTabs => 
+      setTabs(prevTabs =>
         prevTabs.map(tab => {
           const tabShellId = tab.sessionInfo?.id + (tab.instanceId ? `-${tab.instanceId}` : '');
           if (tabShellId === data.shellId) {
-            return { ...tab, connected: data.connected };
+            console.log('[TerminalTabsManager] 更新标签页连接状态:', {
+              tabId: tab.tabId,
+              tabShellId,
+              dataShellId: data.shellId,
+              connected: data.connected
+            });
+
+            // 如果是断开连接且之前是连接状态，说明正在重连
+            const isReconnecting = !data.connected && tab.connected;
+
+            return {
+              ...tab,
+              connected: data.connected,
+              connecting: isReconnecting // 重连时设置为连接中状态
+            };
           }
           return tab;
         })
@@ -272,9 +287,9 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
           items={tabs.map(tab => ({
             key: tab.key,
             label: (
-              <Badge 
-                status={tab.connected ? 'success' : 'error'} 
-                text={tab.title} 
+              <Badge
+                status={tab.connecting ? 'processing' : (tab.connected ? 'success' : 'error')}
+                text={tab.title}
                 className="tab-badge"
               />
             ),
