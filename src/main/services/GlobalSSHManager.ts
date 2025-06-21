@@ -463,6 +463,30 @@ export class GlobalSSHManager {
   }
 
   /**
+   * 释放传输连接池（由SFTP管理器调用）
+   * @param sessionId 会话ID
+   */
+  public async releaseTransferPool(sessionId: string): Promise<void> {
+    console.log(`[GlobalSSHManager] 释放传输连接池: ${sessionId}`);
+
+    const transferPool = this.transferPools.get(sessionId);
+    if (transferPool) {
+      try {
+        // 排空并清理连接池
+        await transferPool.drain();
+        await transferPool.clear();
+        this.transferPools.delete(sessionId);
+        console.log(`[GlobalSSHManager] 传输连接池已释放: ${sessionId}`);
+      } catch (error) {
+        console.error(`[GlobalSSHManager] 释放传输连接池失败: ${sessionId}`, error);
+        throw error;
+      }
+    } else {
+      console.log(`[GlobalSSHManager] 传输连接池不存在: ${sessionId}`);
+    }
+  }
+
+  /**
    * 获取连接状态统计
    * @param sessionId 会话ID
    * @returns 连接状态

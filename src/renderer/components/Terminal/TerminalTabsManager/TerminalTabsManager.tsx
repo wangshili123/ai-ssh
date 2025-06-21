@@ -222,13 +222,38 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
         // 清理被删除标签页的状态
         eventBus.removeTab(tabToRemove.tabId);
         sftpConnectionManager.closeConnection(tabToRemove.tabId);
-        
-        // 如果是监控会话，停止刷新并断开连接
+
+        // 根据会话类型进行不同的清理
         if (tabToRemove.sessionInfo?.type === 'monitor') {
+          // 监控会话：停止刷新并断开连接
           const monitorManager = getServiceManager().getMonitorManager();
           const refreshService = getServiceManager().getRefreshService();
           refreshService.stopRefresh(tabToRemove.sessionInfo.id);
           monitorManager.disconnectSession(tabToRemove.sessionInfo.id, tabToRemove.tabId);
+        } else {
+          // 普通终端会话：断开SSH连接
+          const { ipcRenderer } = window.require('electron');
+          const shellId = `${tabToRemove.sessionInfo?.id}-${tabToRemove.instanceId}`;
+
+          // 关闭Shell会话
+          ipcRenderer.invoke('ssh:close-shell', shellId).catch((error: any) => {
+            console.error('[TerminalTabsManager] 关闭Shell失败:', error);
+          });
+
+          // 检查是否还有其他终端使用同一个会话
+          const remainingTerminals = tabs.filter(tab =>
+            tab.tabId !== tabToRemove.tabId &&
+            tab.sessionInfo?.id === tabToRemove.sessionInfo?.id &&
+            tab.sessionInfo?.type !== 'monitor'
+          );
+
+          // 如果没有其他终端使用这个会话，断开SSH连接
+          if (remainingTerminals.length === 0) {
+            console.log('[TerminalTabsManager] 最后一个终端，断开SSH连接:', tabToRemove.sessionInfo?.id);
+            ipcRenderer.invoke('ssh:disconnect', tabToRemove.sessionInfo?.id).catch((error: any) => {
+              console.error('[TerminalTabsManager] 断开SSH连接失败:', error);
+            });
+          }
         }
 
         eventBus.emit('completion:tab-remove', {

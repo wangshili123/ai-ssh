@@ -256,6 +256,15 @@ class SFTPConnectionManager {
       } else {
         console.log(`[SFTPManager] 关闭底层连接 - connectionId: ${conn.id}`);
         await ipcRenderer.invoke('sftp:close-client', conn.id);
+
+        // 通知GlobalSSHManager释放传输连接池（新架构）
+        try {
+          await ipcRenderer.invoke('ssh:release-transfer-pool', conn.sessionInfo.id);
+          console.log(`[SFTPManager] 已通知释放传输连接池 - sessionId: ${conn.sessionInfo.id}`);
+        } catch (error) {
+          console.warn(`[SFTPManager] 释放传输连接池失败:`, error);
+        }
+
         // 清理sessionId映射
         this.sessionConnections.delete(conn.sessionInfo.id);
       }

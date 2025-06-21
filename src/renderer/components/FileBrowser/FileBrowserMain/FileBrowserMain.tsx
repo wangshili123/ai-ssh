@@ -11,6 +11,7 @@ import { FileBrowserConnectionManager } from './FileBrowserConnectionManager';
 import { clearHistory } from '../Navigation/History/HistoryStorageService';
 import { sshService } from '../../../services/ssh';
 import { eventBus } from '../../../services/eventBus';
+import { sftpConnectionManager } from '../../../services/sftpConnectionManager';
 import './FileBrowserMain.css';
 
 const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId }) => {
@@ -60,6 +61,11 @@ const FileBrowserMain: React.FC<FileBrowserMainProps> = ({ sessionInfo, tabId })
     return () => {
       console.log('[FileBrowser] 组件卸载:', { tabId });
       mountedRef.current = false;
+
+      // 释放SFTP连接
+      sftpConnectionManager.closeConnection(tabId).catch(error => {
+        console.error('[FileBrowser] 卸载时关闭SFTP连接失败:', error);
+      });
     };
   }, [tabId, sessionInfo]);
 

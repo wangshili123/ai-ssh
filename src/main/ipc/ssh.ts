@@ -89,6 +89,19 @@ export function initSSHHandlers() {
     }
   });
 
+  // 释放传输连接池（新增）
+  ipcMain.handle('ssh:release-transfer-pool', async (_, sessionId: string) => {
+    try {
+      const { GlobalSSHManager } = await import('../services/GlobalSSHManager');
+      const globalManager = GlobalSSHManager.getInstance();
+      await globalManager.releaseTransferPool(sessionId);
+      return { success: true };
+    } catch (error: any) {
+      console.error('SSH release transfer pool error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 释放SFTP连接
   ipcMain.handle('ssh:release-sftp-connection', async (_, sessionId: string, connectionId: string) => {
     try {
