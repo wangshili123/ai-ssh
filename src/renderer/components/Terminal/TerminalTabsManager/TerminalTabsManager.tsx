@@ -64,12 +64,12 @@ const TerminalTabsManager: React.FC<TerminalTabsManagerProps> = ({
       console.log('[TerminalTabsManager] 监控会话连接成功:', {status});
       if (status.status === 'connected') {
         // 更新标签页的连接状态
-        setTabs(prevTabs => 
-          prevTabs.map(tab => {
-            if (tab.tabId === tab.tabId) {
-              return { ...tab, connected: true };
+        setTabs(prevTabs =>
+          prevTabs.map(prevTab => {
+            if (prevTab.tabId === tab.tabId) {
+              return { ...prevTab, connected: true, connecting: false };
             }
-            return tab;
+            return prevTab;
           })
         );
       }

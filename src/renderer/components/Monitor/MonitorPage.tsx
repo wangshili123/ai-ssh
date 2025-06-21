@@ -18,14 +18,38 @@ interface MonitorPageProps {
 export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo, tabId }) => {
   const [monitorData, setMonitorData] = useState<MonitorData>();
   const [isLoading, setIsLoading] = useState(true);
+  const [config, setConfig] = useState<any>({ defaultPage: 'performance', refreshInterval: 5 });
   const monitorManager = getServiceManager().getMonitorManager();
   const configManager = MonitorConfigManager.getInstance();
-  const config = configManager.getConfig();
-  const [activeKey, setActiveKey] = useState<string>(config.defaultPage);
+  const [activeKey, setActiveKey] = useState<string>('performance');
 
-  // 初始化时设置 activeTab
+  // 异步加载配置
   useEffect(() => {
-    monitorManager.setActiveTab(config.defaultPage);
+    const loadConfig = async () => {
+      try {
+        const loadedConfig = await configManager.getConfig();
+        console.log('[MonitorPage] 配置加载完成:', loadedConfig);
+        setConfig(loadedConfig);
+        setActiveKey(loadedConfig.defaultPage);
+
+        // 设置 activeTab
+        console.log('[MonitorPage] 初始化设置activeTab:', {
+          tabId,
+          sessionId: sessionInfo.id,
+          defaultPage: loadedConfig.defaultPage
+        });
+        monitorManager.setActiveTab(loadedConfig.defaultPage);
+      } catch (error) {
+        console.error('[MonitorPage] 配置加载失败:', error);
+        // 使用默认配置
+        const defaultConfig = { defaultPage: 'performance', refreshInterval: 5 };
+        setConfig(defaultConfig);
+        setActiveKey(defaultConfig.defaultPage);
+        monitorManager.setActiveTab(defaultConfig.defaultPage);
+      }
+    };
+
+    loadConfig();
   }, []);
 
   // 监听刷新事件
@@ -55,6 +79,12 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({ sessionInfo, tabId }) 
 
   // 处理标签页切换
   const handleTabChange = (key: string) => {
+    console.log('[MonitorPage] 标签页切换:', {
+      tabId,
+      sessionId: sessionInfo.id,
+      oldKey: activeKey,
+      newKey: key
+    });
     setActiveKey(key);
     monitorManager.setActiveTab(key);
   };

@@ -42,13 +42,16 @@ export const ConnectionMonitor: React.FC<ConnectionMonitorProps> = ({
   // 获取连接状态
   const fetchConnectionStats = async () => {
     if (!sessionId) return;
-    
+
     setLoading(true);
     try {
+      console.log('[ConnectionMonitor] 开始获取连接状态:', sessionId);
       const result = await ipcRenderer.invoke('ssh:get-connection-stats', sessionId);
+      console.log('[ConnectionMonitor] 连接状态结果:', result);
       if (result.success) {
         setStats(result.data);
         setLastUpdate(new Date());
+        console.log('[ConnectionMonitor] 连接状态更新成功:', result.data);
       } else {
         console.error('获取连接状态失败:', result.error);
       }

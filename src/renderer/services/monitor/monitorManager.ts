@@ -65,8 +65,14 @@ export class MonitorManager {
    * 设置当前激活的标签页
    */
   setActiveTab(tab: string): void {
+    console.log('[MonitorManager] setActiveTab:', {
+      oldTab: this.activeTab,
+      newTab: tab,
+      willUpdate: this.activeTab !== tab
+    });
     if (this.activeTab === tab) return;
     this.activeTab = tab;
+    console.log('[MonitorManager] activeTab已更新为:', this.activeTab);
   }
 
   /**
@@ -232,7 +238,7 @@ export class MonitorManager {
       const monitorData: MonitorData = {
         timestamp: Date.now()
       };
-      
+      console.log('[MonitorManager] 当前活动标签页:', this.activeTab);
       if (this.activeTab === 'performance') {
         console.time(`[Performance] 性能指标采集耗时 ${sessionId}`);
         monitorData.performance = await this.performanceManager.collectMetrics(
