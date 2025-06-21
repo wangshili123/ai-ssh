@@ -129,12 +129,8 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
   // 新增：压缩优化选项状态
   const [useCompression, setUseCompression] = useState(true); // 默认启用压缩
   const [compressionMethod, setCompressionMethod] = useState<'auto' | 'gzip' | 'bzip2' | 'xz' | 'none'>('auto');
-  const [useParallelDownload, setUseParallelDownload] = useState(file.size > 10 * 1024 * 1024); // 大于10MB默认启用并行
+  const [useParallelDownload, setUseParallelDownload] = useState(file.size > 0.5 * 1024 * 1024); // 大于0.5MB默认启用并行
   const [maxParallelChunks, setMaxParallelChunks] = useState(() => {
-    // 根据文件大小计算默认并行数
-    if (file.size < 5 * 1024 * 1024) return 1;   // 小于5MB，单线程
-    if (file.size < 50 * 1024 * 1024) return 8;  // 小于50MB，8线程
-    if (file.size < 200 * 1024 * 1024) return 12; // 小于200MB，12线程
     return 30; // 大文件，16线程
   });
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -432,7 +428,7 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
                   </div>
 
                   {/* 并行下载选项 */}
-                  {file.size > 10 * 1024 * 1024 && (
+                  
                     <div className="parallel-option">
                       <Checkbox
                         checked={useParallelDownload}
@@ -469,7 +465,6 @@ export const DownloadDialog: React.FC<DownloadDialogProps> = ({
                         </div>
                       )}
                     </div>
-                  )}
 
                   {/* 优化效果预览 */}
                   {(useCompression || useParallelDownload) && (

@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [downloadHistoryVisible, setDownloadHistoryVisible] = useState(false);
   const [transferManagerVisible, setTransferManagerVisible] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
+  const [uiSettingsInitialized, setUiSettingsInitialized] = useState(false);
 
   // 初始化数据库和基础服务
   useEffect(() => {
@@ -46,7 +47,7 @@ const App: React.FC = () => {
 
         // 记录开始时间，确保最低展示时间
         const startTime = Date.now();
-        const MIN_LOADING_TIME = 3000; // 最低展示3秒
+        const MIN_LOADING_TIME = 2000; // 最低展示3秒
 
         // 模拟初始化步骤，给加载页面足够的时间显示
         await new Promise(resolve => setTimeout(resolve, 800));
@@ -64,6 +65,7 @@ const App: React.FC = () => {
         const settings = uiSettingsManager.getSettings();
         setIsFileBrowserVisible(settings.isFileBrowserVisible);
         setIsCollapsed(!settings.isAIVisible);
+        setUiSettingsInitialized(true);
 
         console.log('[App] 基础服务初始化完成');
 
@@ -99,13 +101,16 @@ const App: React.FC = () => {
     initializeApp();
   }, []);
 
-  // 监听UI设置变化
+  // 监听UI设置变化（只在UI设置初始化完成后才更新）
   useEffect(() => {
+    if (!uiSettingsInitialized) return;
+
+    console.log('[App] 更新UI设置:', { isFileBrowserVisible, isAIVisible: !isCollapsed });
     uiSettingsManager.updateSettings({
       isFileBrowserVisible,
       isAIVisible: !isCollapsed
     });
-  }, [isFileBrowserVisible, isCollapsed]);
+  }, [isFileBrowserVisible, isCollapsed, uiSettingsInitialized]);
 
   // 监听标签页ID变化
   useEffect(() => {

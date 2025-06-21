@@ -54,7 +54,14 @@ export class UnifiedEditorConfigManager {
   private async getExternalEditorSettings(): Promise<ExternalEditorSettings> {
     try {
       const uiSettings = uiSettingsManager.getSettings();
-      return uiSettings.externalEditorSettings || this.getDefaultSettings();
+      const editorSettings = uiSettings.externalEditorSettings || this.getDefaultSettings();
+
+      // 确保 editors 数组存在
+      if (!editorSettings.editors) {
+        editorSettings.editors = [];
+      }
+
+      return editorSettings;
     } catch (error) {
       console.error('[UnifiedEditorConfig] 获取配置失败:', error);
       return this.getDefaultSettings();
@@ -105,7 +112,7 @@ export class UnifiedEditorConfigManager {
    */
   async getEditors(): Promise<EditorConfig[]> {
     const settings = await this.getSettings();
-    return settings.editors;
+    return settings.editors || [];
   }
 
   /**
@@ -343,14 +350,19 @@ export class UnifiedEditorConfigManager {
     }
 
     // 检查名称是否重复
-    if (editor.name) {
-      const editors = await this.getEditors();
-      const existingEditor = editors.find(e => 
-        e.name.toLowerCase() === editor.name!.toLowerCase() && 
-        e.id !== (editor as EditorConfig).id
-      );
-      if (existingEditor) {
-        errors.push('编辑器名称已存在');
+    if (editor.name?.trim()) {
+      try {
+        const editors = await this.getEditors();
+        const existingEditor = editors.find(e =>
+          e.name.toLowerCase() === editor.name!.toLowerCase() &&
+          e.id !== (editor as EditorConfig).id
+        );
+        if (existingEditor) {
+          errors.push('编辑器名称已存在');
+        }
+      } catch (error) {
+        console.error('[UnifiedEditorConfig] 检查编辑器名称重复时出错:', error);
+        warnings.push('无法检查编辑器名称重复，请确保名称唯一');
       }
     }
 

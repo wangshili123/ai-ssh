@@ -53,6 +53,10 @@ class UISettingsManager {
    * @param partialSettings 要更新的设置项
    */
   async updateSettings(partialSettings: Partial<UISettings>): Promise<void> {
+    console.log('[UISettingsManager] 更新设置前:', JSON.stringify(this.settings, null, 2));
+    console.log('[UISettingsManager] 要更新的设置:', JSON.stringify(partialSettings, null, 2));
+
+    // 深度合并设置，确保嵌套对象不会被覆盖
     this.settings = {
       ...this.settings,
       ...partialSettings,
@@ -60,8 +64,20 @@ class UISettingsManager {
       fileOpenSettings: {
         ...this.settings.fileOpenSettings,
         ...(partialSettings.fileOpenSettings || {})
+      },
+      // 确保 externalEditorSettings 的更新不会完全覆盖原有值
+      externalEditorSettings: {
+        ...this.settings.externalEditorSettings,
+        ...(partialSettings.externalEditorSettings || {})
+      },
+      // 确保 baseConfig 的更新不会完全覆盖原有值
+      baseConfig: {
+        ...this.settings.baseConfig,
+        ...(partialSettings.baseConfig || {})
       }
     };
+
+    console.log('[UISettingsManager] 更新设置后:', JSON.stringify(this.settings, null, 2));
 
     // 使用防抖进行保存
     if (this.saveTimeout) {
@@ -70,7 +86,7 @@ class UISettingsManager {
     this.saveTimeout = setTimeout(async () => {
       try {
         await storageService.saveUISettings(this.settings);
-        console.log('[UISettingsManager] 设置已保存');
+        console.log('[UISettingsManager] 设置已保存到文件');
       } catch (error) {
         console.error('[UISettingsManager] 保存设置失败:', error);
       }
