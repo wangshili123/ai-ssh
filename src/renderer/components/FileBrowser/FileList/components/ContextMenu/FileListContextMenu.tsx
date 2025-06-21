@@ -5,11 +5,13 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { Menu } from 'antd';
 import type { MenuProps } from 'antd';
+import { CopyOutlined, ScissorOutlined, SnippetsOutlined } from '@ant-design/icons';
 import type { FileEntry } from '../../../../../../main/types/file';
 import type { SessionInfo } from '../../../../../types';
 import { fileOpenManager } from '../../core/FileOpenManager';
 import { fileDeleteAction } from './actions';
 import { unifiedEditorConfig } from '../../../ExternalEditor/config/UnifiedEditorConfig';
+import { clipboardManager } from '../../../../../services/ClipboardManager';
 
 import './FileListContextMenu.css';
 
@@ -30,6 +32,9 @@ export interface FileListContextMenuProps {
   onOpenWithRequest?: (files: FileEntry[], editorType: 'builtin' | 'external') => void;  // 新增：打开方式请求回调
   onOpenFileRequest?: (files: FileEntry[], editorType: 'builtin' | 'external') => void;  // 新增：打开文件请求回调
   onEditorConfigRequest?: () => void;  // 新增：编辑器配置请求回调
+  onCopyRequest?: (files: FileEntry[]) => void;  // 新增：复制请求回调
+  onCutRequest?: (files: FileEntry[]) => void;   // 新增：剪切请求回调
+  onPasteRequest?: () => void;  // 新增：粘贴请求回调
 }
 
 export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
@@ -48,7 +53,10 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
   onPermissionRequest,
   onOpenWithRequest,
   onOpenFileRequest,
-  onEditorConfigRequest
+  onEditorConfigRequest,
+  onCopyRequest,
+  onCutRequest,
+  onPasteRequest
 }) => {
   // 添加 ref 用于获取菜单 DOM 元素
   const menuRef = useRef<HTMLDivElement>(null);
@@ -152,6 +160,10 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
     const isBlankArea = !file;
     const hasSelectedFiles = selectedFiles && selectedFiles.length > 0;
 
+    // 获取剪贴板状态
+    const hasClipboardContent = clipboardManager.hasContent();
+    const canPaste = hasClipboardContent && clipboardManager.canPasteTo(tabId, currentPath);
+
     return [
       // 新建选项（始终可用）
       {
@@ -185,6 +197,28 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
           console.log('上传文件到:', currentPath);
           onUploadRequest?.(currentPath);
         }
+      },
+      {
+        type: 'divider' as const
+      },
+      // 复制粘贴选项
+      {
+        key: 'copy',
+        label: '复制',
+        icon: <CopyOutlined />,
+        disabled: isBlankArea || !hasSelectedFiles
+      },
+      {
+        key: 'cut',
+        label: '剪切',
+        icon: <ScissorOutlined />,
+        disabled: isBlankArea || !hasSelectedFiles
+      },
+      {
+        key: 'paste',
+        label: '粘贴',
+        icon: <SnippetsOutlined />,
+        disabled: !canPaste
       },
       {
         type: 'divider' as const
@@ -293,6 +327,39 @@ export const FileListContextMenu: React.FC<FileListContextMenuProps> = ({
       }
 
       // 关闭右键菜单
+      onClose();
+      return;
+    }
+
+    // 处理复制菜单项
+    if (info.key === 'copy') {
+      console.log('[FileListContextMenu] 复制被点击');
+      if (onCopyRequest && selectedFiles.length > 0) {
+        console.log('调用父组件的复制请求回调', selectedFiles.map(f => f.name));
+        onCopyRequest(selectedFiles);
+      }
+      onClose();
+      return;
+    }
+
+    // 处理剪切菜单项
+    if (info.key === 'cut') {
+      console.log('[FileListContextMenu] 剪切被点击');
+      if (onCutRequest && selectedFiles.length > 0) {
+        console.log('调用父组件的剪切请求回调', selectedFiles.map(f => f.name));
+        onCutRequest(selectedFiles);
+      }
+      onClose();
+      return;
+    }
+
+    // 处理粘贴菜单项
+    if (info.key === 'paste') {
+      console.log('[FileListContextMenu] 粘贴被点击');
+      if (onPasteRequest) {
+        console.log('调用父组件的粘贴请求回调');
+        onPasteRequest();
+      }
       onClose();
       return;
     }

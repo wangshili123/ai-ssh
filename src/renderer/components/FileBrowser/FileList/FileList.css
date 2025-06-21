@@ -276,3 +276,105 @@
 .file-list-container .ant-table-thead > tr > th:hover .file-list-resize-handle-native {
   background: rgba(24, 144, 255, 0.3) !important;
 }
+
+/* 剪切文件的视觉反馈样式 */
+.file-list-container .file-list-row-cut {
+  opacity: 0.5 !important;
+  background-color: #fff2e8 !important;
+  border: 1px dashed #ff7a00 !important;
+  position: relative;
+}
+
+.file-list-container .file-list-row-cut::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(255, 122, 0, 0.1) 4px,
+    rgba(255, 122, 0, 0.1) 8px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.file-list-container .file-list-row-cut .file-list-name {
+  text-decoration: line-through;
+  color: #ff7a00;
+}
+
+.file-list-container .file-list-row-cut .file-list-icon {
+  opacity: 0.6;
+  filter: grayscale(30%);
+}
+
+/* 复制粘贴进度对话框样式 */
+.copy-paste-progress-modal .ant-modal-body {
+  padding: 24px;
+}
+
+.copy-paste-progress-content {
+  text-align: center;
+}
+
+.copy-paste-progress-content .ant-progress {
+  margin: 16px 0;
+}
+
+.copy-paste-progress-info {
+  margin-top: 12px;
+  color: #666;
+  font-size: 12px;
+}
+
+.copy-paste-progress-file {
+  margin: 8px 0;
+  font-weight: 500;
+  color: #1890ff;
+}
+
+.copy-paste-progress-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #999;
+}
+
+/* 剪贴板状态提示样式 */
+.clipboard-status-tip {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 9999;
+  animation: clipboard-tip-fade 2s ease-out;
+}
+
+@keyframes clipboard-tip-fade {
+  0% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  90% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}

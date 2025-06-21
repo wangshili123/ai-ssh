@@ -21,6 +21,10 @@ import { UploadDialog } from '../../Upload';
 import { downloadService } from '../../../services/downloadService';
 import { eventBus } from '../../../services/eventBus';
 import { getDefaultDownloadPath } from '../../../utils/downloadUtils';
+import { clipboardManager } from '../../../services/ClipboardManager';
+import { fileOperationService } from '../../../services/FileOperationService';
+import CopyPasteProgressDialog from './components/CopyPasteProgressDialog';
+import MinimizedProgressIndicator from './components/MinimizedProgressIndicator';
 import './FileList.css';
 
 interface FileListProps {
@@ -71,6 +75,25 @@ const FileList: React.FC<FileListProps> = ({
 
   // 正在打开的文件状态
   const [openingFiles, setOpeningFiles] = useState<Set<string>>(new Set());
+
+  // 复制粘贴进度状态
+  const [copyPasteProgress, setCopyPasteProgress] = useState<{
+    visible: boolean;
+    minimized: boolean;
+    operation: 'copy' | 'cut';
+    currentFile: string;
+    totalFiles: number;
+    currentIndex: number;
+    progress: number;
+  }>({
+    visible: false,
+    minimized: false,
+    operation: 'copy',
+    currentFile: '',
+    totalFiles: 0,
+    currentIndex: 0,
+    progress: 0
+  });
 
   // 使用对话框状态管理hook
   const dialogStates = useDialogStates();
@@ -588,6 +611,160 @@ const FileList: React.FC<FileListProps> = ({
     dialogStates.setEditorConfigVisible(false);
   }, [dialogStates]);
 
+  // 复制文件处理
+  const handleCopyRequest = useCallback((files: FileEntry[]) => {
+    console.log('[FileList] 复制文件请求:', files.map(f => f.name));
+    if (!sessionInfo) {
+      message.error('缺少会话信息');
+      return;
+    }
+    clipboardManager.copy(files, currentPath, sessionInfo.id);
+    message.success(`已复制 ${files.length} 个项目`);
+  }, [currentPath, sessionInfo]);
+
+  // 剪切文件处理
+  const handleCutRequest = useCallback((files: FileEntry[]) => {
+    console.log('[FileList] 剪切文件请求:', files.map(f => f.name));
+    if (!sessionInfo) {
+      message.error('缺少会话信息');
+      return;
+    }
+    clipboardManager.cut(files, currentPath, sessionInfo.id);
+    message.success(`已剪切 ${files.length} 个项目`);
+  }, [currentPath, sessionInfo]);
+
+  // 粘贴文件处理
+  const handlePasteRequest = useCallback(async () => {
+    console.log('[FileList] 粘贴文件请求');
+
+    const clipboardContent = clipboardManager.getClipboard();
+    if (!clipboardContent) {
+      message.warning('剪贴板为空');
+      return;
+    }
+
+    if (!sessionInfo) {
+      message.error('缺少会话信息');
+      return;
+    }
+
+    try {
+      // 显示进度对话框
+      setCopyPasteProgress({
+        visible: true,
+        minimized: false,
+        operation: clipboardContent.operation,
+        currentFile: '',
+        totalFiles: clipboardContent.files.length,
+        currentIndex: 0,
+        progress: 0
+      });
+
+      await fileOperationService.executeCopyPaste({
+        sourceFiles: clipboardContent.files,
+        sourcePath: clipboardContent.sourcePath,
+        sourceSessionId: clipboardContent.sourceSessionId,
+        targetPath: currentPath,
+        targetSessionId: sessionInfo.id,
+        operation: clipboardContent.operation,
+        onProgress: (currentFile, totalFiles, currentIndex) => {
+          console.log(`[FileList] 粘贴进度: ${currentFile} (${currentIndex}/${totalFiles})`);
+          setCopyPasteProgress(prev => ({
+            ...prev,
+            currentFile,
+            totalFiles,
+            currentIndex
+          }));
+        }
+      });
+
+      // 隐藏进度对话框
+      setCopyPasteProgress(prev => ({ ...prev, visible: false }));
+
+      // 粘贴完成后清理剪贴板（如果是剪切操作）
+      clipboardManager.onPasteComplete();
+
+      message.success('粘贴操作完成');
+
+      // 刷新文件列表
+      onRefresh?.();
+
+    } catch (error) {
+      console.error('[FileList] 粘贴操作失败:', error);
+
+      const errorMessage = (error as Error).message;
+
+      // 检查是否是sshpass相关错误，如果是就不显示错误信息（因为已经弹出安装对话框）
+      if (errorMessage.includes('需要安装sshpass工具') ||
+          errorMessage.includes('sshpass: command not found')) {
+        console.log('[FileList] sshpass安装对话框已处理，不显示错误信息');
+      } else {
+        message.error(`粘贴失败: ${errorMessage}`);
+      }
+
+      // 隐藏进度对话框
+      setCopyPasteProgress(prev => ({ ...prev, visible: false }));
+    }
+  }, [currentPath, tabId, sessionInfo, onRefresh]);
+
+  // 最小化进度对话框
+  const handleMinimizeProgress = useCallback(() => {
+    setCopyPasteProgress(prev => ({ ...prev, minimized: true }));
+  }, []);
+
+  // 展开进度对话框
+  const handleExpandProgress = useCallback(() => {
+    setCopyPasteProgress(prev => ({ ...prev, minimized: false }));
+  }, []);
+
+  // 添加快捷键监听
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 检查是否在文件列表容器内或有焦点
+      const isFileListFocused = containerRef.current && (
+        containerRef.current.contains(document.activeElement) ||
+        document.activeElement === containerRef.current ||
+        selectedRowKeys.length > 0
+      );
+
+      if (!isFileListFocused) {
+        return;
+      }
+
+      // 处理复制快捷键 Ctrl+C
+      if (e.ctrlKey && e.key === 'c' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        if (selectedRowKeys.length > 0) {
+          const selectedFiles = fileList.filter(f => selectedRowKeys.includes(f.name));
+          handleCopyRequest(selectedFiles);
+        }
+        return;
+      }
+
+      // 处理剪切快捷键 Ctrl+X
+      if (e.ctrlKey && e.key === 'x' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        if (selectedRowKeys.length > 0) {
+          const selectedFiles = fileList.filter(f => selectedRowKeys.includes(f.name));
+          handleCutRequest(selectedFiles);
+        }
+        return;
+      }
+
+      // 处理粘贴快捷键 Ctrl+V
+      if (e.ctrlKey && e.key === 'v' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        handlePasteRequest();
+        return;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedRowKeys, fileList, handleCopyRequest, handleCutRequest, handlePasteRequest]);
+
   // 修改处理右键菜单的函数
   const handleContextMenu = useCallback((event: React.MouseEvent, file: FileEntry) => {
     console.log('[FileList] 右键菜单被触发:', file.name);
@@ -720,11 +897,25 @@ const FileList: React.FC<FileListProps> = ({
             cell: ResizableTitle,
           },
         }}
-        onRow={(record) => ({
-          onDoubleClick: () => handleRowDoubleClick(record),
-          onContextMenu: (e) => handleContextMenu(e, record),
-          className: highlightedFiles.has(record.name) ? 'file-list-row-highlighted' : '',
-        })}
+        onRow={(record) => {
+          // 检查文件是否被剪切
+          const isCutFile = sessionInfo ? clipboardManager.isCutFile(sessionInfo.id, currentPath, record.name) : false;
+
+          // 组合CSS类名
+          let className = '';
+          if (highlightedFiles.has(record.name)) {
+            className += 'file-list-row-highlighted ';
+          }
+          if (isCutFile) {
+            className += 'file-list-row-cut ';
+          }
+
+          return {
+            onDoubleClick: () => handleRowDoubleClick(record),
+            onContextMenu: (e) => handleContextMenu(e, record),
+            className: className.trim(),
+          };
+        }}
       />
 
       {contextMenu && (
@@ -745,6 +936,9 @@ const FileList: React.FC<FileListProps> = ({
           onOpenWithRequest={handleOpenWithRequest}  // 传递打开方式请求回调
           onOpenFileRequest={handleOpenFileRequest}  // 传递打开文件请求回调
           onEditorConfigRequest={handleEditorConfigRequest}  // 传递编辑器配置请求回调
+          onCopyRequest={handleCopyRequest}  // 传递复制请求回调
+          onCutRequest={handleCutRequest}   // 传递剪切请求回调
+          onPasteRequest={handlePasteRequest}  // 传递粘贴请求回调
         />
       )}
 
@@ -813,6 +1007,26 @@ const FileList: React.FC<FileListProps> = ({
           onCancel={handleEditorSelectCancel}
         />
       )}
+
+      {/* 复制粘贴进度对话框 */}
+      <CopyPasteProgressDialog
+        visible={copyPasteProgress.visible && !copyPasteProgress.minimized}
+        operation={copyPasteProgress.operation}
+        currentFile={copyPasteProgress.currentFile}
+        totalFiles={copyPasteProgress.totalFiles}
+        currentIndex={copyPasteProgress.currentIndex}
+        onMinimize={handleMinimizeProgress}
+      />
+
+      {/* 最小化的进度指示器 */}
+      <MinimizedProgressIndicator
+        visible={copyPasteProgress.visible && copyPasteProgress.minimized}
+        operation={copyPasteProgress.operation}
+        currentFile={copyPasteProgress.currentFile}
+        totalFiles={copyPasteProgress.totalFiles}
+        currentIndex={copyPasteProgress.currentIndex}
+        onExpand={handleExpandProgress}
+      />
     </div>
   );
 };
