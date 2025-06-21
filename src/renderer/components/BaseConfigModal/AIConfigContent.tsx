@@ -14,6 +14,7 @@ interface AIConfigContentProps {
 export const AIConfigContent = forwardRef<FormInstance, AIConfigContentProps>(({ form }, ref) => {
   const configManager = AIConfigManager.getInstance();
   const [testing, setTesting] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   // 加载配置
   useEffect(() => {
@@ -91,6 +92,33 @@ export const AIConfigContent = forwardRef<FormInstance, AIConfigContentProps>(({
       message.error('配置测试失败: ' + (error instanceof Error ? error.message : '未知错误'));
     } finally {
       setTesting(false);
+    }
+  };
+
+  // 手动触发分析
+  const handleManualAnalysis = async () => {
+    try {
+      setAnalyzing(true);
+
+      // 动态导入AnalysisScheduler（因为它在services目录下）
+      const { AnalysisScheduler } = await import('../../../services/completion/learning/analyzer/AnalysisScheduler');
+      const scheduler = AnalysisScheduler.getInstance();
+
+      const result = await scheduler.triggerAnalysis();
+
+      if (result.success) {
+        message.success(result.message);
+        // 重新加载配置以更新使用次数显示
+        const config = await configManager.getConfig();
+        form.setFieldsValue(config);
+      } else {
+        message.error(result.message);
+      }
+    } catch (error) {
+      console.error('手动触发分析失败:', error);
+      message.error('触发分析失败: ' + (error instanceof Error ? error.message : '未知错误'));
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -190,6 +218,88 @@ export const AIConfigContent = forwardRef<FormInstance, AIConfigContentProps>(({
         </Form.Item>
       </Card>
 
+      {/* 自动分析配置 */}
+      <Card type="inner" title="自动分析配置" style={{ marginTop: '16px' }}>
+        <Form.Item
+          name="autoAnalysisEnabled"
+          label="启用自动分析"
+          tooltip="开启后系统会自动分析命令使用模式，提升补全准确性，但会消耗AI额度"
+          valuePropName="checked"
+        >
+          <Switch />
+        </Form.Item>
+
+        <Form.Item
+          noStyle
+          shouldUpdate={(prevValues, currentValues) =>
+            prevValues.autoAnalysisEnabled !== currentValues.autoAnalysisEnabled
+          }
+        >
+          {({ getFieldValue }) => {
+            const autoAnalysisEnabled = getFieldValue('autoAnalysisEnabled');
+            return autoAnalysisEnabled ? (
+              <>
+                <Form.Item
+                  name="autoAnalysisFrequency"
+                  label="分析频率"
+                  tooltip="控制自动分析的执行频率，降低AI额度消耗"
+                  rules={[{ required: true, message: '请选择分析频率' }]}
+                >
+                  <Radio.Group>
+                    <Radio.Button value="daily">每日一次</Radio.Button>
+                    <Radio.Button value="weekly">每周一次</Radio.Button>
+                    <Radio.Button value="manual">仅手动</Radio.Button>
+                  </Radio.Group>
+                </Form.Item>
+
+                <Form.Item
+                  name="autoAnalysisQuotaLimit"
+                  label="月度调用限制"
+                  tooltip="限制每月AI分析调用次数，防止额度过度消耗"
+                >
+                  <InputNumber
+                    min={1}
+                    max={1000}
+                    placeholder="50"
+                    addonAfter="次/月"
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  label="本月使用情况"
+                  tooltip="显示当前月份已使用的AI分析次数"
+                >
+                  <div style={{ color: '#666' }}>
+                    已使用: {getFieldValue('autoAnalysisCurrentUsage') || 0} / {getFieldValue('autoAnalysisQuotaLimit') || 50} 次
+                  </div>
+                </Form.Item>
+
+                {/* 手动触发分析按钮 */}
+                <Form.Item
+                  label="手动分析"
+                  tooltip="立即触发一次AI分析，无论当前频率设置如何"
+                >
+                  <Button
+                    onClick={handleManualAnalysis}
+                    loading={analyzing}
+                    type="default"
+                    disabled={!getFieldValue('autoAnalysisEnabled')}
+                  >
+                    {analyzing ? '分析中...' : '立即分析'}
+                  </Button>
+                  <div style={{ color: '#999', fontSize: '12px', marginTop: '4px' }}>
+                    {getFieldValue('autoAnalysisFrequency') === 'manual'
+                      ? '仅手动模式：只能通过此按钮触发分析'
+                      : '可随时手动触发分析，不受频率限制'}
+                  </div>
+                </Form.Item>
+              </>
+            ) : null;
+          }}
+        </Form.Item>
+      </Card>
+
       <Form.Item style={{ marginTop: '16px' }}>
         <Space>
           <Button onClick={handleTest} loading={testing}>
@@ -199,4 +309,4 @@ export const AIConfigContent = forwardRef<FormInstance, AIConfigContentProps>(({
       </Form.Item>
     </Form>
   );
-}); 
+});

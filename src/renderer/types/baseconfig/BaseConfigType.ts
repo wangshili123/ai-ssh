@@ -16,6 +16,13 @@ export interface AIConfig {
   agentAutoRun?: boolean;
   agentRiskLevel?: 'low' | 'medium' | 'high';
   proxyURL?: string;
+
+  // 自动分析配置
+  autoAnalysisEnabled?: boolean;           // 自动分析总开关
+  autoAnalysisFrequency?: 'daily' | 'weekly' | 'manual';  // 分析频率
+  autoAnalysisQuotaLimit?: number;         // 每月AI调用次数限制
+  autoAnalysisCurrentUsage?: number;       // 当前月已使用次数
+  autoAnalysisLastResetMonth?: string;     // 上次重置月份 (YYYY-MM格式)
 }
 
 /**
