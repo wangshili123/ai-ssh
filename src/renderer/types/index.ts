@@ -40,6 +40,7 @@ export interface SessionInfo {
   username: string;
   password?: string;
   privateKey?: string;
+  passphrase?: string;     // 私钥密码短语
   authType: 'password' | 'privateKey';
   status: 'connected' | 'disconnected' | 'connecting' | 'error' | 'refreshing';
   type?: 'terminal' | 'monitor';  // 连接时指定的类型

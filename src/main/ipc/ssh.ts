@@ -63,6 +63,32 @@ export function initSSHHandlers() {
     }
   });
 
+  // 获取连接状态统计（新增）
+  ipcMain.handle('ssh:get-connection-stats', async (_, sessionId: string) => {
+    try {
+      const { GlobalSSHManager } = await import('../services/GlobalSSHManager');
+      const globalManager = GlobalSSHManager.getInstance();
+      const stats = globalManager.getConnectionStats(sessionId);
+      return { success: true, data: stats };
+    } catch (error: any) {
+      console.error('SSH get connection stats error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // 执行健康检查（新增）
+  ipcMain.handle('ssh:health-check', async () => {
+    try {
+      const { GlobalSSHManager } = await import('../services/GlobalSSHManager');
+      const globalManager = GlobalSSHManager.getInstance();
+      await globalManager.healthCheck();
+      return { success: true };
+    } catch (error: any) {
+      console.error('SSH health check error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // 释放SFTP连接
   ipcMain.handle('ssh:release-sftp-connection', async (_, sessionId: string, connectionId: string) => {
     try {

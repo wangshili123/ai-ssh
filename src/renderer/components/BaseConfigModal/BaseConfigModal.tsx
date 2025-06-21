@@ -4,6 +4,7 @@ import type { FormInstance } from 'antd/es/form';
 import { MonitorConfigContent } from './MonitorConfigContent';
 import { AIConfigContent } from './AIConfigContent';
 import { TerminalShortcutConfigContent } from './TerminalShortcutConfigContent';
+import { ConnectionMonitorContent } from './ConnectionMonitorContent';
 import { MonitorConfigManager } from '../../services/config/MonitorConfig';
 import { AIConfigManager } from '../../services/config/AIConfig';
 import { TerminalShortcutConfigManager } from '../../services/config/TerminalShortcutConfig';
@@ -32,6 +33,12 @@ export const BaseConfigModal: React.FC<BaseConfigModalProps> = ({
 
   // 统一保存按钮的处理
   const handleSave = async () => {
+    // 连接监控页面不需要保存
+    if (selectedKey === 'connectionMonitor') {
+      onClose();
+      return;
+    }
+
     try {
       // 获取所有表单数据
       const monitorValues = await monitorForm.validateFields();
@@ -85,7 +92,7 @@ export const BaseConfigModal: React.FC<BaseConfigModalProps> = ({
         <Space>
           <Button onClick={onClose}>取消</Button>
           <Button type="primary" onClick={handleSave}>
-            保存
+            {selectedKey === 'connectionMonitor' ? '关闭' : '保存'}
           </Button>
         </Space>
       }
@@ -108,6 +115,10 @@ export const BaseConfigModal: React.FC<BaseConfigModalProps> = ({
               {
                 key: 'terminalShortcuts',
                 label: '终端快捷键'
+              },
+              {
+                key: 'connectionMonitor',
+                label: '连接监控'
               }
             ]}
           />
@@ -121,6 +132,9 @@ export const BaseConfigModal: React.FC<BaseConfigModalProps> = ({
           </div>
           <div style={{ display: selectedKey === 'terminalShortcuts' ? 'block' : 'none' }}>
             <TerminalShortcutConfigContent form={terminalShortcutForm} />
+          </div>
+          <div style={{ display: selectedKey === 'connectionMonitor' ? 'block' : 'none' }}>
+            <ConnectionMonitorContent />
           </div>
         </Content>
       </Layout>

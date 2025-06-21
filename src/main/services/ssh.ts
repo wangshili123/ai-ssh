@@ -3,6 +3,7 @@ import type { SessionInfo } from '../../renderer/types';
 import { BrowserWindow } from 'electron';
 import { storageService } from './storage';
 import { Pool, createPool } from 'generic-pool';
+import { GlobalSSHManager, ConnectionType } from './GlobalSSHManager';
 
 console.log('Loading SSH service...');
 
@@ -24,15 +25,17 @@ class SSHService {
   private shells: Map<string, Channel> = new Map();
   private currentDirectories: Map<string, string> = new Map();
 
-  // 连接池相关
+  // 全局SSH连接管理器
+  private globalManager: GlobalSSHManager;
+
+  // 连接池相关 (保留用于向后兼容，逐步迁移)
   private pools: Map<string, Pool<PooledConnection>> = new Map();
   private configs: Map<string, SessionInfo> = new Map();
-  // 添加专用连接管理
+  // 添加专用连接管理 (保留用于向后兼容，逐步迁移)
   private dedicatedConnections: Map<string, Client> = new Map();
 
   // 并发控制：防止同一会话的多个服务同时创建连接
   private connectionPromises: Map<string, Promise<void>> = new Map();
-  private connectionLocks: Map<string, boolean> = new Map();
   
   private readonly DEFAULT_POOL_CONFIG: PoolConfig = {
     min: 5,                    // 增加核心连接数，支持更多并发
@@ -44,6 +47,10 @@ class SSHService {
 
   constructor() {
     console.log('Initializing SSHService...');
+
+    // 初始化全局SSH连接管理器
+    this.globalManager = GlobalSSHManager.getInstance();
+
     // 移除定期清理任务，因为在渲染进程中可能会有问题
     // setInterval(() => this.cleanupPools(), 60 * 1000);
 
@@ -290,14 +297,8 @@ class SSHService {
       return;
     }
 
-    // 检查是否已有连接
-    if (this.dedicatedConnections.has(id)) {
-      console.log(`[SSH] 连接已存在，直接返回: ${id}`);
-      return;
-    }
-
-    // 创建连接Promise并存储，用于并发控制
-    const connectionPromise = this.createConnectionInternal(sessionInfo);
+    // 使用新的GlobalSSHManager进行连接管理
+    const connectionPromise = this.connectWithGlobalManager(sessionInfo);
     this.connectionPromises.set(id, connectionPromise);
 
     try {
@@ -306,6 +307,29 @@ class SSHService {
       // 清理连接Promise
       this.connectionPromises.delete(id);
     }
+  }
+
+  /**
+   * 使用GlobalSSHManager进行连接
+   */
+  private async connectWithGlobalManager(sessionInfo: SessionInfo): Promise<void> {
+    console.log(`[SSH] 使用GlobalSSHManager连接: ${sessionInfo.id}`);
+
+    // 注册会话信息到全局管理器
+    await this.globalManager.registerSession(sessionInfo);
+
+    // 为了向后兼容，仍然创建专用连接并存储到旧的映射中
+    // 这样现有的代码仍然可以通过getDedicatedConnection获取连接
+    const handle = await this.globalManager.getConnection(sessionInfo.id, ConnectionType.TERMINAL);
+    this.dedicatedConnections.set(sessionInfo.id, handle.client);
+
+    // 通知GlobalSSHManager专用连接已建立
+    this.globalManager.setDedicatedConnectionStatus(sessionInfo.id, true);
+
+    // 存储配置信息（但不创建旧的连接池）
+    this.configs.set(sessionInfo.id, sessionInfo);
+
+    console.log(`[SSH] GlobalSSHManager连接建立完成: ${sessionInfo.id}`);
   }
 
   /**
@@ -469,6 +493,7 @@ class SSHService {
 
   /**
    * 断开连接
+   * 新架构：同时清理GlobalSSHManager的连接
    */
   async disconnect(sessionId: string): Promise<void> {
     console.log(`[SSH] Disconnecting session: ${sessionId}`);
@@ -496,7 +521,18 @@ class SSHService {
       }
     }
 
-    // 2. 清理连接池
+    // 2. 使用GlobalSSHManager断开连接（新架构）
+    try {
+      console.log(`[SSH] Disconnecting session via GlobalSSHManager: ${sessionId}`);
+      await this.globalManager.disconnectSession(sessionId);
+      // 通知GlobalSSHManager专用连接已断开
+      this.globalManager.setDedicatedConnectionStatus(sessionId, false);
+      console.log(`[SSH] GlobalSSHManager disconnection completed for: ${sessionId}`);
+    } catch (error) {
+      console.error(`[SSH] Error disconnecting via GlobalSSHManager for ${sessionId}:`, error);
+    }
+
+    // 3. 清理旧架构的连接池（向后兼容）
     const pool = this.pools.get(sessionId);
     if (pool) {
       try {
@@ -511,7 +547,7 @@ class SSHService {
       }
     }
 
-    // 3. 清理专用连接
+    // 4. 清理旧架构的专用连接（向后兼容）
     const dedicatedClient = this.dedicatedConnections.get(sessionId);
     if (dedicatedClient) {
       try {
@@ -524,7 +560,7 @@ class SSHService {
       }
     }
 
-    // 4. 清理目录映射
+    // 5. 清理目录映射
     this.currentDirectories.delete(sessionId);
 
     console.log(`[SSH] Session ${sessionId} disconnected successfully`);
@@ -572,35 +608,24 @@ class SSHService {
 
     console.log(`[SSH] 创建Shell ${shellId}, sessionId: ${sessionId}`);
 
-    // 优先尝试从连接池获取连接
-    const pool = this.pools.get(sessionId);
-    let conn: Client;
-    let pooledConn: PooledConnection | null = null;
-    let usingDedicatedConnection = false;
+    // 新架构：Shell会话始终使用专用连接，不再占用连接池
+    console.log(`[SSH] Shell会话使用专用连接 ${sessionId}`);
+    const dedicatedClient = this.dedicatedConnections.get(sessionId);
+    if (!dedicatedClient) {
+      throw new Error('No SSH connection found');
+    }
+    const conn = dedicatedClient;
 
+    // 记录连接池状态用于调试
+    const pool = this.pools.get(sessionId);
     if (pool) {
-      try {
-        console.log(`[SSH] 尝试从连接池获取连接 ${sessionId}`);
-        pooledConn = await pool.acquire(0);
-        conn = pooledConn.client;
-        console.log(`[SSH] 成功从连接池获取连接 ${sessionId}`);
-      } catch (error) {
-        console.log(`[SSH] 连接池获取失败，回退到专用连接 ${sessionId}:`, error);
-        const dedicatedClient = this.dedicatedConnections.get(sessionId);
-        if (!dedicatedClient) {
-          throw new Error('No SSH connection found');
-        }
-        conn = dedicatedClient;
-        usingDedicatedConnection = true;
-      }
-    } else {
-      console.log(`[SSH] 连接池不存在，使用专用连接 ${sessionId}`);
-      const dedicatedClient = this.dedicatedConnections.get(sessionId);
-      if (!dedicatedClient) {
-        throw new Error('No SSH connection found');
-      }
-      conn = dedicatedClient;
-      usingDedicatedConnection = true;
+      const poolStatus = {
+        size: pool.size,
+        available: pool.available,
+        borrowed: pool.borrowed,
+        pending: pool.pending
+      };
+      console.log(`[SSH] 连接池状态 ${sessionId}:`, poolStatus);
     }
 
     // 如果这个 shellId 已经存在，先关闭它并等待清理完成
@@ -639,10 +664,6 @@ class SSHService {
       conn.shell(ptyConfig, (err, stream) => {
         if (err) {
           console.error('Failed to create shell:', err);
-          // 只有使用连接池连接时才需要释放
-          if (pool && pooledConn) {
-            pool.release(pooledConn).catch(console.error);
-          }
           reject(err);
           return;
         }
@@ -657,10 +678,6 @@ class SSHService {
         const mainWindow = BrowserWindow.getAllWindows()[0];
         if (!mainWindow) {
           console.error('No main window found');
-          // 只有使用连接池连接时才需要释放
-          if (pool && pooledConn) {
-            pool.release(pooledConn).catch(console.error);
-          }
           reject(new Error('No main window found'));
           return;
         }
@@ -685,10 +702,6 @@ class SSHService {
           console.log(`Shell session closed [${shellId}]`);
           mainWindow.webContents.send(`ssh:close:${shellId}`);
           this.shells.delete(shellId);
-          // 只有使用连接池连接时才需要释放
-          if (pool && pooledConn) {
-            pool.release(pooledConn).catch(console.error);
-          }
         });
 
         // 监听错误事件
@@ -696,10 +709,6 @@ class SSHService {
           console.error(`Shell error [${shellId}]:`, error);
           mainWindow.webContents.send(`ssh:close:${shellId}`);
           this.shells.delete(shellId);
-          // 只有使用连接池连接时才需要释放
-          if (pool && pooledConn) {
-            pool.release(pooledConn).catch(console.error);
-          }
         });
         
         resolve();
@@ -842,77 +851,116 @@ class SSHService {
 
   /**
    * 直接执行命令（不依赖shell session）
+   * 新架构：使用GlobalSSHManager的共享连接池
    */
   async executeCommandDirect(sessionId: string, command: string): Promise<string> {
     console.log(`[SSH] Executing direct command: ${command}`);
 
-    // 1. 尝试从连接池获取连接
-    const poolConn = await this.getPoolConnection(sessionId);
-    if (poolConn) {
+    try {
+      // 使用GlobalSSHManager的共享连接池执行命令
+      const handle = await this.globalManager.getConnection(sessionId, ConnectionType.COMMAND);
       try {
-        return await this.execCommand(poolConn.client, command);
+        const result = await handle.execute(command);
+        return result.stdout || result.stderr || '';
       } finally {
-        await this.pools.get(sessionId)?.release(poolConn);
+        await handle.release();
       }
-    }
+    } catch (error) {
+      console.error(`[SSH] GlobalSSHManager命令执行失败，回退到旧方式: ${error}`);
 
-    // 2. 如果连接池不可用，回退到专用连接
-    const dedicatedClient = this.dedicatedConnections.get(sessionId);
-    if (!dedicatedClient) {
-      throw new Error('SSH connection not found');
-    }
+      // 回退到旧的实现方式
+      // 1. 尝试从连接池获取连接
+      const poolConn = await this.getPoolConnection(sessionId);
+      if (poolConn) {
+        try {
+          return await this.execCommand(poolConn.client, command);
+        } finally {
+          await this.pools.get(sessionId)?.release(poolConn);
+        }
+      }
 
-    return await this.execCommand(dedicatedClient, command);
+      // 2. 如果连接池不可用，回退到专用连接
+      const dedicatedClient = this.dedicatedConnections.get(sessionId);
+      if (!dedicatedClient) {
+        throw new Error('SSH connection not found');
+      }
+
+      return await this.execCommand(dedicatedClient, command);
+    }
   }
 
   /**
    * 获取SFTP连接（复用现有SSH连接）
+   * 新架构：使用GlobalSSHManager的传输连接池
    */
   async getSFTPConnection(sessionId: string): Promise<any> {
     console.log(`[SSH] 获取SFTP连接: ${sessionId}`);
 
-    // 1. 尝试从连接池获取连接
-    const poolConn = await this.getPoolConnection(sessionId);
-    if (poolConn) {
-      try {
-        return await new Promise((resolve, reject) => {
-          poolConn.client.sftp((err, sftp) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve({ sftp, poolConn, pool: this.pools.get(sessionId) });
+    try {
+      // 使用GlobalSSHManager的传输连接池获取SFTP连接
+      const handle = await this.globalManager.getConnection(sessionId, ConnectionType.TRANSFER);
+      const sftp = await handle.sftp();
+
+      return {
+        sftp,
+        handle, // 保存handle用于释放
+        poolConn: null,
+        pool: null
+      };
+    } catch (error) {
+      console.error(`[SSH] GlobalSSHManager SFTP连接失败，回退到旧方式: ${error}`);
+
+      // 回退到旧的实现方式
+      // 1. 尝试从连接池获取连接
+      const poolConn = await this.getPoolConnection(sessionId);
+      if (poolConn) {
+        try {
+          return await new Promise((resolve, reject) => {
+            poolConn.client.sftp((err, sftp) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve({ sftp, poolConn, pool: this.pools.get(sessionId) });
+            });
           });
-        });
-      } catch (error) {
-        // 如果失败，释放连接
-        await this.pools.get(sessionId)?.release(poolConn);
-        throw error;
-      }
-    }
-
-    // 2. 如果连接池不可用，使用专用连接
-    const dedicatedClient = this.dedicatedConnections.get(sessionId);
-    if (!dedicatedClient) {
-      throw new Error('SSH connection not found');
-    }
-
-    return await new Promise((resolve, reject) => {
-      dedicatedClient.sftp((err, sftp) => {
-        if (err) {
-          reject(err);
-          return;
+        } catch (error) {
+          // 如果失败，释放连接
+          await this.pools.get(sessionId)?.release(poolConn);
+          throw error;
         }
-        resolve({ sftp, poolConn: null, pool: null });
+      }
+
+      // 2. 如果连接池不可用，使用专用连接
+      const dedicatedClient = this.dedicatedConnections.get(sessionId);
+      if (!dedicatedClient) {
+        throw new Error('SSH connection not found');
+      }
+
+      return await new Promise((resolve, reject) => {
+        dedicatedClient.sftp((err, sftp) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve({ sftp, poolConn: null, pool: null });
+        });
       });
-    });
+    }
   }
 
   /**
    * 释放SFTP连接
+   * 新架构：支持GlobalSSHManager的连接释放
    */
   async releaseSFTPConnection(sessionId: string, sftpConnection: any): Promise<void> {
     console.log(`[SSH] 释放SFTP连接: ${sessionId}`);
+
+    // 如果是新架构的连接句柄，使用handle释放
+    if (sftpConnection.handle) {
+      await sftpConnection.handle.release();
+      return;
+    }
 
     // 如果是从连接池获取的连接，需要释放回连接池
     if (sftpConnection.poolConn && sftpConnection.pool) {
