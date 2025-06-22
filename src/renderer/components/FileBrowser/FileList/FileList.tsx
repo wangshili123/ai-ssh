@@ -62,12 +62,12 @@ const FileList: React.FC<FileListProps> = ({
 
   // 列宽状态管理
   const [columnWidths, setColumnWidths] = useState({
-    name: 280,      // 文件名列
-    size: 100,      // 大小列
-    type: 80,       // 类型列
-    modifyTime: 150, // 修改时间列
-    permissions: 100, // 权限列
-    ownership: 120   // 用户/组列
+    name: 80,      // 文件名列 - 调整到120px
+    size: 80,       // 大小列 - 80px
+    type: 60,       // 类型列 - 60px
+    modifyTime: 140, // 修改时间列 - 140px
+    permissions: 90, // 权限列 - 90px
+    ownership: 110   // 用户/组列 - 110px
   });
 
   // 高亮显示新上传的文件
@@ -826,6 +826,145 @@ const FileList: React.FC<FileListProps> = ({
 
 
 
+  // 初始化表格列宽
+  useEffect(() => {
+    const initializeTableWidths = () => {
+      if (!containerRef.current) return;
+
+      const table = containerRef.current.querySelector('.ant-table-content table') as HTMLTableElement;
+      if (!table) return;
+
+      let colgroup = table.querySelector('colgroup');
+      if (!colgroup) {
+        colgroup = document.createElement('colgroup');
+        table.insertBefore(colgroup, table.firstChild);
+      }
+
+      // 清空现有的col元素
+      colgroup.innerHTML = '';
+
+      // 动态检测表头结构
+      const headerCells = table.querySelectorAll('.ant-table-thead th');
+      const totalHeaderCols = headerCells.length;
+      const widths = Object.values(columnWidths);
+
+      // 为每一列设置宽度
+      for (let i = 0; i < totalHeaderCols; i++) {
+        const col = document.createElement('col');
+        const headerCell = headerCells[i] as HTMLElement;
+
+        // 判断列类型并设置宽度
+        if (headerCell.classList.contains('ant-table-selection-column')) {
+          // 选择框列
+          col.style.width = '32px';
+          col.style.minWidth = '32px';
+        } else if (headerCell.classList.contains('ant-table-cell-scrollbar')) {
+          // 滚动条占位列 - 设置为0宽度，因为使用浮动滚动条
+          col.style.width = '0px';
+          col.style.minWidth = '0px';
+          col.style.display = 'none'; // 完全隐藏
+        } else {
+          // 数据列 - 找到对应的数据列索引
+          const dataColumnIndex = Array.from(headerCells).slice(0, i).filter(
+            (cell: any) => !cell.classList.contains('ant-table-selection-column') &&
+                           !cell.classList.contains('ant-table-cell-scrollbar')
+          ).length;
+
+          if (dataColumnIndex < widths.length) {
+            col.style.width = `${widths[dataColumnIndex]}px`;
+            col.style.minWidth = `${widths[dataColumnIndex]}px`;
+          } else {
+            // 额外的列，设置默认宽度
+            col.style.width = '50px';
+            col.style.minWidth = '50px';
+          }
+        }
+
+        colgroup.appendChild(col);
+      }
+
+      // 计算表格总宽度
+      const totalWidth = Array.from(colgroup.children).reduce((sum, col: any) => {
+        return sum + parseInt(col.style.width || '0');
+      }, 0);
+
+      table.style.width = `${totalWidth}px`;
+      table.style.minWidth = `${totalWidth}px`;
+
+      // 强制移除滚动条占位列
+      const scrollbarCells = table.querySelectorAll('.ant-table-cell-scrollbar');
+      scrollbarCells.forEach((cell: any) => {
+        cell.style.display = 'none';
+        cell.style.width = '0px';
+        cell.style.minWidth = '0px';
+        cell.style.maxWidth = '0px';
+        cell.style.padding = '0px';
+        cell.style.margin = '0px';
+        cell.style.border = 'none';
+      });
+
+      // 详细分析表头结构
+      const allHeaderCells = table.querySelectorAll('.ant-table-thead th');
+      const headerInfo = Array.from(allHeaderCells).map((th: any, i) => ({
+        索引: i,
+        类名: th.className,
+        内容: th.textContent?.trim() || '空',
+        宽度: window.getComputedStyle(th).width
+      }));
+
+      const hasCheckbox = !!table.querySelector('.ant-table-selection-column');
+      const hasScrollbar = !!table.querySelector('.ant-table-cell-scrollbar');
+
+      console.log('[FileList] 初始化表格宽度:', {
+        hasCheckbox,
+        hasScrollbar,
+        widths,
+        totalWidth,
+        colgroupCols: colgroup.children.length,
+        表头列数: allHeaderCells.length,
+        表头详情: headerInfo,
+        容器宽度: containerRef.current?.offsetWidth,
+        表格实际宽度: table.offsetWidth,
+        是否需要横向滚动: totalWidth > (containerRef.current?.offsetWidth || 0)
+      });
+    };
+
+    // 延迟执行，确保表格DOM已渲染
+    const timer = setTimeout(initializeTableWidths, 100);
+    return () => clearTimeout(timer);
+  }, [fileList]); // 当文件列表变化时重新初始化
+
+  // 调试：监控columnWidths变化 + 表格布局分析
+  useEffect(() => {
+    console.log('[FileList] columnWidths状态变化:', columnWidths);
+
+    // 分析表格布局
+    if (containerRef.current) {
+      const table = containerRef.current.querySelector('.ant-table-content table');
+      if (table) {
+        const computedStyle = window.getComputedStyle(table);
+        const headerCells = table.querySelectorAll('.ant-table-thead th');
+        const bodyCells = table.querySelectorAll('.ant-table-tbody tr:first-child td');
+
+        console.log('[FileList] 表格布局分析:', {
+          tableLayout: computedStyle.tableLayout,
+          tableWidth: computedStyle.width,
+          表头宽度: Array.from(headerCells).map((th: any, i) => ({
+            列: i,
+            计算宽度: window.getComputedStyle(th).width,
+            内联宽度: th.style.width,
+            期望宽度: Object.values(columnWidths)[i]
+          })),
+          表体宽度: Array.from(bodyCells).map((td: any, i) => ({
+            列: i,
+            计算宽度: window.getComputedStyle(td).width,
+            内联宽度: td.style.width
+          }))
+        });
+      }
+    }
+  }, [columnWidths]);
+
   // 处理列宽调整 - 简化版本，只在拖拽结束时更新
   const handleResize = useCallback((index: number) => {
     // 立即更新函数（用于拖拽结束）
@@ -836,9 +975,22 @@ const FileList: React.FC<FileListProps> = ({
 
       if (columnKey) {
         const newWidth = Math.max(width, 50); // 最小宽度50px
+        console.log('[FileList] 准备更新列宽:', {
+          index,
+          columnKey,
+          oldWidth: columnWidths[columnKey],
+          newWidth,
+          allWidths: columnWidths
+        });
+
         newColumnWidths[columnKey] = newWidth;
         setColumnWidths(newColumnWidths);
-        console.log('[FileList] 列宽更新完成:', { columnKey, newWidth });
+
+        console.log('[FileList] 列宽更新完成:', {
+          columnKey,
+          newWidth,
+          newColumnWidths
+        });
       }
     };
 
@@ -878,25 +1030,41 @@ const FileList: React.FC<FileListProps> = ({
   };
 
   return (
-    <div className="file-list-container" ref={containerRef} onContextMenu={handleContainerContextMenu}>
-      <Table
-        ref={tableRef}
-        dataSource={fileList}
-        columns={columns}
-        rowKey="name"
-        pagination={false}
-        size="small"
-        onChange={handleTableChange}
-        scroll={{ y: tableHeight }}
-        sticky={false} // 禁用sticky，可能会干扰调整
-        showSorterTooltip={false}
-        rowSelection={rowSelection}
-        tableLayout="fixed" // 明确指定固定布局
-        components={{
-          header: {
-            cell: ResizableTitle,
-          },
+    <div
+      className="file-list-container"
+      ref={containerRef}
+      onContextMenu={handleContainerContextMenu}
+      data-column-widths={JSON.stringify(Object.values(columnWidths))}
+    >
+
+
+      {/* 外层滚动容器 */}
+      <div
+        style={{
+          height: `${tableHeight}px`,
+          overflowY: 'auto',
+          overflowX: 'auto',
+          border: '1px solid #f0f0f0'
         }}
+        className="file-list-scroll-container"
+      >
+        <Table
+          ref={tableRef}
+          dataSource={fileList}
+          columns={columns}
+          rowKey="name"
+          pagination={false}
+          size="small"
+          onChange={handleTableChange}
+          sticky={false}
+          showSorterTooltip={false}
+          rowSelection={rowSelection}
+          tableLayout="fixed"
+          components={{
+            header: {
+              cell: ResizableTitle,
+            },
+          }}
         onRow={(record) => {
           // 检查文件是否被剪切
           const isCutFile = sessionInfo ? clipboardManager.isCutFile(sessionInfo.id, currentPath, record.name) : false;
@@ -1027,6 +1195,7 @@ const FileList: React.FC<FileListProps> = ({
         currentIndex={copyPasteProgress.currentIndex}
         onExpand={handleExpandProgress}
       />
+      </div>
     </div>
   );
 };

@@ -38,23 +38,41 @@
   height: 100% !important;
 }
 
-/* 自定义滚动条样式 */
+/* 浮动滚动条样式 - 鼠标悬停时显示 */
+.file-list-container .ant-table-body {
+  /* 默认隐藏滚动条 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
 .file-list-container .ant-table-body::-webkit-scrollbar {
+  width: 0px; /* 默认隐藏 */
+  height: 0px;
+  transition: width 0.2s ease, height 0.2s ease;
+}
+
+/* 鼠标悬停时显示滚动条 */
+.file-list-container:hover .ant-table-body::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .file-list-container .ant-table-body::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.file-list-container .ant-table-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .file-list-container .ant-table-body::-webkit-scrollbar-track {
-  background: #f0f0f0;
+  background: transparent;
 }
 
 .file-list-container .ant-table-body::-webkit-scrollbar-corner {
-  background: #f0f0f0;
+  background: transparent;
 }
 
 /* 调整表头样式 */
@@ -242,10 +260,15 @@
   display: none;
 }
 
-/* 确保表格内部的table元素也使用固定布局 */
-.file-list-container .ant-table-content table {
+/* 外层滚动容器中的表格使用自动布局 */
+.file-list-scroll-container .ant-table-content table {
+  table-layout: auto !important; /* 使用自动布局支持横向滚动 */
+  /* 移除 width: 100% !important，让JavaScript控制表格宽度 */
+}
+
+/* 非滚动容器中的表格保持固定布局 */
+.file-list-container:not(.file-list-scroll-container) .ant-table-content table {
   table-layout: fixed !important;
-  width: 100% !important;
 }
 
 /* 移除冲突的CSS变量规则 */
@@ -259,12 +282,95 @@
 }
 */
 
-/* 重要：移除可能阻止调整的样式 */
+/* 重要：让表头响应内联样式 */
 .file-list-container .ant-table-thead > tr > th {
   overflow: visible !important; /* 允许调整手柄超出边界 */
   min-width: 50px !important; /* 设置最小宽度 */
-  max-width: none !important; /* 移除最大宽度限制 */
-  /* 移除 width: auto，让我们的JS设置的宽度生效 */
+  position: relative; /* 为调整手柄提供定位基准 */
+  /* 移除所有可能覆盖width的CSS规则，让内联样式生效 */
+}
+
+/* 强制隐藏滚动条占位列 - 表头和表体 */
+.file-list-container .ant-table-thead > tr > th.ant-table-cell-scrollbar,
+.file-list-container .ant-table-tbody > tr > td.ant-table-cell-scrollbar {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* 强制隐藏所有滚动条相关的列 */
+.file-list-container th[class*="scrollbar"],
+.file-list-container td[class*="scrollbar"] {
+  display: none !important;
+}
+
+/* 外层滚动容器样式 */
+.file-list-scroll-container {
+  position: relative;
+}
+
+.file-list-scroll-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.file-list-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.file-list-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.file-list-scroll-container::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+/* 外层滚动时表头固定 */
+.file-list-scroll-container .ant-table-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: #fff !important;
+}
+
+/* 禁用表格内部滚动 */
+.file-list-scroll-container .ant-table-body {
+  overflow: visible !important;
+  height: auto !important;
+}
+
+/* 确保表格有最小宽度，支持横向滚动 */
+.file-list-scroll-container .ant-table {
+  min-width: max-content; /* 表格最小宽度为内容宽度 */
+  width: auto !important; /* 允许表格自动调整宽度 */
+}
+
+.file-list-scroll-container .ant-table-wrapper {
+  width: auto !important; /* 允许包装器自动调整宽度 */
+  min-width: max-content;
+}
+
+.file-list-scroll-container .ant-table-container {
+  width: auto !important; /* 允许容器自动调整宽度 */
+  min-width: max-content;
+}
+
+.file-list-scroll-container .ant-table-content {
+  width: auto !important; /* 允许内容区域自动调整宽度 */
+  min-width: max-content;
+}
+
+.file-list-scroll-container .ant-table-content table {
+  min-width: max-content; /* 确保table元素也有最小宽度 */
+  width: auto !important; /* 移除固定宽度限制 */
 }
 
 /* 确保单元格内容不会撑开列宽，但允许调整 */
