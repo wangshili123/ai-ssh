@@ -59,12 +59,22 @@
 
 /* 调整表头样式 */
 .file-list-container .ant-table-thead > tr > th {
-  padding: 6px 8px;
-  background: #fafafa;
-  font-weight: 500;
-  font-size: 12px;
+  padding: 4px 8px !important;
+  background: #fafafa !important;
+  font-weight: 500 !important;
+  font-size: 11px !important;
   user-select: none;
   position: relative; /* 为列宽调整手柄提供定位基准 */
+  height: 26px !important; /* 减少表头高度 */
+  line-height: 18px !important; /* 设置表头行高 */
+}
+
+/* 覆盖Ant Design的small表格表头样式 */
+.file-list-container .ant-table-small .ant-table-thead > tr > th {
+  padding: 4px 8px !important;
+  height: 26px !important;
+  line-height: 18px !important;
+  font-size: 11px !important;
 }
 
 /* 禁用列宽调整 */
@@ -74,9 +84,29 @@
 
 /* 调整单元格内容样式 */
 .file-list-container .ant-table-tbody > tr > td {
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: 2px 8px !important;
+  font-size: 11px !important;
   cursor: default !important;  /* 强制使用默认鼠标样式 */
+  height: 24px !important; /* 减少行高 */
+  line-height: 20px !important; /* 设置行高 */
+}
+
+/* 覆盖Ant Design的small表格样式 */
+.file-list-container .ant-table-small .ant-table-tbody > tr > td {
+  padding: 2px 8px !important;
+  height: 24px !important;
+  line-height: 20px !important;
+}
+
+/* 覆盖Ant Design的表格标题样式 */
+.file-list-container .ant-table-small .ant-table-title,
+.file-list-container .ant-table-small .ant-table-footer {
+  padding: 2px 8px !important;
+}
+
+/* 确保表格行高度一致 */
+.file-list-container .ant-table-tbody > tr {
+  height: 24px !important;
 }
 
 /* 设置表格行的鼠标样式 */
@@ -93,7 +123,7 @@
 .file-list-container .file-list-name-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .file-list-container .file-list-name {
@@ -105,8 +135,8 @@
 
 /* 文件图标样式 */
 .file-list-container .file-list-icon {
-  font-size: 16px;
-  min-width: 20px;
+  font-size: 14px;
+  min-width: 18px;
   text-align: center;
 }
 
@@ -377,4 +407,37 @@
     opacity: 0;
     transform: translateX(100%);
   }
+}
+
+/* 确保测量行真正不占用视觉空间 - 不破坏表格功能 */
+.file-list-container .ant-table-measure-row {
+  height: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  top: -1px !important;
+  visibility: hidden !important;
+}
+
+.file-list-container .ant-table-measure-row td {
+  height: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.file-list-container .ant-table-measure-row td div {
+  height: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }

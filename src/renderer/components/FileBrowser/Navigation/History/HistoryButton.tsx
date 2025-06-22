@@ -13,7 +13,7 @@ const HistoryButton: React.FC<HistoryProps> = (props) => {
       trigger={['click']}
       placement="bottomRight"
     >
-      <Button icon={<HistoryOutlined />} />
+      <Button icon={<HistoryOutlined />} size="small" />
     </Dropdown>
   );
 };

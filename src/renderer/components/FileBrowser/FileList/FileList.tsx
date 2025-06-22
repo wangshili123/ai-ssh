@@ -126,7 +126,7 @@ const FileList: React.FC<FileListProps> = ({
       for (const entry of entries) {
         const height = entry.contentRect.height;
         // 设置表格高度为容器完整高度减去表头高度
-        const calculatedHeight = Math.max(height - 38, 200); // 最小高度200px
+        const calculatedHeight = Math.max(height - 26, 200); // 最小高度200px，表头高度26px
         setTableHeight(calculatedHeight);
         console.log('[FileList] 容器高度变化:', { containerHeight: height, tableHeight: calculatedHeight });
       }

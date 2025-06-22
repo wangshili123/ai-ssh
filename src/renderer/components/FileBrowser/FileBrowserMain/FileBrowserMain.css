@@ -11,7 +11,7 @@
   flex-shrink: 0;
   background: #fff;
   border-bottom: 1px solid #e8e8e8;
-  height: 48px;
+  height: 32px;
   display: flex;
   align-items: center;
   width: 100%;
@@ -92,7 +92,7 @@
 }
 
 .file-browser-files .ant-table-body {
-  height: calc(100% - 38px) !important;
+  height: calc(100% - 26px) !important;
   overflow-y: auto !important;
 }
 

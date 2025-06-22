@@ -109,26 +109,30 @@ const Navigation: React.FC<NavigationProps> = ({
 
   return (
     <div className="navigation">
-      <Space>
+      <Space size="small">
         <Button
           icon={<ArrowLeftOutlined />}
           onClick={handleBack}
           disabled={historyIndex <= 0}
+          size="small"
         />
         <Button
           icon={<ArrowRightOutlined />}
           onClick={handleForward}
           disabled={historyIndex >= pathHistory.length - 1}
+          size="small"
         />
         <Button
           icon={<ReloadOutlined />}
           onClick={() => onRefresh ? onRefresh() : onPathChange(currentPath)}
           title="刷新当前目录"
+          size="small"
         />
         <AutoComplete
           value={inputValue}
           options={options}
-          style={{ width: 400 }}
+          style={{ width: 300 }}
+          size="small"
           onSearch={handleSearch}
           onSelect={handleSelect}
           onChange={setInputValue}
@@ -145,6 +149,7 @@ const Navigation: React.FC<NavigationProps> = ({
           icon={<SyncOutlined />}
           onClick={handleSync}
           title="同步当前路径到终端"
+          size="small"
         />
       </Space>
     </div>

@@ -83,27 +83,28 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
   return (
     <div className="editor-toolbar">
       <div className="editor-toolbar-left">
-        <Space>
+        <Space size="small">
           <Tooltip title="保存">
-            <Button 
-              icon={<SaveOutlined />} 
+            <Button
+              icon={<SaveOutlined />}
               onClick={() => {
                 console.log('点击保存按钮，isDirty:', isDirty, 'isReadOnly:', isReadOnly);
                 onSave();
               }}
               disabled={isReadOnly || !isDirty}
               type={isDirty ? "primary" : "default"}
+              size="small"
             />
           </Tooltip>
           <Tooltip title="刷新">
-            <Button icon={<ReloadOutlined />} onClick={onRefresh} />
+            <Button icon={<ReloadOutlined />} onClick={onRefresh} size="small" />
           </Tooltip>
           <Divider type="vertical" />
           {/* <Tooltip title="搜索">
-            <Button icon={<SearchOutlined />} onClick={() => onSearch('')} />
+            <Button icon={<SearchOutlined />} onClick={() => onSearch('')} size="small" />
           </Tooltip> */}
           <Tooltip title="过滤">
-            <Button icon={<FilterOutlined />} onClick={() => onFilter('')} />
+            <Button icon={<FilterOutlined />} onClick={() => onFilter('')} size="small" />
           </Tooltip>
         </Space>
       </div>
@@ -120,7 +121,7 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
       </div>
 
       <div className="editor-toolbar-right">
-        <Space>
+        <Space size="small">
           {showRealtimeToggle && (
             <Tooltip title="实时更新">
               <Switch
@@ -141,22 +142,24 @@ const EditorToolbar: FC<EditorToolbarProps> = ({
               />
             </Tooltip>
           )}
-          
+
           <Divider type="vertical" />
-          
+
           <Tooltip title="浏览模式">
-            <Button 
-              icon={<EyeOutlined />} 
+            <Button
+              icon={<EyeOutlined />}
               onClick={() => onModeSwitch(EditorMode.BROWSE)}
               type={currentMode === EditorMode.BROWSE ? "primary" : "default"}
+              size="small"
             />
           </Tooltip>
           <Tooltip title="编辑模式">
-            <Button 
-              icon={<EditOutlined />} 
+            <Button
+              icon={<EditOutlined />}
               onClick={() => onModeSwitch(EditorMode.EDIT)}
               type={currentMode === EditorMode.EDIT ? "primary" : "default"}
               disabled={isReadOnly}
+              size="small"
             />
           </Tooltip>
         </Space>

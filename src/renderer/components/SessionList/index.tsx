@@ -52,8 +52,27 @@ const SessionList: React.FC<SessionListProps> = ({
         storageService.loadSessions(),
         storageService.loadGroups()
       ]);
-      setSessions(loadedSessions);
+
+      // 清理数据：确保会话的分组ID都是有效的
+      const validGroupIds = new Set(loadedGroups.map(g => g.id));
+      const cleanedSessions = loadedSessions.map(session => {
+        if (session.group && !validGroupIds.has(session.group)) {
+          console.warn(`会话 ${session.name} 的分组ID ${session.group} 无效，已移动到未分组`);
+          return { ...session, group: undefined };
+        }
+        return session;
+      });
+
+      // 如果有数据被清理，保存清理后的数据
+      if (cleanedSessions.some((session, index) => session.group !== loadedSessions[index].group)) {
+        await storageService.saveSessions(cleanedSessions);
+      }
+
+      setSessions(cleanedSessions);
       setGroups(loadedGroups);
+
+      // 验证数据一致性
+      setTimeout(() => validateDataConsistency(), 100);
     } catch (error) {
       message.error('加载数据失败');
       console.error('加载数据失败:', error);
@@ -67,6 +86,24 @@ const SessionList: React.FC<SessionListProps> = ({
     }, 300),
     []
   );
+
+  // 验证数据一致性
+  const validateDataConsistency = useCallback(() => {
+    const validGroupIds = new Set(groups.map(g => g.id));
+    const inconsistentSessions = sessions.filter(session =>
+      session.group && !validGroupIds.has(session.group)
+    );
+
+    if (inconsistentSessions.length > 0) {
+      console.warn('发现数据不一致的会话:', inconsistentSessions.map(s => ({
+        name: s.name,
+        id: s.id,
+        invalidGroupId: s.group
+      })));
+      return false;
+    }
+    return true;
+  }, [sessions, groups]);
 
   // 处理新建分组
   const handleAddGroup = () => {
@@ -340,17 +377,37 @@ const SessionList: React.FC<SessionListProps> = ({
       let newSessions = [...sessions];
       let newGroups = [...groups];
 
-      if (groups.find(g => g.id === dragKey)) {
-        // 拖拽的是分组
-        newGroups = reorderGroups(dragKey, dropKey, dropPosition);
-        await storageService.saveGroups(newGroups);
-        setGroups(newGroups);
-      } else {
+      // 判断拖拽的是分组还是会话
+      const isDragGroup = groups.find(g => g.id === dragKey);
+      const isDropGroup = groups.find(g => g.id === dropKey) || dropKey === 'ungrouped';
+      const isDragSession = sessions.find(s => s.id === dragKey);
+
+      if (isDragGroup) {
+        // 拖拽的是分组 - 只允许分组间的重新排序
+        if (isDropGroup) {
+          newGroups = reorderGroups(dragKey, dropKey, dropPosition);
+          await storageService.saveGroups(newGroups);
+          setGroups(newGroups);
+        } else {
+          message.warning('分组只能拖拽到其他分组位置');
+          return;
+        }
+      } else if (isDragSession) {
         // 拖拽的是会话
-        const targetGroup = dropKey === 'ungrouped' ? undefined : dropKey;
-        newSessions = reorderSessions(dragKey, targetGroup);
-        await storageService.saveSessions(newSessions);
-        setSessions(newSessions);
+        if (isDropGroup) {
+          // 拖拽到分组或未分组
+          const targetGroup = dropKey === 'ungrouped' ? undefined : dropKey;
+          newSessions = reorderSessions(dragKey, targetGroup);
+          await storageService.saveSessions(newSessions);
+          setSessions(newSessions);
+        } else {
+          // 拖拽到另一个会话 - 不允许此操作
+          message.warning('不能将会话拖拽到另一个会话下');
+          return;
+        }
+      } else {
+        message.error('无效的拖拽操作');
+        return;
       }
     } catch (error) {
       message.error('更新顺序失败');
@@ -378,13 +435,22 @@ const SessionList: React.FC<SessionListProps> = ({
   const reorderSessions = (dragKey: string, targetGroup: string | undefined): SessionInfo[] => {
     const newSessions = [...sessions];
     const draggedSession = sessions.find(s => s.id === dragKey);
-    if (!draggedSession) return newSessions;
+    if (!draggedSession) {
+      console.error(`找不到要拖拽的会话: ${dragKey}`);
+      return newSessions;
+    }
+
+    // 验证目标分组的有效性
+    if (targetGroup && !groups.find(g => g.id === targetGroup)) {
+      console.error(`目标分组不存在: ${targetGroup}`);
+      return newSessions;
+    }
 
     const groupSessions = newSessions.filter(s => s.group === targetGroup);
     const maxOrder = Math.max(...groupSessions.map(s => s.groupOrder || 0), -1);
 
-    return newSessions.map(s => 
-      s.id === dragKey 
+    return newSessions.map(s =>
+      s.id === dragKey
         ? { ...s, group: targetGroup, groupOrder: maxOrder + 1 }
         : s
     );
