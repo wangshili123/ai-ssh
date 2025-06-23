@@ -36,14 +36,15 @@ class SSHService {
   }
 
   async createShell(
-    sessionId: string, 
+    sessionId: string,
     onData: (data: string) => void,
     onClose?: () => void,
     initialSize?: { rows: number; cols: number }
   ) {
     const dataChannel = `ssh:data:${sessionId}`;
     const closeChannel = `ssh:close:${sessionId}`;
-    
+    const disconnectedChannel = `ssh:disconnected:${sessionId}`;
+
     this.dataCallbacks.set(sessionId, onData);
     ipcRenderer.on(dataChannel, (_, data: string) => {
       onData(data);
@@ -57,6 +58,20 @@ class SSHService {
         this.closeCallbacks.delete(sessionId);
         ipcRenderer.removeAllListeners(dataChannel);
         ipcRenderer.removeAllListeners(closeChannel);
+        ipcRenderer.removeAllListeners(disconnectedChannel);
+      });
+
+      // 监听断开连接事件
+      ipcRenderer.on(disconnectedChannel, (_, data: { shellId: string; sessionId: string; timestamp: number }) => {
+        console.log(`[SSH] 收到断开连接事件:`, data);
+        // 调用关闭回调
+        onClose();
+        // 清理监听器
+        this.dataCallbacks.delete(sessionId);
+        this.closeCallbacks.delete(sessionId);
+        ipcRenderer.removeAllListeners(dataChannel);
+        ipcRenderer.removeAllListeners(closeChannel);
+        ipcRenderer.removeAllListeners(disconnectedChannel);
       });
     }
 

@@ -26,7 +26,7 @@ const checkMainProcessConnection = async (sessionId: string): Promise<boolean> =
   }
 };
 
-// 等待 SSH 连接就绪（优化版：支持连接复用）
+// 等待 SSH 连接就绪（优化版：支持连接复用和更好的错误处理）
 export const waitForConnection = async (sessionInfo: SessionInfo): Promise<void> => {
   console.log(`[terminal.utils] 等待连接就绪: ${sessionInfo.id}`);
 
@@ -39,17 +39,28 @@ export const waitForConnection = async (sessionInfo: SessionInfo): Promise<void>
 
   // 2. 如果没有现有连接，创建新连接
   console.log(`[terminal.utils] 没有现有连接，创建新连接: ${sessionInfo.id}`);
-  let retries = 5;
+  let retries = 3; // 减少重试次数，避免长时间等待
+  let lastError: any = null;
+
   while (retries > 0) {
     try {
+      console.log(`[terminal.utils] 尝试连接 (剩余重试: ${retries}): ${sessionInfo.id}`);
       await sshService.connect(sessionInfo);
       console.log(`[terminal.utils] 连接创建成功: ${sessionInfo.id}`);
       return;
     } catch (error) {
+      lastError = error;
       retries--;
       console.error(`[terminal.utils] 连接失败，剩余重试次数: ${retries}`, error);
-      if (retries === 0) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      if (retries === 0) {
+        // 最后一次重试失败，抛出详细错误信息
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`连接失败: ${errorMessage}. 请检查网络连接和服务器状态。`);
+      }
+
+      // 等待2秒后重试
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
 };

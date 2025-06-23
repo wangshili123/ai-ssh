@@ -128,9 +128,16 @@ export const useContextMenu = ({
           connected: false
         });
 
-        // 3. 等待连接就绪
+        // 3. 等待连接就绪（添加超时处理）
         console.log('[useContextMenu] Waiting for connection to be ready');
-        await waitForConnection(sessionInfo);
+        await Promise.race([
+          waitForConnection(sessionInfo),
+          new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('重新连接超时（30秒）'));
+            }, 30000); // 30秒超时
+          })
+        ]);
 
         // 4. 创建新的shell会话（使用当前的instanceId保持一致性）
         const newShellId = sessionInfo.id + `-${instanceId}`;

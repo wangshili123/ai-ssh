@@ -256,6 +256,85 @@ class SSHService {
   }
 
   /**
+   * 检查SSH客户端连接是否有效
+   */
+  private isClientConnected(client: Client): boolean {
+    try {
+      // 检查客户端是否存在
+      if (!client) return false;
+
+      // 尝试检查连接状态，ssh2的Client没有直接的状态属性
+      // 我们通过检查内部状态来判断
+      const clientAny = client as any;
+
+      // 检查是否已经关闭或销毁
+      if (clientAny._sock && clientAny._sock.destroyed) {
+        return false;
+      }
+
+      // 检查是否处于连接状态
+      if (clientAny._state && clientAny._state !== 'authenticated') {
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[SSH] 检查客户端连接状态时出错:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 重新连接会话
+   */
+  private async reconnectSession(sessionId: string, sessionInfo: SessionInfo): Promise<void> {
+    console.log(`[SSH] 开始重新连接会话: ${sessionId}`);
+
+    // 清理旧连接
+    const oldClient = this.dedicatedConnections.get(sessionId);
+    if (oldClient) {
+      try {
+        oldClient.end();
+      } catch (error) {
+        console.error(`[SSH] 清理旧连接时出错: ${sessionId}`, error);
+      }
+      this.dedicatedConnections.delete(sessionId);
+    }
+
+    // 创建新连接
+    try {
+      await this.connectWithGlobalManager(sessionInfo);
+      console.log(`[SSH] 重新连接成功: ${sessionId}`);
+    } catch (error) {
+      console.error(`[SSH] 重新连接失败: ${sessionId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 处理Shell断开连接
+   */
+  private handleShellDisconnection(shellId: string, sessionId: string): void {
+    console.log(`[SSH] 处理Shell断开连接: ${shellId}`);
+
+    // 获取主窗口
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    if (!mainWindow) {
+      console.error('[SSH] 未找到主窗口');
+      return;
+    }
+
+    // 通知渲染进程连接已断开
+    mainWindow.webContents.send(`ssh:disconnected:${shellId}`, {
+      shellId,
+      sessionId,
+      timestamp: Date.now()
+    });
+
+    console.log(`[SSH] 已通知渲染进程连接断开: ${shellId}`);
+  }
+
+  /**
    * 获取连接池（如果可用）
    */
   getPool(sessionId: string): Pool<PooledConnection> | undefined {
@@ -612,9 +691,31 @@ class SSHService {
     console.log(`[SSH] Shell会话使用专用连接 ${sessionId}`);
     const dedicatedClient = this.dedicatedConnections.get(sessionId);
     if (!dedicatedClient) {
+      console.error(`[SSH] 未找到专用连接: ${sessionId}`);
       throw new Error('No SSH connection found');
     }
-    const conn = dedicatedClient;
+
+    // 检查连接状态
+    if (!this.isClientConnected(dedicatedClient)) {
+      console.log(`[SSH] 专用连接已断开，尝试重新连接: ${sessionId}`);
+      // 尝试重新连接
+      const sessionInfo = this.configs.get(sessionId);
+      if (sessionInfo) {
+        try {
+          await this.reconnectSession(sessionId, sessionInfo);
+        } catch (error) {
+          console.error(`[SSH] 重新连接失败: ${sessionId}`, error);
+          throw new Error(`Connection lost and reconnection failed: ${error}`);
+        }
+      } else {
+        throw new Error('Session configuration not found for reconnection');
+      }
+    }
+
+    const conn = this.dedicatedConnections.get(sessionId);
+    if (!conn) {
+      throw new Error('Failed to establish SSH connection');
+    }
 
     // 记录连接池状态用于调试
     const pool = this.pools.get(sessionId);
@@ -702,6 +803,9 @@ class SSHService {
           console.log(`Shell session closed [${shellId}]`);
           mainWindow.webContents.send(`ssh:close:${shellId}`);
           this.shells.delete(shellId);
+
+          // 检查是否是意外断开，如果是则尝试重连
+          this.handleShellDisconnection(shellId, sessionId);
         });
 
         // 监听错误事件
@@ -709,6 +813,9 @@ class SSHService {
           console.error(`Shell error [${shellId}]:`, error);
           mainWindow.webContents.send(`ssh:close:${shellId}`);
           this.shells.delete(shellId);
+
+          // 检查是否是连接错误，如果是则尝试重连
+          this.handleShellDisconnection(shellId, sessionId);
         });
         
         resolve();

@@ -184,6 +184,7 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
           setIsConnected(false);
           // 如果是断开连接但不是初始状态，说明正在重连
           if (isConnected) {
+            console.log('[Terminal] 检测到连接断开，开始重连状态');
             setIsConnecting(true);
           }
         }
@@ -196,10 +197,26 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
     };
   }, [sessionInfo, instanceId, isConnected]);
 
-  // 初始连接状态设置
+  // 初始连接状态设置和超时处理
   useEffect(() => {
     if (sessionInfo && instanceId && isReady && !isConnected) {
+      console.log('[Terminal] 开始连接，设置连接超时');
       setIsConnecting(true);
+
+      // 设置连接超时（30秒）
+      const connectionTimeout = setTimeout(() => {
+        console.log('[Terminal] 连接超时，停止loading状态');
+        setIsConnecting(false);
+        // 显示超时错误信息
+        if (terminalRef.current) {
+          terminalRef.current.write('\r\n\x1b[31m连接超时，请检查网络连接或服务器状态\x1b[0m\r\n');
+          terminalRef.current.write('\x1b[33m提示：可以右键选择"重新加载"尝试重新连接\x1b[0m\r\n');
+        }
+      }, 30000); // 30秒超时
+
+      return () => {
+        clearTimeout(connectionTimeout);
+      };
     }
   }, [sessionInfo, instanceId, isReady, isConnected]);
 
@@ -340,7 +357,10 @@ const Terminal: React.FC<TerminalProps> = ({ sessionInfo, config, instanceId }) 
             <div className="terminal-loading-content">
               <Spin size="large" />
               <div className="terminal-loading-text">
-                正在连接到 {sessionInfo?.name || sessionInfo?.host}...
+                {isConnected ? '重新连接中...' : '正在连接到'} {sessionInfo?.name || sessionInfo?.host}...
+              </div>
+              <div className="terminal-loading-hint">
+                连接超时时间：30秒
               </div>
             </div>
           </div>

@@ -66,6 +66,14 @@
   margin-top: 8px;
 }
 
+.terminal-loading-hint {
+  color: #999;
+  font-size: 12px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  text-align: center;
+  margin-top: 4px;
+}
+
 /* 终端基础样式 */
 .terminal .xterm {
   padding: 0;

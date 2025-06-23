@@ -540,8 +540,15 @@ export const useTerminalInit = ({
       const completionSSHManager = CompletionSSHManager.getInstance();
       completionSSHManager.setSessionForTab(tabId, configRef.current.sessionInfo);
 
-      // 等待连接就绪
-      waitForConnection(configRef.current.sessionInfo)
+      // 等待连接就绪（添加超时处理）
+      Promise.race([
+        waitForConnection(configRef.current.sessionInfo),
+        new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Connection timeout after 30 seconds'));
+          }, 30000); // 30秒超时
+        })
+      ])
         .then(() => {
           return sshService.createShell(
             shellId,
@@ -551,7 +558,7 @@ export const useTerminalInit = ({
               terminalOutputService.addOutput(shellId, data);
               // 添加到命令分析器
               CommandOutputAnalyzer.getInstance().addOutput(shellId, data);
-              
+
               // 如果看到提示符，说明命令执行完成
               if (data.includes('$') || data.includes('#') || data.includes('>')) {
                 CommandOutputAnalyzer.getInstance().analyzeAndCollect(shellId, {
@@ -563,16 +570,18 @@ export const useTerminalInit = ({
               }
             },
             () => {
+              console.log('[useTerminalInit] Shell连接关闭回调触发');
               callbacksRef.current.setIsConnected(false);
               shellIdRef.current = '';
               eventBus.setCurrentShellId('');
-              terminal.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
+              // terminal.write('\r\n\x1b[31m连接已关闭\x1b[0m\r\n');
+              // terminal.write('\x1b[33m提示：可以右键选择"重新加载"尝试重新连接\x1b[0m\r\n');
               // 清除终端输出缓存
               terminalOutputService.clearOutput(shellId);
               // 发送连接状态变化事件
-              eventBus.emit('terminal-connection-change', { 
-                shellId: shellIdRef.current || '', 
-                connected: false 
+              eventBus.emit('terminal-connection-change', {
+                shellId: shellIdRef.current || '',
+                connected: false
               });
             },
             {
