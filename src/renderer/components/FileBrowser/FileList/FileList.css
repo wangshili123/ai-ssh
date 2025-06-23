@@ -2,6 +2,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box; /* 确保边框不会增加额外高度 */
 }
 
 .file-list-container .ant-table-wrapper {
@@ -290,6 +291,16 @@
   /* 移除所有可能覆盖width的CSS规则，让内联样式生效 */
 }
 
+/* 复选框列特殊样式 */
+.file-list-container .ant-table-thead > tr > th.ant-table-selection-column,
+.file-list-container .ant-table-tbody > tr > td.ant-table-selection-column {
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  padding: 4px 8px !important;
+  text-align: center !important;
+}
+
 /* 强制隐藏滚动条占位列 - 表头和表体 */
 .file-list-container .ant-table-thead > tr > th.ant-table-cell-scrollbar,
 .file-list-container .ant-table-tbody > tr > td.ant-table-cell-scrollbar {
@@ -379,7 +390,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 50px !important;
-  max-width: none !important;
+  /* 移除 max-width: none，让列宽受JavaScript控制 */
 }
 
 /* 重要：确保调整手柄可以正常工作 */

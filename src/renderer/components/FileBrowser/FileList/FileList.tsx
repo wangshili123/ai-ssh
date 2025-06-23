@@ -62,7 +62,7 @@ const FileList: React.FC<FileListProps> = ({
 
   // 列宽状态管理
   const [columnWidths, setColumnWidths] = useState({
-    name: 80,      // 文件名列 - 调整到120px
+    name: 120,      // 文件名列 - 调整到120px
     size: 80,       // 大小列 - 80px
     type: 60,       // 类型列 - 60px
     modifyTime: 140, // 修改时间列 - 140px
@@ -125,8 +125,8 @@ const FileList: React.FC<FileListProps> = ({
     const resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
         const height = entry.contentRect.height;
-        // 设置表格高度为容器完整高度减去表头高度
-        const calculatedHeight = Math.max(height - 26, 200); // 最小高度200px，表头高度26px
+        // 设置表格高度为容器完整高度，不减去任何高度
+        const calculatedHeight = Math.max(height, 200); // 最小高度200px
         setTableHeight(calculatedHeight);
         console.log('[FileList] 容器高度变化:', { containerHeight: height, tableHeight: calculatedHeight });
       }
