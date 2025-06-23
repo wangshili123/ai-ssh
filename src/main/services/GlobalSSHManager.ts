@@ -454,12 +454,19 @@ export class GlobalSSHManager {
    * @param connected 是否已连接
    */
   public setDedicatedConnectionStatus(sessionId: string, connected: boolean): void {
+    console.log(`[GlobalSSHManager] 设置专用连接状态 - sessionId: ${sessionId}, connected: ${connected}`);
+    console.log(`[GlobalSSHManager] 设置前专用连接映射:`, Array.from(this.dedicatedConnections.keys()));
+
     if (connected) {
       // 创建一个占位符客户端对象，表示专用连接存在
       this.dedicatedConnections.set(sessionId, {} as any);
+      console.log(`[GlobalSSHManager] 已添加专用连接 - sessionId: ${sessionId}`);
     } else {
       this.dedicatedConnections.delete(sessionId);
+      console.log(`[GlobalSSHManager] 已删除专用连接 - sessionId: ${sessionId}`);
     }
+
+    console.log(`[GlobalSSHManager] 设置后专用连接映射:`, Array.from(this.dedicatedConnections.keys()));
   }
 
   /**
@@ -496,8 +503,16 @@ export class GlobalSSHManager {
     sharedPool?: { size: number; available: number; borrowed: number; pending: number };
     transferPool?: { size: number; available: number; borrowed: number; pending: number };
   } {
+    console.log(`[GlobalSSHManager] 获取连接状态统计 - sessionId: ${sessionId}`);
+    console.log(`[GlobalSSHManager] 当前专用连接映射:`, Array.from(this.dedicatedConnections.keys()));
+    console.log(`[GlobalSSHManager] 当前共享连接池:`, Array.from(this.sharedPools.keys()));
+    console.log(`[GlobalSSHManager] 当前传输连接池:`, Array.from(this.transferPools.keys()));
+
+    const dedicatedExists = this.dedicatedConnections.has(sessionId);
+    console.log(`[GlobalSSHManager] 专用连接存在检查 - sessionId: ${sessionId}, exists: ${dedicatedExists}`);
+
     const stats: any = {
-      dedicated: this.dedicatedConnections.has(sessionId)
+      dedicated: dedicatedExists
     };
 
     const sharedPool = this.sharedPools.get(sessionId);
@@ -508,6 +523,7 @@ export class GlobalSSHManager {
         borrowed: sharedPool.borrowed,
         pending: sharedPool.pending
       };
+      console.log(`[GlobalSSHManager] 共享连接池状态:`, stats.sharedPool);
     }
 
     const transferPool = this.transferPools.get(sessionId);
@@ -518,8 +534,10 @@ export class GlobalSSHManager {
         borrowed: transferPool.borrowed,
         pending: transferPool.pending
       };
+      console.log(`[GlobalSSHManager] 传输连接池状态:`, stats.transferPool);
     }
 
+    console.log(`[GlobalSSHManager] 最终连接状态统计:`, stats);
     return stats;
   }
 
@@ -532,7 +550,24 @@ export class GlobalSSHManager {
 
     // 检查专用连接
     for (const [sessionId, client] of this.dedicatedConnections) {
-      if (!this.isClientConnected(client)) {
+      console.log(`[GlobalSSHManager] 检查专用连接 - sessionId: ${sessionId}, client:`, client);
+      console.log(`[GlobalSSHManager] 客户端属性数量: ${Object.keys(client).length}`);
+
+      // 跳过占位符连接（通过setDedicatedConnectionStatus设置的空对象）
+      // @ts-ignore - 检查内部属性
+      const hasSock = !!client._sock;
+      const keyCount = Object.keys(client).length;
+      console.log(`[GlobalSSHManager] 连接检查 - sessionId: ${sessionId}, hasSock: ${hasSock}, keyCount: ${keyCount}`);
+
+      if (!hasSock && keyCount === 0) {
+        console.log(`[GlobalSSHManager] 跳过占位符专用连接: ${sessionId}`);
+        continue;
+      }
+
+      const isConnected = this.isClientConnected(client);
+      console.log(`[GlobalSSHManager] 连接状态检查 - sessionId: ${sessionId}, isConnected: ${isConnected}`);
+
+      if (!isConnected) {
         console.warn(`[GlobalSSHManager] 专用连接异常，移除: ${sessionId}`);
         this.dedicatedConnections.delete(sessionId);
       }

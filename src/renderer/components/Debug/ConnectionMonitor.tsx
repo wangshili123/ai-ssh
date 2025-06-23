@@ -45,13 +45,15 @@ export const ConnectionMonitor: React.FC<ConnectionMonitorProps> = ({
 
     setLoading(true);
     try {
-      // console.log('[ConnectionMonitor] 开始获取连接状态:', sessionId);
+      console.log('[ConnectionMonitor] 开始获取连接状态:', sessionId);
       const result = await ipcRenderer.invoke('ssh:get-connection-stats', sessionId);
-      // console.log('[ConnectionMonitor] 连接状态结果:', result);
+      console.log('[ConnectionMonitor] 连接状态结果:', result);
       if (result.success) {
+        console.log('[ConnectionMonitor] 设置状态数据:', result.data);
+        console.log('[ConnectionMonitor] dedicated值:', result.data.dedicated, '类型:', typeof result.data.dedicated);
         setStats(result.data);
         setLastUpdate(new Date());
-        // console.log('[ConnectionMonitor] 连接状态更新成功:', result.data);
+        console.log('[ConnectionMonitor] 连接状态更新成功:', result.data);
       } else {
         console.error('获取连接状态失败:', result.error);
       }
@@ -209,7 +211,7 @@ export const ConnectionMonitor: React.FC<ConnectionMonitorProps> = ({
       {/* 专用连接状态 */}
       <div style={{ marginBottom: 16 }}>
         <Text strong>专用连接状态: </Text>
-        <Tag 
+        <Tag
           icon={stats?.dedicated ? <CheckCircleOutlined /> : <ExclamationCircleOutlined />}
           color={stats?.dedicated ? 'success' : 'error'}
         >

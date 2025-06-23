@@ -43,6 +43,9 @@ class SFTPClient {
     console.log(`[SFTPClient] 开始连接SFTP（复用SSH连接） - sessionId: ${this.sessionInfo.id}`);
 
     try {
+      // 先清理旧连接
+      await this.close();
+
       // 确保SSH连接存在
       if (!sshService.isConnected(this.sessionInfo.id)) {
         console.log(`[SFTPClient] SSH连接不存在，先创建SSH连接 - sessionId: ${this.sessionInfo.id}`);
@@ -50,12 +53,21 @@ class SFTPClient {
       }
 
       // 从SSH服务获取SFTP连接
+      console.log(`[SFTPClient] 获取SFTP连接 - sessionId: ${this.sessionInfo.id}`);
       this.sftpConnection = await sshService.getSFTPConnection(this.sessionInfo.id);
       this.sftp = this.sftpConnection.sftp;
+
+      // 验证SFTP连接
+      if (!this.sftp) {
+        throw new Error('Failed to get SFTP connection');
+      }
 
       console.log(`[SFTPClient] SFTP连接建立成功（复用SSH连接） - sessionId: ${this.sessionInfo.id}`);
     } catch (error) {
       console.error(`[SFTPClient] SFTP连接失败 - sessionId: ${this.sessionInfo.id}:`, error);
+      // 清理状态
+      this.sftp = null;
+      this.sftpConnection = null;
       throw error;
     }
   }
@@ -82,36 +94,130 @@ class SFTPClient {
     }
 
     return new Promise((resolve, reject) => {
-      this.sftp.readdir(path, (err: Error, list: any[]) => {
-        if (err) {
-          console.error(`[SFTPClient] 读取目录失败 - connectionId: ${this.connectionId}, path: ${path}:`, err);
-          reject(err);
+      console.log(`[SFTPClient] 开始执行readdir - connectionId: ${this.connectionId}, path: ${path}`);
+      console.log(`[SFTPClient] SFTP对象状态 - connectionId: ${this.connectionId}, sftp: ${this.sftp ? 'exists' : 'null'}`);
+
+      if (!this.sftp) {
+        console.error(`[SFTPClient] SFTP对象为空 - connectionId: ${this.connectionId}`);
+        reject(new Error('SFTP connection is null'));
+        return;
+      }
+
+      // 检查SFTP连接的真实状态
+      // @ts-ignore - 检查内部连接状态
+      const sftpConnected = this.sftp._stream && !this.sftp._stream.destroyed;
+      console.log(`[SFTPClient] SFTP连接状态检查 - connectionId: ${this.connectionId}, connected: ${sftpConnected}`);
+
+      if (!sftpConnected) {
+        console.log(`[SFTPClient] SFTP连接已断开，尝试重新连接 - connectionId: ${this.connectionId}`);
+        this.connect()
+          .then(() => {
+            console.log(`[SFTPClient] SFTP重新连接成功 - connectionId: ${this.connectionId}`);
+            // 重新连接成功后，继续执行readdir
+            this.executeReaddir(path, resolve, reject);
+          })
+          .catch((reconnectError) => {
+            console.error(`[SFTPClient] SFTP重新连接失败 - connectionId: ${this.connectionId}:`, reconnectError);
+            reject(new Error(`SFTP connection failed: ${reconnectError}`));
+          });
+        return;
+      }
+
+      // 连接正常，直接执行readdir
+      this.executeReaddir(path, resolve, reject);
+    });
+  }
+
+  /**
+   * 执行readdir操作
+   */
+  private executeReaddir(path: string, resolve: (value: FileEntry[]) => void, reject: (reason?: any) => void): void {
+    console.log(`[SFTPClient] 调用sftp.readdir - connectionId: ${this.connectionId}, path: ${path}`);
+
+    // 添加超时机制，防止readdir调用卡住
+    const timeoutId = setTimeout(() => {
+      console.error(`[SFTPClient] readdir超时 - connectionId: ${this.connectionId}, path: ${path}`);
+      reject(new Error('SFTP readdir timeout after 30 seconds'));
+    }, 30000); // 30秒超时
+
+    this.sftp.readdir(path, (err: Error, list: any[]) => {
+      clearTimeout(timeoutId); // 清除超时
+      console.log(`[SFTPClient] readdir回调触发 - connectionId: ${this.connectionId}, path: ${path}, err: ${err ? err.message : 'null'}, list: ${list ? list.length : 'null'}`);
+      if (err) {
+        console.error(`[SFTPClient] 读取目录失败 - connectionId: ${this.connectionId}, path: ${path}:`, err);
+
+        // 如果是连接相关错误，尝试重新连接
+        if (err.message.includes('connection') || err.message.includes('ECONNRESET') || err.message.includes('closed')) {
+          console.log(`[SFTPClient] 检测到连接错误，尝试重新连接 - connectionId: ${this.connectionId}`);
+          this.connect()
+            .then(() => {
+              console.log(`[SFTPClient] 重新连接成功，重试读取目录 - connectionId: ${this.connectionId}, path: ${path}`);
+
+              // 重新尝试读取目录
+              this.sftp.readdir(path, (retryErr: Error, retryList: any[]) => {
+                if (retryErr) {
+                  console.error(`[SFTPClient] 重试读取目录失败 - connectionId: ${this.connectionId}, path: ${path}:`, retryErr);
+                  reject(retryErr);
+                  return;
+                }
+
+                const entries: FileEntry[] = retryList.map(item => {
+                  const filename = item.filename;
+                  const isDir = !shouldFilterRegularFile(item.attrs.mode);
+                  const ext = isDir ? '' : filename.includes('.') ? filename.split('.').pop()?.toLowerCase() || '' : '';
+
+                  return {
+                    name: filename,
+                    path: `${path}/${filename}`.replace(/\/+/g, '/'),
+                    isDirectory: isDir,
+                    size: item.attrs.size,
+                    modifyTime: item.attrs.mtime * 1000,
+                    permissions: item.attrs.mode,
+                    owner: item.attrs.uid,
+                    group: item.attrs.gid,
+                    extension: ext
+                  };
+                });
+
+                // 更新缓存
+                this.cache.directoryCache.set(path, entries);
+                console.log(`[SFTPClient] 重试目录读取完成并缓存 - connectionId: ${this.connectionId}, path: ${path}, count: ${entries.length}`);
+                resolve(entries);
+              });
+            })
+            .catch((reconnectError) => {
+              console.error(`[SFTPClient] 重新连接失败 - connectionId: ${this.connectionId}:`, reconnectError);
+              reject(err); // 返回原始错误
+            });
           return;
         }
-        
-        const entries: FileEntry[] = list.map(item => {
-          const filename = item.filename;
-          const isDir = !shouldFilterRegularFile(item.attrs.mode);
-          const ext = isDir ? '' : filename.includes('.') ? filename.split('.').pop()?.toLowerCase() || '' : '';
-          
-          return {
-            name: filename,
-            path: `${path}/${filename}`.replace(/\/+/g, '/'),
-            isDirectory: isDir,
-            size: item.attrs.size,
-            modifyTime: item.attrs.mtime * 1000,
-            permissions: item.attrs.mode,
-            owner: item.attrs.uid,
-            group: item.attrs.gid,
-            extension: ext
-          };
-        });
-        
-        // 更新缓存
-        this.cache.directoryCache.set(path, entries);
-        console.log(`[SFTPClient] 目录读取完成并缓存 - connectionId: ${this.connectionId}, path: ${path}, count: ${entries.length}`);
-        resolve(entries);
+
+        reject(err);
+        return;
+      }
+
+      const entries: FileEntry[] = list.map(item => {
+        const filename = item.filename;
+        const isDir = !shouldFilterRegularFile(item.attrs.mode);
+        const ext = isDir ? '' : filename.includes('.') ? filename.split('.').pop()?.toLowerCase() || '' : '';
+
+        return {
+          name: filename,
+          path: `${path}/${filename}`.replace(/\/+/g, '/'),
+          isDirectory: isDir,
+          size: item.attrs.size,
+          modifyTime: item.attrs.mtime * 1000,
+          permissions: item.attrs.mode,
+          owner: item.attrs.uid,
+          group: item.attrs.gid,
+          extension: ext
+        };
       });
+
+      // 更新缓存
+      this.cache.directoryCache.set(path, entries);
+      console.log(`[SFTPClient] 目录读取完成并缓存 - connectionId: ${this.connectionId}, path: ${path}, count: ${entries.length}`);
+      resolve(entries);
     });
   }
 
@@ -526,9 +632,18 @@ class SFTPManager {
    * @param connectionId 连接ID
    */
   getClient(connectionId: string): SFTPClient | undefined {
+    console.log(`[SFTPManager] 查找客户端 - connectionId: ${connectionId}, 当前客户端数量: ${this.clients.size}`);
+    console.log(`[SFTPManager] 当前所有客户端ID:`, Array.from(this.clients.keys()));
+
     const client = this.clients.get(connectionId);
     if (!client) {
       console.log(`[SFTPManager] 未找到客户端 - connectionId: ${connectionId}`);
+      console.log(`[SFTPManager] 详细调试信息:`);
+      this.clients.forEach((_, id) => {
+        console.log(`  - 客户端ID: ${id}`);
+      });
+    } else {
+      console.log(`[SFTPManager] 找到客户端 - connectionId: ${connectionId}`);
     }
     return client;
   }

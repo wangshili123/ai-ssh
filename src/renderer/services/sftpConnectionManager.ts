@@ -165,10 +165,17 @@ class SFTPConnectionManager {
    * @param forceRefresh 是否强制刷新（不使用缓存）
    */
   async readDirectory(tabId: string, path: string, forceRefresh: boolean = false): Promise<FileEntry[]> {
+    console.log(`[SFTPManager] 开始读取目录 - tabId: ${tabId}, path: ${path}, forceRefresh: ${forceRefresh}`);
+    console.log(`[SFTPManager] 当前连接数量: ${this.connections.size}`);
+    this.debugConnections();
+
     const conn = this.getConnection(tabId);
     if (!conn) {
+      console.error(`[SFTPManager] 未找到连接 - tabId: ${tabId}`);
       throw new Error('SFTP连接不存在');
     }
+
+    console.log(`[SFTPManager] 找到连接 - tabId: ${tabId}, connectionId: ${conn.id}, sessionId: ${conn.sessionInfo.id}`);
 
     const cache = this.getTabCache(tabId);
     let result: FileEntry[] = [];

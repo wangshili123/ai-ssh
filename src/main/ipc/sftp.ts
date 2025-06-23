@@ -29,14 +29,15 @@ export function registerSFTPHandlers(): void {
   ipcMain.handle('sftp:read-directory',
     async (event, connectionId: string, path: string, useCache: boolean = true): Promise<Result<FileEntry[]>> => {
       try {
-        console.log(`[SFTP] 读取目录 - connectionId: ${connectionId}, path: ${path}, useCache: ${useCache}`);
+        console.log(`[SFTP IPC] 收到读取目录请求 - connectionId: ${connectionId}, path: ${path}, useCache: ${useCache}`);
         const entries = await sftpManager.readDirectory(connectionId, path, useCache);
+        console.log(`[SFTP IPC] 读取目录成功 - connectionId: ${connectionId}, 文件数量: ${entries.length}`);
         return {
           success: true,
           data: entries
         };
       } catch (error) {
-        console.error(`[SFTP] 读取目录失败:`, error);
+        console.error(`[SFTP IPC] 读取目录失败 - connectionId: ${connectionId}:`, error);
         return {
           success: false,
           error: (error as Error).message

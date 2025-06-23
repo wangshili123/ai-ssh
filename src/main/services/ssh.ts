@@ -317,6 +317,19 @@ class SSHService {
   private handleShellDisconnection(shellId: string, sessionId: string): void {
     console.log(`[SSH] 处理Shell断开连接: ${shellId}`);
 
+    // 检查是否还有其他活跃的Shell会话
+    const hasOtherShells = Array.from(this.shells.keys()).some(id =>
+      id !== shellId && id.startsWith(sessionId + '-')
+    );
+
+    console.log(`[SSH] 检查其他Shell会话 - sessionId: ${sessionId}, hasOtherShells: ${hasOtherShells}`);
+
+    // 如果没有其他活跃的Shell会话，清理专用连接状态
+    if (!hasOtherShells) {
+      console.log(`[SSH] 没有其他活跃Shell，清理专用连接状态 - sessionId: ${sessionId}`);
+      this.globalManager.setDedicatedConnectionStatus(sessionId, false);
+    }
+
     // 获取主窗口
     const mainWindow = BrowserWindow.getAllWindows()[0];
     if (!mainWindow) {
@@ -403,6 +416,7 @@ class SSHService {
     this.dedicatedConnections.set(sessionInfo.id, handle.client);
 
     // 通知GlobalSSHManager专用连接已建立
+    console.log(`[SSH] 通知GlobalSSHManager专用连接已建立 - sessionId: ${sessionInfo.id}`);
     this.globalManager.setDedicatedConnectionStatus(sessionInfo.id, true);
 
     // 存储配置信息（但不创建旧的连接池）
@@ -686,12 +700,16 @@ class SSHService {
     const sessionId = shellId.split('-')[0];
 
     console.log(`[SSH] 创建Shell ${shellId}, sessionId: ${sessionId}`);
+    console.log(`[SSH] 当前专用连接列表:`, Array.from(this.dedicatedConnections.keys()));
 
     // 新架构：Shell会话始终使用专用连接，不再占用连接池
     console.log(`[SSH] Shell会话使用专用连接 ${sessionId}`);
     const dedicatedClient = this.dedicatedConnections.get(sessionId);
+    console.log(`[SSH] 专用连接查找结果 - sessionId: ${sessionId}, found: ${!!dedicatedClient}`);
+
     if (!dedicatedClient) {
       console.error(`[SSH] 未找到专用连接: ${sessionId}`);
+      console.log(`[SSH] 尝试通过GlobalSSHManager查找连接...`);
       throw new Error('No SSH connection found');
     }
 
