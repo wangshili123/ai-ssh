@@ -183,24 +183,29 @@ const App: React.FC = () => {
               className="ai-sider"
               trigger={null}
             >
-              <div 
+              <div
                 className="ai-assistant-container"
                 onMouseDown={(e) => {
-                  if (e.target === e.currentTarget.querySelector('.resize-handle')) {
+                  // 检查点击的元素是否是拖拽手柄或其子元素
+                  const target = e.target as HTMLElement;
+                  const resizeHandle = e.currentTarget.querySelector('.resize-handle') as HTMLElement;
+
+                  if (target === resizeHandle || resizeHandle?.contains(target)) {
+                    e.preventDefault();
                     const startX = e.clientX;
                     const startWidth = aiSiderWidth;
-                    
+
                     const handleMouseMove = (moveEvent: MouseEvent) => {
                       const deltaX = startX - moveEvent.clientX;
                       const newWidth = Math.min(Math.max(370, startWidth + deltaX), 800);
                       setAiSiderWidth(newWidth);
                     };
-                    
+
                     const handleMouseUp = () => {
                       document.removeEventListener('mousemove', handleMouseMove);
                       document.removeEventListener('mouseup', handleMouseUp);
                     };
-                    
+
                     document.addEventListener('mousemove', handleMouseMove);
                     document.addEventListener('mouseup', handleMouseUp);
                   }

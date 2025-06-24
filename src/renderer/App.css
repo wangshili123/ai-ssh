@@ -77,15 +77,22 @@
   position: absolute;
   left: 0;
   top: 0;
-  width: 4px;
+  width: 6px;
   height: 100%;
   cursor: col-resize;
   background-color: transparent;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+  z-index: 10;
+  /* 增加点击区域 */
+  margin-left: -2px;
+  /* 添加一个细线指示器 */
+  border-left: 1px solid rgba(24, 144, 255, 0.2);
 }
 
 .resize-handle:hover {
-  background-color: #e6f7ff;
+  background-color: rgba(24, 144, 255, 0.3);
+  border-left-color: #1890ff;
+  border-left-width: 2px;
 }
 
 .ai-assistant-container {
