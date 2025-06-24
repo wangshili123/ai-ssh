@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { UserOutlined } from '@ant-design/icons';
 import { agentModeService } from '../../../../services/modes/agent';
 import { terminalOutputService } from '../../../../services/terminalOutput';
@@ -31,6 +31,19 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
   const [messages, setMessages] = useState<AgentResponse[]>([]);
   const [userMessage, setUserMessage] = useState<string | null>(null);
   const [messageTime, setMessageTime] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // 滚动到底部的函数
+  const scrollToBottom = useCallback(() => {
+    if (containerRef.current) {
+      console.log('[AgentMode] 执行滚动到底部');
+      const container = containerRef.current;
+      // 使用 requestAnimationFrame 确保 DOM 更新完成后再滚动
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+      });
+    }
+  }, []);
 
   // 监听Agent服务的消息更新
   useEffect(() => {
@@ -45,10 +58,13 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
       const currentMessage = agentModeService.getCurrentMessage();
 
       // 检查是否需要更新
-      const needUpdate = 
+      const currentTaskId = currentTask?.id || '';
+      const currentMessageStatus = currentMessage?.status || '';
+
+      const needUpdate =
         allMessages.length !== lastMessageCount ||
-        currentMessage?.status !== lastMessageStatus ||
-        currentTask?.id !== lastTaskId;
+        currentMessageStatus !== lastMessageStatus ||
+        currentTaskId !== lastTaskId;
 
       if (needUpdate) {
         // 更新历史消息
@@ -73,14 +89,21 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
 
         // 更新状态记录
         lastMessageCount = allMessages.length;
-        lastMessageStatus = currentMessage?.status || '';
-        lastTaskId = currentTask?.id || '';
+        lastMessageStatus = currentMessageStatus;
+        lastTaskId = currentTaskId;
 
-        // console.log('[AgentMode] 状态已更新:', {
-        //   messageCount: allMessages.length,
-        //   messageStatus: currentMessage?.status,
-        //   taskId: currentTask?.id
-        // });
+        // 只在有实际变化时输出日志
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[AgentMode] 状态已更新:', {
+            messageCount: allMessages.length,
+            messageStatus: currentMessageStatus,
+            taskId: currentTaskId,
+            hasCurrentMessage: !!currentMessage
+          });
+        }
+
+        // 状态更新后滚动到底部
+        setTimeout(scrollToBottom, 100);
       }
     }, 500);  // 增加轮询间隔到500ms
 
@@ -129,14 +152,26 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
       // 如果是 Ctrl+C 信号，直接发送并返回，不进行后续处理
       if (command === 'q') {
         console.log('[AgentMode] 发送 Ctrl+C 信号');
-        await onExecute(command);
-        
-        // 更新状态
-        const currentTask = agentModeService.getCurrentTask();
-        if (currentTask) {
-          console.log('[AgentMode] 更新任务状态为分析中');
-          agentModeService.setState(AgentState.ANALYZING);
-          agentModeService.updateMessageStatus(AgentResponseStatus.ANALYZING);
+        try {
+          await onExecute(command);
+
+          // 更新状态
+          const currentTask = agentModeService.getCurrentTask();
+          if (currentTask) {
+            console.log('[AgentMode] 更新任务状态为分析中');
+            agentModeService.setState(AgentState.ANALYZING);
+            agentModeService.updateMessageStatus(AgentResponseStatus.ANALYZING);
+          }
+        } catch (executeError) {
+          console.error('[AgentMode] Ctrl+C 信号发送失败:', executeError);
+          // 即使Ctrl+C发送失败，也要更新状态
+          agentModeService.setState(AgentState.ERROR);
+          agentModeService.updateMessageStatus(AgentResponseStatus.ERROR);
+          agentModeService.appendContent({
+            type: 'error',
+            content: `停止命令失败: ${executeError instanceof Error ? executeError.message : '未知错误'}`,
+            timestamp: Date.now()
+          });
         }
         return;
       }
@@ -168,26 +203,56 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
       console.log('[AgentMode] 初始历史记录长度:', startHistoryLength);
       
       console.log('[AgentMode] 发送命令到终端:', command);
-      await onExecute(command);
-      console.log('[AgentMode] 命令已发送到终端');
+      try {
+        await onExecute(command);
+        console.log('[AgentMode] 命令已发送到终端');
+      } catch (executeError) {
+        console.error('[AgentMode] 命令执行失败:', executeError);
+        // 更新Agent状态为错误
+        agentModeService.setState(AgentState.ERROR);
+        agentModeService.updateMessageStatus(AgentResponseStatus.ERROR);
+
+        // 添加错误信息到消息内容
+        agentModeService.appendContent({
+          type: 'error',
+          content: `命令执行失败: ${executeError instanceof Error ? executeError.message : '未知错误'}`,
+          timestamp: Date.now()
+        });
+
+        return; // 直接返回，不继续检查输出
+      }
       
       let isTerminated = false;
-      
+      let checkCount = 0;
+      const maxChecks = 200; // 最多检查200次 (200 * 300ms = 60秒)
+
       const checkOutput = async () => {
         if (isTerminated) {
           console.log('[AgentMode] 检查已终止');
           return;
         }
-        
-        const task = agentModeService.getCurrentTask();
-        console.log('[AgentMode] 检查输出时的任务状态:', {
-          taskId: task?.id,
-          taskPaused: task?.paused,
-          taskState: task?.state
-        });
 
-        if (task?.paused) {
-          console.log('[AgentMode] 任务已暂停，停止检查输出');
+        checkCount++;
+        if (checkCount > maxChecks) {
+          console.log('[AgentMode] 检查超时，停止检查');
+          isTerminated = true;
+          agentModeService.setState(AgentState.ERROR);
+          agentModeService.updateMessageStatus(AgentResponseStatus.ERROR);
+          return;
+        }
+
+        const task = agentModeService.getCurrentTask();
+
+        // 检查任务是否被取消或不存在
+        if (!task) {
+          console.log('[AgentMode] 任务不存在，停止检查输出');
+          isTerminated = true;
+          return;
+        }
+
+        // 检查任务状态
+        if (task.paused || task.state === AgentState.CANCELLED || task.state === AgentState.ERROR) {
+          console.log('[AgentMode] 任务已暂停/取消/错误，停止检查输出:', task.state);
           isTerminated = true;
           return;
         }
@@ -199,10 +264,14 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
         const lastCommand = command;  // 保存当前执行的命令
         const outputsOnly = newOutputs.map(output => output.output).join('\n');
         
-        console.log('[AgentMode] 检查输出:', {
-          outputLength: outputsOnly.length,
-          lastLine: outputsOnly.split('\n').pop()
-        });
+        // 减少日志输出频率，只在有输出时才打印
+        if (outputsOnly.length > 0 && checkCount % 10 === 0) {
+          console.log('[AgentMode] 检查输出:', {
+            checkCount,
+            outputLength: outputsOnly.length,
+            lastLine: outputsOnly.split('\n').pop()
+          });
+        }
         
         // 检查是否有命令提示符
         if (checkCommandComplete(outputsOnly)) {
@@ -269,7 +338,7 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
   }, []);
 
   return (
-    <div className="agent-mode">
+    <div className="agent-mode" ref={containerRef}>
       {messages.map((message, index) => {
         const task = agentModeService.getCurrentTask();
         // 修改判断逻辑：检查消息内容和时间戳是否匹配
@@ -279,13 +348,15 @@ const AgentMode: React.FC<AgentModeProps> = ({ onExecute }) => {
           )
         );
         
-        console.log('[AgentMode] 渲染消息:', {
-          messageIndex: index,
-          isCurrentMessage,
-          messageStatus: message.status,
-          currentMessageTimestamp: task?.currentMessage?.contents[0]?.timestamp,
-          thisMessageTimestamp: message.contents[0]?.timestamp
-        });
+        // 减少渲染日志的输出频率
+        if (process.env.NODE_ENV === 'development' && index === 0) {
+          console.log('[AgentMode] 渲染消息:', {
+            messageIndex: index,
+            isCurrentMessage,
+            messageStatus: message.status,
+            totalMessages: messages.length
+          });
+        }
         
         return (
           <React.Fragment key={index}>

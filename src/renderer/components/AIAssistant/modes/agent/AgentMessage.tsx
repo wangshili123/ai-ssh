@@ -237,6 +237,14 @@ const CommandBlock: React.FC<{
       console.log('[AgentMessage] 停止命令处理完成');
     } catch (error) {
       console.error('[AgentMessage] 停止命令失败:', error);
+      // 即使停止失败，也要更新状态
+      agentModeService.setState(AgentState.ERROR);
+      agentModeService.updateMessageStatus(AgentResponseStatus.ERROR);
+      agentModeService.appendContent({
+        type: 'error',
+        content: `停止命令失败: ${error instanceof Error ? error.message : '未知错误'}`,
+        timestamp: Date.now()
+      });
       setIsExecuting(false);
     }
   };
@@ -382,24 +390,27 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
     if (content.type === 'output') {
       return null;
     }
-    
-    const hasAnalysis = content.analysis;
+
+    const hasAnalysis = content.analysis || (content.type === 'analysis' && content.content);
     const hasCommand = content.command;
     const hasResult = content.type === 'result' && content.content;
-    
-    if (!hasAnalysis && !hasCommand && !hasResult) {
+    const hasError = content.type === 'error' && content.content;
+
+    if (!hasAnalysis && !hasCommand && !hasResult && !hasError) {
       return null;
     }
-    
+
     return (
       <div key={index} className={`content-item ${content.type}`}>
-        {content.analysis && (
+        {(content.analysis || (content.type === 'analysis' && content.content)) && (
           <div className="analysis-block">
-            <div className="analysis-title">执行结果分析：</div>
-            {content.analysis}
+            <div className="analysis-title">
+              {content.type === 'analysis' ? 'AI 分析：' : '执行结果分析：'}
+            </div>
+            {content.analysis || content.content}
           </div>
         )}
-        
+
         {content.command && (
           <CommandBlock
             command= {{
@@ -413,9 +424,16 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
             message={message}
           />
         )}
-        
+
         {content.type === 'result' && content.content && (
           <div className="result-block">
+            {content.content}
+          </div>
+        )}
+
+        {content.type === 'error' && content.content && (
+          <div className="error-block">
+            <div className="error-title">错误信息：</div>
             {content.content}
           </div>
         )}
@@ -423,14 +441,15 @@ export const AgentMessage: React.FC<Props> = ({ message, onExecuteCommand, onSki
     );
   }, [onExecuteCommand, onSkipCommand]);
 
-  if (process.env.NODE_ENV === 'development') {
-    // console.log('AgentMessage 开始渲染:', {
-    //   status: message.status,
-    //   contentsLength: message.contents.length,
-    //   hasExecuteHandler: !!onExecuteCommand,
-    //   hasSkipHandler: !!onSkipCommand
-    // });
-  }
+  // 减少日志输出
+  // if (process.env.NODE_ENV === 'development') {
+  //   console.log('AgentMessage 开始渲染:', {
+  //     status: message.status,
+  //     contentsLength: message.contents.length,
+  //     hasExecuteHandler: !!onExecuteCommand,
+  //     hasSkipHandler: !!onSkipCommand
+  //   });
+  // }
 
   return (
     <div className="agent-message">

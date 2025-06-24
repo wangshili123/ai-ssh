@@ -97,6 +97,9 @@ const AIAssistant = ({ sessionId, isCollapsed = false, onCollapse }: AIAssistant
       setInputHistory(prev => [message.trim(), ...prev]);
       setHistoryIndex(-1);
 
+      // 立即滚动到底部
+      setTimeout(scrollToBottom, 100);
+
       const { messages, setMessages } = getCurrentModeMessages();
 
       // 添加用户消息
@@ -153,8 +156,32 @@ const AIAssistant = ({ sessionId, isCollapsed = false, onCollapse }: AIAssistant
       });
     } finally {
       setLoading(false);
+      // 处理完成后再次滚动到底部
+      setTimeout(scrollToBottom, 200);
     }
   };
+
+  // 自动滚动到底部
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      console.log('[主组件] 执行滚动到底部');
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      console.log('[主组件] 滚动目标元素不存在');
+    }
+  };
+
+  // 监听消息变化，自动滚动到底部
+  useEffect(() => {
+    scrollToBottom();
+  }, [commandMessages, contextMessages, loading]);
+
+  // Agent模式使用内部滚动逻辑，不需要主组件轮询
+  // useEffect(() => {
+  //   if (mode === AssistantMode.AGENT) {
+  //     // Agent模式的滚动由AgentMode组件内部处理
+  //   }
+  // }, [mode]);
 
   // 保存用户模式选择
   useEffect(() => {
@@ -254,24 +281,35 @@ const AIAssistant = ({ sessionId, isCollapsed = false, onCollapse }: AIAssistant
           // 获取当前活动的 shell ID
           const currentShellId = eventBus.getCurrentShellId();
           if (!currentShellId) {
+            const errorMessage = '请先打开一个终端会话';
             notification.error({
               message: '执行失败',
-              description: '请先打开一个终端会话',
+              description: errorMessage,
               placement: 'bottomLeft',
               duration: 3
             });
-            return;
+            // 抛出错误，让Agent模式能够捕获并更新状态
+            throw new Error(errorMessage);
           }
 
           await sshService.executeCommand(command);
         } catch (error) {
           console.error('执行命令失败:', error);
-          notification.error({
-            message: '执行失败',
-            description: error instanceof Error ? error.message : '未知错误',
-            placement: 'bottomLeft',
-            duration: 3
-          });
+          const errorMessage = error instanceof Error ? error.message : '未知错误';
+
+          // 只有在不是"请先打开一个终端会话"错误时才显示通知
+          // 因为上面已经显示过了
+          if (!errorMessage.includes('请先打开一个终端会话')) {
+            notification.error({
+              message: '执行失败',
+              description: errorMessage,
+              placement: 'bottomLeft',
+              duration: 3
+            });
+          }
+
+          // 重新抛出错误，让Agent模式能够处理
+          throw error;
         }
       }
     };
@@ -318,8 +356,9 @@ const AIAssistant = ({ sessionId, isCollapsed = false, onCollapse }: AIAssistant
       />
       {!isCollapsed && (
         <>
-          <div className="ai-messages" ref={messagesEndRef}>
+          <div className="ai-messages">
             {renderModeComponent()}
+            <div ref={messagesEndRef} />
           </div>
           <div className="ai-input-container">
             <div className="input-wrapper">
@@ -333,20 +372,30 @@ const AIAssistant = ({ sessionId, isCollapsed = false, onCollapse }: AIAssistant
               />
             </div>
             <div className="button-wrapper">
-              <Radio.Group value={mode} onChange={handleModeChange} size="small">
-                <Radio.Button value={AssistantMode.COMMAND}>命令模式</Radio.Button>
-                <Radio.Button value={AssistantMode.CONTEXT}>上下文模式</Radio.Button>
-                <Radio.Button value={AssistantMode.AGENT}>Agent模式</Radio.Button>
-              </Radio.Group>
-              <Button
-                type="primary"
-                icon={<SendOutlined />}
-                onClick={() => handleSend(input)}
-                loading={loading}
-                disabled={!input.trim()}
-              >
-                发送
-              </Button>
+              <div className="left-buttons">
+                <Radio.Group value={mode} onChange={handleModeChange} size="small">
+                  <Radio.Button value={AssistantMode.COMMAND}>命令模式</Radio.Button>
+                  <Radio.Button value={AssistantMode.CONTEXT}>上下文模式</Radio.Button>
+                  <Radio.Button value={AssistantMode.AGENT}>Agent模式</Radio.Button>
+                </Radio.Group>
+              </div>
+              <div className="right-buttons">
+                <Button
+                  icon={<PlusCircleOutlined />}
+                  onClick={handleClearMessages}
+                  title="新建聊天"
+                  size="small"
+                />
+                <Button
+                  type="primary"
+                  icon={<SendOutlined />}
+                  onClick={() => handleSend(input)}
+                  loading={loading}
+                  disabled={!input.trim()}
+                >
+                  发送
+                </Button>
+              </div>
             </div>
           </div>
         </>

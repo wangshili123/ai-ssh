@@ -245,4 +245,22 @@
   margin-top: 12px;
   width: 100%;
   border: 1px solid #b7eb8f;
-} 
+}
+
+.agent-message .error-block {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cf1322;
+  background: #fff1f0;
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 12px;
+  width: 100%;
+  border: 1px solid #ffccc7;
+}
+
+.agent-message .error-block .error-title {
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #ff4d4f;
+}

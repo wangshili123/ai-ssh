@@ -54,10 +54,31 @@ class AgentModeServiceImpl implements AgentModeService {
 
   updateMessageStatus(status: AgentResponseStatus): void {
     if (this.currentTask?.currentMessage) {
+      console.log('updateMessageStatus 被调用:', {
+        newStatus: status,
+        currentMessageId: this.currentTask.currentMessage.contents[0]?.timestamp,
+        totalMessages: this.messageHistory.length
+      });
+
       this.currentTask.currentMessage.status = status;
+
+      // 确保历史记录中的对应消息也被更新，但只更新当前消息
       const lastMessage = this.messageHistory[this.messageHistory.length - 1];
-      if (lastMessage) {
+      if (lastMessage && lastMessage === this.currentTask.currentMessage) {
+        // 只有当最后一条消息确实是当前消息时才更新
         lastMessage.status = status;
+        console.log('已更新最后一条消息的状态');
+      } else {
+        // 如果不匹配，说明可能有同步问题，需要修复
+        console.warn('currentMessage 和 lastMessage 不匹配，尝试同步');
+        // 在历史记录中找到当前消息并更新
+        const currentMessageIndex = this.messageHistory.findIndex(msg =>
+          msg === this.currentTask?.currentMessage
+        );
+        if (currentMessageIndex !== -1) {
+          this.messageHistory[currentMessageIndex].status = status;
+          console.log('已在历史记录中找到并更新当前消息状态，索引:', currentMessageIndex);
+        }
       }
     }
   }
@@ -65,6 +86,7 @@ class AgentModeServiceImpl implements AgentModeService {
   appendContent(content: MessageContent): void {
     console.log('appendContent 被调用:', {
       type: content.type,
+      content: content.content,
       hasAnalysis: !!content.analysis,
       hasCommand: !!content.command,
       timestamp: content.timestamp
@@ -76,9 +98,13 @@ class AgentModeServiceImpl implements AgentModeService {
         console.warn('currentMessage 和 lastMessage 不是同一个引用');
         this.currentTask.currentMessage = lastMessage;
       }
-      
+
       console.log('当前消息内容数量:', this.currentTask.currentMessage.contents.length);
       this.currentTask.currentMessage.contents.push(content);
+      console.log('内容已添加，新的内容数量:', this.currentTask.currentMessage.contents.length);
+      console.log('添加的内容详情:', content);
+    } else {
+      console.error('无法添加内容：currentTask 或 currentMessage 不存在');
     }
   }
 
@@ -173,11 +199,8 @@ class AgentModeServiceImpl implements AgentModeService {
       if (isNewUserQuery || !this.currentTask || this.getState() === AgentState.IDLE) {
         console.log('创建新任务和消息');
 
-        // 如果存在当前消息，将其状态更新为已完成
-        if (this.currentTask?.currentMessage) {
-          this.currentTask.currentMessage.status = AgentResponseStatus.COMPLETED;
-          this.currentTask.state = AgentState.COMPLETED;
-        }
+        // 注意：不要强制修改之前消息的状态，保持它们原有的状态
+        // 之前的消息状态应该保持不变，只有在真正完成时才设置为完成
 
         // 创建新消息
         const newMessage: AgentResponse = {
@@ -271,38 +294,68 @@ class AgentModeServiceImpl implements AgentModeService {
         const jsonContent = jsonMatch[0];
         const result = JSON.parse(jsonContent) as AIResponse;
         console.log('解析 AI 响应:', result);
+        console.log('isEnd 值和类型:', {
+          isEnd: result.isEnd,
+          isEndType: typeof result.isEnd,
+          isEndString: String(result.isEnd),
+          isEndEqualsFalse: result.isEnd === "false",
+          isEndEqualsBoolean: result.isEnd === false
+        });
 
-        if (result.isEnd==="false") {
-          // 记录当前步骤
-          this.currentStepIndex++;
-          this.taskSteps[this.currentStepIndex] = result.command;
-
-          // 添加命令到消息内容
-          this.appendContent({
-            type: 'command',
-            content: '',
-            timestamp: Date.now(),
-            analysis: result.analysis,
+        if (result.isEnd === "false" || result.isEnd === false) {
+          console.log('isEnd 为 false，检查命令:', {
             command: result.command,
-            description: result.description,
-            risk: result.risk as CommandRiskLevel,
-            executed: false,
-            stopCommand: result.stopCommand,
-            isEnd: false
+            commandTrimmed: result.command?.trim(),
+            hasCommand: !!(result.command && result.command.trim())
           });
-          // 更新状态为等待执行
-          this.setState(AgentState.EXECUTING);
-          this.updateMessageStatus(AgentResponseStatus.WAITING);
+          // 如果有命令需要执行
+          if (result.command && result.command.trim()) {
+            console.log('有命令需要执行:', result.command);
+            // 记录当前步骤
+            this.currentStepIndex++;
+            this.taskSteps[this.currentStepIndex] = result.command;
 
-          // 检查是否可以自动执行命令
-          const canAutoExecute = await autoExecuteService.canAutoExecute(result.risk as CommandRiskLevel);
-          if (canAutoExecute) {
-            console.log('自动执行命令:', result.command);
-            await autoExecuteService.executeCommand(result.command);
+            // 添加命令到消息内容
+            this.appendContent({
+              type: 'command',
+              content: '',
+              timestamp: Date.now(),
+              analysis: result.analysis,
+              command: result.command,
+              description: result.description,
+              risk: result.risk as CommandRiskLevel,
+              executed: false,
+              stopCommand: result.stopCommand,
+              isEnd: false
+            });
+            // 更新状态为等待执行
+            this.setState(AgentState.EXECUTING);
+            this.updateMessageStatus(AgentResponseStatus.WAITING);
+
+            // 检查是否可以自动执行命令
+            const canAutoExecute = await autoExecuteService.canAutoExecute(result.risk as CommandRiskLevel);
+            if (canAutoExecute) {
+              console.log('自动执行命令:', result.command);
+              await autoExecuteService.executeCommand(result.command);
+            }
+          } else {
+            // 如果没有命令，只显示分析内容
+            console.log('没有命令，显示分析内容:', {
+              analysis: result.analysis,
+              description: result.description
+            });
+            this.setState(AgentState.COMPLETED);
+            this.updateMessageStatus(AgentResponseStatus.COMPLETED);
+            this.appendContent({
+              type: 'analysis',
+              content: result.analysis || result.description || '等待进一步指令',
+              timestamp: Date.now(),
+              isEnd: false
+            });
+            console.log('分析内容已添加，当前消息内容数量:', this.currentTask?.currentMessage?.contents.length);
           }
-      
         }    // 如果命令标记为结束，更新任务状态
-        else if (result.isEnd === "true") {
+        else if (result.isEnd === "true" || result.isEnd === true) {
           this.setState(AgentState.COMPLETED);
           this.updateMessageStatus(AgentResponseStatus.COMPLETED);
           this.appendContent({

@@ -179,6 +179,19 @@
   justify-content: space-between;
   align-items: center;
   margin-top: 8px;
+  gap: 8px;
+}
+
+.button-wrapper .left-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.button-wrapper .right-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .ai-input-container .ant-input {
