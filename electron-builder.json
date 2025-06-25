@@ -102,6 +102,7 @@
   "removePackageScripts": true,
   "nodeGypRebuild": false,
   "buildDependenciesFromSource": false,
+  "npmRebuild": false,
   "asar": {
     "smartUnpack": true,
     "ordering": "dist/main/main.js"

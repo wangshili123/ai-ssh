@@ -17,7 +17,9 @@
     "pack": "npm run build && cross-env NODE_ENV=production ELECTRON_BUILDER_CACHE=node_modules/.cache/electron electron-builder --dir",
     "dist": "npm run build && cross-env NODE_ENV=production ELECTRON_BUILDER_CACHE=node_modules/.cache/electron electron-builder",
     "dist:win": "npm run build && cross-env NODE_ENV=production ELECTRON_BUILDER_CACHE=node_modules/.cache/electron electron-builder --win",
-    "postinstall": "electron-builder install-app-deps",
+    "dist:win:no-rebuild": "npm run build && cross-env NODE_ENV=production ELECTRON_BUILDER_CACHE=node_modules/.cache/electron ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true electron-builder --win",
+    "dist:win:safe": "node scripts/build-win.js",
+    "postinstall": "electron-builder install-app-deps --skip-rebuild",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:startup": "node scripts/test-startup.js"
