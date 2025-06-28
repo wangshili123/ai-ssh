@@ -5,6 +5,7 @@ import { SSHService } from '../../types';
 import { PerformanceManager } from './performance/performanceManager';
 import { NetworkService } from './performance/network/networkService';
 import { NetworkProcessService } from './performance/network/networkProcessService';
+import { CpuProcessService } from './performance/cpuProcessService';
 import { MonitorConfigManager } from '../config/MonitorConfig';
 
 interface SessionStatus {
@@ -314,4 +315,8 @@ export class MonitorManager {
   getNetworkProcessService(): NetworkProcessService {
     return NetworkProcessService.getInstance(this.sshService);
   }
-} 
+
+  getCpuProcessService(): CpuProcessService {
+    return CpuProcessService.getInstance(this.sshService);
+  }
+}

@@ -3,6 +3,7 @@ import { Tabs, Spin } from 'antd';
 import { CpuDetailInfo, MonitorData } from '../../../../../types/monitor/monitor';
 import { CpuBasicInfo } from './CpuBasicInfo';
 import { CpuCores } from './CpuCores';
+import { CpuProcessAnalysis } from './CpuProcessAnalysis';
 import { MonitorManager } from '../../../../../services/monitor/monitorManager';
 
 import './CpuDetailTab.css';
@@ -60,7 +61,15 @@ export const CpuDetail: React.FC<CpuDetailProps> = React.memo(({ cpuInfo, sessio
       label: '逻辑处理器',
       children: renderTabContent(<CpuCores cpuInfo={currentCpuInfo} />, !loadedTabs.has('cores')),
     },
-  ], [currentCpuInfo, loadedTabs]);
+    {
+      key: 'processes',
+      label: '进程分析',
+      children: renderTabContent(
+        <CpuProcessAnalysis cpuInfo={currentCpuInfo} sessionId={sessionId} />,
+        !loadedTabs.has('processes')
+      ),
+    },
+  ], [currentCpuInfo, loadedTabs, sessionId]);
 
   return (
     <div className="cpu-detail">

@@ -32,6 +32,7 @@ export interface CpuDetailInfo extends CpuBasicInfo {
     usage: number;
     speed?: number;
   }>>;
+  processAnalysis?: CpuProcessAnalysis; // CPU进程分析数据
 }
 
 // 内存相关接口
@@ -194,6 +195,36 @@ export interface PerformanceDetailData extends PerformanceBasicData {
 export interface PerformanceData {
   basic: PerformanceBasicData;
   detail?: Partial<PerformanceDetailData>;
+}
+
+// CPU进程分析相关接口
+export interface CpuProcessInfo {
+  pid: number;
+  name: string;
+  command: string;
+  cpuPercent: number;
+  memoryUsed: number;
+  memoryPercent: number;
+  status: 'R' | 'S' | 'D' | 'Z' | 'T' | 'I'; // 运行/睡眠/不可中断/僵尸/停止/空闲
+  startTime: string;
+  user: string;
+  priority: number;
+  nice: number;
+  threads: CpuThreadInfo[];
+}
+
+export interface CpuThreadInfo {
+  tid: number;
+  name: string;
+  cpuPercent: number;
+  status: string;
+}
+
+export interface CpuProcessAnalysis {
+  topProcesses: CpuProcessInfo[];
+  totalProcesses: number;
+  runningProcesses: number;
+  isToolInstalled: boolean;
 }
 
 export interface ProcessData {

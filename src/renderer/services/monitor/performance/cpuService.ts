@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { CpuBasicInfo, CpuDetailInfo } from '../../../types/monitor/monitor';
 import { SSHService } from '../../../types';
+import { CpuProcessService } from './cpuProcessService';
 
 /**
  * CPU数据采集服务
@@ -8,6 +9,7 @@ import { SSHService } from '../../../types';
 export class CpuMetricsService {
   private static instance: CpuMetricsService;
   private sshService: SSHService;
+  private cpuProcessService: CpuProcessService;
   private readonly MAX_HISTORY_POINTS = 60; // 保存60个历史数据点
   private usageHistory: Map<string, CpuDetailInfo['usageHistory']> = new Map();
   private coreUsageHistory: Map<string, CpuDetailInfo['coreUsageHistory']> = new Map();
@@ -17,6 +19,7 @@ export class CpuMetricsService {
 
   private constructor(sshService: SSHService) {
     this.sshService = sshService;
+    this.cpuProcessService = CpuProcessService.getInstance(sshService);
   }
 
   /**
@@ -480,20 +483,29 @@ export class CpuMetricsService {
       };
 
       // 根据活动标签页决定要获取的数据
-      const promises: [Promise<Partial<CpuDetailInfo>>, Promise<{ cores: number[] }>] = [
+      const promises: [
+        Promise<Partial<CpuDetailInfo>>,
+        Promise<{ cores: number[] }>,
+        Promise<any>
+      ] = [
         // 只在 basic 标签页时获取基本信息
-        activeTab === 'basic' 
+        activeTab === 'basic'
           ? this.getCpuInfo(sessionId)
           : Promise.resolve(lastData),
-        
+
         // 只在 cores 标签页时获取核心使用率
         activeTab === 'cores'
           ? this.getCpuUsage(sessionId)
-          : Promise.resolve({ cores: lastData.cores })
+          : Promise.resolve({ cores: lastData.cores }),
+
+        // 只在 processes 标签页时获取进程分析数据
+        activeTab === 'processes'
+          ? this.cpuProcessService.getTopCpuProcesses(sessionId)
+          : Promise.resolve(lastData.processAnalysis)
       ];
 
       // 并行获取数据
-      const [basicInfo, usage] = await Promise.all(promises);
+      const [basicInfo, usage, processAnalysis] = await Promise.all(promises);
 
       const now = Date.now();
 
@@ -542,6 +554,7 @@ export class CpuMetricsService {
         ...lastData,
         ...(activeTab === 'basic' ? basicInfo : {}),
         cores: activeTab === 'cores' ? usage.cores : lastData.cores,
+        processAnalysis: activeTab === 'processes' ? processAnalysis : lastData.processAnalysis,
         usageHistory: currentUsageHistory,
         coreUsageHistory: currentCoreHistory
       };
@@ -579,6 +592,7 @@ export class CpuMetricsService {
    */
   destroy(): void {
     this.lastCpuDetailData.clear();
+    this.cpuProcessService.destroy();
     CpuMetricsService.instance = null as any;
   }
 } 
