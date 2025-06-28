@@ -149,6 +149,7 @@ module.exports = merge(common, {
     'fs': 'commonjs fs',
     'path': 'commonjs path',
     'os': 'commonjs os',
+    'cpu-features': 'commonjs cpu-features',
     'monaco-editor': 'commonjs monaco-editor' // 外部化Monaco Editor
   }
 });

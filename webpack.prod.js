@@ -168,6 +168,7 @@ module.exports = merge(common, {
     'fs': 'commonjs fs',
     'path': 'commonjs path',
     'os': 'commonjs os',
+    'cpu-features': 'commonjs cpu-features',
     'ssh2': 'commonjs ssh2',
     'ssh2-sftp-client': 'commonjs ssh2-sftp-client',
     'tree-sitter': 'commonjs tree-sitter',

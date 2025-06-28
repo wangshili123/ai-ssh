@@ -220,6 +220,7 @@ module.exports = merge(common, {
     'readdirp': 'commonjs readdirp',
     'fs': 'commonjs fs',
     'path': 'commonjs path',
-    'os': 'commonjs os'
+    'os': 'commonjs os',
+    'cpu-features': 'commonjs cpu-features'
   }
 }); 
